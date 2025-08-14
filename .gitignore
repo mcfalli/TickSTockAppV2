@@ -1,0 +1,74 @@
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Flask instance folder
+instance/
+
+# API keys and secrets
+*.pem
+*.key
+credentials.json
+#config.py
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+logs/
+*.log
+*.json
+*.txt
+analysis/
+# Data files
+*.csv
+project_structure.json
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Temporary files
+*.tmp
+.temp/
+test_log.txt
+
+# Migration files - CHECK THESE IN (keep migrations/ folder tracked)
+# migrations/ <-- DO NOT uncomment this line
+# We want to track migration files for team collaboration and deployments
+
+# But ignore Python cache in migrations
+migrations/__pycache__/
+migrations/versions/__pycache__/

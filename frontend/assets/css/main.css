@@ -1,0 +1,294 @@
+/*
+===============================================================================
+TICKSTOCK MAIN CSS ENTRY POINT
+===============================================================================
+
+PURPOSE:
+This is the main CSS file that imports all modular stylesheets in the correct
+order for the TickStock application. This file should be included in HTML
+templates via a <link> tag, and it will load all necessary styles.
+
+LOADING ORDER (CRITICAL):
+1. CSS Variables (Design System Foundation)
+2. CSS Reset & Base Styles
+3. Layout & Grid System
+4. Component Styles (Navbar, Events, Modals)
+5. Utility Classes & Animations
+6. Page-specific Overrides
+
+USAGE IN HTML TEMPLATES:
+Add this single line to your HTML <head> section:
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+MAINTENANCE:
+- Add new component imports in the appropriate section
+- Maintain loading order for proper cascade
+- Document version changes when adding new modules
+- Test thoroughly when reordering imports
+
+PERFORMANCE NOTES:
+- All imports use standard CSS linking (not @import for performance)
+- Files are loaded in parallel by the browser
+- Critical path CSS is loaded first
+- Utility classes loaded last for proper specificity
+
+VERSION: 1.0.0 - Modular CSS Architecture Implementation
+ENTERPRISE STANDARDS: Modern CSS Architecture, Design Tokens, Component-based
+===============================================================================
+*/
+
+/*
+===============================================================================
+CRITICAL PATH STYLES - LOAD FIRST
+===============================================================================
+*/
+
+/* Design System Foundation - CSS Custom Properties */
+@import url('base/variables.css');
+
+/* CSS Reset & Base Element Styling */
+@import url('base/reset.css');
+
+/*
+===============================================================================
+LAYOUT SYSTEMS - STRUCTURAL COMPONENTS
+===============================================================================
+*/
+
+/* Main Application Layout & Grid System */
+@import url('layout/layout.css');
+@import url('layout/grid.css');
+
+/*
+===============================================================================
+UI COMPONENTS - INTERACTIVE ELEMENTS
+===============================================================================
+*/
+
+/* Navigation Bar & Status Indicators */
+@import url('components/navbar.css');
+
+/* User Menu & Dropdown System */
+@import url('components/user-menu.css');
+
+/* Chart.js Gauge Components */
+@import url('components/velocity.css');
+
+/* Chart.js Gauge Components */
+@import url('components/gauges.css');
+
+/* Events System (Highs, Lows, Trends, Surges) */
+@import url('components/events.css');
+
+/* Dashboard & Info Panels */
+@import url('components/dashboard.css');
+
+/* Status Bar & Footer */
+@import url('components/status-bar.css');
+
+/* Modal Dialogs & Overlays */
+@import url('components/modals.css');
+
+/* Filter Modal & Components */
+@import url('components/filters.css');
+
+/* Dialog Manaager */
+@import url('components/dialogs.css');
+/*
+===============================================================================
+UTILITY SYSTEMS - HELPERS & ANIMATIONS
+===============================================================================
+*/
+
+/* Utility Classes & Animation System */
+@import url('utilities/animations.css');
+
+/*
+===============================================================================
+COMPONENT-SPECIFIC IMPORTS FOR FUTURE EXPANSION
+===============================================================================
+*/
+
+/* 
+TODO: Add these as components are extracted from the original style.css:
+
+Dashboard & Info Panels:
+@import url('components/dashboard.css');
+
+Gauge Components:
+@import url('components/gauges.css');
+
+Status Bar (Footer):
+@import url('components/status-bar.css');
+
+Forms & Controls:
+@import url('components/forms.css');
+
+Loading States:
+@import url('components/loading.css');
+
+*/
+
+/*
+===============================================================================
+TEMPORARY COMPATIBILITY LAYER
+===============================================================================
+*/
+
+/*
+MIGRATION NOTE: During the transition period, if any styles are missing
+from the modular system, add them here temporarily. These should be moved
+to appropriate component files in future sprints.
+
+Example:
+.legacy-component {
+  // Temporary styles
+}
+*/
+
+/*
+===============================================================================
+RESPONSIVE DESIGN ORCHESTRATION
+===============================================================================
+*/
+
+/*
+All responsive styles are handled within individual component files
+following mobile-first methodology. No additional responsive imports needed.
+
+Breakpoints (defined in variables.css):
+- Mobile: 480px and below
+- Tablet: 768px and below  
+- Desktop: 1024px and above
+- Large Desktop: 1400px and above
+*/
+
+/*
+===============================================================================
+PRINT STYLES
+===============================================================================
+*/
+
+@media print {
+  /* Print-specific overrides */
+  .navbar,
+  .status-bar,
+  .loading-overlay {
+    display: none !important;
+  }
+  
+  .container {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .main-content {
+    flex-direction: column !important;
+  }
+  
+  .events-list {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
+/*
+===============================================================================
+BROWSER-SPECIFIC FIXES
+===============================================================================
+*/
+
+/* Firefox-specific fixes */
+@-moz-document url-prefix() {
+  .events-list {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-primary) var(--color-background-secondary);
+  }
+}
+
+/* Safari-specific fixes */
+@media not all and (min-resolution:.001dpcm) {
+  @supports (-webkit-appearance:none) {
+    .universe-select-btn {
+      -webkit-appearance: none;
+    }
+  }
+}
+
+/*
+===============================================================================
+DEVELOPMENT & DEBUG HELPERS
+===============================================================================
+*/
+
+/* 
+Uncomment during development to visualize layout boxes:
+
+* {
+  outline: 1px solid red !important;
+}
+
+*/
+
+/*
+===============================================================================
+PERFORMANCE OPTIMIZATIONS
+===============================================================================
+*/
+
+/* Enable hardware acceleration for animations */
+.animate-pulse,
+.animate-flash,
+.animate-spin,
+.spinner {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Optimize repaint areas */
+.events-list {
+  contain: layout style paint;
+}
+
+.modal {
+  contain: layout style paint;
+}
+
+/*
+===============================================================================
+ACCESSIBILITY ENHANCEMENTS
+===============================================================================
+*/
+
+/* Ensure focus indicators are visible */
+*:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Remove focus outline for mouse users */
+.js-focus-visible *:focus:not(.focus-visible) {
+  outline: none;
+}
+
+/*
+===============================================================================
+FUTURE-PROOFING
+===============================================================================
+*/
+
+/*
+CSS Grid Fallbacks:
+Modern browsers support CSS Grid, but flexbox fallbacks are included
+in individual component files for maximum compatibility.
+
+CSS Custom Properties:
+All modern browsers support CSS custom properties. For legacy browser
+support (IE 11), consider using a PostCSS plugin to inline values.
+
+Container Queries:
+When supported, replace media queries with container queries for
+true component-based responsive design.
+*/
+

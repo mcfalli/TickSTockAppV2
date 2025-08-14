@@ -1,0 +1,467 @@
+/* ==========================================================================
+   ACTIVITY VELOCITY DASHBOARD - REDESIGNED L-SHAPED LAYOUT
+   Sprint S39.B - Flipped orientation with enhanced visual indicators
+   ========================================================================== */
+
+/* Main Dashboard Container - L-Shaped Layout */
+.velocity-dashboard {
+    height: 100%;
+    display: flex;
+    padding: var(--spacing-lg);
+    background: var(--color-background-primary);
+    border-radius: var(--border-radius-lg);
+    color: var(--color-text-primary);
+    gap: var(--spacing-xl);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Dashboard Title */
+.velocity-dashboard h5 {
+    position: absolute;
+    top: var(--spacing-md);
+    left: var(--spacing-lg);
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.5px;
+    z-index: 10;
+}
+
+/* ==========================================================================
+   LEFT SECTION - Vertical Velocity Bar
+   ========================================================================== */
+
+.velocity-left-section {
+    width: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: var(--spacing-4xl);
+}
+
+/* Vertical Velocity Bar Container */
+.velocity-bar-vertical-container {
+    flex: 1;
+    width: 60px;
+    position: relative;
+    background: var(--color-background-secondary);
+    border-radius: 30px;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Vertical Fill Bar */
+.velocity-fill-vertical {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(to top,
+        var(--color-success) 0%,
+        #8bc34a 25%,
+        var(--color-warning) 50%,
+        var(--color-warning) 75%,
+        var(--color-error) 100%);
+    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 30px;
+}
+
+/* Speed Lines Effect Container */
+.velocity-speed-lines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.velocity-speed-lines.active {
+    opacity: 1;
+}
+
+/* Individual Speed Line */
+.speed-line {
+    position: absolute;
+    width: 2px;
+    background: linear-gradient(to top,
+        transparent 0%,
+        rgba(255, 255, 255, 0.8) 50%,
+        transparent 100%);
+    animation: speedLineMove 1s linear infinite;
+}
+
+@keyframes speedLineMove {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(-100%);
+    }
+}
+
+/* Generate multiple speed lines */
+.speed-line:nth-child(1) { left: 10%; animation-delay: 0s; height: 30px; }
+.speed-line:nth-child(2) { left: 25%; animation-delay: 0.2s; height: 40px; }
+.speed-line:nth-child(3) { left: 40%; animation-delay: 0.4s; height: 35px; }
+.speed-line:nth-child(4) { left: 60%; animation-delay: 0.6s; height: 45px; }
+.speed-line:nth-child(5) { left: 75%; animation-delay: 0.8s; height: 38px; }
+.speed-line:nth-child(6) { left: 90%; animation-delay: 1s; height: 42px; }
+
+/* Velocity Markers */
+.velocity-markers-vertical {
+    position: absolute;
+    left: -45px;
+    top: 0;
+    height: 100%;
+    width: 40px;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: space-between;
+    padding: 10px 0;
+}
+
+.marker-vertical {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* ==========================================================================
+   RIGHT SECTION - Horizontal Time Window Bars (Moved Up)
+   ========================================================================== */
+
+.velocity-right-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--spacing-lg);
+    padding-top: var(--spacing-3xl);
+    position: relative;
+}
+
+/* Individual Time Window Container */
+.time-window-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    position: relative;
+}
+
+/* Time Window Label */
+.time-window-label {
+    width: 50px;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+    text-align: right;
+}
+
+/* ==========================================================================
+   CENTER SECTION - Trend Indicator (Aligned with time labels)
+   ========================================================================== */
+
+.velocity-center-section {
+    position: absolute;
+    bottom: var(--spacing-xl);
+    left: 0;  /* Align with start of time labels */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    z-index: 5;
+}
+
+/* Main Trend Arrow Container */
+.trend-indicator-main {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-full);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    position: relative;
+    transition: all 0.3s ease;
+    border: 2px solid var(--color-border-secondary);
+}
+
+.trend-indicator-main.pulse {
+    animation: trendPulse 2s ease-in-out infinite;
+}
+
+@keyframes trendPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+    50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); }
+}
+
+/* Trend Arrow */
+.trend-arrow-main {
+    font-size: 28px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.trend-arrow-main.up {
+    color: var(--color-success);
+    transform: rotate(-45deg);
+}
+
+.trend-arrow-main.down {
+    color: var(--color-error);
+    transform: rotate(45deg);
+}
+
+.trend-arrow-main.stable {
+    color: var(--color-text-secondary);
+    transform: rotate(0deg);
+}
+
+/* Trend Label */
+.trend-label-main {
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-secondary);
+    text-align: left;
+}
+
+/* Individual Time Window Container */
+.time-window-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+/* Time Window Label */
+.time-window-label {
+    width: 50px;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+    text-align: right;
+}
+
+/* Horizontal Bar Container */
+.time-bar-container {
+    flex: 1;
+    height: 24px;
+    background: var(--color-background-secondary);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Horizontal Bar Fill */
+.time-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg,
+        var(--color-success) 0%,
+        var(--color-success-light) 100%);
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 12px;
+    position: relative;
+}
+
+/* Shimmer effect for active bars */
+.time-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        transparent 100%);
+    animation: shimmer 2s linear infinite;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.time-bar-fill.active::after {
+    opacity: 1;
+}
+
+/* Surging state - intense activity */
+.time-bar-fill.surging {
+    background: linear-gradient(90deg,
+        var(--color-warning) 0%,
+        var(--color-error) 100%);
+    animation: surgePulse 0.8s ease-in-out infinite;
+}
+
+@keyframes surgePulse {
+    0%, 100% { 
+        filter: brightness(1);
+        transform: scaleY(1);
+    }
+    50% { 
+        filter: brightness(1.2);
+        transform: scaleY(1.05);
+    }
+}
+
+/* Dropping state - low activity */
+.time-bar-fill.dropping {
+    background: linear-gradient(90deg,
+        var(--color-info) 0%,
+        var(--color-primary-dark) 100%);
+    opacity: 0.7;
+}
+
+@keyframes shimmer {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+}
+
+/* Trend Arrow for Each Time Window */
+.time-window-trend {
+    width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-lg);
+    transition: all 0.3s ease;
+}
+
+.time-window-trend.up {
+    color: var(--color-success);
+}
+
+.time-window-trend.down {
+    color: var(--color-error);
+}
+
+.time-window-trend.stable {
+    color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   ACTIVITY LEVEL INDICATOR
+   ========================================================================== */
+
+.activity-level-indicator {
+    position: absolute;
+    bottom: var(--spacing-lg);
+    right: var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--border-radius-xl);
+    background: var(--color-background-secondary);
+    transition: all 0.3s ease;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: var(--font-size-xs);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.activity-level-indicator.extreme {
+    background: var(--color-error);
+    color: white;
+    animation: levelPulse 1s infinite;
+}
+
+.activity-level-indicator.very-high {
+    background: var(--color-warning);
+    color: white;
+}
+
+.activity-level-indicator.high {
+    background: var(--color-warning-light);
+    color: var(--color-text-primary);
+}
+
+.activity-level-indicator.medium {
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+}
+
+.activity-level-indicator.low {
+    background: var(--color-background-secondary);
+    color: var(--color-text-muted);
+}
+
+@keyframes levelPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.9; transform: scale(1.05); }
+}
+
+/* ==========================================================================
+   TOOLTIPS
+   ========================================================================== */
+
+.velocity-tooltip {
+    position: absolute;
+    background: var(--color-background-dark);
+    color: var(--color-text-white);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.velocity-tooltip.show {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   RESPONSIVE ADJUSTMENTS (Desktop-first as requested)
+   ========================================================================== */
+
+/* Compact mode for smaller desktop screens */
+@media (max-width: 1400px) {
+    .velocity-dashboard {
+        gap: var(--spacing-lg);
+    }
+    
+    .velocity-left-section {
+        width: 100px;
+    }
+    
+    .velocity-bar-vertical-container {
+        width: 50px;
+    }
+    
+    .trend-indicator-main {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .trend-arrow-main {
+        font-size: 30px;
+    }
+}
+
+/* ==========================================================================
+   DARK MODE ADJUSTMENTS
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+    .velocity-dashboard {
+        background: var(--color-background-dark);
+    }
+    
+    .velocity-bar-vertical-container,
+    .time-bar-container {
+        background: rgba(0, 0, 0, 0.3);
+    }
+    
+    .trend-indicator-main {
+        background: rgba(0, 0, 0, 0.3);
+    }
+}
