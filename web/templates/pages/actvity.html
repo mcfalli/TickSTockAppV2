@@ -1,0 +1,38 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Activity Grid</title>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div id="grid"></div>
+    <script>
+        var socket = io();
+        
+        socket.on('update_grid', function(data) {
+            // Update the grid with new data
+            var trace1 = {
+                x: data.new_highs,
+                y: Array(data.new_highs.length).fill(1),
+                mode: 'markers',
+                type: 'scatter',
+                name: 'New Highs'
+            };
+            var trace2 = {
+                x: data.new_lows,
+                y: Array(data.new_lows.length).fill(2),
+                mode: 'markers',
+                type: 'scatter',
+                name: 'New Lows'
+            };
+            var layout = {
+                title: 'Activity Grid',
+                xaxis: {title: 'Value'},
+                yaxis: {title: ''}
+            };
+            Plotly.newPlot('grid', [trace1, trace2], layout);
+        });
+    </script>
+</body>
+</html>

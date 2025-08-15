@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TickStock Account Temporarily Locked</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4caf50; color: white; padding: 10px; text-align: center; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { text-align: center; font-size: 0.8em; color: #666; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>TickStock Account Temporarily Locked</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ email }},</p>
+            <p>Your TickStock account has been temporarily locked due to multiple failed login attempts. The lockout will last for {{ lockout_duration }} minutes.</p>
+            <p>Please try logging in again after the lockout period, or contact support at <a href="mailto:{{ support_email }}">{{ support_email }}</a> if you need assistance.</p>
+            <p>Thank you,<br>The TickStock Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2025 TickStock. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

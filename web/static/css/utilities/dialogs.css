@@ -1,0 +1,22 @@
+/* Dialog Styles for TickStock */
+.tickstock-swal-popup {
+    font-family: 'Arial', sans-serif;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tickstock-btn-primary {
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.tickstock-btn-secondary {
+    background-color: #6c757d;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-size: 16px;
+}

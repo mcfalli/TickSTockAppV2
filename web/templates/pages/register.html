@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register - TickStock</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+    <script src="{{ url_for('static', filename='js/libphonenumber-min.js') }}"></script>
+</head>
+<body>
+    <div class="navbar">
+        <h1>TickStock</h1>
+        <div class="navbar-right">
+            <span class="support-email">support@tickstock.com</span>
+        </div>
+    </div>
+    <div class="container">
+        <div class="auth-panel">
+            <h2>Register for TickStock Premium</h2>
+            <p>Join TickStock Premium for real-time market analytics and advanced trading insights.</p>
+            
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <ul class="flash-messages">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                {{ form.hidden_tag() }}
+                
+                <fieldset>
+                    <legend>Personal Information</legend>
+                    <div class="form-group">
+                        <label for="first_name" class="form-label">{{ form.first_name.label.text }} <span class="required">*</span></label>
+                        {{ form.first_name(class="form-control") }}
+                        {% if form.first_name.errors %}
+                            <div class="error">
+                                {% for error in form.first_name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="last_name" class="form-label">{{ form.last_name.label.text }} <span class="required">*</span></label>
+                        {{ form.last_name(class="form-control") }}
+                        {% if form.last_name.errors %}
+                            <div class="error">
+                                {% for error in form.last_name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="username" class="form-label">{{ form.username.label.text }} <span class="required">*</span></label>
+                        {{ form.username(class="form-control") }}
+                        {% if form.username.errors %}
+                            <div class="error">
+                                {% for error in form.username.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="email" class="form-label">{{ form.email.label.text }} <span class="required">*</span></label>
+                        {{ form.email(class="form-control") }}
+                        {% if form.email.errors %}
+                            <div class="error">
+                                {% for error in form.email.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Contact Information</legend>
+                    <div class="form-group">
+                        <label for="phone" class="form-label">{{ form.phone.label.text }} <span class="required">*</span></label>
+                        {{ form.phone(class="form-control", type="tel", placeholder="+1 555-865-5656") }}
+                        {% if form.phone.errors %}
+                            <div class="error">
+                                {% for error in form.phone.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Account Security</legend>
+                    <div class="form-group">
+                        <label for="password" class="form-label">{{ form.password.label.text }} <span class="required">*</span></label>
+                        {{ form.password(class="form-control") }}
+                        {% if form.password.errors %}
+                            <div class="error">
+                                {% for error in form.password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password" class="form-label">{{ form.confirm_password.label.text }} <span class="required">*</span></label>
+                        {{ form.confirm_password(class="form-control") }}
+                        {% if form.confirm_password.errors %}
+                            <div class="error">
+                                {% for error in form.confirm_password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Subscription & Payment</legend>
+                    <div class="form-group">
+                        <div class="subscription-info">
+                            <h4>TickStock Premium Features</h4>
+                            <ul class="subscription-features">
+                                <li>Real-time market analytics</li>
+                                <li>Premium stock alerts</li>
+                                <li>Comprehensive market reports</li>
+                                <li>Priority customer support</li>
+                                <li>Advanced filtering options</li>
+                            </ul>
+                            <div class="subscription-price">
+                                <strong>$29.99/month</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                {{ form.subscription }} Subscribe to TickStock Premium <span class="required">*</span>
+                            </label>
+                            {% if form.subscription.errors %}
+                                <div class="error">
+                                    {% for error in form.subscription.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Billing Address</legend>
+                    <div class="form-group">
+                        <label for="address_line1" class="form-label">{{ form.address_line1.label.text }} <span class="required">*</span></label>
+                        {{ form.address_line1(class="form-control") }}
+                        {% if form.address_line1.errors %}
+                            <div class="error">
+                                {% for error in form.address_line1.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="address_line2" class="form-label">{{ form.address_line2.label.text }}</label>
+                        {{ form.address_line2(class="form-control") }}
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="city" class="form-label">{{ form.city.label.text }} <span class="required">*</span></label>
+                            {{ form.city(class="form-control") }}
+                            {% if form.city.errors %}
+                                <div class="error">
+                                    {% for error in form.city.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="state_province" class="form-label">{{ form.state_province.label.text }}</label>
+                            {{ form.state_province(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="postal_code" class="form-label">{{ form.postal_code.label.text }} <span class="required">*</span></label>
+                            {{ form.postal_code(class="form-control") }}
+                            {% if form.postal_code.errors %}
+                                <div class="error">
+                                    {% for error in form.postal_code.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="country" class="form-label">{{ form.country.label.text }} <span class="required">*</span></label>
+                            {{ form.country(class="form-control") }}
+                            {% if form.country.errors %}
+                                <div class="error">
+                                    {% for error in form.country.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Payment Information</legend>
+                    <div class="form-group">
+                        <label for="card_number" class="form-label">{{ form.card_number.label.text }} <span class="required">*</span></label>
+                        {{ form.card_number(class="form-control", placeholder="1234 5678 9012 3456", maxlength="23") }}
+                        {% if form.card_number.errors %}
+                            <div class="error">
+                                {% for error in form.card_number.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expiry" class="form-label">{{ form.expiry.label.text }} <span class="required">*</span></label>
+                            {{ form.expiry(class="form-control", placeholder="MM/YY", maxlength="5") }}
+                            {% if form.expiry.errors %}
+                                <div class="error">
+                                    {% for error in form.expiry.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="cvv" class="form-label">{{ form.cvv.label.text }} <span class="required">*</span></label>
+                            {{ form.cvv(class="form-control", placeholder="123", maxlength="4") }}
+                            {% if form.cvv.errors %}
+                                <div class="error">
+                                    {% for error in form.cvv.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Terms & Verification</legend>
+                    <div class="form-group">
+                        <label class="terms-checkbox">
+                            {{ form.terms_accepted }}
+                            I accept the <a href="/terms" target="_blank">Terms and Conditions</a> <span class="required">*</span>
+                        </label>
+                        {% if form.terms_accepted.errors %}
+                            <div class="error">
+                                {% for error in form.terms_accepted.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>{{ form.captcha_response }} I am not a robot (stub) <span class="required">*</span></label>
+                        {% if form.captcha_response.errors %}
+                            <div class="error">
+                                {% for error in form.captcha_response.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </fieldset>
+
+                {{ form.fingerprint_data() }}
+                
+                {{ form.submit(class="btn btn-primary") }}
+            </form>
+            
+            <p style="margin-top: 20px; text-align: center;">
+                Already have an account? <a href="{{ url_for('login') }}">Login</a>
+            </p>
+        </div>
+    </div>
+    <div class="status-bar">
+        <div class="status-bar-left">
+            <small>© 2025 TickStock</small>
+        </div>
+    </div>
+
+    <script>
+        // Check if libphonenumber is loaded
+        function isLibphonenumberLoaded() {
+            return typeof libphonenumber !== 'undefined' && typeof libphonenumber.parsePhoneNumber === 'function';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const DEBUG = false; // Set to false for production
+
+            // FingerprintJS for device tracking
+            FingerprintJS.load().then(fp => {
+                fp.get().then(result => {
+                    const fingerprintData = {
+                        visitorId: result.visitorId,
+                        os: result.components.os ? result.components.os.value : 'unknown',
+                        browser: result.components.browser ? result.components.browser.value : 'unknown',
+                        screen_resolution: `${window.screen.width}x${window.screen.height}`,
+                        canvas: result.components.canvas ? result.components.canvas.value : 'unknown',
+                        fonts: result.components.fonts ? result.components.fonts.value : [],
+                        plugins: result.components.plugins ? result.components.plugins.value : [],
+                        timezone: result.components.timezone ? result.components.timezone.value : 'unknown'
+                    };
+                    document.getElementById('fingerprint_data').value = JSON.stringify(fingerprintData);
+                    if (DEBUG) console.log('Fingerprint data:', fingerprintData);
+                });
+            });
+
+            // Format card number input
+            const cardNumberInput = document.getElementById('card_number');
+            if (cardNumberInput) {
+                cardNumberInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                    let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+                    e.target.value = formattedValue;
+                });
+            }
+
+            // Format expiry input
+            const expiryInput = document.getElementById('expiry');
+            if (expiryInput) {
+                expiryInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length >= 2) {
+                        value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                    }
+                    e.target.value = value;
+                });
+            }
+
+            // Restrict CVV to numbers only
+            const cvvInput = document.getElementById('cvv');
+            if (cvvInput) {
+                cvvInput.addEventListener('input', function(e) {
+                    e.target.value = e.target.value.replace(/\D/g, '');
+                });
+            }
+
+            // Phone number formatting (simplified)
+            const phoneInput = document.getElementById('phone');
+            if (phoneInput && isLibphonenumberLoaded()) {
+                phoneInput.addEventListener('input', function(e) {
+                    let value = e.target.value.trim();
+                    const digitsOnly = value.replace(/[^\d]/g, '');
+                    
+                    // Only format complete US numbers (10 digits)
+                    if (digitsOnly.length === 10) {
+                        try {
+                            let phoneNumber = libphonenumber.parsePhoneNumber(`+1${digitsOnly}`, 'US');
+                            if (phoneNumber && phoneNumber.isValid()) {
+                                e.target.value = phoneNumber.formatInternational();
+                            }
+                        } catch (error) {
+                            // Keep original input if parsing fails
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+    <style>
+        /* Additional styles specific to registration */
+        fieldset {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        legend {
+            font-weight: bold;
+            padding: 0 10px;
+            color: #333;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .required {
+            color: #c62828;
+        }
+
+        .subscription-info {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .subscription-features {
+            list-style-type: none;
+            padding-left: 0;
+            margin: 10px 0;
+        }
+
+        .subscription-features li {
+            margin-bottom: 5px;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .subscription-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .subscription-price {
+            text-align: center;
+            font-size: 1.2em;
+            color: #4caf50;
+            margin-top: 10px;
+        }
+
+        .error {
+            color: #c62828;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+    </style>
+</body>
+</html>

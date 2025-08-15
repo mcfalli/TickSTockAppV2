@@ -1,0 +1,811 @@
+/*
+===============================================================================
+TICKSTOCK LAYOUT.CSS - COMPLETE VERSION WITH GRID-STACK INTEGRATION
+===============================================================================
+
+PURPOSE:
+Consolidated layout system for TickStock application, integrating Grid-Stack.js
+for dynamic content arrangement. Includes main content structure, header layout,
+and responsive behavior, ensuring a seamless experience across devices.
+
+COMPONENTS:
+- Main application container
+- Header layout with left/right justified sections
+- Grid-Stack core overrides and specific item styling
+- Dragging, resizing, and placeholder states for Grid-Stack
+- Edit mode and loading state for Grid-Stack
+- Grid-Stack toolbar for interactive controls
+- Specific content adjustments for elements within Grid-Stack items (gauges, lists)
+- Responsive breakpoints for mobile, tablet, and desktop views
+- Accessibility enhancements (focus, high contrast, reduced motion)
+
+VERSION: 3.0.0 - Grid-Stack Integrated
+===============================================================================
+*/
+
+/*
+===============================================================================
+MAIN APPLICATION CONTAINER
+===============================================================================
+*/
+
+.container {
+    width: 100%;
+    max-width: none;
+    padding: var(--spacing-md, 16px);
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+/*
+===============================================================================
+MAIN CONTENT - STACKED LAYOUT (Managed by Grid-Stack)
+===============================================================================
+*/
+
+.main-content-stacked {
+    box-sizing: border-box;
+    /* GridStack will manage display, flex-direction, gap, width, and padding. */
+}
+
+/*
+===============================================================================
+GRID-STACK CORE OVERRIDES & SETUP
+===============================================================================
+*/
+
+/* Main grid container */
+.grid-stack {
+    position: relative;
+    /* Remove any conflicting styles from .main-content-stacked */
+}
+
+/* Grid items - enhance existing .grid-stack-item */
+.grid-stack-item {
+    position: absolute !important; /* Grid-stack requirement */
+    background-color: var(--color-background-primary, #ffffff);
+    border: 1px solid var(--color-border-primary, #e0e0e0);
+    border-radius: var(--border-radius-lg, 8px);
+    box-shadow: var(--shadow-md, 0 2px 4px rgba(0,0,0,0.1));
+    overflow: hidden; /* Keep, for content within the item */
+    /* GridStack will control width, height, position, and margins. */
+    /* Any padding should be on .grid-stack-item-content or its children. */
+}
+
+/* Grid item content wrapper - REQUIRED by grid-stack */
+.grid-stack-item-content {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+    padding: 0; /* Padding should be on inner elements */
+}
+
+/* Handle for dragging - add to each grid item header */
+.grid-item-handle {
+    cursor: move;
+    background: var(--color-background-secondary, #f8f9fa);
+    padding: var(--spacing-xs, 8px);
+    border-bottom: 1px solid var(--color-border-secondary, #e0e0e0);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.grid-item-handle:hover {
+    background: var(--color-background-tertiary, #e9ecef);
+}
+
+/* Grid item title in handle */
+.grid-item-title {
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: var(--font-weight-medium, 500);
+    color: var(--color-text-primary, #333);
+    user-select: none;
+}
+
+/* Lock/unlock icon */
+.grid-item-lock {
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.grid-item-lock:hover {
+    opacity: 1;
+}
+
+/*
+===============================================================================
+GRID-STACK DRAGGING & RESIZING STATES
+===============================================================================
+*/
+
+/* While dragging */
+.grid-stack-item.ui-draggable-dragging {
+    z-index: 100 !important;
+    opacity: 0.8;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    transition: none !important;
+}
+
+/* While resizing */
+.grid-stack-item.ui-resizable-resizing {
+    z-index: 100 !important;
+    transition: none !important;
+}
+
+/* Placeholder shown during drag */
+.grid-stack-placeholder {
+    background: var(--color-background-secondary, #f8f9fa);
+    border: 2px dashed var(--color-primary, #4caf50);
+    border-radius: var(--border-radius-lg, 8px);
+    z-index: 0 !important;
+}
+
+.grid-stack-placeholder .placeholder-content {
+    display: none; /* Hide content in placeholder */
+}
+
+/* Resize handles */
+.ui-resizable-handle {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.grid-stack-item:hover .ui-resizable-handle {
+    opacity: 1;
+}
+
+.ui-resizable-se {
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    cursor: se-resize;
+    background: linear-gradient(135deg, transparent 50%, var(--color-border-secondary, #e0e0e0) 50%);
+}
+
+/*
+===============================================================================
+GRID-STACK SPECIFIC CONTENT ADJUSTMENTS
+===============================================================================
+*/
+
+/* Gauges in grid-stack need specific handling */
+.grid-stack-item .gauge-container {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: var(--spacing-md, 16px);
+    box-sizing: border-box;
+}
+
+/* Event lists need height management */
+.grid-stack-item .events-list {
+    /*height: calc(100% - 80px);  */
+    overflow-y: auto;
+}
+
+/* Percentage bar needs full width */
+.grid-stack-item .percentage-bars {
+    width: 100%;
+    padding: var(--spacing-md, 16px);
+    box-sizing: border-box;
+}
+
+/* Two gauges side by side need special handling */
+.grid-stack-item.gauge-pair .grid-stack-item-content {
+    display: flex;
+    gap: var(--spacing-md, 16px);
+    padding: var(--spacing-md, 16px);
+}
+
+.grid-stack-item.gauge-pair .gauge-container {
+    flex: 1;
+    padding: 0;
+}
+
+/* Debug dashboard needs min height */
+.grid-stack-item:has(#market-dashboard) {
+    min-height: 200px;
+}
+
+/* Trend and surges */
+.grid-stack-item .trends-surges {
+    min-height: 0; /* Ensures flexbox doesn't collapse it, allowing it to stretch. */
+    max-height: none; /* Explicitly remove the cap. */
+    /* Ensure it also acts as a flex container to allow its children to grow */
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Important for its children to use flex:1 */
+    overflow: hidden; /* To contain its scrolling children */
+}
+
+/*
+===============================================================================
+GRID-STACK EDIT MODE & LOADING STATE
+===============================================================================
+*/
+
+/* Edit mode indicator */
+.grid-stack.grid-edit-mode {
+    border: 2px dashed var(--color-warning, #ff9800);
+    padding: var(--spacing-sm, 8px);
+    background: rgba(255, 152, 0, 0.05);
+}
+
+.grid-stack.grid-edit-mode .grid-stack-item {
+    cursor: move;
+}
+
+/* Lock mode */
+.grid-stack.grid-locked .grid-item-handle {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.grid-stack.grid-locked .ui-resizable-handle {
+    display: none !important;
+}
+
+/* Loading state */
+.grid-stack.loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.grid-stack.loading::after {
+    content: 'Loading grid configuration...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--color-background-primary, #fff);
+    padding: var(--spacing-lg, 20px);
+    border-radius: var(--border-radius-md, 6px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/*
+===============================================================================
+GRID-STACK ANIMATIONS
+===============================================================================
+*/
+
+/* Smooth transitions when not dragging */
+.grid-stack-item:not(.ui-draggable-dragging):not(.ui-resizable-resizing) {
+    transition: left 0.3s, top 0.3s, width 0.3s, height 0.3s;
+}
+
+/* Animate adding new items */
+@keyframes gridItemAdd {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.grid-stack-item.grid-stack-item-adding {
+    animation: gridItemAdd 0.3s ease-out;
+}
+
+/*
+===============================================================================
+GRID-STACK TOOLBAR (for edit controls)
+===============================================================================
+
+/* Grid edit mode visual feedback */
+.grid-stack.grid-edit-mode .grid-stack-item {
+    border: 2px dashed rgba(59, 130, 246, 0.5);
+    background-color: rgba(59, 130, 246, 0.05);
+    transition: all 0.3s ease;
+}
+
+.grid-stack.grid-edit-mode .grid-stack-item:hover {
+    border-color: var(--color-primary);
+    background-color: rgba(59, 130, 246, 0.1);
+    cursor: move;
+}
+
+.grid-stack.grid-edit-mode .ui-resizable-handle {
+    background-color: var(--color-primary);
+    opacity: 1;
+}
+
+/* Edit mode visual indicator */
+.grid-stack.grid-edit-mode .grid-stack-item {
+    border: 2px dashed #007bff;
+}
+
+/* Active edit button */
+#grid-edit-btn.active {
+    background-color: #28a745;
+}
+
+/*
+===============================================================================
+HEADER LAYOUT SYSTEM
+===============================================================================
+*/
+
+.layout-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background-color: var(--color-background-primary, #ffffff);
+    border: 1px solid var(--color-border-primary, #e0e0e0);
+    border-radius: var(--border-radius-lg, 8px);
+    margin-bottom: var(--spacing-md, 16px);
+    padding: 0 var(--spacing-xl, 24px);
+    box-sizing: border-box;
+    box-shadow: var(--shadow-md, 0 2px 4px rgba(0,0,0,0.1));
+}
+
+.layout-header .header-right {
+    border-left: none !important;
+    border: none !important;
+}
+
+/* Left Side - UI Help Section */
+.header-left {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* LEFT justification */
+}
+
+.header-left .header-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Left-align text */
+    border: none !important;
+    border-left: none !important;
+    padding: 0;
+}
+
+.header-left .header-section h4 {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-primary, #333);
+    font-weight: var(--font-weight-medium, 500);
+    text-align: left;
+}
+
+/* Right Side - Universe + Filters Group */
+.header-right {
+    flex: 0 0 auto;
+    display: flex !important;
+    flex-direction: row !important; /* Force horizontal layout */
+    align-items: center;
+    justify-content: flex-end; /* RIGHT justification */
+    gap: var(--spacing-xl, 24px); /* Space between sections */
+    min-width: 480px;
+    flex-wrap: nowrap !important; /* Prevent stacking */
+    border-left: none !important;
+    border: none !important;
+}
+
+/* Universe Selection Section */
+.header-universe-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* CENTER content within section */
+    min-width: 220px;
+    flex-shrink: 0;
+    border: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    padding: 0;
+}
+
+.header-universe-section h4 {
+    margin: 0 0 var(--spacing-xs, 6px) 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-primary, #333);
+    font-weight: var(--font-weight-medium, 500);
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* User Filters Section */
+.header-filters-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* CENTER content within section */
+    min-width: 180px;
+    flex-shrink: 0;
+    border: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    padding: 0;
+}
+
+.header-filters-section h4 {
+    margin: 0 0 var(--spacing-xs, 6px) 0;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-primary, #333);
+    font-weight: var(--font-weight-medium, 500);
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Button Styling */
+.universe-select-btn,
+.filter-select-btn {
+    background: var(--color-background-secondary, #f8f9fa);
+    border: 1px solid var(--color-border-primary, #e0e0e0);
+    border-radius: var(--border-radius-md, 6px);
+    padding: var(--spacing-sm, 10px) var(--spacing-md, 16px);
+    cursor: pointer;
+    transition: all var(--duration-fast, 0.15s) var(--easing-ease, ease);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs, 6px);
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-primary, #333);
+    white-space: nowrap;
+    justify-content: center;
+    height: 36px;
+    box-sizing: border-box;
+}
+
+.universe-select-btn {
+    min-width: 200px;
+    max-width: 220px;
+}
+
+.filter-select-btn {
+    min-width: 160px;
+    max-width: 180px;
+}
+
+.universe-select-btn:hover,
+.filter-select-btn:hover {
+    background: var(--color-background-hover, #e9ecef);
+    border-color: var(--color-primary, #4caf50);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.universe-select-btn:focus,
+.filter-select-btn:focus {
+    outline: 2px solid var(--color-primary, #4caf50);
+    outline-offset: 2px;
+}
+
+.universe-select-btn .btn-icon,
+.filter-select-btn .btn-icon {
+    font-size: var(--font-size-base, 1rem);
+    flex-shrink: 0;
+}
+
+.universe-select-btn .current-selection {
+    font-weight: var(--font-weight-medium, 500);
+    color: var(--color-primary, #4caf50);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.filter-select-btn .current-filters {
+    font-weight: var(--font-weight-medium, 500);
+    color: var(--color-text-secondary, #666);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/*
+===============================================================================
+SETTINGS BAR (Note: Original was `display: none !important;`)
+===============================================================================
+*/
+
+.settings-bar {
+    display: none !important; /* Kept as per original layout.css */
+}
+
+.settings-container {
+    display: flex;
+    gap: var(--spacing-lg, 20px);
+    align-items: center;
+    max-width: var(--breakpoint-xl, 1200px);
+    margin: 0 auto;
+}
+
+.settings-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    background-color: var(--color-background-primary, #ffffff);
+    border: 1px solid var(--color-border-secondary, #e0e0e0);
+    border-radius: var(--border-radius-md, 6px);
+    cursor: pointer;
+    transition: all var(--duration-fast, 0.15s) ease;
+    font-size: var(--font-size-sm, 0.875rem);
+    color: var(--color-text-primary, #333);
+    font-family: inherit;
+}
+
+.settings-btn:hover {
+    background-color: var(--color-background-hover, #e9ecef);
+    border-color: var(--color-primary, #4caf50);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.settings-btn:focus {
+    outline: 2px solid var(--color-primary, #4caf50);
+    outline-offset: 2px;
+}
+
+.settings-btn:active {
+    transform: translateY(1px);
+}
+
+.settings-icon {
+    font-size: var(--font-size-base, 1rem);
+    line-height: 1;
+    opacity: 0.7;
+}
+
+.settings-text {
+    font-weight: var(--font-weight-medium, 500);
+}
+
+/*
+===============================================================================
+RESPONSIVE BEHAVIOR
+===============================================================================
+*/
+
+/* Disable grid on mobile and adjust header */
+@media (max-width: 768px) {
+    .grid-stack {
+        height: auto !important;
+    }
+    
+    .grid-stack-item {
+        position: relative !important;
+        width: 100% !important;
+        height: auto !important;
+        left: auto !important;
+        top: auto !important;
+        margin-bottom: var(--spacing-md, 16px);
+        border-radius: var(--border-radius-md, 6px); /* Keep visual style */
+    }
+    
+    .grid-stack-item-content {
+        position: relative !important;
+        height: auto !important;
+    }
+    
+    /* Hide drag handles on mobile */
+    .grid-item-handle {
+        cursor: default;
+    }
+    
+    /* Hide resize handles on mobile */
+    .ui-resizable-handle {
+        display: none !important;
+    }
+
+    .layout-header {
+        flex-direction: column;
+        height: auto !important;
+        min-height: 120px !important;
+        max-height: none !important;
+        padding: var(--spacing-md, 16px);
+        gap: var(--spacing-md, 16px);
+    }
+
+    .header-left {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .header-right {
+        width: 100%;
+        min-width: auto;
+        gap: var(--spacing-lg, 20px);
+        justify-content: center;
+        flex-direction: row !important; /* Keep buttons side by side on mobile */
+    }
+
+    .header-universe-section,
+    .header-filters-section {
+        align-items: center;
+        min-width: auto;
+    }
+
+    .header-universe-section h4,
+    .header-filters-section h4 {
+        font-size: 0.85rem;
+        text-align: center;
+    }
+
+    .universe-select-btn,
+    .filter-select-btn {
+        min-width: 160px;
+        max-width: 180px;
+    }
+
+    .settings-container {
+        flex-direction: column;
+        gap: var(--spacing-sm, 12px);
+        align-items: stretch;
+    }
+
+    .settings-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Small Mobile (480px and below) specific adjustments */
+@media (max-width: 480px) {
+    .grid-stack-item {
+        border-radius: var(--border-radius-sm, 4px); /* Keep visual style */
+    }
+
+    .layout-header {
+        display: none !important; /* Keep as it's outside GridStack area */
+    }
+
+    .header-right {
+        flex-direction: column !important; /* Keep as it's outside GridStack area */
+        gap: var(--spacing-md, 16px);
+        align-items: center;
+        width: 100%;
+        min-width: auto;
+        justify-content: center;
+    }
+
+    .universe-select-btn,
+    .filter-select-btn {
+        width: 100%;
+        max-width: 280px;
+        min-width: 200px;
+        justify-content: center;
+    }
+
+    .header-universe-section,
+    .header-filters-section {
+        width: 100%;
+        max-width: 280px;
+        align-items: center;
+        min-width: auto;
+    }
+
+    .header-universe-section h4,
+    .header-filters-section h4 {
+        font-size: 0.85rem;
+        text-align: center;
+    }
+
+    .settings-btn {
+        padding: var(--spacing-xs, 6px) var(--spacing-sm, 12px);
+        font-size: var(--font-size-xs, 0.75rem);
+    }
+
+    .settings-icon {
+        font-size: var(--font-size-sm, 0.875rem);
+    }
+}
+
+
+/* Tablet (max-width: 1024px) */
+@media (max-width: 1024px) {
+    .layout-header {
+        padding: 0 var(--spacing-lg, 20px);
+    }
+
+    .header-right {
+        min-width: 420px;
+        gap: var(--spacing-lg, 20px);
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .header-universe-section {
+        min-width: 200px;
+    }
+
+    .header-filters-section {
+        min-width: 160px;
+    }
+
+    .universe-select-btn {
+        min-width: 180px;
+        max-width: 200px;
+        font-size: 0.8rem;
+        padding: var(--spacing-xs, 8px) var(--spacing-sm, 12px);
+        height: 34px;
+    }
+
+    .filter-select-btn {
+        min-width: 140px;
+        max-width: 160px;
+        font-size: 0.8rem;
+        padding: var(--spacing-xs, 8px) var(--spacing-sm, 12px);
+        height: 34px;
+    }
+
+    .header-universe-section h4,
+    .header-filters-section h4 {
+        font-size: 0.8rem;
+    }
+}
+
+/* Desktop (1024px to 1399px) - Standard spacing */
+@media (min-width: 1024px) and (max-width: 1399px) {
+    .header-right {
+        min-width: 480px;
+        gap: var(--spacing-xl, 24px);
+    }
+}
+
+/* Large Desktop (1400px+) - Extra spacing */
+@media (min-width: 1400px) {
+    .header-right {
+        min-width: 520px;
+        gap: var(--spacing-2xl, 32px);
+    }
+
+    .universe-select-btn,
+    .filter-select-btn {
+        min-width: 240px;
+        max-width: 260px;
+    }
+}
+
+/*
+===============================================================================
+ACCESSIBILITY ENHANCEMENTS
+===============================================================================
+*/
+
+/* Focus management for keyboard navigation */
+.universe-select-btn:focus-visible,
+.filter-select-btn:focus-visible {
+    outline: 3px solid var(--color-primary, #4caf50);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.2);
+}
+
+/* High contrast support */
+@media (prefers-contrast: high) {
+    .universe-select-btn,
+    .filter-select-btn {
+        border: 2px solid var(--color-text-primary, #333);
+    }
+
+    .universe-select-btn:hover,
+    .filter-select-btn:hover {
+        border-color: var(--color-primary, #4caf50);
+        background: var(--color-primary, #4caf50);
+        color: var(--color-text-white, #ffffff);
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .universe-select-btn,
+    .filter-select-btn {
+        transition: none;
+    }
+
+    .universe-select-btn:hover,
+    .filter-select-btn:hover {
+        transform: none;
+    }
+}

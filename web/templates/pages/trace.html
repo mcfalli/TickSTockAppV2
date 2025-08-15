@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TickStock Debug Tracer</title>
+    <!-- Add CSRF token to meta tag -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a0a;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1, h2 {
+            color: #00d4ff;
+        }
+        
+        .status-card {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .status-enabled {
+            color: #00ff00;
+            font-weight: bold;
+        }
+        
+        .status-disabled {
+            color: #ff6666;
+            font-weight: bold;
+        }
+        
+        .control-panel {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00d4ff;
+        }
+        
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #00d4ff;
+            color: #000;
+        }
+        
+        .btn-primary:hover {
+            background-color: #00a0cc;
+        }
+        
+        .btn-danger {
+            background-color: #ff4444;
+            color: #fff;
+        }
+        
+        .btn-danger:hover {
+            background-color: #cc0000;
+        }
+        
+        .btn-secondary {
+            background-color: #666;
+            color: #fff;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #888;
+        }
+        
+        .traces-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .trace-card {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .trace-card h3 {
+            margin-top: 0;
+            color: #00d4ff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .ticker-symbol {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 4px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .metric-label {
+            color: #888;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+        
+        .event-counts {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .event-count {
+            background-color: #2a2a2a;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .event-type {
+            font-size: 0.9em;
+            color: #888;
+        }
+        
+        .event-number {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .export-files {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .file-item:hover {
+            background-color: #2a2a2a;
+        }
+        
+        .alert {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background-color: #1a4d1a;
+            border: 1px solid #2d6b2d;
+            color: #90ee90;
+        }
+        
+        .alert-error {
+            background-color: #4d1a1a;
+            border: 1px solid #6b2d2d;
+            color: #ff9090;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #888;
+            padding: 20px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            text-decoration: none;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .ticker-input-hint {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .tracing-active {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Dashboard</a>
+        
+        <h1>Debug Tracer Control Panel</h1>
+        
+        <div id="alert-container"></div>
+        
+        <!-- Status Card -->
+        <div class="status-card">
+            <h2>Current Status</h2>
+            <div id="trace-status">
+                <div class="loading">Loading status...</div>
+            </div>
+        </div>
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2>Trace Configuration</h2>
+            <form id="trace-form">
+                <div class="form-group">
+                    <label for="trace-tickers">Tickers to Trace</label>
+                    <input type="text" id="trace-tickers" placeholder="AAPL,TSLA,NVDA" value="{{ config.TRACE_TICKERS|join(',') if config.TRACE_TICKERS else '' }}">
+                    <div class="ticker-input-hint">Enter comma-separated ticker symbols (e.g., AAPL,TSLA,NVDA)</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="trace-level">Trace Level</label>
+                    <select id="trace-level">
+                        <option value="CRITICAL">Critical - Major events only</option>
+                        <option value="NORMAL" selected>Normal - Standard flow</option>
+                        <option value="VERBOSE">Verbose - Everything</option>
+                    </select>
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" class="btn-primary" onclick="enableTrace()">Enable Tracing</button>
+                    <button type="button" class="btn-primary" onclick="exportAllTrace()">Export All</button>
+                    <button type="button" class="btn-danger" onclick="disableTrace()">Disable Tracing</button>
+                    <button type="button" class="btn-secondary" onclick="refreshStatus()">Refresh Status</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Active Traces -->
+        <div id="active-traces-section" style="display: none;">
+            <h2>Active Traces</h2>
+            <div class="traces-grid" id="active-traces">
+                <!-- Trace cards will be inserted here -->
+            </div>
+        </div>
+        
+        <!-- Export History -->
+        <div class="export-files" id="export-section" style="display: none;">
+            <h2>Exported Trace Files</h2>
+            <div class="file-list" id="export-files">
+                <!-- File list will be inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let autoRefreshInterval = null;
+        
+        // Get CSRF token from meta tag
+        function getCSRFToken() {
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            return token;
+        }
+        
+        // Helper function to make authenticated requests
+        async function authenticatedFetch(url, options = {}) {
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                credentials: 'same-origin'
+            };
+            
+            // Merge options
+            const finalOptions = {
+                ...defaultOptions,
+                ...options,
+                headers: {
+                    ...defaultOptions.headers,
+                    ...(options.headers || {})
+                }
+            };
+            
+            return fetch(url, finalOptions);
+        }
+        
+        async function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        async function refreshStatus() {
+            try {
+                const response = await authenticatedFetch('/api/trace/status');
+                const data = await response.json();
+                
+                updateStatusDisplay(data);
+                updateActiveTraces(data.active_traces);
+                
+            } catch (error) {
+                console.error('Error fetching trace status:', error);
+                showAlert('Error fetching trace status', 'error');
+            }
+        }
+        
+        function updateStatusDisplay(data) {
+            const statusHtml = `
+                <div class="metric">
+                    <span class="metric-label">Status:</span>
+                    <span class="metric-value ${data.enabled ? 'status-enabled tracing-active' : 'status-disabled'}">
+                        ${data.enabled ? 'ENABLED' : 'DISABLED'}
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Trace Level:</span>
+                    <span class="metric-value">${data.trace_level}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Tracked Tickers:</span>
+                    <span class="metric-value">${data.traced_tickers.length > 0 ? data.traced_tickers.join(', ') : 'None'}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Traces:</span>
+                    <span class="metric-value">${Object.keys(data.active_traces).length}</span>
+                </div>
+            `;
+            
+            document.getElementById('trace-status').innerHTML = statusHtml;
+            
+            // Show/hide active traces section
+            const tracesSection = document.getElementById('active-traces-section');
+            if (data.enabled && Object.keys(data.active_traces).length > 0) {
+                tracesSection.style.display = 'block';
+            } else {
+                tracesSection.style.display = 'none';
+            }
+        }
+        
+    function updateActiveTraces(traces) {
+        const container = document.getElementById('active-traces');
+        
+        if (Object.keys(traces).length === 0) {
+            container.innerHTML = '<div class="loading">No active traces</div>';
+            return;
+        }
+        
+        let html = '';
+        for (const [ticker, traceData] of Object.entries(traces)) {
+            // Parse the summary data from the new format
+            const summary = traceData.summary || traceData;
+            const counters = summary.counters || {};
+            const flowAnalysis = summary.flow_analysis || {};
+            
+            // Calculate total events from flow analysis with safe access
+            let totalDetected = 0;
+            let totalEmitted = counters.events_emitted || 0;
+            
+            // Sum up detected events by type
+            for (const [eventType, analysis] of Object.entries(flowAnalysis)) {
+                if (analysis && analysis.detected) {
+                    totalDetected += analysis.detected;
+                }
+            }
+            
+            // Extract event counts by type with safe access
+            const eventCounts = {
+                highs: counters.events_detected_session_high || counters.events_detected_high || 0,
+                lows: counters.events_detected_session_low || counters.events_detected_low || 0,
+                surges: counters.events_detected_surge || 0,
+                trends: counters.events_detected_trend || 0
+            };
+            
+            // Safe access to all fields with defaults
+            const ticksReceived = counters.ticks_received || 0;
+            const durationSeconds = summary.duration_seconds || 0;
+            const stepsCount = summary.steps_count || 0;
+            
+            html += `
+                <div class="trace-card">
+                    <h3>
+                        <span class="ticker-symbol">${ticker}</span>
+                        <button class="btn-secondary" onclick="exportTrace('${ticker}')">Export</button>
+                    </h3>
+                    
+                    <div class="metric">
+                        <span class="metric-label">Duration:</span>
+                        <span class="metric-value">${formatDuration(durationSeconds)}</span>
+                    </div>
+                    
+                    <div class="metric">
+                        <span class="metric-label">Ticks Received:</span>
+                        <span class="metric-value">${ticksReceived.toLocaleString()}</span>
+                    </div>
+                    
+                    <div class="metric">
+                        <span class="metric-label">Events Detected:</span>
+                        <span class="metric-value">${totalDetected}</span>
+                    </div>
+                    
+                    <div class="metric">
+                        <span class="metric-label">Events Emitted:</span>
+                        <span class="metric-value">${totalEmitted}</span>
+                    </div>
+                    
+                    <div class="metric">
+                        <span class="metric-label">Drop Rate:</span>
+                        <span class="metric-value">${calculateDropRate(totalDetected, totalEmitted)}%</span>
+                    </div>
+                    
+                    <div class="metric">
+                        <span class="metric-label">Steps Traced:</span>
+                        <span class="metric-value">${stepsCount.toLocaleString()}</span>
+                    </div>
+                    
+                    <div class="event-counts">
+                        <div class="event-count">
+                            <div class="event-type">Highs</div>
+                            <div class="event-number">${eventCounts.highs}</div>
+                        </div>
+                        <div class="event-count">
+                            <div class="event-type">Lows</div>
+                            <div class="event-number">${eventCounts.lows}</div>
+                        </div>
+                        <div class="event-count">
+                            <div class="event-type">Surges</div>
+                            <div class="event-number">${eventCounts.surges}</div>
+                        </div>
+                        <div class="event-count">
+                            <div class="event-type">Trends</div>
+                            <div class="event-number">${eventCounts.trends}</div>
+                        </div>
+                    </div>
+                    
+                    ${renderFlowAnalysis(flowAnalysis)}
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+    }
+
+    function renderFlowAnalysis(flowAnalysis) {
+        if (!flowAnalysis || Object.keys(flowAnalysis).length === 0) {
+            return '';
+        }
+        
+        let html = '<div class="flow-analysis"><h4>Flow Analysis</h4>';
+        
+        for (const [eventType, analysis] of Object.entries(flowAnalysis)) {
+            if (analysis && analysis.detected && analysis.detected > 0) {
+                const detected = analysis.detected || 0;
+                const queued = analysis.queued || 0;
+                const emitted = analysis.emitted || 0;
+                const efficiency = analysis.efficiency || 0;
+                
+                html += `
+                    <div class="flow-item">
+                        <span class="flow-type">${eventType}:</span>
+                        <span class="flow-stats">
+                            ${detected} detected → 
+                            ${queued} queued → 
+                            ${emitted} emitted
+                            (${efficiency.toFixed(1)}% efficiency)
+                        </span>
+                    </div>
+                `;
+            }
+        }
+        
+        html += '</div>';
+        return html;
+    }
+
+    function calculateDropRate(generated, emitted) {
+        // Safe calculation with validation
+        generated = generated || 0;
+        emitted = emitted || 0;
+        
+        if (generated === 0) return 0;
+        return ((generated - emitted) / generated * 100).toFixed(1);
+    }
+
+    function formatDuration(seconds) {
+        // Safe duration formatting
+        seconds = seconds || 0;
+        
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        
+        if (hours > 0) {
+            return `${hours}h ${minutes}m ${secs}s`;
+        } else if (minutes > 0) {
+            return `${minutes}m ${secs}s`;
+        } else {
+            return `${secs}s`;
+        }
+    }
+        
+        async function enableTrace() {
+            const tickersInput = document.getElementById('trace-tickers').value;
+            const level = document.getElementById('trace-level').value;
+            
+            if (!tickersInput.trim()) {
+                showAlert('Please enter at least one ticker symbol', 'error');
+                return;
+            }
+            
+            const tickers = tickersInput.split(',').map(t => t.trim().toUpperCase()).filter(t => t);
+            
+            try {
+                const response = await authenticatedFetch('/api/trace/enable', {
+                    method: 'POST',
+                    body: JSON.stringify({tickers, level})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message);
+                    refreshStatus();
+                    startAutoRefresh();
+                } else {
+                    showAlert(data.error || 'Failed to enable tracing', 'error');
+                }
+            } catch (error) {
+                console.error('Error enabling trace:', error);
+                showAlert('Error enabling trace', 'error');
+            }
+        }
+        
+        async function disableTrace() {
+            try {
+                const response = await authenticatedFetch('/api/trace/disable', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message);
+                    refreshStatus();
+                    stopAutoRefresh();
+                } else {
+                    showAlert(data.error || 'Failed to disable tracing', 'error');
+                }
+            } catch (error) {
+                console.error('Error disabling trace:', error);
+                showAlert('Error disabling trace', 'error');
+            }
+        }
+        
+        async function exportTrace(ticker) {
+            try {
+                const response = await authenticatedFetch(`/api/trace/export/${ticker}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Trace exported for ${ticker} to ${data.filepath}`);
+                    loadExportedFiles();
+                } else {
+                    showAlert(data.error || 'Failed to export trace', 'error');
+                }
+            } catch (error) {
+                console.error('Error exporting trace:', error);
+                showAlert('Error exporting trace', 'error');
+            }
+        }
+        
+        async function exportAllTrace() {
+            try {
+                // Method 1: Include CSRF token in the request body for POST requests
+                const response = await fetch('/api/trace/export/all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken(),
+                        'X-Requested-With': 'XMLHttpRequest'  // This helps Flask recognize AJAX requests
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        csrf_token: getCSRFToken()  // Include token in body as well
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Trace exported all to ${data.filepath}`);
+                    loadExportedFiles();
+                } else {
+                    showAlert(data.error || 'Failed to export trace', 'error');
+                }
+            } catch (error) {
+                console.error('Error exporting trace:', error);
+                showAlert('Error exporting trace', 'error');
+            }
+        }
+
+        async function loadExportedFiles() {
+            try {
+                const response = await authenticatedFetch('/api/trace/files');
+                const data = await response.json();
+                
+                const exportSection = document.getElementById('export-section');
+                const fileList = document.getElementById('export-files');
+                
+                if (data.files && data.files.length > 0) {
+                    exportSection.style.display = 'block';
+                    
+                    let html = '';
+                    for (const file of data.files) {
+                        const size = formatFileSize(file.size);
+                        const date = new Date(file.modified).toLocaleString();
+                        
+                        html += `
+                            <div class="file-item">
+                                <div>
+                                    <strong>${file.filename}</strong>
+                                    <br>
+                                    <small>${size} - ${date}</small>
+                                </div>
+                                <button class="btn-secondary" onclick="downloadTrace('${file.filename}')">
+                                    Download
+                                </button>
+                            </div>
+                        `;
+                    }
+                    
+                    fileList.innerHTML = html;
+                } else {
+                    fileList.innerHTML = '<div class="loading">No exported files found</div>';
+                }
+            } catch (error) {
+                console.error('Error loading exported files:', error);
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
+        async function downloadTrace(filename) {
+            // For download, we can use a regular link since it's a GET request
+            window.open(`/api/trace/download/${filename}`, '_blank');
+        }
+        
+        function startAutoRefresh() {
+            stopAutoRefresh(); // Clear any existing interval
+            autoRefreshInterval = setInterval(refreshStatus, 5000);
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshStatus();
+            loadExportedFiles();
+            
+            // Start auto-refresh if tracing is enabled
+            authenticatedFetch('/api/trace/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.enabled) {
+                        startAutoRefresh();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking initial status:', error);
+                });
+        });
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            stopAutoRefresh();
+        });
+    </script>
+</body>
+</html>

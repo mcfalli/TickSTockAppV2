@@ -1,0 +1,191 @@
+/*
+===============================================================================
+TICKSTOCK GAUGE COMPONENT STYLES
+===============================================================================
+
+PURPOSE:
+This file contains styling for gauge displays after dashboard removal in S37.
+
+COMPONENTS INCLUDED:
+- Gauge container layouts
+- Single universe gauge preparations
+- Gauge info displays
+- Phase 5 preparation styles (hidden vertical bars)
+
+VERSION: 2.0.0 - POST S37 CLEANUP
+LAST UPDATED: Sprint S37 - Dashboard removal
+===============================================================================
+*/
+
+/*
+===============================================================================
+PHASE 1: SINGLE UNIVERSE LAYOUT UPDATES
+===============================================================================
+*/
+
+/* Single universe layout support */
+.header-left .single-universe {
+    flex: 1;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+}
+
+.single-universe .universe-select-btn {
+    min-width: 300px;
+    justify-content: center;
+}
+
+/* Prepare gauge container for volume display relocation */
+.gauge-info-display {
+    text-align: center;
+    margin-top: 8px;
+}
+
+.gauge-volume {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+/* Update gauge center for net score display */
+.gauge-net-score {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #333;
+    line-height: 1.1;
+}
+
+/*
+===============================================================================
+PHASE 5 PREPARATION: VERTICAL BARS (HIDDEN FOR NOW)
+===============================================================================
+*/
+
+/* Prepare for vertical bars (Phase 5) */
+.gauge-container {
+    position: relative;
+}
+
+.vertical-bar-container {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 25px;
+    height: 120px;
+    display: none; /* Hidden until Phase 5 */
+}
+
+.vertical-bar-track {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, #4caf50 0%, #4caf50 50%, #f44336 50%, #f44336 100%);
+    border-radius: 10px;
+    opacity: 0.3;
+    border: 1px solid #ccc;
+}
+
+.vertical-bar-fill {
+    position: absolute;
+    width: 100%;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.vertical-bar-label {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: #666;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/*
+===============================================================================
+RESPONSIVE GAUGE LAYOUT
+===============================================================================
+*/
+
+/* Tablet adjustments */
+@media (max-width: 1024px) {
+    /* PHASE 1: Responsive single universe layout */
+    .single-universe .universe-select-btn {
+        min-width: 250px;
+    }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    /* PHASE 1: Mobile single universe adjustments */
+    .single-universe .universe-select-btn {
+        min-width: 200px;
+        font-size: 0.9rem;
+    }
+
+    .gauge-volume {
+        font-size: 0.8rem;
+    }
+
+    .gauge-net-score {
+        font-size: 1rem;
+    }
+}
+
+/* Small mobile adjustments */
+@media (max-width: 480px) {
+    /* PHASE 1: Small mobile universe button */
+    .single-universe .universe-select-btn {
+        min-width: 180px;
+        font-size: 0.8rem;
+    }
+
+    .gauge-volume {
+        font-size: 0.75rem;
+    }
+
+    .gauge-net-score {
+        font-size: 0.9rem;
+    }
+}
+
+/*
+===============================================================================
+ACCESSIBILITY ENHANCEMENTS
+===============================================================================
+*/
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    /* PHASE 1: High contrast gauge elements */
+    .gauge-volume,
+    .gauge-net-score {
+        font-weight: 900;
+    }
+
+    .vertical-bar-track {
+        border-width: 2px;
+    }
+}
+
+/*
+===============================================================================
+PRINT STYLES
+===============================================================================
+*/
+
+@media print {
+    /* PHASE 1: Print styles for gauge elements */
+    .gauge-volume,
+    .gauge-net-score {
+        color: #000 !important;
+    }
+
+    .vertical-bar-container {
+        display: none !important;
+    }
+}

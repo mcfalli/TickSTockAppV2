@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscription Cancelled - TickStock</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4caf50; color: white; padding: 10px; text-align: center; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { text-align: center; font-size: 0.8em; color: #666; margin-top: 20px; }
+        .button { display: inline-block; padding: 10px 20px; background-color: #4caf50; color: white; text-decoration: none; border-radius: 4px; }
+        .highlight { background-color: #e8f5e9; padding: 10px; border-radius: 4px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Subscription Cancelled</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ username }},</p>
+            <p>We are writing to confirm that your TickStock subscription has been cancelled as requested.</p>
+            <p>Your access to premium features will continue until the end of your current billing period:</p>
+            <p class="highlight">Access End Date: {{ end_date }}</p>
+            <p>Until this date, you will continue to have full access to all premium features. After this date, your account will be converted to a basic tier with limited features.</p>
+            <p>If you change your mind or cancelled by mistake, you can reactivate your subscription by logging in to your account.</p>
+            <p><a href="{{ login_url }}" class="button">Manage Your Subscription</a></p>
+            <p>We're sorry to see you go. If you have any feedback about how we can improve our service, or if you have any questions, please contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+            <p>Thank you for your time with TickStock.</p>
+            <p>Sincerely,<br>The TickStock Team</p>
+        </div>
+        <div class="footer">
+            <p>© 2025 TickStock. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

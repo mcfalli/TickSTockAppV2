@@ -1,0 +1,405 @@
+/*
+===============================================================================
+TICKSTOCK CSS VARIABLES - DESIGN SYSTEM FOUNDATION
+===============================================================================
+
+PURPOSE:
+This file defines the core design system variables used throughout the TickStock
+application. It establishes consistent colors, spacing, typography, shadows, and
+other design tokens that ensure visual consistency across all components.
+
+USAGE:
+- Import this file FIRST in the CSS loading order
+- Use CSS custom properties (var(--property-name)) throughout other stylesheets
+- Variables are scoped to :root for global availability
+- Follow naming convention: --category-subcategory-variant
+
+MAINTENANCE:
+- All color changes should happen here, not in individual components
+- Spacing values follow 8px grid system for design consistency
+- Typography scale follows modular scale principles
+- Update version number when making breaking changes
+
+VERSION: 1.0.0
+ENTERPRISE STANDARDS: CSS Custom Properties, Design Tokens, Atomic Design
+===============================================================================
+*/
+
+:root {
+  /* ==========================================================================
+     COLOR SYSTEM - Primary Brand & Semantic Colors
+     ========================================================================== */
+  
+  /* Brand Colors */
+  --color-primary: #4caf50;
+  --color-primary-hover: #45a049;
+  --color-primary-light: #66bb6a;
+  --color-primary-dark: #2e7d32;
+  
+  /* Semantic Colors */
+  --color-success: #4caf50;
+  --color-success-light: #e8f5e9;
+  --color-warning: #ff9800;
+  --color-warning-light: #fff8e1;
+  --color-error: #f44336;
+  --color-error-light: #ffebee;
+  --color-info: #2196f3;
+  --color-info-light: #e3f2fd;
+  
+  /* Market Data Colors */
+  --color-positive: #4caf50;
+  --color-negative: #f44336;
+  --color-neutral: #666666;
+  --color-high-event: #4caf50;
+  --color-low-event: #f44336;
+  --color-uptrend: #4caf50;
+  --color-downtrend: #f44336;
+  --color-surge-up: #ff9800;
+  --color-surge-down: #9c27b0;
+  
+  /* ==========================================================================
+     GRAYSCALE SYSTEM - Backgrounds, Borders & Text
+     ========================================================================== */
+  
+  /* Backgrounds */
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f8f9fa;
+  --color-background-tertiary: #f5f5f5;
+  --color-background-dark: #3a3a3a;
+  
+  /* Event Section Backgrounds */
+  --color-background-highs: #d4edda;
+  --color-background-lows: #f8d7da;
+  
+  /* Borders */
+  --color-border-primary: #ccc;
+  --color-border-secondary: #e0e0e0;
+  --color-border-light: #eee;
+  --color-border-dark: #dee2e6;
+  
+  /* Text Colors */
+  --color-text-primary: #333;
+  --color-text-secondary: #666;
+  --color-text-muted: #999;
+  --color-text-light: #777;
+  --color-text-white: #ffffff;
+  
+  /* ==========================================================================
+     TYPOGRAPHY SYSTEM - Font Families, Sizes & Weights
+     ========================================================================== */
+  
+  /* Font Families */
+  --font-family-base: Arial, sans-serif;
+  --font-family-monospace: 'Courier New', monospace;
+  
+  /* Font Sizes - Modular Scale */
+  --font-size-xs: 0.7rem;    /* 11.2px */
+  --font-size-sm: 0.8rem;    /* 12.8px */
+  --font-size-base: 1rem;    /* 16px */
+  --font-size-lg: 1.1rem;    /* 17.6px */
+  --font-size-xl: 1.3rem;    /* 20.8px */
+  --font-size-2xl: 1.5rem;   /* 24px */
+  
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  
+  /* Line Heights */
+  --line-height-tight: 1.1;
+  --line-height-normal: 1.3;
+  --line-height-relaxed: 1.5;
+  
+  /* ==========================================================================
+     SPACING SYSTEM - 8px Grid System
+     ========================================================================== */
+  
+  /* Base unit: 8px for consistent spacing throughout application */
+  --spacing-xs: 0.25rem;     /* 4px */
+  --spacing-sm: 0.5rem;      /* 8px */
+  --spacing-md: 0.75rem;     /* 12px */
+  --spacing-lg: 1rem;        /* 16px */
+  --spacing-xl: 1.25rem;     /* 20px */
+  --spacing-2xl: 1.5rem;     /* 24px */
+  --spacing-3xl: 2rem;       /* 32px */
+  --spacing-4xl: 2.5rem;     /* 40px */
+  
+  /* Component-specific spacing */
+  --padding-input: 0.5rem;
+  --padding-button: 0.625rem 1.25rem;
+  --padding-card: 1rem;
+  --padding-modal: 1.25rem;
+  
+  /* ==========================================================================
+     LAYOUT DIMENSIONS - Fixed Heights & Widths
+     ========================================================================== */
+  
+  /* Header & Navigation */
+  --height-navbar: 60px;
+  --height-header: 75px;
+  --height-status-bar: 40px;
+  --height-gauges: 180px;
+  
+  /* Layout Percentages */
+  --width-left-column: 70%;
+  --width-right-column: 30%;
+  
+  /* Maximum Heights */
+  --max-height-container: 1600px;
+  --max-height-main-content: 1200px;
+  --max-height-events-list: 800px;
+  --max-height-trends-surges: 280px;
+  
+  /* ==========================================================================
+     BORDER RADIUS SYSTEM - Consistent Corner Rounding
+     ========================================================================== */
+  
+  --border-radius-none: 0;
+  --border-radius-sm: 2px;
+  --border-radius-md: 4px;
+  --border-radius-lg: 6px;
+  --border-radius-xl: 8px;
+  --border-radius-full: 50%;
+  
+  /* ==========================================================================
+     SHADOW SYSTEM - Elevation & Depth
+     ========================================================================== */
+  
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 4px 20px rgba(0, 0, 0, 0.3);
+  
+  /* ==========================================================================
+     Z-INDEX SYSTEM - Layering Strategy
+     ========================================================================== */
+  
+  --z-index-base: 1;
+  --z-index-sticky: 10;
+  --z-index-header: 11;
+  --z-index-dropdown: 100;
+  --z-index-overlay: 1000;
+  --z-index-modal: 2000;
+  
+  /* ==========================================================================
+     ANIMATION SYSTEM - Timing & Easing
+     ========================================================================== */
+  
+  /* Duration */
+  --duration-fast: 0.2s;
+  --duration-normal: 0.3s;
+  --duration-slow: 0.5s;
+  
+  /* Easing Functions */
+  --easing-ease: ease;
+  --easing-ease-in: ease-in;
+  --easing-ease-out: ease-out;
+  --easing-ease-in-out: ease-in-out;
+  
+  /* Common Transitions */
+  --transition-fast: all var(--duration-fast) var(--easing-ease);
+  --transition-normal: all var(--duration-normal) var(--easing-ease);
+  --transition-color: color var(--duration-fast) var(--easing-ease);
+  --transition-background: background-color var(--duration-normal) var(--easing-ease);
+  
+  /* ==========================================================================
+     MARKET STATUS COLORS - Trading Session States
+     ========================================================================== */
+  
+  --color-status-pre: #ffd54f;
+  --color-status-pre-text: #5d4037;
+  --color-status-regular: #66bb6a;
+  --color-status-regular-text: #ffffff;
+  --color-status-after: #7986cb;
+  --color-status-after-text: #ffffff;
+  --color-status-closed: #e57373;
+  --color-status-closed-text: #ffffff;
+  
+  /* ==========================================================================
+     CONNECTION STATUS COLORS - Real-time Data States
+     ========================================================================== */
+  
+  --color-connection-connected: #4caf50;
+  --color-connection-disconnected: #e57373;
+  --color-connection-loading: #ffd54f;
+  
+  /* Data Source Colors */
+  --color-data-live: #4caf50;
+  --color-data-synthetic: #78909c;
+  
+  /* ==========================================================================
+     RESPONSIVE BREAKPOINTS - Mobile-First Approach
+     ========================================================================== */
+  
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1400px;
+
+
+  /* ==========================================================================
+   GRID COLUMN WIDTHS - Sprint 17 Phase 3
+   ========================================================================== */
+  
+   /* Grid Column Widths for consistent alignment across all event grids */
+   --grid-col-direction-flex: 0.4;
+   --grid-col-direction-min: 30px;
+
+   --grid-col-count-flex: 0.5;
+   --grid-col-count-min: 40px;
+
+   --grid-col-ticker-flex: 0.8;
+   --grid-col-ticker-min: 55px;
+
+   --grid-col-price-flex: 0.9;
+   --grid-col-price-min: 65px;
+
+   --grid-col-change-flex: 0.9;
+   --grid-col-change-min: 65px;
+
+   --grid-col-vwap-flex: 1.0;
+   --grid-col-vwap-min: 75px;
+
+   --grid-col-volume-flex: 0.9;
+   --grid-col-volume-min: 60px;
+
+   --grid-col-label-flex: 1.2;
+   --grid-col-label-min: 80px;
+
+   --grid-col-time-flex: 0.8;
+   --grid-col-time-min: 55px;
+
+
+/* ==========================================================================
+   SPRINT S50: HIGH/LOW GRID COLUMN DEFINITIONS - FINAL OPTIMIZED
+   ========================================================================== */
+  
+   /* High/Low Grid specific column widths for perfect alignment */
+   --grid-col-hl-count-flex: 0.45;
+   --grid-col-hl-count-min: 38px;
+
+   /* Ticker - compact */
+   --grid-col-hl-ticker-flex: 0.65;      /* Reduced from 1.0 */
+   --grid-col-hl-ticker-min: 40px;       /* Reduced from 65px */
+
+   /* Price - compact */
+   --grid-col-hl-price-flex: 0.8;
+   --grid-col-hl-price-min: 60px;
+
+   /* Change % - standard */
+   --grid-col-hl-change-flex: 0.80;
+   --grid-col-hl-change-min: 60px;
+
+   /* VWAP Distance - standard */
+   --grid-col-hl-vwap-flex: 0.80;
+   --grid-col-hl-vwap-min: 65px;
+
+   /* Volume - compact */
+   --grid-col-hl-volume-flex: .90;         /* Keep fixed */
+   --grid-col-hl-volume-min: 85px;       /* Increased from 60px */
+
+   /* Label - more space for visual separation */
+   --grid-col-hl-label-flex: 0.75;
+   --grid-col-hl-label-min: 55px;
+
+   /* Time - compact */
+   --grid-col-hl-time-flex: 0.6;
+   --grid-col-hl-time-min: 50px;
+   
+   /* Standard scrollbar width for alignment calculations */
+   --scrollbar-width: 8px;
+
+/* ==========================================================================
+   SPRINT S54: TRENDING GRID COLUMN DEFINITIONS - OPTIMIZED
+   ========================================================================== */
+   
+   --grid-col-trend-direction-flex: 0.4;
+   --grid-col-trend-direction-min: 25px;
+
+   --grid-col-trend-count-flex: 0.45;      /* Reduced from 0.6 for more space */
+   --grid-col-trend-count-min: 38px;      /* Reduced from 45px */
+
+   --grid-col-trend-ticker-flex: 0.65;   /* Reduced from 0.8 */
+   --grid-col-trend-ticker-min: 40px;    /* Reduced from 55px */
+
+   --grid-col-trend-price-flex: 0.80;     /* Reduced from 0.9 */
+   --grid-col-trend-price-min: 60px;      /* Good */
+
+   --grid-col-trend-change-flex: 0.8;     /* Reduced from 1.0 */
+   --grid-col-trend-change-min: 60px;     /* Reduced from 70px */
+
+   --grid-col-trend-vwap-flex: 0.80;      /* Reduced from 1.0 */
+   --grid-col-trend-vwap-min: 65px;       /* Reduced from 85px */
+
+   --grid-col-trend-volume-flex: .90;      /* Keep fixed */
+   --grid-col-trend-volume-min: 85px;    /* Increased from 70px */
+
+   --grid-col-trend-label-flex: 1.1;      /* Reduced from 0.9 */
+   --grid-col-trend-label-min: 100px;      /* Reduced from 65px */
+
+   --grid-col-trend-time-flex: 0.6;      /* Reduced from 0.7 */
+   --grid-col-trend-time-min: 50px;       /* Reduced from 60px */
+
+/* ==========================================================================
+   SPRINT S54: SURGING GRID COLUMN DEFINITIONS - OPTIMIZED
+   ========================================================================== */
+   
+   --grid-col-surge-direction-flex: 0.4;
+   --grid-col-surge-direction-min: 25px;
+
+   --grid-col-surge-count-flex: 0.45;     /* Slightly reduced from 0.5 */
+   --grid-col-surge-count-min: 38px;      /* Reduced from 40px */
+
+   --grid-col-surge-ticker-flex: 0.65;   /* Reduced from 0.8 */
+   --grid-col-surge-ticker-min: 40px;    /* Reduced from 55px */
+
+   --grid-col-surge-price-flex: 0.80;     /* Slightly reduced from 0.9 */
+   --grid-col-surge-price-min: 60px;      /* Good */
+
+   --grid-col-surge-change-flex: 0.8;     /* Slightly reduced from 0.85 */
+   --grid-col-surge-change-min: 60px;     /* Good */
+
+   --grid-col-surge-vwap-flex: 0.80;      /* Slightly reduced from 0.9 */
+   --grid-col-surge-vwap-min: 65px;       /* Reduced from 75px */
+
+   --grid-col-surge-volume-flex: .90;      /* Keep fixed */
+   --grid-col-surge-volume-min: 85px;    /* Increased from 70px */
+
+   --grid-col-surge-label-flex: 1.1;      /* Reduced from 1.2 */
+   --grid-col-surge-label-min: 100px;      /* Reduced from 80px */
+
+   --grid-col-surge-time-flex: 0.6;       /* Slightly reduced from 0.65 */
+   --grid-col-surge-time-min: 50px;       /* Reduced from 55px */
+}
+
+
+/*
+===============================================================================
+DARK MODE SUPPORT (Future Enhancement)
+===============================================================================
+*/
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Override specific variables for dark mode when implemented */
+    --color-background-primary: #1a1a1a;
+    --color-background-secondary: #2d2d2d;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #cccccc;
+  }
+}
+
+/*
+===============================================================================
+REDUCED MOTION SUPPORT - Accessibility
+===============================================================================
+*/
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0.01ms;
+    --duration-normal: 0.01ms;
+    --duration-slow: 0.01ms;
+  }
+}

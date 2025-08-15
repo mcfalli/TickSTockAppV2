@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Terms and Conditions - TickStock</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <style>
+        .terms-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .terms-container h1 {
+            color: #333;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .terms-container h2 {
+            color: #4caf50;
+            font-size: 1.3rem;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .terms-container p {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .terms-container ul {
+            margin-bottom: 15px;
+        }
+        .terms-container li {
+            margin-bottom: 5px;
+        }
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>TickStock</h1>
+        <div class="navbar-right">
+            <span class="support-email">support@tickstock.com</span>
+        </div>
+    </div>
+    
+    <div class="terms-container">
+        <h1>Terms and Conditions</h1>
+        <p>Last Updated: May 20, 2025</p>
+        <p>Please read these Terms and Conditions carefully before using the TickStock platform.</p>
+        
+        <h2>1. Acceptance of Terms</h2>
+        <p>By accessing or using TickStock, you agree to be bound by these Terms and Conditions. If you do not agree to all the terms and conditions, you may not access or use the services.</p>
+        
+        <h2>2. No Financial Advice Disclaimer</h2>
+        <p>The information provided on TickStock is for general informational purposes only and is not intended to be financial advice. We do not provide any warranty regarding the accuracy, completeness, reliability, or suitability of the information displayed. Any reliance you place on such information is strictly at your own risk.</p>
+        <p>TickStock does not recommend particular securities, investment strategies, or courses of action. Users should independently verify any information before making investment decisions and consult with qualified financial advisors as needed.</p>
+        
+        <h2>3. Data Usage Limitations</h2>
+        <p>The market data displayed on TickStock is provided for informational purposes only. Users are prohibited from:</p>
+        <ul>
+            <li>Redistributing any data obtained from TickStock</li>
+            <li>Using the data for commercial purposes without proper licensing</li>
+            <li>Attempting to reverse engineer or scrape data from the platform</li>
+            <li>Sharing access credentials with others</li>
+        </ul>
+        
+        <h2>4. Media Recording Prohibition</h2>
+        <p>Users are explicitly prohibited from:</p>
+        <ul>
+            <li>Recording video, audio, or screenshots of TickStock</li>
+            <li>Broadcasting or streaming TickStock content</li>
+            <li>Creating derivative works based on TickStock data or interface</li>
+        </ul>
+        <p>Any such recording or broadcasting constitutes copyright infringement and will result in immediate account termination and potential legal action.</p>
+        
+        <h2>5. User Responsibilities</h2>
+        <p>Users are responsible for:</p>
+        <ul>
+            <li>Maintaining the confidentiality of their account credentials</li>
+            <li>All activities that occur under their account</li>
+            <li>Ensuring their use of TickStock complies with applicable laws and regulations</li>
+            <li>Notifying TickStock immediately of any unauthorized use of their account</li>
+        </ul>
+        
+        <h2>6. Market Data Disclaimer</h2>
+        <p>The market data presented on TickStock:</p>
+        <ul>
+            <li>May be delayed according to exchange requirements</li>
+            <li>Is obtained from sources believed to be reliable, but is not guaranteed</li>
+            <li>Should not be the sole basis for investment decisions</li>
+            <li>May contain errors or inaccuracies for which we accept no liability</li>
+        </ul>
+        <p>Exchange data providers are third parties and are not affiliated with TickStock.</p>
+        
+        <h2>7. Limitation of Liability</h2>
+        <p>In no event shall TickStock, its operators, owners, or data providers be liable for any direct, indirect, incidental, special, consequential, or punitive damages arising out of or in connection with your use of the platform or any data obtained through it.</p>
+        
+        <h2>8. Modifications to Terms</h2>
+        <p>TickStock reserves the right to modify these terms at any time. We will notify users of any significant changes via email or through the platform. Your continued use of TickStock after such modifications constitutes your acceptance of the revised terms.</p>
+        
+        <a href="{{ url_for('login') }}" class="back-link">Return to Login</a>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-bar-left">
+            <small>© 2025 TickStock</small>
+        </div>
+    </div>
+</body>
+</html>

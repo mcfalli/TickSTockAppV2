@@ -1,0 +1,739 @@
+/*
+===============================================================================
+TICKSTOCK NAVBAR & STATUS COMPONENTS
+===============================================================================
+
+PURPOSE:
+This file contains all styling for the top navigation bar and its associated
+status indicators, including connection status, market status, time displays,
+and data source indicators.
+
+COMPONENTS INCLUDED:
+- Main navigation bar
+- Status badges (connected, disconnected, loading)
+- Market status indicators (pre, regular, after, closed)
+- Time display
+- Connection status indicators
+- Data source badges (live, synthetic)
+- Rate limiting indicators
+- Navbar buttons
+- User menu dropdown
+
+DESIGN PATTERNS:
+- Fixed header with flexbox layout
+- Color-coded status indicators
+- Animated connection states
+- Responsive badge system
+- Accessible color contrasts
+- Consistent button and dropdown styling
+
+DEPENDENCIES:
+- variables.css (colors, spacing, animations)
+- reset.css (base element normalization)
+
+VERSION: 1.0.0
+LAST UPDATED: Sprint 14 - Enhanced navigation, connection, and user menu
+===============================================================================
+*/
+
+/*
+===============================================================================
+MAIN NAVIGATION BAR
+===============================================================================
+*/
+
+.navbar {
+  background-color: var(--color-background-dark);
+  padding: var(--spacing-md) var(--spacing-xl);
+  color: var(--color-text-white);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-index-header);
+}
+
+/* New navbar left section */
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* If no image available, use this text placeholder */
+.navbar-logo {
+  height: 32px;
+  width: auto;
+  opacity: 0.9;
+  transition: opacity var(--duration-fast);
+}
+
+.navbar-logo:hover {
+  opacity: 1;
+}
+
+.navbar-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
+}
+
+/* If using text placeholder instead of image */
+.navbar-logo::before {
+  content: "T";
+}
+
+.navbar h1 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-white);
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg); /* Updated gap */
+}
+
+/*
+===============================================================================
+CONNECTION INDICATOR - NEW SIMPLIFIED DESIGN
+===============================================================================
+*/
+
+.connection-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-white);
+}
+
+.connection-dot {
+  width: 11px;  
+  height: 11px; 
+  border-radius: 50%;
+  background-color: var(--color-success);
+  transition: background-color var(--duration-fast);
+}
+
+.connection-indicator.connected .connection-dot {
+  background-color: var(--color-success);
+  animation: pulse 2s infinite;
+}
+
+.connection-indicator.disconnected .connection-dot {
+  background-color: var(--color-error);
+}
+
+.connection-indicator.disconnected .connection-text {
+  color: var(--color-text-muted);
+}
+
+/*
+===============================================================================
+NAVBAR SETTINGS CONTAINER - UPDATED LAYOUT
+===============================================================================
+*/
+
+.navbar-settings {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  /* Removed margin-right and padding-right from original to allow new components more space */
+  /* border-right: 1px solid rgba(255, 255, 255, 0.2); */
+}
+
+/*
+===============================================================================
+NAVBAR BUTTONS - CONSISTENT STYLING
+===============================================================================
+*/
+
+.navbar-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md); /* Updated padding for consistency */
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-white);
+  font-family: inherit;
+  white-space: nowrap;
+  height: 36px; /* Added consistent height */
+}
+
+.navbar-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Adjusted shadow */
+}
+
+.navbar-btn:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.navbar-btn:active {
+  transform: translateY(0);
+}
+
+.navbar-btn .settings-icon {
+  font-size: var(--font-size-base);
+  line-height: 1;
+  /* Removed opacity as it's not present in the proposed style */
+}
+
+.navbar-btn .settings-text {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.3px;
+}
+
+/*
+===============================================================================
+USER MENU DROPDOWN - UPDATED TO MATCH NAVBAR BUTTONS
+===============================================================================
+*/
+
+.user-menu {
+  position: relative;
+}
+
+/* Remove old user-badge styles and update button */
+.user-settings-btn {
+  position: relative;
+  /* This class would likely be applied in conjunction with .navbar-btn,
+     so its base styles are inherited from .navbar-btn. */
+}
+
+/* Dropdown arrow indicator */
+.user-settings-btn::after {
+  content: "▼";
+  margin-left: var(--spacing-xs);
+  font-size: 10px;
+  transition: transform var(--duration-fast);
+}
+
+.user-menu:hover .user-settings-btn::after,
+.user-settings-btn[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+
+/* Dropdown content styling */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--spacing-xs));
+  background-color: var(--color-background-primary);
+  min-width: 200px;
+  box-shadow: var(--shadow-xl);
+  z-index: var(--z-index-dropdown);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border-secondary);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity var(--duration-fast), transform var(--duration-fast);
+}
+
+/* Show dropdown on hover or when active */
+.user-menu:hover .dropdown-content,
+.user-menu.active .dropdown-content {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Dropdown menu items - consistent styling */
+.dropdown-content a {
+  color: var(--color-text-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  transition: background-color var(--duration-fast);
+  border-bottom: 1px solid var(--color-border-light);
+  height: 40px; /* Consistent height for menu items */
+}
+
+.dropdown-content a:last-child {
+  border-bottom: none;
+}
+
+.dropdown-content a:hover {
+  background-color: var(--color-background-secondary);
+  padding-left: calc(var(--spacing-md) + 4px); /* Slight hover indent */
+}
+
+.dropdown-content a:focus {
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+  outline: none;
+}
+
+/* Special styling for support email */
+.dropdown-content a[href^="mailto:"] {
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* Logout link styling */
+.dropdown-content a[href*="logout"] {
+  color: var(--color-error);
+  border-top: 1px solid var(--color-border-light);
+  margin-top: var(--spacing-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.dropdown-content a[href*="logout"]:hover {
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+}
+
+/*
+===============================================================================
+STATUS BADGE SYSTEM
+===============================================================================
+*/
+
+.status-badge {
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 12px;
+  font-weight: var(--font-weight-normal);
+  display: inline-flex;
+  align-items: center;
+  transition: var(--transition-background);
+  white-space: nowrap;
+}
+
+/* General status states */
+.status-badge.loading {
+  background-color: var(--color-connection-loading);
+  color: var(--color-text-primary);
+}
+
+.status-badge.connected {
+  background-color: var(--color-connection-connected);
+  color: var(--color-text-white);
+}
+
+.status-badge.disconnected {
+  background-color: var(--color-connection-disconnected);
+  color: var(--color-text-white);
+}
+
+/*
+===============================================================================
+MARKET STATUS INDICATORS
+===============================================================================
+*/
+
+/* Market session status badges */
+.status-pre {
+  background-color: var(--color-status-pre);
+  color: var(--color-status-pre-text);
+}
+
+.status-regular {
+  background-color: var(--color-status-regular);
+  color: var(--color-status-regular-text);
+}
+
+.status-after {
+  background-color: var(--color-status-after);
+  color: var(--color-status-after-text);
+}
+
+.status-closed {
+  background-color: var(--color-status-closed);
+  color: var(--color-status-closed-text);
+}
+
+/*
+===============================================================================
+TIME DISPLAY COMPONENT
+===============================================================================
+*/
+
+.time-display {
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 12px;
+  font-weight: var(--font-weight-normal);
+  background-color: var(--color-background-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-secondary);
+  font-family: var(--font-family-monospace);
+}
+
+/*
+===============================================================================
+CONNECTION STATUS INDICATORS (OLD - replaced by .connection-indicator where applicable)
+===============================================================================
+*/
+
+/*
+.connection-status {
+  font-size: var(--font-size-xs);
+  padding: 3px var(--spacing-lg);
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  transition: var(--transition-normal);
+}
+
+.connection-status.connected {
+  background-color: var(--color-connection-connected);
+  color: var(--color-text-white);
+  animation: pulse var(--duration-slow) infinite alternate;
+}
+
+.connection-status.disconnected {
+  background-color: var(--color-connection-disconnected);
+  color: var(--color-text-white);
+}
+
+.connection-status.loading {
+  background-color: var(--color-connection-loading);
+  color: var(--color-text-primary);
+  animation: flash 1s infinite;
+}
+*/
+
+/*
+===============================================================================
+DATA SOURCE INDICATORS
+===============================================================================
+*/
+
+.data-source-badge {
+  font-size: var(--font-size-xs);
+  padding: 3px var(--spacing-lg);
+  border-radius: 10px;
+  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.data-source-badge.live {
+  background-color: var(--color-data-live);
+  color: var(--color-text-white);
+}
+
+.data-source-badge.synthetic {
+  background-color: var(--color-data-synthetic);
+  color: var(--color-text-white);
+}
+
+.data-source-badge.unknown {
+  background-color: var(--color-text-muted);
+  color: var(--color-text-white);
+}
+
+.data-source-badge.initializing {
+  background-color: var(--color-warning);
+  color: var(--color-text-primary);
+  animation: flash 1s infinite;
+}
+
+/*
+===============================================================================
+RATE LIMITING INDICATOR
+===============================================================================
+*/
+
+.rate-limit-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.rate-limit-bar {
+  width: 50px;
+  height: 6px;
+  background-color: var(--color-background-primary);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-secondary);
+}
+
+.rate-limit-fill {
+  height: 100%;
+  background-color: var(--color-success);
+  border-radius: 2px;
+  transition: width var(--duration-normal) var(--easing-ease-out);
+}
+
+.rate-limit-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-white);
+  font-family: var(--font-family-monospace);
+}
+
+/* Rate limit color states */
+.rate-limit-fill.normal {
+  background-color: var(--color-success);
+}
+
+.rate-limit-fill.warning {
+  background-color: var(--color-warning);
+}
+
+.rate-limit-fill.danger {
+  background-color: var(--color-error);
+}
+
+/*
+===============================================================================
+UNIVERSE SELECTION BUTTON (IN HEADER)
+===============================================================================
+*/
+
+.header-section .universe-select-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-background-secondary);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: var(--transition-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  min-width: 200px;
+  justify-content: center;
+  color: var(--color-text-primary);
+}
+
+.header-section .universe-select-btn:hover {
+  background-color: var(--color-background-tertiary);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.header-section .universe-select-btn:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.header-section .universe-select-btn .btn-icon {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}
+
+.header-section .universe-select-btn .current-selection {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+}
+
+/*
+===============================================================================
+ANIMATIONS & TRANSITIONS
+===============================================================================
+*/
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 13px rgba(76, 175, 80, 0); 
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}
+
+/* Original pulse from navbar.css (kept for other elements if still needed) */
+@keyframes pulse-old {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes flash {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Badge entrance animation */
+.status-badge,
+.data-source-badge { /* connection-status animation replaced by .connection-indicator pulse */
+  animation: slideIn var(--duration-normal) var(--easing-ease-out);
+}
+
+
+/*
+===============================================================================
+ACCESSIBILITY ENHANCEMENTS
+===============================================================================
+*/
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .status-badge,
+  .connection-indicator .connection-dot, /* Apply border to the dot specifically */
+  .data-source-badge {
+    border: 2px solid currentColor;
+  }
+
+  .navbar {
+    border-bottom: 2px solid var(--color-text-white);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .connection-indicator.connected .connection-dot { /* Target the new connection dot */
+    animation: none;
+  }
+
+  .connection-status.loading { /* Keep for existing loading statuses */
+    animation: none;
+  }
+
+  .status-badge,
+  .data-source-badge {
+    animation: none;
+  }
+}
+
+/*
+===============================================================================
+RESPONSIVE NAVBAR ADJUSTMENTS
+===============================================================================
+*/
+
+/* Tablet adjustments */
+@media (max-width: 1024px) {
+  .navbar {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .navbar-right {
+    gap: var(--spacing-sm);
+  }
+
+  .status-badge,
+  .connection-indicator, /* Include the new connection indicator */
+  .data-source-badge {
+    font-size: var(--font-size-xs);
+    padding: 2px var(--spacing-sm);
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md); /* Adjusted padding */
+  }
+
+  .navbar-left {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .navbar h1 {
+    font-size: var(--font-size-lg);
+  }
+
+  .navbar-right {
+    width: 100%; /* Added width */
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-sm); /* Adjusted gap */
+  }
+
+  .navbar-settings {
+    width: 100%; /* Added width */
+    justify-content: center;
+  }
+
+  .connection-indicator {
+    order: -1; /* Moved connection indicator to the top */
+  }
+
+  .rate-limit-indicator {
+    order: 1;
+    width: 100%;
+    justify-content: center;
+    margin-top: var(--spacing-sm);
+  }
+
+  .navbar-btn {
+    flex: 1; /* Added flex property */
+    min-width: 100px; /* Set a minimum width */
+    justify-content: center; /* Centered content */
+  }
+}
+
+/* Small mobile adjustments */
+@media (max-width: 480px) {
+  .navbar {
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+
+  .navbar-right {
+    gap: var(--spacing-xs);
+  }
+
+  .status-badge,
+  .connection-indicator, /* Include the new connection indicator */
+  .data-source-badge {
+    font-size: 0.6rem;
+    padding: 2px 4px;
+  }
+
+  .rate-limit-bar {
+    width: 40px;
+    height: 4px;
+  }
+
+  .time-display {
+    font-size: 0.6rem;
+    padding: 2px 4px;
+  }
+}

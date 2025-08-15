@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscription Reactivated - TickStock</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4caf50; color: white; padding: 10px; text-align: center; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { text-align: center; font-size: 0.8em; color: #666; margin-top: 20px; }
+        .button { display: inline-block; padding: 10px 20px; background-color: #4caf50; color: white; text-decoration: none; border-radius: 4px; }
+        .highlight { background-color: #e8f5e9; padding: 10px; border-radius: 4px; font-weight: bold; }
+        .billing-info { background-color: #fff3cd; padding: 15px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #ffc107; }
+        .features { margin: 15px 0; }
+        .features li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Welcome Back to Premium!</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ username }},</p>
+            <p>Great news! Your TickStock Premium subscription has been successfully reactivated.</p>
+            
+            <p class="highlight">Your Premium access is now active and will continue until {{ end_date }}</p>
+            
+            <div class="billing-info">
+                <strong>Billing Information:</strong><br>
+                Your subscription will automatically renew monthly at $10.00/month using your saved payment method. 
+                Your next billing date is {{ end_date }}. You can cancel anytime from your account settings.
+            </div>
+            
+            <p><strong>Your Premium benefits include:</strong></p>
+            <ul class="features">
+                <li>Real-time market analytics</li>
+                <li>Premium stock alerts</li>
+                <li>Comprehensive market reports</li>
+                <li>Priority customer support</li>
+                <li>Advanced filtering options</li>
+            </ul>
+            
+            <p>You can start using all Premium features immediately by logging into your account.</p>
+            
+            <p><a href="{{ login_url }}" class="button">Access Your Account</a></p>
+            
+            <p>Thank you for choosing TickStock Premium. We're excited to help you stay ahead of the market!</p>
+            
+            <p>If you have any questions about your subscription or billing, please contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+            
+            <p>Best regards,<br>The TickStock Team</p>
+        </div>
+        <div class="footer">
+            <p>© 2025 TickStock. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
