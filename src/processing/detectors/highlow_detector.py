@@ -11,7 +11,7 @@ from src.core.domain.market.tick import TickData
 from src.core.domain.events.highlow import HighLowEvent
 from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.surge import SurgeEvent
-from src.presentation.converters.models import StockData
+from src.presentation.converters.transport_models import StockData
 
 from src.processing.detectors.utils import (
     calculate_vwap_divergence, 
@@ -366,7 +366,7 @@ class HighLowDetector:
         
         try:
             from src.core.domain.events.highlow import HighLowEvent
-            from src.processing.detectors..event_detection_engines import HighLowDetectionEngine
+            from src.processing.detectors.highlow_detector import HighLowDetectionEngine
             
             # FIXED: Ensure timestamp is float
             timestamp_float = normalize_timestamp(timestamp)
@@ -855,7 +855,7 @@ class HighLowDetector:
         start_time = time.time()
         
         try:
-            from src.processing.detectors..event_detector_util import check_trend_conditions
+            from src.processing.detectors.utils import check_trend_conditions
             
             # Just use the stock_data passed in - no cache_control lookup!
             trend_result = check_trend_conditions(
@@ -899,7 +899,7 @@ class HighLowDetector:
         start_time = time.time()
         
         try:
-            from src.processing.detectors..event_detector_util import check_surge_conditions
+            from src.processing.detectors.utils import check_surge_conditions
             
             # Just use the stock_data passed in - no cache_control lookup!
             surge_result = check_surge_conditions(

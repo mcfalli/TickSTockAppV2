@@ -106,13 +106,17 @@ __all__ = []
                 imports.append(f"from .{module_name} import {class_name}")
                 exports.append(f"    '{class_name}'")
         
+        # Build the imports string
+        imports_str = '\n'.join(imports)
+        exports_str = ',\n'.join(exports)
+        
         new_content = f'''"""Business Services"""
 
 # Import only what exists
-{''.join([imp + '\n' for imp in imports])}
+{imports_str}
 
 __all__ = [
-{',\n'.join(exports)}
+{exports_str}
 ]
 '''
         

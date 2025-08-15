@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
 from typing import Any, Dict, List, Optional
-from src.core.services.logging_config import get_domain_logger, LogDomain
+from config.logging_config import get_domain_logger, LogDomain
 
 logger = get_domain_logger(LogDomain.CORE, 'config_manager')
 

@@ -1,16 +1,29 @@
-"""
-Session Accumulation Package
-Memory-based accumulation with database sync for TickStock application.
+"""Business Services
+
+Import service classes individually as needed:
+    from src.core.services.market_data_service import MarketDataService
+    from src.core.services.session_manager import SessionManager
+    etc.
 """
 
-from src.core.services.memory_accumulation import InMemorySessionAccumulation
-from src.core.services.database_sync import DatabaseSyncService
-from src.core.services.accumulation_manager import SessionAccumulationManager
+# Only import the most commonly used services
+try:
+    from .market_data_service import MarketDataService
+except ImportError:
+    MarketDataService = None
+    
+try:
+    from .session_manager import SessionManager  
+except ImportError:
+    SessionManager = None
 
+try:
+    from .config_manager import ConfigManager
+except ImportError:
+    ConfigManager = None
+
+# Export what was successfully imported
 __all__ = [
-    'InMemorySessionAccumulation',
-    'DatabaseSyncService', 
-    'SessionAccumulationManager'
+    name for name in ['MarketDataService', 'SessionManager', 'ConfigManager']
+    if globals().get(name) is not None
 ]
-
-__version__ = '1.0.0'

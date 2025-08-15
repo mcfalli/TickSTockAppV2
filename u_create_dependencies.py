@@ -120,7 +120,7 @@ __all__ = ['Base', 'db']
             'src/infrastructure/database/models/__init__.py': '''"""Database Models"""
 
 from .base import Base, db
-from .analytics import MarketAnalytics
+from .analytics import TickerAnalytics
 
 __all__ = ['Base', 'db', 'MarketAnalytics']
 ''',

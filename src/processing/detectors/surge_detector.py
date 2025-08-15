@@ -4,7 +4,7 @@ from typing import Dict, List, Any, Optional, Tuple
 import pytz
 from collections import deque
 from config.logging_config import get_domain_logger, LogDomain
-from src.presentation.converters.models import StockData
+from src.presentation.converters.transport_models import StockData
 from src.core.domain.events.surge import SurgeEvent
 from src.core.domain.events.base import BaseEvent
 from src.processing.detectors.utils import (
@@ -16,7 +16,7 @@ from src.processing.detectors.utils import (
     generate_event_label,
     get_market_context
 )
-from src.processing.detectors.engines import SurgeDetectionEngine
+from src.processing.detectors import SurgeDetectionEngine
 
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
 
@@ -338,7 +338,7 @@ class SurgeDetector:
             self.last_surge_direction[ticker] = metrics['direction']
         
         # Get base price for percent change
-        from src.processing.detectors..event_detector_util import get_base_price, calculate_relative_volume, calculate_vwap_divergence, generate_event_label, map_direction_symbol, calculate_percent_change
+        from src.processing.detectors.utils import get_base_price, calculate_relative_volume, generate_event_label, map_direction_symbol, calculate_percent_change
         
         base_price, base_price_source = get_base_price(
             stock_data=stock_data,

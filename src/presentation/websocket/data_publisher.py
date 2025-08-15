@@ -15,7 +15,7 @@ from typing import Callable
 from dataclasses import dataclass
 from src.core.domain.events.base import BaseEvent
 from src.core.domain.events.highlow import HighLowEvent
-from src.presentation.converters.models import StockData
+from src.presentation.converters.transport_models import StockData
 
 from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.surge import SurgeEvent

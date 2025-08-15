@@ -8,7 +8,7 @@ import logging
 
 # Add this import
 from src.core.domain.events import BaseEvent, HighLowEvent, TrendEvent, SurgeEvent
-from src.presentation.converters.models import StockData
+from src.presentation.converters.transport_models import StockData
 
 logger = logging.getLogger(__name__)
 

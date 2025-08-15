@@ -1,7 +1,7 @@
 # classes/transport/__init__.py
 """Transport and emission related classes"""
 
-from src.presentation.converters.models import (
+from src.presentation.converters.transport_models import (
     # Event and stock data
     StockData, EventCounts, HighLowBar,
     

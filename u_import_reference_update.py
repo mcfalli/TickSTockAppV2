@@ -31,7 +31,7 @@ class ImportUpdater:
             'from src.core.domain.events': 'from src.core.domain.events',
             'from src.core.domain.market': 'from src.core.domain.market',
             'from src.processing.queues': 'from src.processing.queues',
-            'from src.infrastructure.database.models': 'from src.infrastructure.database.models',
+            'from src.infrastructure.database.models.base': 'from src.infrastructure.database.models.base',
             'from src.presentation.converters': 'from src.presentation.converters',
             'import src.core.domain.': 'import src.core.domain.',
             
@@ -42,7 +42,7 @@ class ImportUpdater:
             'from src.core.services.config_manager': 'from src.core.services.config_manager',
             
             # Database imports
-            'from src.infrastructure.database.models.base': 'from src.infrastructure.database.models.base',
+            'from src.infrastructure.database.models.base.base': 'from src.infrastructure.database.models.base.base',
             'import src.infrastructure.database.': 'import src.infrastructure.database.',
             'from src.infrastructure.database': 'from src.infrastructure.database',
             

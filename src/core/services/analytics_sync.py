@@ -77,7 +77,7 @@ class AnalyticsSyncService:
                 }
             
             # Import database components
-            from src.infrastructure.database import db, MarketAnalytics
+            from src.infrastructure.database import db, TickerAnalytics
             
             # FIXED: Process single aggregated records
             records_processed = 0
@@ -248,7 +248,7 @@ class AnalyticsSyncService:
                 }
             
             # Import database components
-            from src.infrastructure.database import db, MarketAnalytics
+            from src.infrastructure.database import db, TickerAnalytics
             
             # Test basic database connection
             test_query = db.session.execute(db.text("SELECT 1 as test")).fetchone()

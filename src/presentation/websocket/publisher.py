@@ -11,17 +11,17 @@ from collections import defaultdict
 from functools import lru_cache
 import hashlib
 
-from src.presentation.websocket.websocket_filter_cache import WebSocketFilterCache
-from src.presentation.websocket.websocket_data_filter import WebSocketDataFilter
-from src.presentation.websocket.websocket_analytics import WebSocketAnalytics
-from src.presentation.websocket.websocket_display import WebSocketDisplayConverter
+from src.presentation.websocket.filter_cache import WebSocketFilterCache
+from src.presentation.websocket.data_filter import WebSocketDataFilter
+from src.presentation.websocket.analytics import WebSocketAnalytics
+from src.presentation.websocket.display_converter import WebSocketDisplayConverter
 from src.core.services.user_filters_service import UserFiltersService
 from src.core.services.user_settings_service import UserSettingsService
-from src.presentation.websocket.websocket_universe_cache import WebSocketUniverseCache
+from src.presentation.websocket.universe_cache import WebSocketUniverseCache
 from src.core.domain.events.base import BaseEvent
 from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.surge import SurgeEvent
-from src.presentation.converters.models import StockData
+from src.presentation.converters.transport_models import StockData
 
 try:
     from src.monitoring.system_monitor import system_monitor
@@ -96,7 +96,7 @@ class WebSocketPublisher:
         self.last_emission_time = 0
 
         # Initialize statistics component
-        from src.presentation.websocket.websocket_statistics import WebSocketStatistics
+        from src.presentation.websocket.statistics import WebSocketStatistics
         self.statistics = WebSocketStatistics()
         
         # Add universe tracking logger

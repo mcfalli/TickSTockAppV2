@@ -17,7 +17,7 @@ from src.core.domain.events.highlow import HighLowEvent
 from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.surge import SurgeEvent
 from src.core.domain.market.tick import TickData
-from src.presentation.converters.models import StockData
+from src.presentation.converters.transport_models import StockData
 
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
 

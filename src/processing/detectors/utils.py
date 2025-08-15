@@ -10,11 +10,11 @@ import time
 import pytz
 from collections import deque
 from config.logging_config import get_domain_logger, LogDomain
-from src.presentation.converters.models import StockData
+from src.presentation.converters.transport_models import StockData
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
 
 
-from src.processing.detectors.engines import TrendDetectionEngine, extract_price_history_from_state, SurgeDetectionEngine, extract_surge_buffer_from_state
+# from src.processing.detectors.trend_detector import TrendDetector, extract_price_history_from_state, SurgeDetectionEngine, extract_surge_buffer_from_state  # Commented out to avoid circular import
 
 
 logger = get_domain_logger(LogDomain.CORE, 'event_detector_util')

@@ -19,7 +19,7 @@ from src.core.domain.events.base import BaseEvent
 from src.core.domain.events.highlow import HighLowEvent
 from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.surge import SurgeEvent
-from src.presentation.converters.models import StockData, EventCounts, HighLowBar
+from src.presentation.converters.transport_models import StockData, EventCounts, HighLowBar
 
 from config.logging_config import get_domain_logger, LogDomain
 from src.processing.pipeline.tick_processor import TickProcessor, TickProcessingResult

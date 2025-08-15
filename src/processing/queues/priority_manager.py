@@ -19,7 +19,7 @@ from src.core.domain.events.highlow import HighLowEvent
 from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.surge import SurgeEvent
 from src.core.domain.events.control import ControlEvent
-from src.processing.queues.queue import TypedEventQueue, QueuedEvent
+from src.processing.queues.base_queue import TypedEventQueue, QueuedEvent
 from src.core.domain.market.tick import TickData
 
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int

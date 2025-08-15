@@ -1,11 +1,11 @@
 # classes/transport/models.py
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
-from src.presentation.converters..events.base import BaseEvent
+from src.core.domain.events.base import BaseEvent
 import time
-from src.presentation.converters..events.highlow import HighLowEvent
-from src.presentation.converters..events.trend import TrendEvent
-from src.presentation.converters..events.surge import SurgeEvent
+from src.core.domain.events.highlow import HighLowEvent
+from src.core.domain.events.trend import TrendEvent
+from src.core.domain.events.surge import SurgeEvent
 
 @dataclass
 class EventCounts:

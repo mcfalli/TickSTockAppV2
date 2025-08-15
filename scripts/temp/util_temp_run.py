@@ -14,7 +14,7 @@ def find_model_imports():
     patterns = [
         (re.compile(r'from src.infrastructure.database import', re.MULTILINE), 'from src.infrastructure.database import'),
         (re.compile(r'from src.infrastructure.database import model(?:\s|$)', re.MULTILINE), 'from src.infrastructure.database import model'),
-        (re.compile(r'from model\.', re.MULTILINE), 'from src.infrastructure.database.models.base.'),
+        (re.compile(r'from model\.', re.MULTILINE), 'from src.infrastructure.database.models.base.base.'),
     ]
     
     # Skip these directories
@@ -107,7 +107,7 @@ def fix_imports_automatically():
             # Apply fixes
             content = re.sub(r'from src.infrastructure.database import', 'from src.infrastructure.database import', content)
             content = re.sub(r'from src.infrastructure.database import model\b', 'from src.infrastructure.database from src.infrastructure.database import model', content)
-            content = re.sub(r'from model\.', 'from src.infrastructure.database.models.base.', content)
+            content = re.sub(r'from model\.', 'from src.infrastructure.database.models.base.base.', content)
             
             if content != original:
                 with open(filepath, 'w', encoding='utf-8') as f:

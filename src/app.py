@@ -553,7 +553,7 @@ def schedule_database_sync(app, market_service):
                         logger.info(f"ANALYTICS_SYNC_SUCCESS: {analytics_synced} analytics records synced")
                         
                         # Verify analytics in database
-                        from src.infrastructure.database import MarketAnalytics
+                        from src.infrastructure.database import TickerAnalytics
                         from datetime import date
                         analytics_count = MarketAnalytics.query.filter(
                             MarketAnalytics.session_date == date.today()

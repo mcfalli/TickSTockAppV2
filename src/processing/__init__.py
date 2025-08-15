@@ -1,19 +1,5 @@
-"""
-Processing Pipeline Package
-Handles event processing, priority management, and worker coordination.
-"""
+"""Processing Pipeline"""
 
-from src.processing.tick_processor import TickProcessor, TickProcessingResult
-from src.processing.event_detector import EventDetector, EventDetectionResult
-from src.processing.priority_manager import PriorityManager, QueueDiagnostics
-from src.processing.worker_pool import WorkerPoolManager
+# Avoid circular imports by not importing everything at once
 
-__all__ = [
-    'TickProcessor',
-    'TickProcessingResult',
-    'EventDetector',
-    'EventDetectionResult', 
-    'PriorityManager',
-    'QueueStats',
-    'WorkerPoolManager'
-]
+__all__ = []

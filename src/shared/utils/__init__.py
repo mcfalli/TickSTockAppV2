@@ -6,7 +6,7 @@ from src.shared.utils.event_factory import EventFactory
 # Phase 4: compatibility.py DELETED - no backward compatibility utilities
 # Phase 4: conversion.py DELETED - no dict conversion utilities
 
-from src.shared.utils.utils import (
+from src.shared.utils.general import (
     get_eastern_time,
     detect_market_status,
     format_price,

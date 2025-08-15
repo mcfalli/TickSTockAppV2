@@ -1,7 +1,7 @@
 # auth/session.py
 from flask import request
 from flask_login import current_user
-from src.infrastructure.database.models.base import Session, db
+from src.infrastructure.database.models.base.base import Session, db
 from datetime import datetime, timedelta, timezone
 from config.logging_config import get_domain_logger, LogDomain
 

@@ -1,6 +1,6 @@
 from typing import Dict, Any, Type
-from src.infrastructure.data_sources.base.data_provider import DataProvider
-from src.infrastructure.data_sources.simulated.simulated_data_provider import SimulatedDataProvider
+from src.core.interfaces.data_provider import DataProvider
+from src.infrastructure.data_sources.synthetic.provider import SimulatedDataProvider
 from src.infrastructure.data_sources.polygon.polygon_data_provider import PolygonDataProvider
 from config.logging_config import get_domain_logger, LogDomain
 

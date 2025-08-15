@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from config.logging_config import get_domain_logger, LogDomain
 
 from src.core.domain.market.tick import TickData
-from src.presentation.converters.models import StockData
+from src.presentation.converters.transport_models import StockData
 from src.core.domain.events.surge import SurgeEvent
 from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.highlow import HighLowEvent

@@ -58,7 +58,7 @@ class UserUniverseManager:
         # Data flow tracking
         self.stats = DataFlowStats()
         
-        # User universe cache (moved from websocket_publisher)
+        # User universe cache (moved from src.presentation.websocket.publisher)
         self.user_universe_cache = {}  # user_id -> {market: [...], highlow: [...]}
         
         # Configuration

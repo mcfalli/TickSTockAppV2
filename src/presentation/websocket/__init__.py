@@ -1,12 +1,12 @@
 # Import core classes for easier access
-from src.presentation.websocket.web_socket_manager import WebSocketManager
-from src.presentation.websocket.websocket_publisher import WebSocketPublisher
-from src.presentation.websocket.websocket_analytics import WebSocketAnalytics
-from src.presentation.websocket.websocket_data_filter import WebSocketDataFilter
-from src.presentation.websocket.websocket_display import WebSocketDisplayConverter
-from src.presentation.websocket.websocket_filter_cache import WebSocketFilterCache
-from src.presentation.websocket.websocket_statistics import WebSocketStatistics
-from src.presentation.websocket.websocket_universe_cache import WebSocketUniverseCache
+from src.presentation.websocket.manager import WebSocketManager
+from src.presentation.websocket.publisher import WebSocketPublisher
+from src.presentation.websocket.analytics import WebSocketAnalytics
+from src.presentation.websocket.data_filter import WebSocketDataFilter
+from src.presentation.websocket.display_converter import WebSocketDisplayConverter
+from src.presentation.websocket.filter_cache import WebSocketFilterCache
+from src.presentation.websocket.statistics import WebSocketStatistics
+from src.presentation.websocket.universe_cache import WebSocketUniverseCache
 
 # For backward compatibility with old imports
 from src.presentation.websocket.polygon_websocket_client import PolygonWebSocketClient

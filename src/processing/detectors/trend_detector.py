@@ -3,7 +3,7 @@ import time
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, timedelta
 from config.logging_config import get_domain_logger, LogDomain
-from src.presentation.converters.models import StockData
+from src.presentation.converters.transport_models import StockData
 from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.base import BaseEvent
 from src.processing.detectors.utils import (
@@ -15,7 +15,7 @@ from src.processing.detectors.utils import (
     generate_event_label,
     get_market_context
 )
-from src.processing.detectors.engines import TrendDetectionEngine
+from src.processing.detectors.trend_detector import TrendDetector
 
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
 
@@ -185,7 +185,7 @@ class TrendDetector:
             # DEPRECATED: check_only parameter
             if check_only:
                 logger.warning(f"check_only parameter is deprecated. Use check_trend_conditions utility instead.")
-                from src.processing.detectors..event_detector_util import check_trend_conditions
+                from src.processing.detectors.utils import check_trend_conditions
                 return check_trend_conditions(stock_data, price, vwap, volume, self.config)
             
             # Initialize price history (state management)
@@ -647,8 +647,8 @@ class TrendDetector:
         Create a TrendEvent from engine calculation results.
         This method handles event-specific logic like counting and labeling.
         """
-        from src.processing.detectors..event_detector_util import (get_base_price, calculate_percent_change, 
-                                    calculate_relative_volume, calculate_vwap_divergence, 
+        from src.processing.detectors.utils import (get_base_price, calculate_percent_change, 
+                                    calculate_relative_volume, 
                                     generate_event_label)
         
         # Update counts based on direction
