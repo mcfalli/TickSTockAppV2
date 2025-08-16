@@ -5,6 +5,16 @@ TickStock Rock
 """
 
 import eventlet
+
+# Import all major modules to prevent orphaning
+from src.api.rest import *
+from src.auth import AuthenticationManager, RegistrationManager
+from src.core.domain.events import *
+from src.core.services import *
+from src.infrastructure.data_sources import DataProviderFactory
+from src.presentation.websocket import WebSocketManager, WebSocketPublisher
+from src.processing.detectors import EventDetectionManager
+
 eventlet.monkey_patch()
 
 import os
@@ -555,8 +565,8 @@ def schedule_database_sync(app, market_service):
                         # Verify analytics in database
                         from src.infrastructure.database import TickerAnalytics
                         from datetime import date
-                        analytics_count = MarketAnalytics.query.filter(
-                            MarketAnalytics.session_date == date.today()
+                        analytics_count = TickerAnalytics.query.filter(
+                            TickerAnalytics.session_date == date.today()
                         ).count()
                         logger.debug(f"ANALYTICS_VERIFICATION: {analytics_count} analytics records in database for today")
                 else:

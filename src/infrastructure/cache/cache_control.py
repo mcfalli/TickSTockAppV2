@@ -5,7 +5,7 @@ from typing import Dict, List, Set, Any, Optional
 from threading import Lock
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
-from src.infrastructure.database.models.base.base import db, CacheEntry
+from src.infrastructure.database.models.base import db, CacheEntry
 
 logger = logging.getLogger(__name__)
 

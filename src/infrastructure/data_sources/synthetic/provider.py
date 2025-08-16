@@ -4,7 +4,8 @@ import pytz
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
-from src.infrastructure.data_sources.synthetic..base.data_provider import DataProvider
+from src.core.interfaces.data_provider import DataProvider
+
 from src.core.domain.market.tick import TickData  # Replace MarketEvent import
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
 

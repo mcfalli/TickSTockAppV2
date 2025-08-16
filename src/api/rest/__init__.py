@@ -1,5 +1,5 @@
-"""REST API Endpoints"""
+"""Module initialization."""
 
-from .main import *
 from .api import *
 from .auth import *
+from .main import *

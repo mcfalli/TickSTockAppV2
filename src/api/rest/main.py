@@ -13,7 +13,7 @@ from src.shared.utils.app_utils import (
     generate_verification_code, store_verification_code, verify_code,
     cancel_subscription, log_subscription_change, determine_card_type
 )
-from src.infrastructure.database.models.base.base import User, db, Subscription, BillingInfo
+from src.infrastructure.database.models.base import User, db, Subscription, BillingInfo
 from src.auth.registration import RegistrationManager
 from src.infrastructure.messaging.email_service import EmailManager
 from config.logging_config import get_domain_logger, LogDomain

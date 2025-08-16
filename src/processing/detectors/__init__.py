@@ -1,11 +1,7 @@
-"""Event Detection Engines"""
+"""Module initialization."""
 
-# Import specific classes only when needed, not all at once
-# This avoids circular imports
-
-__all__ = [
-    'EventDetectionManager',
-    'HighLowDetector',
-    'TrendDetector', 
-    'SurgeDetector',
-]
+from .manager import EventDetectionManager
+from .highlow_detector import HighLowDetector
+from .trend_detector import TrendDetector
+from .surge_detector import SurgeDetector
+__all__ = ['EventDetectionManager', 'HighLowDetector', 'TrendDetector', 'SurgeDetector']

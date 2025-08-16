@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 from typing import Dict, List, Any
 import os
-from src.infrastructure.data_sources.synthetic.synthetic_data_loader import SyntheticDataLoader
+from src.infrastructure.data_sources.synthetic import SyntheticDataLoader
 from src.infrastructure.cache.cache_control import CacheControl
 
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int

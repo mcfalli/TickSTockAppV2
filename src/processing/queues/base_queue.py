@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from src.processing.queues..events.base import BaseEvent
+from src.core.domain.events.base import BaseEvent
 
 @dataclass
 class QueuedEvent:

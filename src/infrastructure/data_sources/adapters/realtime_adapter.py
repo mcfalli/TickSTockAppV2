@@ -1,6 +1,6 @@
 from typing import Callable, Any, List
 from src.presentation.websocket.polygon_client import PolygonWebSocketClient
-from src.infrastructure.data_sources.adapters.simulated.synthetic_data_generator import SyntheticDataGenerator
+from src.infrastructure.data_sources.adapters.synthetic import SyntheticDataGenerator
 import time
 import threading
 from config.logging_config import get_domain_logger, LogDomain

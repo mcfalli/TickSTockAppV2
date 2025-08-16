@@ -17,7 +17,7 @@ from src.shared.utils.app_utils import (
     generate_verification_code, store_verification_code, verify_code,
     determine_card_type, validate_phone_number
 )
-from src.infrastructure.database.models.base.base import User, db, Subscription, BillingInfo, CommunicationLog
+from src.infrastructure.database.models.base import User, db, Subscription, BillingInfo, CommunicationLog
 from src.auth.registration import RegistrationManager
 from src.auth.authentication import AuthenticationManager
 from src.auth.session import SessionManager

@@ -1,11 +1,6 @@
-"""Authentication and Authorization"""
+"""Module initialization."""
 
 from .authentication import AuthenticationManager
 from .registration import RegistrationManager
 from .session import SessionManager
-
-__all__ = [
-    'AuthenticationManager',
-    'RegistrationManager',
-    'SessionManager'
-]
+__all__ = ['AuthenticationManager', 'RegistrationManager', 'SessionManager']

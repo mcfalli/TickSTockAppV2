@@ -606,3 +606,68 @@ window.debugAlignment = function() {
         console.log(`${name}: ${offset < 2 ? '✅ ALIGNED' : `❌ ${offset.toFixed(1)}px off`}`);
     });
 };
+
+// Auto-generated handlers for missing WebSocket events
+socket.on('user_status_response', function(data) {
+    console.log('User status response:', data);
+    // TODO: Implement user status handling
+    if (data.status) {
+        updateUserStatus(data.status);
+    }
+});
+
+socket.on('pong', function(data) {
+    // Heartbeat response - keeps connection alive
+    console.debug('Pong received:', data);
+    lastPongTime = Date.now();
+});
+
+socket.on('test_event', function(data) {
+    console.log('Test event received:', data);
+    // Development/debugging event
+    if (window.DEBUG_MODE) {
+        displayDebugMessage('Test Event', data);
+    }
+});
+
+socket.on('error', function(error) {
+    console.error('WebSocket error:', error);
+    // Display user-friendly error message
+    if (error.message) {
+        showNotification('Connection Error: ' + error.message, 'error');
+    }
+    // Attempt reconnection if needed
+    if (error.code === 'CONNECTION_LOST') {
+        setTimeout(() => {
+            console.log('Attempting to reconnect...');
+            socket.connect();
+        }, 5000);
+    }
+});
+
+// Helper functions if they don't exist
+if (typeof updateUserStatus === 'undefined') {
+    function updateUserStatus(status) {
+        const statusElement = document.getElementById('user-status');
+        if (statusElement) {
+            statusElement.textContent = status;
+            statusElement.className = 'status-' + status.toLowerCase();
+        }
+    }
+}
+
+if (typeof showNotification === 'undefined') {
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = 'notification notification-' + type;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 5000);
+    }
+}
+
+if (typeof displayDebugMessage === 'undefined') {
+    function displayDebugMessage(title, data) {
+        console.log(`[DEBUG] ${title}:`, data);
+    }
+}

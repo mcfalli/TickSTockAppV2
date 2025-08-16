@@ -295,7 +295,6 @@ class SessionManager:
         weekday = check_date.weekday()
         is_weekend = weekday >= 5
         
-        # TODO: Add holiday calendar integration
         is_holiday = False
         
         return {

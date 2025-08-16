@@ -10,7 +10,7 @@ import json
 import requests  # Standard import, patched by app.py
 import time
 
-from src.infrastructure.data_sources.polygon..base.data_provider import DataProvider
+from src.core.interfaces.data_provider import DataProvider
 from src.core.domain.market.tick import TickData
 
 from config.logging_config import get_domain_logger, LogDomain

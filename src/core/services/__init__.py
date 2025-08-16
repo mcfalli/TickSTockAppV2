@@ -1,29 +1,45 @@
-"""Business Services
+"""
+Core Services Module
 
-Import service classes individually as needed:
-    from src.core.services.market_data_service import MarketDataService
-    from src.core.services.session_manager import SessionManager
-    etc.
+This module contains all core services for the TickStock V2 application.
 """
 
-# Only import the most commonly used services
-try:
-    from .market_data_service import MarketDataService
-except ImportError:
-    MarketDataService = None
-    
-try:
-    from .session_manager import SessionManager  
-except ImportError:
-    SessionManager = None
+# Import all service classes
+from .accumulation_manager import SessionAccumulationManager
+from .analytics_coordinator import AnalyticsCoordinator
+from .analytics_manager import AnalyticsManager
+from .analytics_sync import AnalyticsSyncService
+from .config_manager import ConfigManager
+from .database_sync import DatabaseSyncService
+from .market_data_service import MarketDataService
+from .market_metrics import MarketMetrics
+from .memory_accumulation import InMemorySessionAccumulation
+from .memory_analytics import InMemoryAnalytics
+from .session_manager import SessionManager, MarketSession, SessionTransition
+from .startup_service import run_startup_sequence
+from .universe_coordinator import UniverseCoordinator
+from .universe_service import TickStockUniverseManager
+from .user_filters_service import UserFiltersService
+from .user_settings_service import UserSettingsService
 
-try:
-    from .config_manager import ConfigManager
-except ImportError:
-    ConfigManager = None
-
-# Export what was successfully imported
+# Define public API
 __all__ = [
-    name for name in ['MarketDataService', 'SessionManager', 'ConfigManager']
-    if globals().get(name) is not None
+    'SessionAccumulationManager',
+    'AnalyticsCoordinator',
+    'AnalyticsManager',
+    'AnalyticsSyncService',
+    'ConfigManager',
+    'DatabaseSyncService',
+    'MarketDataService',
+    'MarketMetrics',
+    'InMemorySessionAccumulation',
+    'InMemoryAnalytics',
+    'SessionManager',
+    'MarketSession',
+    'SessionTransition',
+    'run_startup_sequence',
+    'UniverseCoordinator',
+    'TickStockUniverseManager',
+    'UserFiltersService',
+    'UserSettingsService',
 ]

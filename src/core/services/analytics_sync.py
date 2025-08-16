@@ -105,7 +105,7 @@ class AnalyticsSyncService:
                             continue
                         
                         # FIXED: Create MarketAnalytics record using NEW field structure
-                        market_analytics = MarketAnalytics(
+                        market_analytics = TickerAnalytics(
                             # Identity & Timing
                             session_date=aggregated_data['session_date'],
                             timestamp=aggregated_data['timestamp'],
@@ -269,7 +269,7 @@ class AnalyticsSyncService:
                 
                 return {
                     'valid': True,
-                    'existing_records': MarketAnalytics.query.count(),
+                    'existing_records': TickerAnalytics.query.count(),
                     'database_accessible': True,
                     'model_structure': 'sprint_1_updated',
                     'new_fields_accessible': True

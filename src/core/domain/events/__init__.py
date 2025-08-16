@@ -1,9 +1,8 @@
-# classes/events/__init__.py
-"""Event classes for TickStock type-safe architecture"""
+"""Module initialization."""
 
-from src.core.domain.events.base import BaseEvent
-from src.core.domain.events.highlow import HighLowEvent
-from src.core.domain.events.trend import TrendEvent
-from src.core.domain.events.surge import SurgeEvent
-
-__all__ = ['BaseEvent', 'HighLowEvent', 'TrendEvent', 'SurgeEvent']
+from .base import BaseEvent
+from .control import ControlEvent
+from .highlow import HighLowEvent
+from .surge import SurgeEvent
+from .trend import TrendEvent
+__all__ = ['BaseEvent', 'ControlEvent', 'HighLowEvent', 'SurgeEvent', 'TrendEvent']
