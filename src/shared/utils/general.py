@@ -6,6 +6,7 @@ import pytz
 from typing import Dict, List, Any, Optional, Callable
 from dataclasses import dataclass
 
+
 logger = logging.getLogger(__name__)
 
 def detect_market_status(timestamp: datetime) -> str:

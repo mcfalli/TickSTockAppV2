@@ -41,6 +41,11 @@ from src.processing.detectors.utils import (
     create_calculation_details
 )
 
+from src.shared.utils import (
+    generate_event_key,
+    get_eastern_time
+)
+
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
 
 logger = get_domain_logger(LogDomain.CORE, 'event_processor')
@@ -121,7 +126,7 @@ class EventProcessor:
     """
     @staticmethod
     def generate_event_key(ticker: str, price: float, event_type: str, timestamp=None) -> str:
-        return utils.generate_event_key(ticker, price, event_type, timestamp)
+        return generate_event_key(ticker, price, event_type, timestamp)
 
     def __init__(self, config: Dict[str, Any], market_service: Any, event_manager: Any,
             buysell_market_tracker: Optional[Any] = None,

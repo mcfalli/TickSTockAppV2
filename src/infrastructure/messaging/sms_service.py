@@ -4,6 +4,7 @@ from twilio.base.exceptions import TwilioRestException
 from src.infrastructure.database import User, CommunicationLog, db, VerificationCode
 from datetime import datetime, timedelta
 from config.logging_config import get_domain_logger, LogDomain
+from src.infrastructure.messaging import EmailManager 
 
 logger = get_domain_logger(LogDomain.AUTH_SESSION, 'sms_manager')
 
@@ -90,8 +91,7 @@ class SMSManager:
                 
             if self.test_mode:
                 # In test mode, send the code via email instead
-                from email_manager import EmailManager
-                
+
                 expiry_minutes = current_app.config.get('SMS_VERIFICATION_CODE_EXPIRY', 10)
                 email_manager = EmailManager(current_app.extensions['mail'])
                 
