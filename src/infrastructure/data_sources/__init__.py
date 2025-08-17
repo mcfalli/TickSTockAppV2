@@ -1,5 +1,5 @@
 """Module initialization."""
 
 from .factory import DataProviderFactory
-from .base import DataProvider
+from src.core.interfaces.data_provider import DataProvider
 __all__ = ['DataProviderFactory', 'DataProvider']

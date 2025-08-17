@@ -15,9 +15,10 @@ from typing import Dict, List, Tuple
 import importlib.util
 
 class ComprehensiveTestRunner:
-    def __init__(self, project_dir: str = r"C:\Users\McDude\TickStockAppV2"):
+    def __init__(self, project_dir: str = r"C:\Users\McDude\TickStockAppV2", verbose: bool = False):
         self.project_dir = Path(project_dir)
         self.test_dir = self.project_dir / "tests"
+        self.verbose = verbose  # Add verbose flag
         
         # Add project to path
         sys.path.insert(0, str(self.project_dir))
@@ -96,7 +97,7 @@ class ComprehensiveTestRunner:
             # Data Sources
             ("DataProviderFactory", "from src.infrastructure.data_sources.factory import DataProviderFactory"),
             ("PolygonProvider", "from src.infrastructure.data_sources.polygon.provider import PolygonDataProvider"),
-            ("SyntheticProvider", "from src.infrastructure.data_sources.synthetic.provider import SyntheticDataProvider"),
+            ("SyntheticProvider", "from src.infrastructure.data_sources.synthetic.provider import SimulatedDataProvider"),
             
             # Event Detection
             ("EventDetectionManager", "from src.processing.detectors.manager import EventDetectionManager"),
@@ -116,10 +117,10 @@ class ComprehensiveTestRunner:
             ("App Config", "import config.app_config"),
             
             # Database
-            ("Database Models", "from src.infrastructure.database.models.base import Base"),
+            ("Database Models", "from src.infrastructure.database.models.base import db"),
             
             # Cache
-            ("Cache Manager", "from src.infrastructure.cache.cache_manager import CacheManager"),
+            ("Cache Manager", "from src.infrastructure.cache.cache_control import CacheControl"),
         ]
         
         for name, import_stmt in critical_imports:
@@ -129,7 +130,15 @@ class ComprehensiveTestRunner:
             if result['status'] == 'passed':
                 print(f"  ✅ {name}")
             else:
-                print(f"  ❌ {name}: {result.get('error', 'Unknown error')[:50]}")
+                # Show full error
+                print(f"  ❌ {name}:")
+                print(f"     Full error: {result.get('error', 'Unknown error')}")
+                if self.verbose and 'traceback' in result:
+                    # Show the most relevant part of traceback
+                    tb_lines = result['traceback'].split('\n')
+                    for line in tb_lines[-4:-1]:  # Show last 3 meaningful lines
+                        if line.strip():
+                            print(f"     {line}")
         
         # Summary
         passed = sum(1 for r in self.results['import_tests'].values() if r['status'] == 'passed')
@@ -144,10 +153,27 @@ class ComprehensiveTestRunner:
             return {'status': 'passed', 'name': name}
         except ImportError as e:
             self.results['summary']['failed'] += 1
-            return {'status': 'failed', 'name': name, 'error': str(e)}
+            # Get full error with traceback
+            import traceback
+            full_error = str(e)
+            tb_str = traceback.format_exc()
+            return {
+                'status': 'failed', 
+                'name': name, 
+                'error': full_error,
+                'traceback': tb_str
+            }
         except Exception as e:
             self.results['summary']['errors'] += 1
-            return {'status': 'error', 'name': name, 'error': str(e)}
+            import traceback
+            full_error = str(e)
+            tb_str = traceback.format_exc()
+            return {
+                'status': 'error', 
+                'name': name, 
+                'error': full_error,
+                'traceback': tb_str
+            }
         finally:
             self.results['summary']['total'] += 1
     
@@ -208,8 +234,9 @@ class ComprehensiveTestRunner:
         try:
             from src.core.services.session_manager import SessionManager
             
-            # Test instantiation
-            session_mgr = SessionManager()
+            # Test instantiation with config dict
+            config = {'DEBUG': False}  # Use a dict which has .get() method
+            session_mgr = SessionManager(config)
             
             # Test basic methods
             if hasattr(session_mgr, 'get_current_session'):
@@ -217,7 +244,6 @@ class ComprehensiveTestRunner:
                 
             self.results['summary']['passed'] += 1
             return {'status': 'passed'}
-            
         except Exception as e:
             self.results['summary']['failed'] += 1
             return {'status': 'failed', 'error': str(e)}
@@ -247,8 +273,9 @@ class ComprehensiveTestRunner:
             from src.processing.detectors.manager import EventDetectionManager
             from src.processing.detectors.highlow_detector import HighLowDetector
             
-            # Test instantiation
-            detector = HighLowDetector()
+            # Test instantiation with config dict (not ConfigManager)
+            config = {'DEBUG': False}  # Use a dict which has .get() method
+            detector = HighLowDetector(config)
             
             self.results['summary']['passed'] += 1
             return {'status': 'passed'}
@@ -355,10 +382,18 @@ class ComprehensiveTestRunner:
         
         print(f"\n📦 IMPORT TESTS: {import_passed}/{import_total} passed")
         if import_passed < import_total:
-            print("  Failed imports:")
+            print("  Failed imports (with full errors):")
             for name, result in self.results['import_tests'].items():
                 if result['status'] != 'passed':
-                    print(f"    ❌ {name}: {result.get('error', 'Unknown')[:50]}")
+                    print(f"\n    ❌ {name}:")
+                    print(f"       Full error: {result.get('error', 'Unknown')}")
+                    if self.verbose and 'traceback' in result:
+                        print("       Traceback (last line):")
+                        tb_lines = result['traceback'].strip().split('\n')
+                        # Find the actual error location
+                        for line in tb_lines:
+                            if 'File' in line and '.py' in line:
+                                print(f"       {line.strip()}")
         
         # Unit Tests Summary
         unit_passed = sum(1 for r in self.results['unit_tests'].values() if r['status'] == 'passed')
@@ -469,12 +504,17 @@ class ComprehensiveTestRunner:
 
 def main():
     """Main execution"""
-    runner = ComprehensiveTestRunner()
-    
     # Check for command line arguments
-    if len(sys.argv) > 1:
+    verbose = '--verbose' in sys.argv or '-v' in sys.argv
+    
+    runner = ComprehensiveTestRunner(verbose=verbose)
+    
+    # Check for specific test file (excluding verbose flag)
+    args = [arg for arg in sys.argv[1:] if not arg.startswith('-')]
+    
+    if args:
         # Run specific test file
-        test_file = sys.argv[1]
+        test_file = args[0]
         runner.run_specific_test_file(test_file)
     else:
         # Run all tests

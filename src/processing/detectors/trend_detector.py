@@ -15,9 +15,11 @@ from src.processing.detectors.utils import (
     generate_event_label,
     get_market_context
 )
-from src.processing.detectors.trend_detector import TrendDetector
 
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
+
+from src.processing.detectors.engines import TrendDetectionEngine
+
 
 logger = get_domain_logger(LogDomain.CORE, 'trend_detector')
 

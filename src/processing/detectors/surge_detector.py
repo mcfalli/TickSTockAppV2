@@ -16,9 +16,8 @@ from src.processing.detectors.utils import (
     generate_event_label,
     get_market_context
 )
-from src.processing.detectors import SurgeDetectionEngine
-
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
+from src.processing.detectors.engines import SurgeDetectionEngine
 
 logger = get_domain_logger(LogDomain.CORE, 'surge_detector')
 
