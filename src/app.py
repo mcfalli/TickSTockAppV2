@@ -40,6 +40,8 @@ from src.presentation.websocket.manager import WebSocketManager
 from src.core.services.market_data_service import MarketDataService
 from src.processing.detectors.manager import EventDetectionManager
 
+from src.infrastructure.database import MarketAnalytics
+
 from src.infrastructure.data_sources.factory import DataProviderFactory
 from src.infrastructure.messaging.sms_service import SMSManager
 from src.monitoring.system_monitor import system_monitor
@@ -567,10 +569,8 @@ def schedule_database_sync(app, market_service):
                         logger.info(f"ANALYTICS_SYNC_SUCCESS: {analytics_synced} analytics records synced")
                         
                         # Verify analytics in database
-                        from src.infrastructure.database import TickerAnalytics
-                        from datetime import date
-                        analytics_count = TickerAnalytics.query.filter(
-                            TickerAnalytics.session_date == date.today()
+                        analytics_count = MarketAnalytics.query.filter(
+                            MarketAnalytics.session_date == datetime.now().date()
                         ).count()
                         logger.debug(f"ANALYTICS_VERIFICATION: {analytics_count} analytics records in database for today")
                 else:
