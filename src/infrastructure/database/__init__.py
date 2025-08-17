@@ -28,7 +28,7 @@ from src.infrastructure.database.models.base import (
 from src.infrastructure.database.migrations.run_migrations import (
     run_migration_command,
 )
-
+from .models.analytics import TickerAnalytics
 __all__ = [
     # Database instance
     'db',
@@ -50,7 +50,7 @@ __all__ = [
     'UserHistory',
     'UserSettings',
     'VerificationCode',
-    
+    'TickerAnalytics',
     # Migration utilities
     'run_migration_command',
 ]

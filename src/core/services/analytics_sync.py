@@ -17,6 +17,8 @@ from datetime import datetime, date
 from typing import Dict, List, Any, Optional
 
 from config.logging_config import get_domain_logger, LogDomain
+from src.infrastructure.database import db, MarketAnalytics
+
 
 logger = get_domain_logger(LogDomain.CORE, 'analytics_sync')
 
@@ -76,8 +78,6 @@ class AnalyticsSyncService:
                     'records_synced': 0
                 }
             
-            # Import database components
-            from src.infrastructure.database import db, TickerAnalytics
             
             # FIXED: Process single aggregated records
             records_processed = 0
@@ -105,7 +105,7 @@ class AnalyticsSyncService:
                             continue
                         
                         # FIXED: Create MarketAnalytics record using NEW field structure
-                        market_analytics = TickerAnalytics(
+                        market_analytics = MarketAnalytics(
                             # Identity & Timing
                             session_date=aggregated_data['session_date'],
                             timestamp=aggregated_data['timestamp'],
@@ -202,7 +202,6 @@ class AnalyticsSyncService:
         except Exception as e:
             # Roll back on any error
             try:
-                from src.infrastructure.database import db
                 db.session.rollback()
             except:
                 pass
@@ -247,9 +246,6 @@ class AnalyticsSyncService:
                     'can_retry': True
                 }
             
-            # Import database components
-            from src.infrastructure.database import db, TickerAnalytics
-            
             # Test basic database connection
             test_query = db.session.execute(db.text("SELECT 1 as test")).fetchone()
             if not test_query or test_query[0] != 1:
@@ -269,7 +265,7 @@ class AnalyticsSyncService:
                 
                 return {
                     'valid': True,
-                    'existing_records': TickerAnalytics.query.count(),
+                    'existing_records': MarketAnalytics.query.count(),
                     'database_accessible': True,
                     'model_structure': 'sprint_1_updated',
                     'new_fields_accessible': True

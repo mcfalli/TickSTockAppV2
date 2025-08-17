@@ -13,8 +13,9 @@ from config.logging_config import get_domain_logger, LogDomain
 from src.presentation.converters.transport_models import StockData
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
 
-
-# from src.processing.detectors.trend_detector import TrendDetector, extract_price_history_from_state, SurgeDetectionEngine, extract_surge_buffer_from_state  # Commented out to avoid circular import
+#from src.processing.detectors.trend_detector import TrendDetector
+from src.processing.detectors.engines import TrendDetectionEngine
+from src.processing.detectors.engines import extract_surge_buffer_from_state, extract_price_history_from_state, SurgeDetectionEngine
 
 
 logger = get_domain_logger(LogDomain.CORE, 'event_detector_util')

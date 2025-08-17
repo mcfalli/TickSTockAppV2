@@ -1,6 +1,6 @@
 """Messaging Services"""
 
-from .email_service import EmailService
-from .sms_service import SMSService
+from .email_service import EmailManager
+from .sms_service import SMSManager
 
-__all__ = ['EmailService', 'SMSService']
+__all__ = ['EmailManager', 'SMSManager']

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TickStock.ai</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities/main.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.min.js"></script>
     <!-- Chart.js Integration -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.0.1/dist/gridstack.min.css">
@@ -527,12 +527,12 @@
     </div>
 
     <!-- JavaScript Loading - Modular Order -->
-    <script src="{{ url_for('static', filename='js/app-core.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/app-universe.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/app-filters.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/app-gauges.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/app-events.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/app-gridstack.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/app-layout-sync.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/app-core.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/app-universe.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/app-filters.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/app-gauges.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/app-events.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/app-gridstack.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/app-layout-sync.js') }}"></script>
     </body>
 </html>

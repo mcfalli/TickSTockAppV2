@@ -13,6 +13,9 @@ from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.surge import SurgeEvent
 from src.presentation.converters.transport_models import StockData
 
+from src.core.domain.events.highlow import HighLowEvent
+from src.processing.detectors.engines import HighLowDetectionEngine
+
 from src.processing.detectors.utils import (
     calculate_vwap_divergence, 
     calculate_relative_volume,
@@ -365,8 +368,6 @@ class HighLowDetector:
         start_time = time.time()
         
         try:
-            from src.core.domain.events.highlow import HighLowEvent
-            from src.processing.detectors.highlow_detector import HighLowDetectionEngine
             
             # FIXED: Ensure timestamp is float
             timestamp_float = normalize_timestamp(timestamp)

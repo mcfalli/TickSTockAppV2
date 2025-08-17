@@ -3,8 +3,13 @@ TickStock Main Application Entry Point
 Coordinates startup sequence and runs the application.
 TickStock Rock
 """
-
 import eventlet
+eventlet.monkey_patch()
+
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 # Import all major modules to prevent orphaning
 from src.api.rest import *
@@ -15,7 +20,6 @@ from src.infrastructure.data_sources import DataProviderFactory
 from src.presentation.websocket import WebSocketManager, WebSocketPublisher
 from src.processing.detectors import EventDetectionManager
 
-eventlet.monkey_patch()
 
 import os
 import time

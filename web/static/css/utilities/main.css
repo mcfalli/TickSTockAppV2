@@ -44,10 +44,10 @@ CRITICAL PATH STYLES - LOAD FIRST
 */
 
 /* Design System Foundation - CSS Custom Properties */
-@import url('base/variables.css');
+@import url('../base/variables.css');
 
 /* CSS Reset & Base Element Styling */
-@import url('base/reset.css');
+@import url('../base/reset.css');
 
 /*
 ===============================================================================
@@ -56,8 +56,8 @@ LAYOUT SYSTEMS - STRUCTURAL COMPONENTS
 */
 
 /* Main Application Layout & Grid System */
-@import url('layout/layout.css');
-@import url('layout/grid.css');
+@import url('../layout/layout.css');
+@import url('../layout/grid.css');
 
 /*
 ===============================================================================
@@ -66,34 +66,34 @@ UI COMPONENTS - INTERACTIVE ELEMENTS
 */
 
 /* Navigation Bar & Status Indicators */
-@import url('components/navbar.css');
+@import url('navbar.css');
 
 /* User Menu & Dropdown System */
-@import url('components/user-menu.css');
+@import url('user-menu.css');
 
 /* Chart.js Gauge Components */
-@import url('components/velocity.css');
+@import url('velocity.css');
 
 /* Chart.js Gauge Components */
-@import url('components/gauges.css');
+@import url('../components/gauges.css');
 
 /* Events System (Highs, Lows, Trends, Surges) */
-@import url('components/events.css');
+@import url('events.css');
 
 /* Dashboard & Info Panels */
-@import url('components/dashboard.css');
+@import url('dashboard.css');
 
 /* Status Bar & Footer */
-@import url('components/status-bar.css');
+@import url('status-bar.css');
 
 /* Modal Dialogs & Overlays */
-@import url('components/modals.css');
+@import url('../components/modals.css');
 
 /* Filter Modal & Components */
-@import url('components/filters.css');
+@import url('filters.css');
 
 /* Dialog Manaager */
-@import url('components/dialogs.css');
+@import url('dialogs.css');
 /*
 ===============================================================================
 UTILITY SYSTEMS - HELPERS & ANIMATIONS
@@ -101,7 +101,7 @@ UTILITY SYSTEMS - HELPERS & ANIMATIONS
 */
 
 /* Utility Classes & Animation System */
-@import url('utilities/animations.css');
+@import url('animations.css');
 
 /*
 ===============================================================================
