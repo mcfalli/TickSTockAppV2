@@ -923,16 +923,14 @@ class MarketDataService:
         try:
             tickers = self.cache_control.get_default_universe()
             
-            # Check if we already have a valid connection
             if (self.real_time_adapter and 
-                hasattr(self.real_time_adapter, 'client') and 
-                hasattr(self.real_time_adapter.client, 'connected') and
+                self.real_time_adapter.client and 
                 self.real_time_adapter.client.connected):
-                
                 logger.info("✅CORE-SRVC:  WebSocket already connected, skipping reconnection attempt")
                 self.handle_websocket_status('connected')
                 self.real_time_adapter.client.check_subscriptions()
-                return
+                return 
+                        
              # Attempt connection with retries
             for attempt in range(3):
                if self.real_time_adapter.connect(tickers):
@@ -1425,13 +1423,6 @@ class MarketDataService:
                     elif hasattr(self.market_analytics_manager, 'get_current_state'):
                         current_analytics = self.market_analytics_manager.get_current_state()
                         analytics_data.update(current_analytics)
-                    elif hasattr(self.market_analytics_manager, 'memory_analytics'):
-                        # Try to get data from memory_analytics
-                        if hasattr(self.market_analytics_manager.memory_analytics, 'get_current_analytics'):
-                            current_analytics = self.market_analytics_manager.memory_analytics.get_current_analytics()
-                            analytics_data.update(current_analytics)
-                        else:
-                            logger.debug("No analytics retrieval method found on memory_analytics")
                     else:
                         logger.debug("No suitable analytics retrieval method found")
                 except Exception as e:

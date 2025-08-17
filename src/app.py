@@ -914,22 +914,12 @@ if __name__ == '__main__':
     if not registration_result.success:
         logger.error(f"Failed to register market service: {registration_result.errors}")
     
+    market_service.websocket_publisher.user_settings_service.app = app
+    logger.info("✅ UserSettingsService app reference updated for context management")
 
-    # 🆕 Ensure UserSettingsService has app reference for database context
-    if hasattr(market_service, 'websocket_publisher') and market_service.websocket_publisher:
-        if hasattr(market_service.websocket_publisher, 'user_settings_service') and \
-        market_service.websocket_publisher.user_settings_service:
-            market_service.websocket_publisher.user_settings_service.app = app
-            logger.info("✅ UserSettingsService app reference updated for context management")
-
-    # Also update universe coordinator if it exists
-    if hasattr(market_service, 'universe_coordinator') and market_service.universe_coordinator:
-        if hasattr(market_service.universe_coordinator, 'user_universe_manager'):
-            user_universe_manager = market_service.universe_coordinator.user_universe_manager
-            if hasattr(user_universe_manager, 'user_settings_service') and \
-            user_universe_manager.user_settings_service:
-                user_universe_manager.user_settings_service.app = app
-                logger.info("✅ UserUniverseManager's UserSettingsService app reference updated")
+    user_universe_manager = market_service.universe_coordinator.user_universe_manager
+    user_universe_manager.user_settings_service.app = app
+    logger.info("✅ UserUniverseManager's UserSettingsService app reference updated")
 
 
     # 🆕 SPRINT 1C: Initialize filter cache AFTER market_service is ready

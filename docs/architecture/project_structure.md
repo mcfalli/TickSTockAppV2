@@ -1,399 +1,457 @@
-# Project Structure Documentation
+# TickStock V2 - Project Structure Documentation
+*Generated: 2025-08-17T11:44:34.999580*
+*Version: 2.0*
+*Architecture: Modular Architecture (src/)*
+
+## Table of Contents
+1. [Application Overview](#application-overview)
+2. [System Architecture](#system-architecture)
+3. [Module Structure](#module-structure)
+4. [Core Domains](#core-domains)
+5. [Data Flows](#data-flows)
+6. [Component Inventory](#component-inventory)
+7. [WebSocket Architecture](#websocket-architecture)
+8. [Event Processing](#event-processing)
+9. [External Dependencies](#external-dependencies)
+10. [Configuration](#configuration)
+11. [Testing Strategy](#testing-strategy)
+12. [Frontend Architecture](#frontend-architecture)
+13. [Quality Metrics](#quality-metrics)
+14. [Sprint Tracking](#sprint-tracking)
 
 ## Application Overview
-- **Type**: Single Page Application
+**TickStock V2** - High-performance market data processing with sub-millisecond event detection
+
+- **Type**: Real-time Market Data Processing System
 - **Backend**: Flask with Flask-SocketIO
-- **Frontend**: JavaScript with Socket.IO
-- **Description**: Real-time market data processing and visualization
-- **Architecture Pattern**: Event-driven microservices
-- **Primary Data Flow**: Request → Processing → Response
+- **Frontend**: JavaScript SPA with WebSocket
+- **Architecture**: Component-based with Pull Model Event Distribution
+- **Data Flow**: WebSocket → Core Services → Event Processing → User Distribution
+
+### Key Features
+- Real-time market data processing (4,000+ tickers)
+- Sub-millisecond event detection
+- Pull-based event distribution (zero event loss)
+- Per-user data isolation and filtering
+- Modular component architecture
+
+## System Architecture
+**Pattern**: Modular Component Architecture
+
+### Architectural Layers
+- **Presentation**: WebSocket & API Layer (src/presentation, src/api)
+- **Business**: Core Services & Domain Logic (src/core)
+- **Processing**: Event Detection & Processing (src/processing)
+- **Infrastructure**: Data Sources & External Services (src/infrastructure)
+- **Shared**: Utilities & Constants (src/shared)
+
+### Design Patterns
+- Dependency Injection
+- Event-Driven Architecture
+- Pull Model Distribution
+- Memory-First Processing
+- Per-User Isolation
+
+## Module Structure
+### Core Business Logic
+*Core Business Logic*
+
+- **Files**: 37
+- **Components**: 45
+- **Key Components**: AnalyticsCoordinator, AnalyticsManager, AnalyticsOperationResult, AnalyticsSyncService, BaseEvent
+
+### External Integrations & Data Layer
+*External Integrations & Data Layer*
+
+- **Files**: 25
+- **Components**: 32
+- **Key Components**: AppSettings, BillingInfo, CacheControl, CacheEntry, CommunicationLog
+
+### User Interface & WebSocket Layer
+*User Interface & WebSocket Layer*
+
+- **Files**: 16
+- **Components**: 50
+- **Key Components**: ActivityMetrics, ActivityWindow, AggregationInfo, BuySellMetrics, ChangePasswordForm
+
+### Event Detection & Processing Pipeline
+*Event Detection & Processing Pipeline*
+
+- **Files**: 20
+- **Components**: 36
+- **Key Components**: BuySellMarketTracker, BuySellTracker, DataFlowStats, EventDetectionManager, EventDetectionResult
+
+### REST & WebSocket API Endpoints
+*REST & WebSocket API Endpoints*
+
+- **Files**: 7
+- **Components**: 4
+- **Key Components**: register_api_routes, register_auth_routes, register_main_routes, register_universe_api_routes
+
+### Authentication & Authorization
+*Authentication & Authorization*
+
+- **Files**: 4
+- **Components**: 6
+- **Key Components**: AuthenticationManager, RegistrationManager, SessionManager, create_session, detect_concurrent_login
+
+### System Monitoring & Metrics
+*System Monitoring & Metrics*
+
+- **Files**: 7
+- **Components**: 17
+- **Key Components**: DataFlowStats, DiagnosticCollector, HealthMonitor, HealthMonitorOperationResult, MetricSnapshot
+
+### Shared Utilities & Constants
+*Shared Utilities & Constants*
+
+- **Files**: 9
+- **Components**: 5
+- **Key Components**: DataFlowValidator, EventFactory, EventValidator, FieldValidator, detect_market_status
+
+### Root
+*Root level files and scripts*
+
+- **Files**: 203
+- **Components**: 61
+- **Key Components**: ComponentAnalyzer, ComprehensiveTestRunner, CreateProjectStructureDocumentation, DependencyCreator, DocumentationExtractor
 
 ## Core Domains
-### Authentication
-- **Purpose**: User management and session handling
-- **Features**:
-  - Email verification
-  - SMS 2FA
-  - Rate limiting
-  - Session management
-- **Key Components**:
-  - register_auth_routes
-  - AuthenticationManager
-  - generate_reset_token
-  - generate_verification_code
-  - RegistrationManager
-### Event Detection
-- **Purpose**: Identify trading patterns and market events
-- **Key Components**:
-  - BaseEvent
-  - ControlEvent
-  - HighLowEvent
-  - SurgeEvent
-  - TrendEvent
-### Market Data
-- **Purpose**: Real-time stock data ingestion and processing
-- **Features**:
-  - Live price feeds
-  - Volume tracking
-  - Market status monitoring
-- **Key Components**:
-  - DataProviderFactory
-  - register_provider
-  - RealTimeDataAdapter
-  - SyntheticDataAdapter
-  - DataProvider
-### Real Time Communication
-- **Purpose**: Live data streaming to frontend
-- **Key Components**:
-  - WebSocketAnalytics
-  - WebSocketDataFilter
-  - WebSocketDisplayConverter
-  - WebSocketFilterCache
-  - EmissionMetrics
+### Market Data Processing
+**Purpose**: Real-time market data ingestion and processing
 
-## Key Data Flows
-### Market Data Pipeline
-- **Flow**: Polygon API → PolygonWebSocketClient → MarketDataService → Event Detectors → WebSocketPublisher → Frontend
-- **Trigger**: Real-time market tick data
-- **Components**:
-  - PolygonWebSocketClient
-  - MarketDataService
-  - HighLowDetector
-  - WebSocketPublisher
-### User Authentication
-- **Flow**: Registration → Email Verification → Login → Session Creation → Rate Limiting
-- **Trigger**: User registration/login attempts
-- **Components**:
-  - RegistrationManager
-  - AuthenticationManager
-  - SessionManager
+**Data Sources**:
+- Polygon.io WebSocket
+- Synthetic Data Generator
+**Processing Capacity**: 4,000+ tickers with sub-millisecond processing
+
+**Key Components**:
+- `handle_market_session_change`
+- `create_cache_database_engine`
+- `initialize_cache_with_database`
+- `TickStockUniverseManager`
+- `UserSettingsService`
+- `handle_websocket_status`
+- `DatabaseSyncService`
+- `register_with_app`
+
 ### Event Detection
-- **Flow**: Market Tick → Event Detectors → Pattern Analysis → Alert Generation → Frontend Notification
-- **Trigger**: Market data changes meeting detection criteria
-- **Components**:
-  - HighLowDetector
-  - TrendDetector
-  - SurgeDetector
+**Purpose**: Identify market patterns and significant events
+
+**Detection Types**:
+- High/Low Detection (0.1% threshold)
+- Trend Analysis (180/360/600s windows)
+- Volume Surge Detection (3x average)
+
+**Key Components**:
+- `EventDetector`
+- `detect_events`
+- `process_tick`
+- `TickProcessor`
+- `handle_market_status_change`
+- `QueuedEvent`
+- `TypedEventQueue`
+- `EventProcessingResult`
+
+### Websocket Communication
+**Purpose**: Real-time data distribution to clients
+
+**Architecture**: Pull-based model with zero event loss
+**Features**:
+- Per-user filtering
+- Event buffering (1000 events/type)
+- Independent emission timers
+
+**Key Components**:
+- `SimpleAverages`
+- `register_user_connection`
+- `WebSocketPublisher`
+- `DataPublisher`
+- `PerformanceMetrics`
+- `SessionAccumulation`
+- `VerticalAnalytics`
+- `ActivityWindow`
+
+### Authentication
+**Purpose**: User authentication and session management
+
+**Features**:
+- Email/SMS verification
+- Session tracking
+- Rate limiting
+- Password reset flows
+
+**Key Components**:
+- `create_session`
+- `SessionManager`
+- `detect_concurrent_login`
+- `AuthenticationManager`
+- `register_user`
+- `RegistrationManager`
+
+### Monitoring
+**Purpose**: System health and performance monitoring
+
+**Metrics**:
+- Processing latency
+- Queue depths
+- Event rates
+- API health
+
+**Key Components**:
+- `PerformanceLevel`
+- `MonitoringConfig`
+- `HealthMonitorOperationResult`
+- `register_metrics_source`
+- `PerformanceMetric`
+- `DataFlowStats`
+- `MetricsCollector`
+- `DiagnosticCollector`
+
+## Data Flows
+### Market Data Pipeline
+**Stages**:
+1. Data Source (Polygon/Synthetic)
+2. WebSocket Ingestion
+3. MarketDataService.handle_tick()
+4. EventProcessor.process_tick()
+5. Event Detection (HighLow/Trend/Surge)
+6. Priority Queue Management
+7. Worker Pool Processing
+8. Display Queue (for UI events)
+9. DataPublisher Collection
+10. WebSocketPublisher Pull & Emit
+
+**Processing Time**: Sub-millisecond per tick
+
+### Pull Model Event Distribution
+*Zero event loss architecture (Sprint 29)*
+
+**Flow**:
+- Workers → Convert typed events to dicts
+- Display Queue → Buffer events
+- DataPublisher → Collect & buffer (up to 1000/type)
+- WebSocketPublisher → Pull on timer
+- Per-user filtering
+- WebSocket emission to clients
+**Benefits**: Eliminates 37% event loss from push model
+
+### User Authentication Flow
+**Stages**:
+1. Registration/Login Request
+2. Credential Validation
+3. Email/SMS Verification
+4. Session Creation
+5. JWT Token Generation
+6. WebSocket Authentication
+
+## Component Inventory
+### Core Processing
+*Heart of data processing pipeline*
+
+- **AnalyticsManager** (class)
+  - Market Analytics Manager with accumulation-based processing.
+- **ConfigManager** (class)
+  - Centralized configuration management with validation.
+- **MarketDataService** (class)
+  - Clean orchestration layer for market data processing.
+- **SessionManager** (class)
+
+### Event Processing
+*Event detection and management*
+
+- **BuySellTracker** (class)
+  - Base class for buy/sell pressure trackers.
+- **EventDetectionManager** (class)
+  - Unified manager for all event detection types
+- **EventProcessor** (class)
+  - Handles all event processing logic with clean dependency injection.
+- **EventProcessorStats** (class)
+- **HighLowDetector** (class)
+- **SurgeDetector** (class)
+- **TickProcessor** (class)
+  - Handles core tick processing logic.
+- **TrendDetector** (class)
+  - Enhanced trend detection for stock price movements.
+
+### Websocket Layer
+*Real-time communication*
+
+- **DataPublisher** (class)
+  - Handles all data publishing logic with clean separation of concerns.
+- **PolygonWebSocketClient** (class)
+  - PHASE 4 COMPLIANCE for polygon_websocket_client.py:
+- **WebSocketAnalytics** (class)
+  - Prepares analytics data for WebSocket emission.
+- **WebSocketDataFilter** (class)
+  - Handles all data filtering operations for WebSocket emissions.
+- **WebSocketManager** (class)
+- **WebSocketPublisher** (class)
+  - Enhanced WebSocket publisher with comprehensive universe filtering logging.
+
+### Data Providers
+*Data source integrations*
+
+- **DataProvider** (class)
+  - Abstract base class for stock market data providers.
+- **DataProviderFactory** (class)
+  - Factory for creating data provider instances with a registry pattern.
+- **PolygonDataProvider** (class)
+  - Class to handle Polygon.io API interactions with enhanced rate limiting and caching
+- **RealTimeDataAdapter** (class)
+  - Adapter for handling real-time data streams from WebSocket providers.
+- **SimulatedDataProvider** (class)
+  - Provider that generates simulated stock market data with comprehensive tracing.
+
+### Infrastructure
+*Supporting services*
+
+- **CacheControl** (class)
+  - Singleton class to manage cached stock lists and metadata.
+- **DatabaseSyncService** (class)
+  - Handles database synchronization for session accumulation.
+- **HealthMonitor** (class)
+  - Monitors system health and collects performance metrics.
+- **HealthMonitorOperationResult** (class)
+  - Result object for health monitor operations.
+- **MetricsCollector** (class)
+  - Centralized metrics collection and aggregation system.
+- **PerformanceMonitor** (class)
+  - Unified performance monitoring and alerting system.
+
+## WebSocket Architecture
+**Architecture**: Pull-based distribution model
+**Components**: 11
+
+### Features
+- Per-user data isolation
+- Event buffering (1000 events/type)
+- Independent emission timers
+- LRU cache with 1-hour TTL
+- User filter preferences
+
+### Event Types
+- `filters_updated`
+- `test_event`
+- `request_filtered_data_refresh`
+- `session_reset`
+- `disconnect`
+- `connect`
+- `dual_universe_stock_data`
+- `user_status_response`
+- `universe_updated`
+- `status_update`
+
+## Event Processing
+**Detectors**: 8
+**Processing Model**: Typed events → Worker conversion → Dict transport
+
+### Event Types
+- HighLowEvent (0.1% threshold)
+- TrendEvent (180/360/600s windows)
+- SurgeEvent (3x volume average)
+- ControlEvent (system events)
+
+### Queue Priorities
+- P0: Control events
+- P1: High priority market events
+- P2: Standard market events
+- P3: Low priority events
+- P4: Background tasks
 
 ## External Dependencies
-- **APIs**:
-  - Polygon.io (market data)
-- **Infrastructure**:
-  - Docker
-  - Nginx
-  - Prometheus
+### Data Sources
+- Polygon.io WebSocket API
+- Synthetic Data Generator (development)
+
+### Databases
+- PostgreSQL (user data, analytics)
+- Redis (caching, session storage)
+
+### Messaging
+- Twilio (SMS verification)
+- SMTP (email notifications)
+
+### Infrastructure
+- Docker (containerization)
+- Nginx (reverse proxy)
+- Prometheus (metrics)
+- Eventlet (async processing)
+
+### Frontend
+- Socket.IO (real-time communication)
+- Chart.js (data visualization)
+- GridStack (layout management)
 
 ## Configuration
-- **Environment Files**:
-  - .env
-  - config/app_config.py
-  - config/cache_control.py
-  - config/config_manager.py
-  - config/__init__.py
-  - config/logging_config.py
-- **Deployment**:
-  - docker-compose.yml
-  - nginx.conf
-- **Monitoring**:
-  - prometheus.yml
-  - config/logging_config.py
+### Environment
+*Environment-specific settings*
+- `.env`
+- `config/environments/dev.py`
+- `config/environments/prod.py`
+- `config/environments/__init__.py`
+
+### Application
+*Application configuration modules*
+- `config/app_config.py`
+- `config/logging_config.py`
+- `config/__init__.py`
+- `config/environments/dev.py`
+- `config/environments/prod.py`
+
+### Deployment
+*Container and server configuration*
+- `docker/docker-compose.yml`
+- `docker/Dockerfile`
+- `docker/nginx.conf`
+
+### Monitoring
+*Logging and metrics configuration*
+- `config/logging_config.py`
+- `config/prometheus.yml`
 
 ## Testing Strategy
-- **Unit Tests**:
-  - tests/test_trace_orchestrator.py
-  - tests/test_trace_flow_validation.py
-  - tests/test_trace_statistical.py
-  - tests/test_trace_run_all_tests_diag.py
-  - tests/test_trace_system_health.py
-  - tests/test_trace_emission_gap.py
-  - tests/test_trace_run_all_tests.py
-  - tests/test_trace_format_validator.py
-  - tests/test_trace_coverage.py
-  - tests/test_trace_diagnostics.py
-  - tests/test_trace_highlow_analysis.py
-  - tests/test_trace_visualization.py
-  - tests/test_trace_emission_timing.py
+**Total Tests**: 47
 
-## CSS Architecture
-- **Architecture Type**: Enterprise-grade
-- **Total CSS Files**: 17
-- **Design Tokens**: Yes
-- **Maintainability Score**: Excellent
+### Coverage
+- **Unit Tests**: 2
+- **Integration Tests**: 18
+- **Performance Tests**: 1
 
-## JavaScript Architecture
-- **Architecture Type**: Multi-file
-- **Total JS Files**: 7
-- **Total Classes**: 7
-- **Total Functions**: 30
+## Frontend Architecture
+### JavaScript
+- **Files**: 7
+- **Modular Files**: 7
+- **Key Modules**:
+  - app-core.js (Foundation)
+  - app-universe.js (Universe management)
+  - app-gauges.js (Visualizations)
+  - app-events.js (Event handling)
+  - app-filters.js (Data filtering)
 
-## Requirements
-- **Total Packages**: 33
-- **Web Framework**:
-  - Flask (requirements.txt)
-  - Werkzeug (requirements.txt)
-  - flask-socketio (requirements.txt)
-  - Flask-Migrate (requirements.txt)
-  - Flask-SQLAlchemy (requirements.txt)
-  - Flask-Login (requirements.txt)
-  - Flask-WTF (requirements.txt)
-  - Flask-Mail (requirements.txt)
-- **Real Time**:
-  - python-socketio (requirements.txt)
-  - eventlet (requirements.txt)
-  - websocket-client (requirements.txt)
-- **Data Processing**:
-  - requests (requirements.txt)
-- **Authentication**:
-  - PyJWT (requirements.txt)
-  - twilio (requirements.txt)
-- **Database**:
-  - redis (requirements.txt)
-  - psycopg2-binary (requirements.txt)
-- **Testing**:
-  - pytest (requirements.txt)
-  - pytest-flask (requirements.txt)
-  - pytest (requirements.txt)
-  - pytest-flask (requirements.txt)
-  - pytest-mock (requirements.txt)
-  - factory-boy (requirements.txt)
-  - pytest-cov (requirements.txt)
-- **Development**:
-  - python-dotenv (requirements.txt)
-- **Other**:
-  - python-engineio (requirements.txt)
-  - pytz (requirements.txt)
-  - cachetools (requirements.txt)
-  - matplotlib (requirements.txt)
-  - pybreaker (requirements.txt)
-  - psutil (requirements.txt)
-  - prometheus-client (requirements.txt)
-  - phonenumbers (requirements.txt)
-  - itsdangerous (requirements.txt)
+### CSS
+- **Files**: 17
+- **Architecture**: Modular component-based
 
-## File Inventory
-### Configuration
-- **.env**: configuration component
-- **config/app_config.py**: configuration component
-- **config/logging_config.py**: configuration component
-### Application Entry
-- **app.py**: Main Flask application with routes and WebSocket handlers
-### Support
-- **app_forms.py**: core component
-- **app_routes_api.py**: core component
-- **app_routes_auth.py**: authentication component
-- **app_routes_main.py**: core component
-- **app_startup.py**: core component
-- **app_utils.py**: utilities component
-- **component_actions.json**: user_interface component
-- **docker-compose.yml**: Multi-container deployment configuration
-- **Dockerfile**: configuration component
-- **LICENSE.txt**: core component
-- **market_utils.py**: utilities component
-- **nginx.conf**: Reverse proxy and load balancer configuration
-- **package-lock.json**: user_interface component
-- **package.json**: user_interface component
-- **prometheus.yml**: configuration component
-- **pytest.ini**: testing component
-- **requirements.txt**: Python package dependencies
-- **auth/authentication.py**: authentication component
-- **auth/registration.py**: authentication component
-- **auth/session.py**: authentication component
-- **auth/__init__.py**: authentication component
-- **classes/__init__.py**: core component
-- **classes/analytics/__init__.py**: core component
-- **classes/events/base.py**: event_detection component
-- **classes/events/control.py**: event_detection component
-- **classes/events/highlow.py**: event_detection component
-- **classes/events/surge.py**: event_detection component
-- **classes/events/trend.py**: event_detection component
-- **classes/events/__init__.py**: event_detection component
-- **classes/market/state.py**: core component
-- **classes/market/tick.py**: core component
-- **classes/market/__init__.py**: core component
-- **classes/processing/queue.py**: core component
-- **classes/processing/__init__.py**: core component
-- **classes/transport/__init__.py**: core component
-- **config/cache_control.py**: configuration component
-- **config/__init__.py**: configuration component
-- **database/__init__.py**: core component
-- **data_flow/metrics_collector.py**: core component
-- **data_flow/performance_monitor.py**: core component
-- **data_flow/__init__.py**: core component
-- **data_providers/real_time_data_adapter.py**: market_data component
-- **data_providers/__init__.py**: market_data component
-- **data_providers/base/data_result.py**: market_data component
-- **data_providers/base/__init__.py**: market_data component
-- **data_providers/polygon/polygon_api.py**: market_data component
-- **data_providers/polygon/__init__.py**: market_data component
-- **data_providers/simulated/synthetic_data_generator.py**: market_data component
-- **data_providers/simulated/synthetic_data_loader.py**: market_data component
-- **data_providers/simulated/__init__.py**: market_data component
-- **email_template/account_update_email.html**: user_interface component
-- **email_template/change_password_email.html**: user_interface component
-- **email_template/disable_email.html**: user_interface component
-- **email_template/email_change_notification.html**: user_interface component
-- **email_template/lockout_email.html**: user_interface component
-- **email_template/reset_email.html**: user_interface component
-- **email_template/subscription_cancelled_email.html**: user_interface component
-- **email_template/subscription_reactivated_email.html**: user_interface component
-- **email_template/temp_code_email.html**: user_interface component
-- **email_template/verification_email.html**: authentication component
-- **email_template/welcome_email.html**: user_interface component
-- **event_detection/event_detection_engines.py**: event_detection component
-- **event_detection/__init__.py**: event_detection component
-- **event_detection/engines/__init__.py**: event_detection component
-- **market_analytics/analytics_sync.py**: core component
-- **market_analytics/market_metrics.py**: core component
-- **market_analytics/memory_analytics.py**: core component
-- **market_analytics/__init__.py**: core component
-- **market_data_service/analytics_coordinator.py**: market_data component
-- **market_data_service/event_processor.py**: market_data component
-- **market_data_service/health_monitor.py**: market_data component
-- **market_data_service/universe_coordinator.py**: market_data component
-- **market_data_service/__init__.py**: market_data component
-- **migrations/alembic.ini**: core component
-- **migrations/env.py**: configuration component
-- **migrations/versions/20250603_072046_create_market_analytics_table.py**: core component
-- **migrations/versions/9cb2ed91a331_test_migration_add_test_field.py**: Test suite for 9cb2ed91a331_migration_add_field
-- **migrations/versions/c4bff4478223_remove_test_fields_complete_migration_.py**: Test suite for c4bff4478223_remove_fields_complete_migration_
-- **migrations/versions/d176423a036f_test_miration_workflow.py**: Test suite for d176423a036f_miration_workflow
-- **monitoring/monitoring.py**: core component
-- **monitoring/query_debug_logger.py**: utilities component
-- **monitoring/tracer.py**: core component
-- **monitoring/__init__.py**: core component
-- **processing/tick_processor.py**: core component
-- **processing/worker_pool.py**: core component
-- **processing/__init__.py**: core component
-- **services/__init__.py**: core component
-- **session_accumulation/database_sync.py**: authentication component
-- **session_accumulation/memory_accumulation.py**: authentication component
-- **session_accumulation/__init__.py**: authentication component
-- **static/favicon.ico**: Static asset for frontend
-- **static/css/auth.css**: Authentication page styling (legacy monolithic)
-- **static/css/main.css**: CSS entry point importing modular architecture components
-- **static/css/base/reset.css**: Modern CSS reset and base element normalization
-- **static/css/base/variables.css**: Design system foundation with CSS custom properties
-- **static/css/components/dashboard.css**: Dashboard panels and metrics display components
-- **static/css/components/dialogs.css**: CSS component for Dialogs styling and behavior
-- **static/css/components/events.css**: Market events system styling (highs, lows, trends, surges)
-- **static/css/components/filters.css**: CSS component for Filters styling and behavior
-- **static/css/components/gauges.css**: Chart.js gauge components and visualizations
-- **static/css/components/modals.css**: Modal dialogs and overlay components
-- **static/css/components/navbar.css**: Navigation bar and status indicator components
-- **static/css/components/status-bar.css**: Footer status bar and data source indicators
-- **static/css/components/user-menu.css**: User dropdown menu and authentication interface
-- **static/css/components/velocity.css**: CSS component for Velocity styling and behavior
-- **static/css/layout/grid.css**: Layout system and responsive grid components
-- **static/css/layout/layout.css**: CSS layout system - layout
-- **static/css/utilities/animations.css**: Utility classes, animations, and helper functions
-- **static/js/app-core.js**: Static asset for frontend
-- **static/js/app-events.js**: Static asset for frontend
-- **static/js/app-filters.js**: Static asset for frontend
-- **static/js/app-gauges.js**: Static asset for frontend
-- **static/js/app-gridstack.js**: Static asset for frontend
-- **static/js/app-layout-sync.js**: Static asset for frontend
-- **static/js/app-universe.js**: Static asset for frontend
-- **static/js/libphonenumber-min.js**: Static asset for frontend
-- **templates/account.html**: HTML template for account page
-- **templates/actvity.html**: HTML template for actvity page
-- **templates/change_password.html**: HTML template for change_password page
-- **templates/chart.html**: HTML template for chart page
-- **templates/error.html**: HTML template for error page
-- **templates/index.html**: HTML template for index page
-- **templates/initiate_password_reset.html**: HTML template for initiate_password_reset page
-- **templates/login.html**: HTML template for login page
-- **templates/privacy_notice.html**: HTML template for privacy_notice page
-- **templates/register.html**: HTML template for register page
-- **templates/reset_password.html**: HTML template for reset_password page
-- **templates/simple_test.html**: HTML template for simple_test page
-- **templates/subscription.html**: HTML template for subscription page
-- **templates/subscription_renewal.html**: HTML template for subscription_renewal page
-- **templates/terms_and_conditions.html**: HTML template for terms_and_conditions page
-- **templates/trace.html**: HTML template for trace page
-- **templates/verify_phone.html**: HTML template for verify_phone page
-- **tests/commands.txt**: testing component
-- **tests/trace_analyzer_base.py**: testing component
-- **tests/trace_component_definitions.py**: testing component
-- **tests/util_prepare_viz_data.py**: utilities component
-- **tests/util_trace_dump_utility.py**: utilities component
-- **tests/__init__.py**: testing component
-- **tests/modules/__init__.py**: testing component
-- **universe/universe_analytics.py**: core component
-- **universe/__init__.py**: core component
-- **utils/event_factory.py**: event_detection component
-- **utils/utils.py**: utilities component
-- **utils/validation.py**: utilities component
-- **utils/__init__.py**: utilities component
-- **websocket/__init__.py**: real_time_communication component
-### Data Model
-- **classes/analytics/model.py**: Database models and data structures
-- **classes/transport/models.py**: core component
-- **database/model.py**: Database models and data structures
-- **database/model_migrations_run.py**: core component
-- **migrations/versions/eaf466e1159c_initial_migration_baseline_schema.py**: core component
-### Service Orchestrator
-- **config/config_manager.py**: Management layer for configuration functionality
-- **data_flow/session_manager.py**: Management layer for authentication functionality
-- **event_detection/event_detection_manager.py**: Management layer for event_detection functionality
-- **market_analytics/analytics_manager.py**: Management layer for core functionality
-- **market_data_service/core_service.py**: Service orchestrator for market_data operations
-- **processing/priority_manager.py**: Management layer for core functionality
-- **services/email_manager.py**: Management layer for core functionality
-- **services/sms_manager.py**: Management layer for core functionality
-- **services/tickstock_universe_manager.py**: Management layer for core functionality
-- **services/user_filters_service.py**: Service orchestrator for authentication operations
-- **services/user_settings_service.py**: Service orchestrator for authentication operations
-- **session_accumulation/accumulation_manager.py**: Management layer for authentication functionality
-- **universe/core_universe_manager.py**: Management layer for core functionality
-- **universe/subscription_manager.py**: Management layer for core functionality
-- **universe/user_universe_manager.py**: Management layer for authentication functionality
-- **websocket/web_socket_manager.py**: Management layer for real_time_communication functionality
-### Data Provider
-- **data_providers/data_provider_factory.py**: Data provider for market_data
-- **data_providers/base/data_provider.py**: Data provider for market_data
-- **data_providers/polygon/polygon_data_provider.py**: Data provider for market_data
-- **data_providers/simulated/simulated_data_provider.py**: Data provider for market_data
-- **websocket/polygon_websocket_client.py**: market_data component
-### Event Processor
-- **event_detection/buysell_market_tracker.py**: event_detection component
-- **event_detection/event_detector_util.py**: Event detection for event_detection
-- **event_detection/engines/buysell_tracker.py**: event_detection component
-- **event_detection/engines/highlow_detector.py**: Event detection for event_detection
-- **event_detection/engines/surge_detector.py**: Event detection for event_detection
-- **event_detection/engines/trend_detector.py**: Event detection for event_detection
-- **processing/event_detector.py**: Event detection for event_detection
-### Communication
-- **market_data_service/data_publisher.py**: market_data component
-- **websocket/websocket_analytics.py**: real_time_communication component
-- **websocket/websocket_data_filter.py**: real_time_communication component
-- **websocket/websocket_display.py**: real_time_communication component
-- **websocket/websocket_filter_cache.py**: real_time_communication component
-- **websocket/websocket_publisher.py**: real_time_communication component
-- **websocket/websocket_statistics.py**: real_time_communication component
-- **websocket/websocket_universe_cache.py**: real_time_communication component
-### Test
-- **tests/test_trace_coverage.py**: Test suite for trace_coverage
-- **tests/test_trace_diagnostics.py**: Test suite for trace_diagnostics
-- **tests/test_trace_emission_gap.py**: Test suite for trace_emission_gap
-- **tests/test_trace_emission_timing.py**: Test suite for trace_emission_timing
-- **tests/test_trace_flow_validation.py**: Test suite for trace_flow_validation
-- **tests/test_trace_format_validator.py**: Test suite for trace_format_validator
-- **tests/test_trace_highlow_analysis.py**: Test suite for trace_highlow_analysis
-- **tests/test_trace_lost_events.py**: Test suite for trace_lost_events
-- **tests/test_trace_orchestrator.py**: Test suite for trace_orchestrator
-- **tests/test_trace_run_all_tests.py**: Test suite for trace_run_all_tests
-- **tests/test_trace_run_all_tests_diag.py**: Test suite for trace_run_all_tests_diag
-- **tests/test_trace_statistical.py**: Test suite for trace_statistical
-- **tests/test_trace_surge_analysis.py**: Test suite for trace_surge_analysis
-- **tests/test_trace_system_health.py**: Test suite for trace_system_health
-- **tests/test_trace_trend_analysis.py**: Test suite for trace_trend_analysis
-- **tests/test_trace_user_connections.py**: Test suite for trace_user_connections
-- **tests/test_trace_visualization.py**: Test suite for trace_visualization
-- **tests/test_utilities.py**: Test suite for utilities
+## Quality Metrics
+- **Modularity Score**: Excellent
+- **Test Coverage**: 19.7%
+- **Documentation Files**: 33
+- **Critical Components**: 35
+- **Component Documentation**: 234
 
-## Critical Relationships
-- MarketDataService orchestrates all event detection components
-- WebSocketManager broadcasts events from MarketDataService to frontend
-- AuthenticationManager integrates with SessionManager for security
-- All data providers implement the DataProvider interface
-- ConfigManager centralizes all application configuration
+## Sprint Tracking
+- **Latest Sprint**: Sprint 54
+- **Total References**: 141
+- **Unique Sprints**: 1, 2, 6, 17, 21, 26, 27, 28, 29, 32, 36, 41, 48, 54
+
+## Statistics
+- **Total Files**: 328
+- **Python Files**: 213
+- **JavaScript Files**: 7
+- **CSS Files**: 17
+- **Test Files**: 42
+- **Config Files**: 16
+
+---
+*This documentation was automatically generated from the project structure.*
