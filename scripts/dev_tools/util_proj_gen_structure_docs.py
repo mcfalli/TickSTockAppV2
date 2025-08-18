@@ -1,3 +1,49 @@
+"""
+TickStock Project Structure Documentation Generator
+
+This utility analyzes the TickStock V2 project codebase to generate comprehensive architectural documentation.
+
+PURPOSE:
+--------
+- Scans the entire project directory structure
+- Analyzes Python, JavaScript, CSS, and configuration files 
+- Generates detailed markdown documentation covering:
+  * Application overview and system architecture
+  * Module structure and component inventory
+  * Data flows and processing pipelines
+  * WebSocket architecture and event processing
+  * External dependencies and configuration
+  * Testing strategy and quality metrics
+
+FUNCTIONALITY:
+--------------
+- AST (Abstract Syntax Tree) parsing for Python files to extract classes/functions
+- Pattern matching for architectural significance filtering
+- Domain classification using regex patterns for src/ modular structure
+- Import relationship mapping between modules
+- Critical component identification for core system elements
+- Sprint reference tracking from code comments
+- WebSocket event extraction from JavaScript files
+- Quality metrics calculation including modularity scoring
+
+OUTPUT:
+-------
+Generates 'docs/new/project_structure_docs.md' containing:
+- Structured markdown with table of contents
+- Detailed sections for each architectural domain
+- Component inventories with descriptions
+- Data flow diagrams and processing pipelines
+- Configuration and dependency mappings
+- Quality metrics and testing coverage analysis
+
+USAGE:
+------
+python util_proj_gen_structure_docs.py [--root-dir PATH] [--output-file PATH] [--verbose]
+
+The script automatically analyzes the modular src/ architecture of TickStock V2 and produces
+documentation suitable for developers, architects, and stakeholders.
+"""
+
 import os
 import ast
 import json
@@ -1378,7 +1424,7 @@ def main():
     )
     parser.add_argument(
         "--output-file",
-        default=os.path.join(default_root_dir, "docs/architecture/project_structure.md"),
+        default=os.path.join(default_root_dir, "docs", "new", "project_structure_docs.md"),
         help="Output Markdown file path"
     )
     parser.add_argument(
@@ -1418,7 +1464,6 @@ def main():
     
     print(f"\n✅ Documentation saved to: {args.output_file}")
     print(f"{'='*60}")
-
 
 if __name__ == "__main__":
     main()

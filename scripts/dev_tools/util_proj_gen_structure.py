@@ -65,7 +65,7 @@ if __name__ == "__main__":
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     
     # Define logs directory at project root
-    logs_dir = 'logs'
+    logs_dir = 'docs/new'
     logs_path = os.path.join(project_root, logs_dir)
     
     # Ensure the logs folder exists
@@ -77,7 +77,8 @@ if __name__ == "__main__":
     
     # Generate output filename
     script_name = os.path.basename(__file__)
-    output_filename = os.path.splitext(script_name)[0] + '.txt'
+    #output_filename = os.path.splitext(script_name)[0] + '.md'
+    output_filename = os.path.splitext('project_structure')[0] + '.md'
     output_path = os.path.join(logs_path, output_filename)
     
     # Generate the file structure
