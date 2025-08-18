@@ -1,6 +1,79 @@
 """
-Core detection engines for trend and surge detection.
-Pure calculation logic without side effects, events, or state management.
+Detection Engines Module - Core Mathematical Processing for Market Event Detection
+
+Purpose:
+    This module provides pure calculation engines for detecting significant market events
+    in real-time stock data. It contains the core mathematical algorithms for identifying
+    high/low price movements, volume surges, and price trends without any side effects,
+    state management, or event creation.
+
+Architecture Pattern:
+    - Pure Functions: All engines are stateless with no side effects
+    - Separation of Concerns: Detection logic separated from event creation
+    - Configurability: All thresholds and parameters driven by configuration
+    - Adaptive Detection: Dynamic threshold adjustment based on market conditions
+
+Primary Components:
+    1. HighLowDetectionEngine:
+        - Detects significant price movements (new highs/lows)
+        - Price-adaptive thresholds based on stock price ranges
+        - Minimum change requirements (both percentage and absolute)
+    
+    2. SurgeDetectionEngine:
+        - Identifies unusual price/volume activity
+        - Multiple detection modes (STRICT, OR, ADAPTIVE)
+        - Price-band specific thresholds for different stock categories
+        - Compensatory logic for price/volume relationships
+        - Market period awareness (opening, midday, closing, afterhours)
+    
+    3. TrendDetectionEngine:
+        - Calculates multi-window trend analysis (short/medium/long)
+        - Component-based scoring (price, VWAP, volume)
+        - Recency-weighted calculations for recent price action emphasis
+        - Retracement detection for trend invalidation
+        - Dynamic thresholds based on market conditions
+
+Design Philosophy:
+    - Mathematical Purity: No database access, no event emission, no state mutation
+    - Testability: All functions are deterministic given same inputs
+    - Performance: Optimized for sub-millisecond calculations on 4000+ tickers
+    - Flexibility: Configuration-driven thresholds allow runtime tuning
+    - Extensibility: New detection algorithms can be added without affecting existing ones
+
+Data Flow:
+    1. Detector classes (surge_detector.py, trend_detector.py) maintain state
+    2. They call these engines with current data and configuration
+    3. Engines perform pure calculations and return detection results
+    4. Detectors decide whether to create events based on engine results
+
+Usage Example:
+    # From surge_detector.py
+    metrics = SurgeDetectionEngine.calculate_surge_metrics(
+        buffer, current_price, current_volume, current_time, config
+    )
+    conditions = SurgeDetectionEngine.evaluate_surge_conditions(
+        metrics, price, config
+    )
+    if conditions['is_surge']:
+        # Detector creates event (not the engine)
+
+Configuration:
+    All thresholds and parameters are passed via config dictionary:
+    - SURGE_*: Surge detection parameters
+    - TREND_*: Trend detection parameters  
+    - HIGHLOW_*: High/low detection parameters
+    See config/processing_config.py for full configuration options.
+
+Performance Considerations:
+    - All calculations optimized for O(n) or better complexity
+    - Minimal memory allocation during calculations
+    - Efficient data structure usage (deque for buffers)
+    - Early returns for insufficient data conditions
+
+Note:
+    This module is part of the Pull Model architecture (Sprint 29) where events
+    are collected but not pushed. The engines support this by providing detection
+    without emission, allowing the system to control event flow timing.
 """
 
 from typing import Dict, Any, Optional, List, Tuple
