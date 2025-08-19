@@ -15,10 +15,12 @@ from typing import Callable
 from dataclasses import dataclass
 from src.core.domain.events.base import BaseEvent
 from src.core.domain.events.highlow import HighLowEvent
-from src.presentation.converters.transport_models import StockData
-
 from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.surge import SurgeEvent
+from src.core.domain.events.aggregate import PerMinuteAggregateEvent
+from src.core.domain.events.fmv import FairMarketValueEvent
+from src.presentation.converters.transport_models import StockData
+from src.shared.types import FrequencyType
 
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
 
@@ -106,20 +108,45 @@ class DataPublisher:
 
         self._collection_callbacks = []
 
-        # SPRINT 29: NEW EVENT BUFFER FOR PULL MODEL
-        # Enhanced event buffer management
+        # SPRINT 101: MULTI-FREQUENCY EVENT BUFFER FOR PULL MODEL
+        # Enhanced event buffer management with frequency separation
         self.event_buffer = {
-            'highs': [],
-            'lows': [],
-            'trending': {'up': [], 'down': []},
-            'surging': {'up': [], 'down': []}
+            # Per-second frequency events (existing)
+            'per_second': {
+                'highs': [],
+                'lows': [],
+                'trending': {'up': [], 'down': []},
+                'surging': {'up': [], 'down': []}
+            },
+            # Per-minute frequency events (new)
+            'per_minute': {
+                'aggregates': [],  # PerMinuteAggregateEvent objects
+                'highs': [],       # High/Low events from minute aggregates
+                'lows': [],
+                'trending': {'up': [], 'down': []},
+                'surging': {'up': [], 'down': []}
+            },
+            # Fair Market Value events (new)
+            'fmv': {
+                'fmv_events': [],  # FairMarketValueEvent objects
+                'valuation_alerts': []  # Significant valuation deviation alerts
+            }
         }
-        # SPRINT 29: Move buffer_stats to class level
+        # SPRINT 101: Multi-frequency buffer stats
         self.buffer_stats = {
             'events_buffered': 0,
             'events_delivered': 0,
             'buffer_overflows': 0,
-            'last_buffer_clear': time.time()
+            'last_buffer_clear': time.time(),
+            # Frequency-specific stats
+            'per_second_events': 0,
+            'per_minute_events': 0,
+            'fmv_events': 0,
+            'frequency_breakdown': {
+                FrequencyType.PER_SECOND.value: {'buffered': 0, 'delivered': 0},
+                FrequencyType.PER_MINUTE.value: {'buffered': 0, 'delivered': 0},
+                FrequencyType.FAIR_MARKET_VALUE.value: {'buffered': 0, 'delivered': 0}
+            }
         }
         self.buffer_lock = threading.Lock()
         self.MAX_BUFFER_SIZE = 1000  # per event type
@@ -169,6 +196,214 @@ class DataPublisher:
         
         self.collection_max_events = config.get('COLLECTION_MAX_EVENTS', self.DEFAULT_COLLECTION_MAX_EVENTS)
         self.collection_timeout = config.get('COLLECTION_TIMEOUT', self.DEFAULT_COLLECTION_TIMEOUT)
+        
+        # SPRINT 101: Multi-frequency processing support
+        self.enabled_frequencies = set([FrequencyType.PER_SECOND])  # Default to per-second only
+        self.frequency_event_processors = {}  # Will hold frequency-specific processors
+    
+    # SPRINT 101: Multi-frequency support methods
+    def enable_frequency(self, frequency_type: FrequencyType):
+        """Enable processing for a specific frequency type"""
+        self.enabled_frequencies.add(frequency_type)
+        logger.info(f"DATA-PUB: Enabled frequency processing for {frequency_type.value}")
+    
+    def disable_frequency(self, frequency_type: FrequencyType):
+        """Disable processing for a specific frequency type"""
+        self.enabled_frequencies.discard(frequency_type)
+        logger.info(f"DATA-PUB: Disabled frequency processing for {frequency_type.value}")
+    
+    def collect_frequency_event(self, event: BaseEvent, frequency_type: FrequencyType):
+        """
+        SPRINT 101: Collect event from a specific frequency stream and buffer it.
+        This method is called by DataStreamManager for each frequency stream.
+        """
+        try:
+            with self.buffer_lock:
+                if frequency_type == FrequencyType.PER_SECOND:
+                    self._buffer_per_second_event(event)
+                elif frequency_type == FrequencyType.PER_MINUTE:
+                    self._buffer_per_minute_event(event)
+                elif frequency_type == FrequencyType.FAIR_MARKET_VALUE:
+                    self._buffer_fmv_event(event)
+                else:
+                    logger.warning(f"DATA-PUB: Unsupported frequency type: {frequency_type}")
+                    return False
+                
+                # Update stats
+                self.buffer_stats['events_buffered'] += 1
+                self.buffer_stats['frequency_breakdown'][frequency_type.value]['buffered'] += 1
+                
+                if frequency_type == FrequencyType.PER_SECOND:
+                    self.buffer_stats['per_second_events'] += 1
+                elif frequency_type == FrequencyType.PER_MINUTE:
+                    self.buffer_stats['per_minute_events'] += 1
+                elif frequency_type == FrequencyType.FAIR_MARKET_VALUE:
+                    self.buffer_stats['fmv_events'] += 1
+                
+                logger.debug(f"DATA-PUB: Buffered {frequency_type.value} event: {event}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"DATA-PUB: Error collecting {frequency_type.value} event: {e}", exc_info=True)
+            return False
+    
+    def _buffer_per_second_event(self, event: BaseEvent):
+        """Buffer per-second frequency events (existing logic)"""
+        event_type = getattr(event, 'type', 'unknown')
+        
+        # Convert event to dict for compatibility with existing buffer structure
+        event_dict = event.to_transport_dict() if hasattr(event, 'to_transport_dict') else event.to_dict()
+        
+        if event_type in ['high', 'session_high']:
+            self._add_to_frequency_buffer('per_second', 'highs', [event_dict])
+        elif event_type in ['low', 'session_low']:
+            self._add_to_frequency_buffer('per_second', 'lows', [event_dict])
+        elif event_type == 'trend':
+            direction = 'up' if getattr(event, 'direction', '') in ['↑', 'up'] else 'down'
+            self._add_to_frequency_buffer_nested('per_second', 'trending', direction, [event_dict])
+        elif event_type == 'surge':
+            direction = 'up' if getattr(event, 'direction', '') in ['↑', 'up'] else 'down'
+            self._add_to_frequency_buffer_nested('per_second', 'surging', direction, [event_dict])
+    
+    def _buffer_per_minute_event(self, event: BaseEvent):
+        """Buffer per-minute frequency events"""
+        if isinstance(event, PerMinuteAggregateEvent):
+            # Store the full aggregate event
+            event_dict = event.to_transport_dict()
+            self._add_to_frequency_buffer('per_minute', 'aggregates', [event_dict])
+            
+            # Also check if this aggregate represents a significant high/low for the minute
+            self._analyze_minute_aggregate_for_events(event)
+        else:
+            # Handle other per-minute events (high/low/trend/surge derived from minute data)
+            event_type = getattr(event, 'type', 'unknown')
+            event_dict = event.to_transport_dict() if hasattr(event, 'to_transport_dict') else event.to_dict()
+            
+            if event_type in ['high', 'session_high']:
+                self._add_to_frequency_buffer('per_minute', 'highs', [event_dict])
+            elif event_type in ['low', 'session_low']:
+                self._add_to_frequency_buffer('per_minute', 'lows', [event_dict])
+            elif event_type == 'trend':
+                direction = 'up' if getattr(event, 'direction', '') in ['↑', 'up'] else 'down'
+                self._add_to_frequency_buffer_nested('per_minute', 'trending', direction, [event_dict])
+            elif event_type == 'surge':
+                direction = 'up' if getattr(event, 'direction', '') in ['↑', 'up'] else 'down'
+                self._add_to_frequency_buffer_nested('per_minute', 'surging', direction, [event_dict])
+    
+    def _buffer_fmv_event(self, event: BaseEvent):
+        """Buffer Fair Market Value events"""
+        if isinstance(event, FairMarketValueEvent):
+            event_dict = event.to_transport_dict()
+            self._add_to_frequency_buffer('fmv', 'fmv_events', [event_dict])
+            
+            # Check if this is a significant valuation deviation
+            if event.is_significant_deviation(threshold_pct=5.0):  # 5% threshold
+                valuation_alert = {
+                    'ticker': event.ticker,
+                    'fmv_price': event.fmv_price,
+                    'market_price': event.market_price,
+                    'deviation_pct': event.fmv_vs_market_pct,
+                    'signal': event._get_valuation_signal(),
+                    'timestamp': event.time,
+                    'type': 'valuation_alert'
+                }
+                self._add_to_frequency_buffer('fmv', 'valuation_alerts', [valuation_alert])
+                
+                logger.info(f"DATA-PUB: Significant FMV deviation detected: {event.ticker} "
+                           f"FMV:${event.fmv_price:.2f} vs Market:${event.market_price:.2f} "
+                           f"({event.fmv_vs_market_pct:+.1f}%)")
+    
+    def _analyze_minute_aggregate_for_events(self, aggregate_event: PerMinuteAggregateEvent):
+        """Analyze minute aggregate to detect significant events"""
+        try:
+            # Check for significant price movements in the minute
+            if aggregate_event.minute_price_change_pct is not None:
+                if abs(aggregate_event.minute_price_change_pct) >= 2.0:  # 2% threshold
+                    # Create a trend event for significant minute moves
+                    direction = 'up' if aggregate_event.minute_price_change_pct > 0 else 'down'
+                    
+                    trend_event = {
+                        'ticker': aggregate_event.ticker,
+                        'type': 'trend',
+                        'price': aggregate_event.price,
+                        'direction': direction,
+                        'percent_change': aggregate_event.minute_price_change_pct,
+                        'time': aggregate_event.time,
+                        'source': 'minute_aggregate',
+                        'minute_volume': aggregate_event.minute_volume,
+                        'minute_range': aggregate_event.minute_range
+                    }
+                    
+                    self._add_to_frequency_buffer_nested('per_minute', 'trending', direction, [trend_event])
+            
+            # Check for volume surges within the minute
+            if (aggregate_event.minute_volume is not None and 
+                aggregate_event.accumulated_volume is not None and 
+                aggregate_event.accumulated_volume > 0):
+                
+                # Estimate average minute volume (rough approximation)
+                # This could be enhanced with historical data
+                estimated_avg_minute_volume = aggregate_event.accumulated_volume / 390  # ~6.5 hours of trading
+                
+                if aggregate_event.minute_volume > estimated_avg_minute_volume * 3:  # 3x volume surge
+                    direction = 'up' if aggregate_event.minute_price_change and aggregate_event.minute_price_change > 0 else 'down'
+                    
+                    surge_event = {
+                        'ticker': aggregate_event.ticker,
+                        'type': 'surge',
+                        'price': aggregate_event.price,
+                        'direction': direction,
+                        'volume': aggregate_event.minute_volume,
+                        'rel_volume': aggregate_event.minute_volume / estimated_avg_minute_volume,
+                        'time': aggregate_event.time,
+                        'source': 'minute_aggregate'
+                    }
+                    
+                    self._add_to_frequency_buffer_nested('per_minute', 'surging', direction, [surge_event])
+                    
+                    logger.info(f"DATA-PUB: Volume surge detected in minute aggregate: {aggregate_event.ticker} "
+                               f"Vol:{aggregate_event.minute_volume:,} ({aggregate_event.minute_volume / estimated_avg_minute_volume:.1f}x)")
+                    
+        except Exception as e:
+            logger.error(f"DATA-PUB: Error analyzing minute aggregate: {e}", exc_info=True)
+    
+    def _add_to_frequency_buffer(self, frequency: str, event_type: str, events: List):
+        """Add events to frequency-specific buffer with overflow protection"""
+        if frequency not in self.event_buffer:
+            logger.error(f"DATA-PUB: Unknown frequency buffer: {frequency}")
+            return
+        
+        if event_type not in self.event_buffer[frequency]:
+            logger.error(f"DATA-PUB: Unknown event type {event_type} for frequency {frequency}")
+            return
+        
+        current = self.event_buffer[frequency][event_type]
+        if len(current) + len(events) > self.MAX_BUFFER_SIZE:
+            # Remove oldest events
+            remove_count = len(current) + len(events) - self.MAX_BUFFER_SIZE
+            removed = current[:remove_count]
+            self.event_buffer[frequency][event_type] = current[remove_count:]
+            self.buffer_stats['buffer_overflows'] += remove_count
+            logger.warning(f"⚠️ Buffer overflow for {frequency}/{event_type}, dropped {remove_count} events")
+        
+        self.event_buffer[frequency][event_type].extend(events)
+    
+    def _add_to_frequency_buffer_nested(self, frequency: str, event_type: str, direction: str, events: List):
+        """Add events to nested frequency-specific buffer structure"""
+        if (frequency not in self.event_buffer or 
+            event_type not in self.event_buffer[frequency] or
+            direction not in self.event_buffer[frequency][event_type]):
+            logger.error(f"DATA-PUB: Invalid buffer path: {frequency}/{event_type}/{direction}")
+            return
+        
+        current = self.event_buffer[frequency][event_type][direction]
+        if len(current) + len(events) > self.MAX_BUFFER_SIZE:
+            remove_count = len(current) + len(events) - self.MAX_BUFFER_SIZE
+            self.event_buffer[frequency][event_type][direction] = current[remove_count:]
+            self.buffer_stats['buffer_overflows'] += remove_count
+            logger.warning(f"⚠️ Buffer overflow for {frequency}/{event_type}/{direction}, dropped {remove_count} events")
+        
+        self.event_buffer[frequency][event_type][direction].extend(events)
        
     def start_publishing_loop(self):
         """Start the publishing thread loop."""
@@ -396,128 +631,255 @@ class DataPublisher:
     
 
     def _add_to_buffer(self, event_type: str, events: List):
-        """Add events to buffer with overflow protection."""
-        if event_type in ['highs', 'lows']:
-            current = self.event_buffer[event_type]
-            if len(current) + len(events) > self.MAX_BUFFER_SIZE:
-                # Remove oldest events
-                remove_count = len(current) + len(events) - self.MAX_BUFFER_SIZE
-                removed = current[:remove_count]
-                current = current[remove_count:]
-                self.buffer_stats['buffer_overflows'] += remove_count  # <-- Now correctly references self.buffer_stats
-                logger.warning(f"⚠️ Buffer overflow for {event_type}, dropped {remove_count} events")
-                
-                # Trace overflow
-                if tracer.should_trace('SYSTEM'):
-                    tracer.trace(
-                        ticker='SYSTEM',
-                        component='DataPublisher',
-                        action='buffer_overflow',
-                        data={
-                            'timestamp': time.time(),
-                            'input_count': len(events),
-                            'output_count': len(events) - remove_count,
-                            'details': {
-                                'event_type': event_type,
-                                'dropped': remove_count,
-                                'buffer_size_before': len(self.event_buffer[event_type]),
-                                'max_size': self.MAX_BUFFER_SIZE
-                            }
-                        }
-                    )
-            self.event_buffer[event_type].extend(events)
+        """Legacy method - add events to per-second buffer for backward compatibility."""
+        self._add_to_frequency_buffer('per_second', event_type, events)
 
     def _add_to_buffer_nested(self, event_type: str, direction: str, events: List):
-        """Add events to nested buffer structure."""
-        current = self.event_buffer[event_type][direction]
-        if len(current) + len(events) > self.MAX_BUFFER_SIZE:
-            remove_count = len(current) + len(events) - self.MAX_BUFFER_SIZE
-            current = current[remove_count:]
-            self.buffer_stats['buffer_overflows'] += remove_count  # <-- Now correctly references self.buffer_stats
-            logger.warning(f"⚠️ Buffer overflow for {event_type}/{direction}, dropped {remove_count} events")
-        self.event_buffer[event_type][direction].extend(events)
+        """Legacy method - add events to per-second nested buffer for backward compatibility."""
+        self._add_to_frequency_buffer_nested('per_second', event_type, direction, events)
 
-    def get_buffered_events(self, clear_buffer: bool = True) -> Dict:
+    def get_buffered_events(self, clear_buffer: bool = True, frequencies: Optional[List[FrequencyType]] = None) -> Dict:
         """
-        SPRINT 29: Called by WebSocketPublisher to retrieve buffered events.
-        Returns events and optionally clears buffer.
+        SPRINT 101: Called by WebSocketPublisher to retrieve buffered events.
+        Returns events from specified frequencies and optionally clears buffer.
+        
+        Args:
+            clear_buffer: Whether to clear the buffer after retrieval
+            frequencies: List of frequencies to retrieve. If None, retrieves all enabled frequencies.
         """
         with self.buffer_lock:
-            # Deep copy current buffer
+            # Determine which frequencies to retrieve
+            target_frequencies = frequencies or list(self.enabled_frequencies)
+            
+            # Initialize response structure with multi-frequency support
             events = {
-                'highs': self.event_buffer['highs'][:],
-                'lows': self.event_buffer['lows'][:],
-                'trending': {
-                    'up': self.event_buffer['trending']['up'][:],
-                    'down': self.event_buffer['trending']['down'][:]
-                },
-                'surging': {
-                    'up': self.event_buffer['surging']['up'][:],
-                    'down': self.event_buffer['surging']['down'][:]
-                }
+                # Maintain backward compatibility - per-second events at root level
+                'highs': [],
+                'lows': [],
+                'trending': {'up': [], 'down': []},
+                'surging': {'up': [], 'down': []},
+                # New multi-frequency structure
+                'frequencies': {}
             }
             
-            # Count total events
-            total_events = (
-                len(events['highs']) + len(events['lows']) +
-                sum(len(events['trending'][d]) for d in ['up', 'down']) +
-                sum(len(events['surging'][d]) for d in ['up', 'down'])
-            )
+            total_events = 0
+            
+            for frequency_type in target_frequencies:
+                frequency_key = frequency_type.value
+                frequency_events = {}
+                
+                if frequency_type == FrequencyType.PER_SECOND:
+                    # Copy per-second events to both root level (backward compatibility) and frequency structure
+                    per_second_buffer = self.event_buffer['per_second']
+                    frequency_events = {
+                        'highs': per_second_buffer['highs'][:],
+                        'lows': per_second_buffer['lows'][:],
+                        'trending': {
+                            'up': per_second_buffer['trending']['up'][:],
+                            'down': per_second_buffer['trending']['down'][:]
+                        },
+                        'surging': {
+                            'up': per_second_buffer['surging']['up'][:],
+                            'down': per_second_buffer['surging']['down'][:]
+                        }
+                    }
+                    
+                    # Maintain backward compatibility by copying to root level
+                    events['highs'] = frequency_events['highs'][:]
+                    events['lows'] = frequency_events['lows'][:]
+                    events['trending'] = {
+                        'up': frequency_events['trending']['up'][:],
+                        'down': frequency_events['trending']['down'][:]
+                    }
+                    events['surging'] = {
+                        'up': frequency_events['surging']['up'][:],
+                        'down': frequency_events['surging']['down'][:]
+                    }
+                
+                elif frequency_type == FrequencyType.PER_MINUTE:
+                    per_minute_buffer = self.event_buffer['per_minute']
+                    frequency_events = {
+                        'aggregates': per_minute_buffer['aggregates'][:],
+                        'highs': per_minute_buffer['highs'][:],
+                        'lows': per_minute_buffer['lows'][:],
+                        'trending': {
+                            'up': per_minute_buffer['trending']['up'][:],
+                            'down': per_minute_buffer['trending']['down'][:]
+                        },
+                        'surging': {
+                            'up': per_minute_buffer['surging']['up'][:],
+                            'down': per_minute_buffer['surging']['down'][:]
+                        }
+                    }
+                
+                elif frequency_type == FrequencyType.FAIR_MARKET_VALUE:
+                    fmv_buffer = self.event_buffer['fmv']
+                    frequency_events = {
+                        'fmv_events': fmv_buffer['fmv_events'][:],
+                        'valuation_alerts': fmv_buffer['valuation_alerts'][:]
+                    }
+                
+                # Add to frequencies structure
+                events['frequencies'][frequency_key] = frequency_events
+                
+                # Count events for this frequency
+                frequency_count = self._count_frequency_events(frequency_events)
+                total_events += frequency_count
             
             # Clear buffer if requested
             if clear_buffer and total_events > 0:
-                self.event_buffer = {
-                    'highs': [],
-                    'lows': [],
-                    'trending': {'up': [], 'down': []},
-                    'surging': {'up': [], 'down': []}
-                }
-                self.buffer_stats['events_delivered'] += total_events  # <-- Now correctly references self.buffer_stats
+                for frequency_type in target_frequencies:
+                    self._clear_frequency_buffer(frequency_type)
+                
+                # Update delivery stats
+                self.buffer_stats['events_delivered'] += total_events
                 self.buffer_stats['last_buffer_clear'] = time.time()
                 
-                logger.debug(f"📤 Event buffer cleared: delivered {total_events} events")
+                # Update frequency-specific delivery stats
+                for frequency_type in target_frequencies:
+                    frequency_key = frequency_type.value
+                    if frequency_key in events['frequencies']:
+                        freq_count = self._count_frequency_events(events['frequencies'][frequency_key])
+                        self.buffer_stats['frequency_breakdown'][frequency_key]['delivered'] += freq_count
                 
-                # Trace buffer pull
+                logger.debug(f"📤 Multi-frequency event buffer cleared: delivered {total_events} events from {len(target_frequencies)} frequencies")
+                
+                # Trace buffer pull with multi-frequency details
                 if tracer.should_trace('SYSTEM'):
+                    trace_details = {
+                        'buffer_cleared': True,
+                        'frequencies_retrieved': [f.value for f in target_frequencies],
+                        'per_second_events': 0,
+                        'per_minute_events': 0,
+                        'fmv_events': 0
+                    }
+                    
+                    # Count events by frequency for tracing
+                    for freq_key, freq_events in events['frequencies'].items():
+                        freq_count = self._count_frequency_events(freq_events)
+                        if freq_key == FrequencyType.PER_SECOND.value:
+                            trace_details['per_second_events'] = freq_count
+                        elif freq_key == FrequencyType.PER_MINUTE.value:
+                            trace_details['per_minute_events'] = freq_count
+                        elif freq_key == FrequencyType.FAIR_MARKET_VALUE.value:
+                            trace_details['fmv_events'] = freq_count
+                    
                     tracer.trace(
                         ticker='SYSTEM',
                         component='DataPublisher',
-                        action='buffer_pulled',
+                        action='multi_frequency_buffer_pulled',
                         data={
                             'timestamp': time.time(),
                             'input_count': total_events,
                             'output_count': total_events,
-                            'details': {
-                                'highs': len(events['highs']),
-                                'lows': len(events['lows']),
-                                'trends': sum(len(events['trending'][d]) for d in ['up', 'down']),
-                                'surges': sum(len(events['surging'][d]) for d in ['up', 'down']),
-                                'buffer_cleared': True
-                            }
+                            'details': trace_details
                         }
                     )
             
             return events
+    
+    def _count_frequency_events(self, frequency_events: Dict) -> int:
+        """Count total events in a frequency-specific event dictionary"""
+        count = 0
+        for key, value in frequency_events.items():
+            if isinstance(value, list):
+                count += len(value)
+            elif isinstance(value, dict):
+                # Handle nested structures like trending/surging
+                for nested_key, nested_value in value.items():
+                    if isinstance(nested_value, list):
+                        count += len(nested_value)
+        return count
+    
+    def _clear_frequency_buffer(self, frequency_type: FrequencyType):
+        """Clear buffer for a specific frequency type"""
+        frequency_key = frequency_type.value
+        
+        if frequency_type == FrequencyType.PER_SECOND:
+            self.event_buffer['per_second'] = {
+                'highs': [],
+                'lows': [],
+                'trending': {'up': [], 'down': []},
+                'surging': {'up': [], 'down': []}
+            }
+        elif frequency_type == FrequencyType.PER_MINUTE:
+            self.event_buffer['per_minute'] = {
+                'aggregates': [],
+                'highs': [],
+                'lows': [],
+                'trending': {'up': [], 'down': []},
+                'surging': {'up': [], 'down': []}
+            }
+        elif frequency_type == FrequencyType.FAIR_MARKET_VALUE:
+            self.event_buffer['fmv'] = {
+                'fmv_events': [],
+                'valuation_alerts': []
+            }
             
     def get_buffer_status(self) -> Dict:
-        """Returns current buffer sizes for monitoring."""
+        """Returns current buffer sizes for monitoring with multi-frequency support."""
         with self.buffer_lock:
+            # Calculate per-frequency buffer sizes
+            per_second_sizes = {
+                'highs': len(self.event_buffer['per_second']['highs']),
+                'lows': len(self.event_buffer['per_second']['lows']),
+                'trends_up': len(self.event_buffer['per_second']['trending']['up']),
+                'trends_down': len(self.event_buffer['per_second']['trending']['down']),
+                'surges_up': len(self.event_buffer['per_second']['surging']['up']),
+                'surges_down': len(self.event_buffer['per_second']['surging']['down'])
+            }
+            per_second_total = sum(per_second_sizes.values())
+            
+            per_minute_sizes = {
+                'aggregates': len(self.event_buffer['per_minute']['aggregates']),
+                'highs': len(self.event_buffer['per_minute']['highs']),
+                'lows': len(self.event_buffer['per_minute']['lows']),
+                'trends_up': len(self.event_buffer['per_minute']['trending']['up']),
+                'trends_down': len(self.event_buffer['per_minute']['trending']['down']),
+                'surges_up': len(self.event_buffer['per_minute']['surging']['up']),
+                'surges_down': len(self.event_buffer['per_minute']['surging']['down'])
+            }
+            per_minute_total = sum(per_minute_sizes.values())
+            
+            fmv_sizes = {
+                'fmv_events': len(self.event_buffer['fmv']['fmv_events']),
+                'valuation_alerts': len(self.event_buffer['fmv']['valuation_alerts'])
+            }
+            fmv_total = sum(fmv_sizes.values())
+            
+            total_all_frequencies = per_second_total + per_minute_total + fmv_total
+            
+            # Maintain backward compatibility for existing monitoring
             status = {
-                'highs': len(self.event_buffer['highs']),
-                'lows': len(self.event_buffer['lows']),
-                'trends_up': len(self.event_buffer['trending']['up']),
-                'trends_down': len(self.event_buffer['trending']['down']),
-                'surges_up': len(self.event_buffer['surging']['up']),
-                'surges_down': len(self.event_buffer['surging']['down']),
-                'total': sum([
-                    len(self.event_buffer['highs']),
-                    len(self.event_buffer['lows']),
-                    len(self.event_buffer['trending']['up']),
-                    len(self.event_buffer['trending']['down']),
-                    len(self.event_buffer['surging']['up']),
-                    len(self.event_buffer['surging']['down'])
-                ]),
-                'stats': self.buffer_stats
+                # Legacy format (per-second data for backward compatibility)
+                'highs': per_second_sizes['highs'],
+                'lows': per_second_sizes['lows'],
+                'trends_up': per_second_sizes['trends_up'],
+                'trends_down': per_second_sizes['trends_down'],
+                'surges_up': per_second_sizes['surges_up'],
+                'surges_down': per_second_sizes['surges_down'],
+                'total': total_all_frequencies,  # Total across all frequencies
+                
+                # New multi-frequency detailed breakdown
+                'frequencies': {
+                    FrequencyType.PER_SECOND.value: {
+                        'sizes': per_second_sizes,
+                        'total': per_second_total
+                    },
+                    FrequencyType.PER_MINUTE.value: {
+                        'sizes': per_minute_sizes,
+                        'total': per_minute_total
+                    },
+                    FrequencyType.FAIR_MARKET_VALUE.value: {
+                        'sizes': fmv_sizes,
+                        'total': fmv_total
+                    }
+                },
+                
+                # Enhanced statistics
+                'stats': self.buffer_stats,
+                'enabled_frequencies': [f.value for f in self.enabled_frequencies],
+                'max_buffer_size_per_type': self.MAX_BUFFER_SIZE
             }
             
             # Check buffer health AFTER getting status (avoid circular call)

@@ -36,6 +36,22 @@ try:
 except ImportError:
     TrendEvent = None
 
+# SPRINT 101: Add multi-frequency event imports
+try:
+    from src.core.domain.events.aggregate import PerMinuteAggregateEvent
+except ImportError:
+    PerMinuteAggregateEvent = None
+    
+try:
+    from src.core.domain.events.fmv import FairMarketValueEvent  
+except ImportError:
+    FairMarketValueEvent = None
+
+try:
+    from src.shared.types.frequency import FrequencyType
+except ImportError:
+    FrequencyType = None
+
 
 @dataclass
 class MockTick:
@@ -142,6 +158,72 @@ class EventBuilder:
             period=period,
             **kwargs
         )
+    
+    # SPRINT 101: Multi-frequency event builders
+    @staticmethod
+    def per_minute_aggregate_event(
+        ticker: str = "AAPL",
+        minute_close: float = 150.0,
+        minute_open: float = 149.5,
+        minute_high: float = 150.5,
+        minute_low: float = 149.0,
+        minute_volume: int = 50000,
+        **kwargs
+    ):
+        """Create a test PerMinuteAggregateEvent"""
+        if PerMinuteAggregateEvent is None:
+            # Return mock event if class not available
+            return {
+                'ticker': ticker,
+                'type': "aggregate_minute",
+                'price': minute_close,
+                'minute_open': minute_open,
+                'minute_high': minute_high,
+                'minute_low': minute_low,
+                'minute_close': minute_close,
+                'minute_volume': minute_volume,
+                **kwargs
+            }
+        return PerMinuteAggregateEvent(
+            ticker=ticker,
+            type="aggregate_minute",
+            price=minute_close,
+            minute_open=minute_open,
+            minute_high=minute_high,
+            minute_low=minute_low,
+            minute_close=minute_close,
+            minute_volume=minute_volume,
+            volume=minute_volume,
+            **kwargs
+        )
+    
+    @staticmethod
+    def fair_market_value_event(
+        ticker: str = "AAPL",
+        fmv_price: float = 150.25,
+        market_price: float = 150.00,
+        **kwargs
+    ):
+        """Create a test FairMarketValueEvent"""
+        if FairMarketValueEvent is None:
+            # Return mock event if class not available
+            return {
+                'ticker': ticker,
+                'type': "fair_market_value",
+                'price': fmv_price,
+                'fmv_price': fmv_price,
+                'market_price': market_price,
+                **kwargs
+            }
+        return FairMarketValueEvent(
+            ticker=ticker,
+            type="fair_market_value",
+            price=fmv_price,
+            fmv_price=fmv_price,
+            market_price=market_price,
+            volume=0,  # FMV events don't have volume
+            **kwargs
+        )
 
 
 @pytest.fixture
@@ -181,6 +263,63 @@ def mock_polygon_data():
         ],
         "status": "OK",
         "count": 1
+    }
+
+
+# SPRINT 101: Multi-frequency test fixtures
+@pytest.fixture
+def mock_polygon_am_data():
+    """Mock Polygon AM (per-minute aggregate) event data"""
+    timestamp_ms = int(time.time() * 1000)
+    return {
+        "ev": "AM",
+        "sym": "AAPL", 
+        "v": 4110,  # Volume
+        "av": 9470157,  # Accumulated volume
+        "op": 149.80,  # Daily open
+        "vw": 150.15,  # VWAP
+        "o": 150.00,  # Minute open
+        "c": 150.25,  # Minute close
+        "h": 150.50,  # Minute high
+        "l": 149.90,  # Minute low
+        "a": 150.05,  # Daily VWAP
+        "z": 685,  # Average trade size
+        "s": timestamp_ms - 60000,  # Start timestamp
+        "e": timestamp_ms  # End timestamp
+    }
+
+
+@pytest.fixture  
+def mock_polygon_fmv_data():
+    """Mock Polygon FMV (fair market value) event data"""
+    return {
+        "ev": "FMV",
+        "fmv": 150.75,  # Fair market value
+        "sym": "AAPL",  # Ticker
+        "t": int(time.time() * 1_000_000_000)  # Nanosecond timestamp
+    }
+
+
+@pytest.fixture
+def multi_frequency_config():
+    """Multi-frequency configuration for testing"""
+    return {
+        "ENABLE_PER_MINUTE_EVENTS": True,
+        "ENABLE_FMV_EVENTS": True,
+        "POLYGON_API_KEY": "test_api_key",
+        "POLYGON_BUSINESS_API_KEY": "test_business_api_key",
+        "EMISSION_INTERVAL": 1.0,
+        "COLLECTION_INTERVAL": 0.5
+    }
+
+
+@pytest.fixture
+def mock_frequency_preferences():
+    """Mock user frequency preferences"""
+    return {
+        "per_second": True,
+        "per_minute": False,
+        "fmv": False
     }
 
 

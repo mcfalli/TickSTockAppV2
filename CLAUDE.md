@@ -69,7 +69,10 @@ Task Tracking: Maintain sprint tasks with ongoing task list for items that arise
 # Git Workflow
 Branch Strategy
 main - primary repository 
-Never include claude code, or written by claude code in commit messages
+**NEVER include claude code, written by claude code, or any Generated with Claude Code attribution in commit messages**
+Do NOT add these lines to any commits:
+- 🤖 Generated with [Claude Code](https://claude.ai/code)  
+- Co-Authored-By: Claude <noreply@anthropic.com>
 ``
 <type>(<scope>): <subject>
 <body>

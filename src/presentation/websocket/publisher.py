@@ -21,7 +21,10 @@ from src.presentation.websocket.universe_cache import WebSocketUniverseCache
 from src.core.domain.events.base import BaseEvent
 from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.surge import SurgeEvent
+from src.core.domain.events.aggregate import PerMinuteAggregateEvent
+from src.core.domain.events.fmv import FairMarketValueEvent
 from src.presentation.converters.transport_models import StockData
+from src.shared.types import FrequencyType
 
 try:
     from src.monitoring.system_monitor import system_monitor
@@ -87,13 +90,40 @@ class WebSocketPublisher:
         # Sprint 17: Store market_service reference if available
         self.market_service = getattr(websocket_mgr, 'market_service', None)
 
-        # SPRINT 29: Add data_publisher reference and emission control
+        # SPRINT 101: Add multi-frequency data_publisher reference and emission control
         self.data_publisher = None  # Will be set by market_service
         self.emission_lock = threading.Lock()
         self.emission_interval = config.get('EMISSION_INTERVAL', 1.0)  # seconds
         self.emission_timer = None
         self.emission_in_progress = False
         self.last_emission_time = 0
+        
+        # SPRINT 101: Multi-frequency emission support
+        self.enabled_frequencies = set([FrequencyType.PER_SECOND])  # Default to per-second
+        self.frequency_emission_config = {
+            FrequencyType.PER_SECOND.value: {
+                'enabled': True,
+                'user_preference_key': 'enable_per_second_events',
+                'default_enabled': True
+            },
+            FrequencyType.PER_MINUTE.value: {
+                'enabled': config.get('ENABLE_PER_MINUTE_EVENTS', False),
+                'user_preference_key': 'enable_per_minute_events', 
+                'default_enabled': False
+            },
+            FrequencyType.FAIR_MARKET_VALUE.value: {
+                'enabled': config.get('ENABLE_FMV_EVENTS', False),
+                'user_preference_key': 'enable_fmv_events',
+                'default_enabled': False
+            }
+        }
+        
+        # Update enabled frequencies based on config
+        for freq_type in [FrequencyType.PER_MINUTE, FrequencyType.FAIR_MARKET_VALUE]:
+            if self.frequency_emission_config[freq_type.value]['enabled']:
+                self.enabled_frequencies.add(freq_type)
+        
+        logger.info(f"WEBSOCKET-PUB: Enabled emission frequencies: {[f.value for f in self.enabled_frequencies]}")
 
         # Initialize statistics component
         from src.presentation.websocket.statistics import WebSocketStatistics
@@ -295,33 +325,34 @@ class WebSocketPublisher:
                         system_monitor.track_emission_skip('no_users_connected')
                     return
                 
-                # Pull events from DataPublisher with performance monitoring
+                # Pull events from DataPublisher with multi-frequency support
                 if not self.data_publisher:
                     return
                     
                 buffer_pull_start = time.time()
-                stock_data = self.data_publisher.get_buffered_events(clear_buffer=True)
+                # SPRINT 101: Pull events from enabled frequencies only
+                stock_data = self.data_publisher.get_buffered_events(
+                    clear_buffer=True, 
+                    frequencies=list(self.enabled_frequencies)
+                )
                 buffer_pull_duration = (time.time() - buffer_pull_start) * 1000
                 
-                # TRACE: Slow buffer pull
+                # TRACE: Slow buffer pull with multi-frequency details
                 if tracer.should_trace('SYSTEM') and buffer_pull_duration > 10:
+                    event_breakdown = self._get_multi_frequency_event_breakdown(stock_data)
                     tracer.trace(
                         ticker='SYSTEM',
                         component='WebSocketPublisher',
-                        action='slow_buffer_pull',
+                        action='slow_buffer_pull_multifrequency',
                         data={
                             'timestamp': time.time(),
-                            'input_count': self._count_total_events(stock_data),
-                            'output_count': self._count_total_events(stock_data),
+                            'input_count': self._count_total_events_multifrequency(stock_data),
+                            'output_count': self._count_total_events_multifrequency(stock_data),
                             'duration_ms': buffer_pull_duration,
                             'details': {
                                 'threshold_ms': 10,
-                                'event_breakdown': {
-                                    'highs': len(stock_data.get('highs', [])),
-                                    'lows': len(stock_data.get('lows', [])),
-                                    'trends': sum(len(stock_data.get('trending', {}).get(d, [])) for d in ['up', 'down']),
-                                    'surges': sum(len(stock_data.get('surging', {}).get(d, [])) for d in ['up', 'down'])
-                                }
+                                'frequencies_pulled': [f.value for f in self.enabled_frequencies],
+                                'event_breakdown': event_breakdown
                             }
                         }
                     )
@@ -350,8 +381,8 @@ class WebSocketPublisher:
                             analytics_data = getattr(self.data_publisher.market_service.market_analytics_manager, 'get_current_analytics', lambda: None)()
                              
                 
-                # Count total events
-                total_events = self._count_total_events(stock_data)
+                # Count total events across all frequencies
+                total_events = self._count_total_events_multifrequency(stock_data)
                 
                 # Determine skip reason if applicable
                 skip_reason = None
@@ -460,9 +491,222 @@ class WebSocketPublisher:
     #---------------------------------------------------------------------
     def _process_user_data(self, user_id: int, stock_data: Dict, analytics_data=None) -> Dict:
         """
-        Purpose
-        This method is the central filtering hub that applies both universe filtering and user-specific filters to stock data 
-        before it's emitted to individual users via WebSocket. 
+        SPRINT 101: Enhanced user data processing with multi-frequency support.
+        Process events from multiple frequency streams based on user preferences.
+        """
+        
+        # Check if user wants multi-frequency data
+        user_frequency_preferences = self._get_user_frequency_preferences(user_id)
+        
+        # If user has multi-frequency preferences and we have multi-frequency data
+        if ('frequencies' in stock_data and 
+            any(user_frequency_preferences.get(f.value, False) for f in self.enabled_frequencies)):
+            return self._process_user_data_multifrequency(user_id, stock_data, analytics_data, user_frequency_preferences)
+        
+        # Fall back to legacy processing for backward compatibility
+        return self._process_user_data_legacy(user_id, stock_data, analytics_data)
+    
+    def _get_user_frequency_preferences(self, user_id: int) -> Dict[str, bool]:
+        """Get user's frequency preferences from settings."""
+        # SPRINT 101: Temporarily disabled user settings lookup to avoid Flask context issues
+        # TODO: Implement proper Flask context handling or use different approach for user preferences
+        
+        # For now, use configuration defaults only
+        return {
+            FrequencyType.PER_SECOND.value: self.frequency_emission_config[FrequencyType.PER_SECOND.value]['default_enabled'],
+            FrequencyType.PER_MINUTE.value: self.frequency_emission_config[FrequencyType.PER_MINUTE.value]['default_enabled'],
+            FrequencyType.FAIR_MARKET_VALUE.value: self.frequency_emission_config[FrequencyType.FAIR_MARKET_VALUE.value]['default_enabled']
+        }
+    
+    def _process_user_data_multifrequency(self, user_id: int, stock_data: Dict, analytics_data=None, user_frequency_preferences=None) -> Dict:
+        """Process multi-frequency data for a specific user with filtering."""
+        filter_start_time = time.time()
+        
+        try:
+            # Get user's universe selections
+            user_universes = self.universe_cache.get_or_load_user_universes(user_id)
+            all_user_tickers = self._resolve_user_universes_to_tickers(user_universes)
+            
+            # Initialize multi-frequency response structure
+            filtered_data = {
+                # Legacy structure (per-second events for backward compatibility)
+                'highs': [],
+                'lows': [],
+                'trending': {'up': [], 'down': []},
+                'surging': {'up': [], 'down': []},
+                
+                # Multi-frequency structure
+                'frequencies': {}
+            }
+            
+            # Process each enabled frequency
+            frequencies = stock_data.get('frequencies', {})
+            for freq_key, freq_data in frequencies.items():
+                if not user_frequency_preferences.get(freq_key, False):
+                    continue  # Skip if user doesn't want this frequency
+                
+                if freq_key == FrequencyType.PER_SECOND.value:
+                    # Filter per-second events
+                    filtered_freq_data = self._filter_per_second_events(freq_data, all_user_tickers)
+                    
+                    # Also copy to legacy structure for backward compatibility
+                    filtered_data['highs'] = filtered_freq_data['highs'][:]
+                    filtered_data['lows'] = filtered_freq_data['lows'][:]
+                    filtered_data['trending'] = {
+                        'up': filtered_freq_data['trending']['up'][:],
+                        'down': filtered_freq_data['trending']['down'][:]
+                    }
+                    filtered_data['surging'] = {
+                        'up': filtered_freq_data['surging']['up'][:],
+                        'down': filtered_freq_data['surging']['down'][:]
+                    }
+                    
+                elif freq_key == FrequencyType.PER_MINUTE.value:
+                    # Filter per-minute events
+                    filtered_freq_data = self._filter_per_minute_events(freq_data, all_user_tickers)
+                    
+                elif freq_key == FrequencyType.FAIR_MARKET_VALUE.value:
+                    # Filter FMV events
+                    filtered_freq_data = self._filter_fmv_events(freq_data, all_user_tickers)
+                else:
+                    continue  # Unknown frequency type
+                
+                filtered_data['frequencies'][freq_key] = filtered_freq_data
+            
+            # Apply user-specific filters
+            filtered_data = self._apply_user_specific_filters(user_id, filtered_data)
+            
+            # Prepare final response with analytics
+            return self.analytics.prepare_enhanced_dual_universe_data(
+                filtered_data,
+                analytics_data,
+                user_id
+            )
+            
+        except Exception as e:
+            logger.error(f"WEBSOCKET-PUB: Error in multi-frequency user data processing for user {user_id}: {e}", exc_info=True)
+            # Fall back to legacy processing
+            return self._process_user_data_legacy(user_id, stock_data, analytics_data)
+    
+    def _filter_per_second_events(self, freq_data: Dict, user_tickers: set) -> Dict:
+        """Filter per-second frequency events to user's universe."""
+        filtered = {
+            'highs': [],
+            'lows': [],
+            'trending': {'up': [], 'down': []},
+            'surging': {'up': [], 'down': []}
+        }
+        
+        # Filter high/low events
+        for event in freq_data.get('highs', []):
+            ticker = event.get('ticker') if isinstance(event, dict) else getattr(event, 'ticker', None)
+            if ticker in user_tickers:
+                filtered['highs'].append(event)
+        
+        for event in freq_data.get('lows', []):
+            ticker = event.get('ticker') if isinstance(event, dict) else getattr(event, 'ticker', None)
+            if ticker in user_tickers:
+                filtered['lows'].append(event)
+        
+        # Filter trending/surging events
+        for direction in ['up', 'down']:
+            for event in freq_data.get('trending', {}).get(direction, []):
+                ticker = event.get('ticker') if isinstance(event, dict) else getattr(event, 'ticker', None)
+                if ticker in user_tickers:
+                    filtered['trending'][direction].append(event)
+            
+            for event in freq_data.get('surging', {}).get(direction, []):
+                ticker = event.get('ticker') if isinstance(event, dict) else getattr(event, 'ticker', None)
+                if ticker in user_tickers:
+                    filtered['surging'][direction].append(event)
+        
+        return filtered
+    
+    def _filter_per_minute_events(self, freq_data: Dict, user_tickers: set) -> Dict:
+        """Filter per-minute frequency events to user's universe."""
+        filtered = {
+            'aggregates': [],
+            'highs': [],
+            'lows': [],
+            'trending': {'up': [], 'down': []},
+            'surging': {'up': [], 'down': []}
+        }
+        
+        # Filter minute aggregates
+        for event in freq_data.get('aggregates', []):
+            ticker = event.get('ticker') if isinstance(event, dict) else getattr(event, 'ticker', None)
+            if ticker in user_tickers:
+                filtered['aggregates'].append(event)
+        
+        # Filter derived events (using same logic as per-second)
+        per_second_part = {
+            'highs': freq_data.get('highs', []),
+            'lows': freq_data.get('lows', []),
+            'trending': freq_data.get('trending', {}),
+            'surging': freq_data.get('surging', {})
+        }
+        
+        filtered_per_second = self._filter_per_second_events(per_second_part, user_tickers)
+        filtered.update(filtered_per_second)
+        
+        return filtered
+    
+    def _filter_fmv_events(self, freq_data: Dict, user_tickers: set) -> Dict:
+        """Filter Fair Market Value events to user's universe."""
+        filtered = {
+            'fmv_events': [],
+            'valuation_alerts': []
+        }
+        
+        # Filter FMV events
+        for event in freq_data.get('fmv_events', []):
+            ticker = event.get('ticker') if isinstance(event, dict) else getattr(event, 'ticker', None)
+            if ticker in user_tickers:
+                filtered['fmv_events'].append(event)
+        
+        # Filter valuation alerts
+        for event in freq_data.get('valuation_alerts', []):
+            ticker = event.get('ticker') if isinstance(event, dict) else getattr(event, 'ticker', None)
+            if ticker in user_tickers:
+                filtered['valuation_alerts'].append(event)
+        
+        return filtered
+    
+    def _apply_user_specific_filters(self, user_id: int, filtered_data: Dict) -> Dict:
+        """Apply user-specific filters (like low count filtering) across all frequencies."""
+        try:
+            user_filters = self.filter_cache.get_or_load_user_filters(user_id)
+            if not user_filters:
+                return filtered_data
+            
+            # Apply low event filtering to legacy structure
+            if user_filters.get('low_event_filtering', {}).get('enabled', False):
+                min_low_count = user_filters['low_event_filtering'].get('min_low_count', 2)
+                filtered_data['lows'] = self._filter_low_count_events(filtered_data['lows'], min_low_count)
+                
+                # Also apply to frequency-specific data
+                for freq_key, freq_data in filtered_data.get('frequencies', {}).items():
+                    if 'lows' in freq_data:
+                        freq_data['lows'] = self._filter_low_count_events(freq_data['lows'], min_low_count)
+            
+            # Could add more user-specific filters here for other frequencies
+            
+        except Exception as e:
+            logger.error(f"WEBSOCKET-PUB: Error applying user-specific filters for user {user_id}: {e}")
+        
+        return filtered_data
+    
+    def _filter_low_count_events(self, events: List, min_count: int) -> List:
+        """Filter events based on minimum count threshold."""
+        return [
+            event for event in events
+            if (event.get('count') if isinstance(event, dict) else getattr(event, 'count', 1)) >= min_count
+        ]
+    
+    def _process_user_data_legacy(self, user_id: int, stock_data: Dict, analytics_data=None) -> Dict:
+        """
+        LEGACY: Original user data processing for backward compatibility.
+        This method handles the traditional per-second event filtering.
         It's part of Sprint 27's architecture where ALL filtering happens at emission time only.        
         """
 
@@ -1557,6 +1801,80 @@ class WebSocketPublisher:
             total += len(surging.get('down', []))
         
         return total
+    
+    def _count_total_events_multifrequency(self, stock_data: Dict[str, Any]) -> int:
+        """Count total events in multi-frequency stock_data structure."""
+        if not stock_data:
+            return 0
+        
+        total = 0
+        
+        # Count legacy root-level events (per-second for backward compatibility)
+        total += self._count_total_events(stock_data)
+        
+        # Count frequency-specific events
+        frequencies = stock_data.get('frequencies', {})
+        for freq_key, freq_data in frequencies.items():
+            if freq_key == FrequencyType.PER_SECOND.value:
+                # Already counted in legacy structure, skip to avoid double counting
+                continue
+            elif freq_key == FrequencyType.PER_MINUTE.value:
+                # Count per-minute events
+                total += len(freq_data.get('aggregates', []))
+                total += len(freq_data.get('highs', []))
+                total += len(freq_data.get('lows', []))
+                trending = freq_data.get('trending', {})
+                if isinstance(trending, dict):
+                    total += len(trending.get('up', []))
+                    total += len(trending.get('down', []))
+                surging = freq_data.get('surging', {})
+                if isinstance(surging, dict):
+                    total += len(surging.get('up', []))
+                    total += len(surging.get('down', []))
+            elif freq_key == FrequencyType.FAIR_MARKET_VALUE.value:
+                # Count FMV events
+                total += len(freq_data.get('fmv_events', []))
+                total += len(freq_data.get('valuation_alerts', []))
+        
+        return total
+    
+    def _get_multi_frequency_event_breakdown(self, stock_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Get detailed breakdown of events by frequency and type."""
+        breakdown = {
+            'legacy_totals': {
+                'highs': len(stock_data.get('highs', [])),
+                'lows': len(stock_data.get('lows', [])),
+                'trends': sum(len(stock_data.get('trending', {}).get(d, [])) for d in ['up', 'down']),
+                'surges': sum(len(stock_data.get('surging', {}).get(d, [])) for d in ['up', 'down'])
+            },
+            'frequencies': {}
+        }
+        
+        frequencies = stock_data.get('frequencies', {})
+        for freq_key, freq_data in frequencies.items():
+            if freq_key == FrequencyType.PER_SECOND.value:
+                breakdown['frequencies'][freq_key] = {
+                    'highs': len(freq_data.get('highs', [])),
+                    'lows': len(freq_data.get('lows', [])),
+                    'trends': sum(len(freq_data.get('trending', {}).get(d, [])) for d in ['up', 'down']),
+                    'surges': sum(len(freq_data.get('surging', {}).get(d, [])) for d in ['up', 'down'])
+                }
+            elif freq_key == FrequencyType.PER_MINUTE.value:
+                breakdown['frequencies'][freq_key] = {
+                    'aggregates': len(freq_data.get('aggregates', [])),
+                    'highs': len(freq_data.get('highs', [])),
+                    'lows': len(freq_data.get('lows', [])),
+                    'trends': sum(len(freq_data.get('trending', {}).get(d, [])) for d in ['up', 'down']),
+                    'surges': sum(len(freq_data.get('surging', {}).get(d, [])) for d in ['up', 'down'])
+                }
+            elif freq_key == FrequencyType.FAIR_MARKET_VALUE.value:
+                breakdown['frequencies'][freq_key] = {
+                    'fmv_events': len(freq_data.get('fmv_events', [])),
+                    'valuation_alerts': len(freq_data.get('valuation_alerts', []))
+                }
+        
+        return breakdown
+    
     def _has_events(self, user_events: Dict[str, Any]) -> bool:
         """Check if user_events contains any actual events."""
         if not user_events:
@@ -1858,5 +2176,45 @@ class WebSocketPublisher:
         # - prepare_heartbeat() - universe filtering stats should be aggregated
         
         pass
+
+    # SPRINT 101: Runtime frequency management methods
+    def enable_frequency(self, frequency_type: FrequencyType):
+        """
+        Enable emission for a specific frequency type at runtime.
+        
+        Args:
+            frequency_type: FrequencyType to enable
+        """
+        with self.emission_lock:
+            self.enabled_frequencies.add(frequency_type)
+            self.frequency_emission_config[frequency_type.value]['enabled'] = True
+            
+        logger.info(f"WEBSOCKET-PUB: Enabled frequency {frequency_type.value} for emission")
+    
+    def disable_frequency(self, frequency_type: FrequencyType):
+        """
+        Disable emission for a specific frequency type at runtime.
+        Note: PER_SECOND cannot be disabled as it's the base frequency.
+        
+        Args:
+            frequency_type: FrequencyType to disable
+        """
+        if frequency_type == FrequencyType.PER_SECOND:
+            logger.warning("WEBSOCKET-PUB: Cannot disable PER_SECOND frequency - it's the base frequency")
+            return
+            
+        with self.emission_lock:
+            self.enabled_frequencies.discard(frequency_type)
+            self.frequency_emission_config[frequency_type.value]['enabled'] = False
+            
+        logger.info(f"WEBSOCKET-PUB: Disabled frequency {frequency_type.value} for emission")
+    
+    def get_enabled_frequencies(self) -> Set[FrequencyType]:
+        """Get currently enabled frequencies."""
+        return self.enabled_frequencies.copy()
+    
+    def is_frequency_enabled(self, frequency_type: FrequencyType) -> bool:
+        """Check if a specific frequency type is enabled."""
+        return frequency_type in self.enabled_frequencies
 
     
