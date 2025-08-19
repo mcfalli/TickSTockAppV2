@@ -2,34 +2,61 @@ import random
 import time
 import pytz
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 
 from src.core.interfaces.data_provider import DataProvider
-
-from src.core.domain.market.tick import TickData  # Replace MarketEvent import
+from src.core.domain.market.tick import TickData
 from src.monitoring.tracer import tracer, TraceLevel, normalize_event_type, ensure_int
-
 from config.logging_config import get_domain_logger, LogDomain
+from src.infrastructure.data_sources.synthetic.types import DataFrequency, FrequencyGenerator
 
 logger = get_domain_logger(LogDomain.CORE, 'simulated_data_provider')
 
 class SimulatedDataProvider(DataProvider):
-    """Provider that generates simulated stock market data with comprehensive tracing."""
+    """Multi-frequency provider that generates simulated stock market data.
+    
+    Supports frequency-specific generation through pluggable generators:
+    - Per-second tick data (maintains backward compatibility)
+    - Per-minute aggregate data (OHLCV bars)
+    - Fair market value updates
+    """
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.market_timezone = pytz.timezone(config.get('MARKET_TIMEZONE', 'US/Eastern'))
+        
+        # Legacy single-frequency support
         self.price_seeds = {}
         self.sectors = ["Technology", "Healthcare", "Financial", "Consumer", "Industrial", "Energy"]
         self.ticker_sectors = {}
         self.last_price_time = {}  # Track last price generation per ticker
         self.last_price = {}  # Store last price per ticker
         
-        # Track tick generation statistics
+        # Multi-frequency architecture
+        self._frequency_generators: Dict[DataFrequency, FrequencyGenerator] = {}
+        self._active_frequencies = self._determine_active_frequencies(config)
+        self._setup_frequency_generators()
+        
+        # Data consistency validation
+        self._enable_validation = config.get('ENABLE_SYNTHETIC_DATA_VALIDATION', True)
+        self._validator = None
+        if self._enable_validation and len(self._active_frequencies) > 1:
+            self._setup_validation_system()
+        
+        # Track generation statistics per frequency
+        self.generation_stats = {
+            freq.value: {'count': 0, 'last_log': time.time()} 
+            for freq in self._active_frequencies
+        }
+        
+        # Backward compatibility tracking
         self.ticks_generated = 0
         self.last_stats_log = time.time()
         
-        logger.info("🚀 SIM-DATA-PROVIDER: SimulatedDataProvider initialized with tracing enabled")
+        logger.info(
+            f"🚀 SIM-DATA-PROVIDER: Multi-frequency SimulatedDataProvider initialized "
+            f"with frequencies: {[f.value for f in self._active_frequencies]}"
+        )
         
         if tracer.should_trace('SYSTEM'):
             tracer.trace(
@@ -42,10 +69,71 @@ class SimulatedDataProvider(DataProvider):
                     'duration_ms': 0,
                     'details': {
                         'market_timezone': str(self.market_timezone),
-                        'activity_level': config.get('SYNTHETIC_ACTIVITY_LEVEL', 'medium')
+                        'activity_level': config.get('SYNTHETIC_ACTIVITY_LEVEL', 'medium'),
+                        'active_frequencies': [f.value for f in self._active_frequencies],
+                        'multi_frequency_enabled': len(self._active_frequencies) > 1
                     }
                 }
             )
+    
+    def _determine_active_frequencies(self, config: Dict[str, Any]) -> List[DataFrequency]:
+        """Determine which frequencies are active based on configuration."""
+        frequencies = []
+        
+        # Check legacy configuration first
+        if not config.get('ENABLE_MULTI_FREQUENCY', False):
+            frequencies.append(DataFrequency.PER_SECOND)
+            return frequencies
+        
+        # Check frequency-specific enables
+        frequency_mapping = {
+            'WEBSOCKET_PER_SECOND_ENABLED': DataFrequency.PER_SECOND,
+            'WEBSOCKET_PER_MINUTE_ENABLED': DataFrequency.PER_MINUTE,
+            'WEBSOCKET_FAIR_VALUE_ENABLED': DataFrequency.FAIR_VALUE
+        }
+        
+        for config_key, frequency in frequency_mapping.items():
+            if config.get(config_key, False):
+                frequencies.append(frequency)
+        
+        # Default to per-second if no frequencies specified
+        if not frequencies:
+            frequencies.append(DataFrequency.PER_SECOND)
+        
+        return frequencies
+    
+    def _setup_frequency_generators(self):
+        """Initialize frequency-specific generators."""
+        for frequency in self._active_frequencies:
+            try:
+                if frequency == DataFrequency.PER_SECOND:
+                    from src.infrastructure.data_sources.synthetic.generators.per_second_generator import PerSecondGenerator
+                    self._frequency_generators[frequency] = PerSecondGenerator(self.config, self)
+                elif frequency == DataFrequency.PER_MINUTE:
+                    from src.infrastructure.data_sources.synthetic.generators.per_minute_generator import PerMinuteGenerator
+                    self._frequency_generators[frequency] = PerMinuteGenerator(self.config, self)
+                elif frequency == DataFrequency.FAIR_VALUE:
+                    from src.infrastructure.data_sources.synthetic.generators.fmv_generator import FMVGenerator
+                    self._frequency_generators[frequency] = FMVGenerator(self.config, self)
+                
+                logger.info(f"✅ SIM-DATA-PROVIDER: Initialized {frequency.value} generator")
+                
+            except ImportError as e:
+                logger.warning(
+                    f"⚠️ SIM-DATA-PROVIDER: Could not initialize {frequency.value} generator: {e}"
+                )
+                # For now, fall back to legacy generation for missing generators
+                continue
+    
+    def _setup_validation_system(self):
+        """Initialize the data consistency validation system."""
+        try:
+            from src.infrastructure.data_sources.synthetic.validators.data_consistency import DataConsistencyValidator
+            self._validator = DataConsistencyValidator(self.config)
+            logger.info("SIM-DATA-PROVIDER: Data consistency validation enabled")
+        except ImportError as e:
+            logger.warning(f"SIM-DATA-PROVIDER: Could not initialize validation system: {e}")
+            self._validator = None
     
     def validate_tick_data(self, tick: TickData) -> bool:
         """Validate TickData object."""
@@ -95,13 +183,66 @@ class SimulatedDataProvider(DataProvider):
         logger.debug(f"SIM-DATA-PROVIDER: Generated price for {ticker}: {price}, activity_level={activity_level}")
         return price
     
-    def generate_tick_data(self, ticker: str) -> TickData:
-        """Generate a TickData object for the ticker with comprehensive tracing."""
-
-        """Generate realistic tick data"""
-        # TEMPORARY DEBUG
-        import sys
-        print(f"DEBUG: generate_tick_data called for {ticker}", file=sys.stderr)
+    def generate_tick_data(self, ticker: str, frequency: Optional[DataFrequency] = None) -> Union[TickData, Dict[str, Any]]:
+        """Generate data for a specific ticker and frequency.
+        
+        Args:
+            ticker: Stock ticker symbol
+            frequency: Data frequency to generate (defaults to PER_SECOND for compatibility)
+            
+        Returns:
+            TickData for per-second, Dict for per-minute/FMV data
+        """
+        if frequency is None:
+            frequency = DataFrequency.PER_SECOND
+        
+        # Check if we have a generator for this frequency
+        if frequency in self._frequency_generators:
+            generation_start = time.time()
+            
+            try:
+                data = self._frequency_generators[frequency].generate_data(ticker, self.config)
+                
+                # Update statistics
+                self.generation_stats[frequency.value]['count'] += 1
+                
+                # Trace generation
+                if tracer.should_trace(ticker):
+                    tracer.trace(
+                        ticker=ticker,
+                        component='SimulatedDataProvider',
+                        action=f'{frequency.value}_generated',
+                        data={
+                            'input_count': ensure_int(1),
+                            'output_count': ensure_int(1),
+                            'duration_ms': (time.time() - generation_start) * 1000,
+                            'details': {
+                                'frequency': frequency.value,
+                                'ticker': ticker,
+                                'generator_type': type(self._frequency_generators[frequency]).__name__
+                            }
+                        }
+                    )
+                
+                return data
+                
+            except Exception as e:
+                logger.error(f"❌ SIM-DATA-PROVIDER: Error generating {frequency.value} data for {ticker}: {e}")
+                # Fall back to legacy generation for per-second
+                if frequency == DataFrequency.PER_SECOND:
+                    return self._generate_legacy_tick_data(ticker)
+                else:
+                    raise
+        else:
+            # Fall back to legacy generation for per-second frequency
+            if frequency == DataFrequency.PER_SECOND:
+                return self._generate_legacy_tick_data(ticker)
+            else:
+                raise ValueError(f"No generator available for frequency: {frequency.value}")
+    
+    def _generate_legacy_tick_data(self, ticker: str) -> TickData:
+        """Legacy tick data generation for backward compatibility."""
+        logger.debug(f"SIM-DATA-PROVIDER: Using legacy generation for {ticker}")
 
 
         generation_start = time.time()
@@ -154,7 +295,7 @@ class SimulatedDataProvider(DataProvider):
             tracer.trace(
                 ticker=ticker,
                 component='SimulatedDataProvider',
-                action='tick_generated',
+                action='legacy_tick_generated',
                 data={
                     'input_count': ensure_int(1),
                     'output_count': ensure_int(1),
@@ -164,7 +305,8 @@ class SimulatedDataProvider(DataProvider):
                         'price': current_price,
                         'volume': tick_volume,
                         'market_status': tick.market_status,
-                        'tick_number': self.ticks_generated
+                        'tick_number': self.ticks_generated,
+                        'generation_method': 'legacy'
                     }
                 }
             )
@@ -258,5 +400,65 @@ class SimulatedDataProvider(DataProvider):
             return None
     '''
 
+    def generate_frequency_data(self, ticker: str, frequency: DataFrequency) -> Union[TickData, Dict[str, Any]]:
+        """Public interface for frequency-specific data generation."""
+        return self.generate_tick_data(ticker, frequency)
+    
+    def get_supported_frequencies(self) -> List[DataFrequency]:
+        """Get list of supported data frequencies."""
+        return self._active_frequencies
+    
+    def has_frequency_support(self, frequency: DataFrequency) -> bool:
+        """Check if a specific frequency is supported."""
+        return frequency in self._frequency_generators
+    
+    def get_generation_statistics(self) -> Dict[str, Any]:
+        """Get generation statistics for all frequencies."""
+        stats = {
+            'total_legacy_ticks': self.ticks_generated,
+            'frequencies': {},
+            'active_generators': [f.value for f in self._active_frequencies]
+        }
+        
+        for freq_value, freq_stats in self.generation_stats.items():
+            stats['frequencies'][freq_value] = {
+                'count': freq_stats['count'],
+                'last_generated': freq_stats['last_log']
+            }
+        
+        return stats
+    
+    def _validate_generated_data(self, ticker: str, frequency: DataFrequency, data: Union[TickData, Dict[str, Any]]):
+        """Validate generated data for consistency and quality."""
+        try:
+            if frequency == DataFrequency.PER_SECOND and isinstance(data, TickData):
+                self._validator.add_tick_data(ticker, data)
+            elif frequency == DataFrequency.PER_MINUTE and isinstance(data, dict):
+                self._validator.add_minute_bar(ticker, data)
+                # Validate minute bar against recent tick data
+                validation_result = self._validator.validate_minute_bar_consistency(ticker, data)
+                if not validation_result.is_valid:
+                    logger.warning(
+                        f"SIM-DATA-PROVIDER: Minute bar validation failed for {ticker}: "
+                        f"{len(validation_result.errors)} errors"
+                    )
+            elif frequency == DataFrequency.FAIR_VALUE and isinstance(data, dict):
+                self._validator.add_fmv_update(ticker, data)
+                # Validate FMV correlation
+                validation_result = self._validator.validate_fmv_correlation(ticker, data)
+                if not validation_result.is_valid:
+                    logger.warning(
+                        f"SIM-DATA-PROVIDER: FMV validation failed for {ticker}: "
+                        f"{len(validation_result.errors)} errors"
+                    )
+        except Exception as e:
+            logger.debug(f"SIM-DATA-PROVIDER: Validation error for {ticker} {frequency.value}: {e}")
+    
+    def get_validation_summary(self) -> Optional[Dict[str, Any]]:
+        """Get summary of data validation results."""
+        if self._validator:
+            return self._validator.get_validation_summary()
+        return None
+    
     def is_available(self) -> bool:
         return True

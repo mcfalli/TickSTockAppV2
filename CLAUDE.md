@@ -153,6 +153,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON table_name TO app_readwrite;
 
 
 ## Code Documentation
+- if you create or update documentation in docs folder, update the date and time at the top of file and add a line for sprint # and description if applicable
 - Every module should have a docstring explaining its purpose
 - Public functions must have complete docstrings
 - Complex logic should have inline comments with `# Reason:` prefix

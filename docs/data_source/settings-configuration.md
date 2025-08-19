@@ -1,4 +1,7 @@
-# Multi-Frequency Configuration System Design
+# TickStock Settings & Configuration System
+
+Last edited: August 19, 2025 at 3:45 PM
+Sprint: 101 - WebSocket Multi-Frequency
 
 ## Overview
 

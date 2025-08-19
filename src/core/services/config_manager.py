@@ -5,7 +5,7 @@ import re
 import threading
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Dict, List, Optional, Callable, Tuple
 from config.logging_config import get_domain_logger, LogDomain
 
 logger = get_domain_logger(LogDomain.CORE, 'config_manager')
@@ -332,6 +332,36 @@ class ConfigManager:
         'WEBSOCKET_PER_SECOND_ENABLED': True,
         'WEBSOCKET_PER_MINUTE_ENABLED': False,
         'WEBSOCKET_FAIR_VALUE_ENABLED': False,
+        
+        # Synthetic Data Multi-Frequency Configuration
+        'ENABLE_SYNTHETIC_DATA_VALIDATION': True,
+        'VALIDATION_PRICE_TOLERANCE': 0.001,  # 0.1%
+        'VALIDATION_VOLUME_TOLERANCE': 0.05,   # 5%
+        'VALIDATION_VWAP_TOLERANCE': 0.002,    # 0.2%
+        
+        # Per-Second Generator Configuration
+        'SYNTHETIC_TICK_VARIANCE': 0.001,      # 0.1% tick variance
+        'SYNTHETIC_VOLUME_MULTIPLIER': 1.0,
+        'SYNTHETIC_VWAP_VARIANCE': 0.002,      # 0.2% VWAP variance
+        
+        # Per-Minute Generator Configuration
+        'SYNTHETIC_MINUTE_WINDOW': 60,         # seconds
+        'SYNTHETIC_MINUTE_VOLUME_MULTIPLIER': 50,
+        'SYNTHETIC_MINUTE_DRIFT': 0.005,       # 0.5% price drift variance
+        
+        # Fair Market Value Generator Configuration
+        'SYNTHETIC_FMV_UPDATE_INTERVAL': 30,   # seconds
+        'SYNTHETIC_FMV_CORRELATION': 0.85,     # 0-1 correlation strength
+        'SYNTHETIC_FMV_VARIANCE': 0.002,       # 0.2% FMV variance
+        'SYNTHETIC_FMV_PREMIUM_RANGE': 0.01,   # 1% premium/discount range
+        
+        # Enhanced FMV Correlation Parameters
+        'SYNTHETIC_FMV_MOMENTUM_DECAY': 0.7,   # FMV momentum persistence
+        'SYNTHETIC_FMV_LAG_FACTOR': 0.3,       # FMV lag response
+        'SYNTHETIC_FMV_VOLATILITY_DAMPENING': 0.6,  # FMV volatility reduction
+        'SYNTHETIC_FMV_TRENDING_CORRELATION': 0.90,  # Higher correlation in trends
+        'SYNTHETIC_FMV_SIDEWAYS_CORRELATION': 0.75,  # Medium correlation sideways
+        'SYNTHETIC_FMV_VOLATILE_CORRELATION': 0.65,  # Lower correlation in volatility
 
     }
 
@@ -601,7 +631,37 @@ class ConfigManager:
         'WEBSOCKET_HEALTH_CHECK_INTERVAL': int,
         'WEBSOCKET_PER_SECOND_ENABLED': bool,
         'WEBSOCKET_PER_MINUTE_ENABLED': bool,
-        'WEBSOCKET_FAIR_VALUE_ENABLED': bool
+        'WEBSOCKET_FAIR_VALUE_ENABLED': bool,
+        
+        # Synthetic Data Multi-Frequency Configuration Types
+        'ENABLE_SYNTHETIC_DATA_VALIDATION': bool,
+        'VALIDATION_PRICE_TOLERANCE': float,
+        'VALIDATION_VOLUME_TOLERANCE': float,
+        'VALIDATION_VWAP_TOLERANCE': float,
+        
+        # Per-Second Generator Configuration Types
+        'SYNTHETIC_TICK_VARIANCE': float,
+        'SYNTHETIC_VOLUME_MULTIPLIER': float,
+        'SYNTHETIC_VWAP_VARIANCE': float,
+        
+        # Per-Minute Generator Configuration Types
+        'SYNTHETIC_MINUTE_WINDOW': int,
+        'SYNTHETIC_MINUTE_VOLUME_MULTIPLIER': int,
+        'SYNTHETIC_MINUTE_DRIFT': float,
+        
+        # Fair Market Value Generator Configuration Types
+        'SYNTHETIC_FMV_UPDATE_INTERVAL': int,
+        'SYNTHETIC_FMV_CORRELATION': float,
+        'SYNTHETIC_FMV_VARIANCE': float,
+        'SYNTHETIC_FMV_PREMIUM_RANGE': float,
+        
+        # Enhanced FMV Correlation Parameter Types
+        'SYNTHETIC_FMV_MOMENTUM_DECAY': float,
+        'SYNTHETIC_FMV_LAG_FACTOR': float,
+        'SYNTHETIC_FMV_VOLATILITY_DAMPENING': float,
+        'SYNTHETIC_FMV_TRENDING_CORRELATION': float,
+        'SYNTHETIC_FMV_SIDEWAYS_CORRELATION': float,
+        'SYNTHETIC_FMV_VOLATILE_CORRELATION': float
 
     }
 
@@ -727,6 +787,12 @@ class ConfigManager:
             errors.extend(multi_errors)
             warnings.extend(multi_warnings)
         
+        # Synthetic data configuration validation
+        if self.config.get('USE_SYNTHETIC_DATA') or 'synthetic' in self.config.get('ACTIVE_DATA_PROVIDERS', []):
+            synthetic_errors, synthetic_warnings = self._validate_synthetic_data_config()
+            errors.extend(synthetic_errors)
+            warnings.extend(synthetic_warnings)
+        
         # Apply backward compatibility migrations
         self._migrate_legacy_configuration()
         
@@ -803,6 +869,57 @@ class ConfigManager:
         pool_size = self.config.get('WEBSOCKET_CONNECTION_POOL_SIZE', 3)
         if pool_size < 1 or pool_size > 10:
             warnings.append(f"WEBSOCKET_CONNECTION_POOL_SIZE ({pool_size}) outside recommended range 1-10")
+        
+        return errors, warnings
+    
+    def _validate_synthetic_data_config(self):
+        """Validate synthetic data configuration for multi-frequency generation."""
+        errors = []
+        warnings = []
+        
+        # Validate tolerance values are reasonable
+        price_tolerance = self.config.get('VALIDATION_PRICE_TOLERANCE', 0.001)
+        if not (0.0001 <= price_tolerance <= 0.01):  # 0.01% to 1%
+            warnings.append(f"VALIDATION_PRICE_TOLERANCE ({price_tolerance}) outside recommended range 0.0001-0.01")
+        
+        volume_tolerance = self.config.get('VALIDATION_VOLUME_TOLERANCE', 0.05)
+        if not (0.01 <= volume_tolerance <= 0.2):  # 1% to 20%
+            warnings.append(f"VALIDATION_VOLUME_TOLERANCE ({volume_tolerance}) outside recommended range 0.01-0.2")
+        
+        # Validate FMV correlation parameters
+        fmv_correlation = self.config.get('SYNTHETIC_FMV_CORRELATION', 0.85)
+        if not (0.1 <= fmv_correlation <= 1.0):
+            errors.append(f"SYNTHETIC_FMV_CORRELATION ({fmv_correlation}) must be between 0.1 and 1.0")
+        
+        # Validate FMV regime correlations are in logical order
+        trending_corr = self.config.get('SYNTHETIC_FMV_TRENDING_CORRELATION', 0.90)
+        sideways_corr = self.config.get('SYNTHETIC_FMV_SIDEWAYS_CORRELATION', 0.75)
+        volatile_corr = self.config.get('SYNTHETIC_FMV_VOLATILE_CORRELATION', 0.65)
+        
+        if not (volatile_corr <= sideways_corr <= trending_corr):
+            warnings.append(
+                f"FMV regime correlations should be ordered: volatile ({volatile_corr}) <= "
+                f"sideways ({sideways_corr}) <= trending ({trending_corr})"
+            )
+        
+        # Validate update intervals are reasonable
+        fmv_interval = self.config.get('SYNTHETIC_FMV_UPDATE_INTERVAL', 30)
+        if fmv_interval < 1 or fmv_interval > 300:  # 1 second to 5 minutes
+            warnings.append(f"SYNTHETIC_FMV_UPDATE_INTERVAL ({fmv_interval}s) outside recommended range 1-300 seconds")
+        
+        # Validate variance parameters
+        tick_variance = self.config.get('SYNTHETIC_TICK_VARIANCE', 0.001)
+        if tick_variance > 0.01:  # More than 1%
+            warnings.append(f"SYNTHETIC_TICK_VARIANCE ({tick_variance}) is high, may cause unrealistic price jumps")
+        
+        minute_drift = self.config.get('SYNTHETIC_MINUTE_DRIFT', 0.005)
+        if minute_drift > 0.02:  # More than 2%
+            warnings.append(f"SYNTHETIC_MINUTE_DRIFT ({minute_drift}) is high, may cause unrealistic minute bars")
+        
+        # Validate momentum decay factor
+        momentum_decay = self.config.get('SYNTHETIC_FMV_MOMENTUM_DECAY', 0.7)
+        if not (0.1 <= momentum_decay <= 0.95):
+            warnings.append(f"SYNTHETIC_FMV_MOMENTUM_DECAY ({momentum_decay}) outside recommended range 0.1-0.95")
         
         return errors, warnings
     
@@ -1047,3 +1164,223 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Error during configuration hot-reload: {e}")
             return False
+    
+    # Synthetic Data Configuration Helper Methods
+    def get_synthetic_data_config(self) -> Dict[str, Any]:
+        """
+        Get complete synthetic data configuration for all frequencies.
+        
+        Returns:
+            Dict containing all synthetic data configuration options
+        """
+        config = {}
+        
+        # Multi-frequency enablement
+        config['multi_frequency_enabled'] = self.config.get('ENABLE_MULTI_FREQUENCY', False)
+        config['per_second_enabled'] = self.config.get('WEBSOCKET_PER_SECOND_ENABLED', True)
+        config['per_minute_enabled'] = self.config.get('WEBSOCKET_PER_MINUTE_ENABLED', False)
+        config['fair_value_enabled'] = self.config.get('WEBSOCKET_FAIR_VALUE_ENABLED', False)
+        
+        # Data validation
+        config['validation_enabled'] = self.config.get('ENABLE_SYNTHETIC_DATA_VALIDATION', True)
+        config['validation_price_tolerance'] = self.config.get('VALIDATION_PRICE_TOLERANCE', 0.001)
+        config['validation_volume_tolerance'] = self.config.get('VALIDATION_VOLUME_TOLERANCE', 0.05)
+        config['validation_vwap_tolerance'] = self.config.get('VALIDATION_VWAP_TOLERANCE', 0.002)
+        
+        # Per-second generation settings
+        config['per_second'] = {
+            'activity_level': self.config.get('SYNTHETIC_ACTIVITY_LEVEL', 'medium'),
+            'price_variance': self.config.get('SYNTHETIC_PER_SECOND_PRICE_VARIANCE', 0.001),
+            'volume_range': self.config.get('SYNTHETIC_PER_SECOND_VOLUME_RANGE', [10000, 100000]),
+            'tick_frequency': self.config.get('SYNTHETIC_PER_SECOND_FREQUENCY', 1.0)
+        }
+        
+        # Per-minute generation settings
+        config['per_minute'] = {
+            'aggregation_window': self.config.get('SYNTHETIC_PER_MINUTE_WINDOW', 60),
+            'min_ticks_per_minute': self.config.get('SYNTHETIC_PER_MINUTE_MIN_TICKS', 5),
+            'max_ticks_per_minute': self.config.get('SYNTHETIC_PER_MINUTE_MAX_TICKS', 30),
+            'ohlc_variance': self.config.get('SYNTHETIC_PER_MINUTE_OHLC_VARIANCE', 0.005),
+            'volume_multiplier': self.config.get('SYNTHETIC_PER_MINUTE_VOLUME_MULTIPLIER', 5.0)
+        }
+        
+        # Fair market value settings
+        config['fair_value'] = {
+            'update_interval': self.config.get('SYNTHETIC_FMV_UPDATE_INTERVAL', 30),
+            'correlation_strength': self.config.get('SYNTHETIC_FMV_CORRELATION', 0.85),
+            'value_variance': self.config.get('SYNTHETIC_FMV_VARIANCE', 0.002),
+            'premium_discount_range': self.config.get('SYNTHETIC_FMV_PREMIUM_RANGE', 0.01),
+            'momentum_decay': self.config.get('SYNTHETIC_FMV_MOMENTUM_DECAY', 0.7),
+            'lag_factor': self.config.get('SYNTHETIC_FMV_LAG_FACTOR', 0.3),
+            'volatility_dampening': self.config.get('SYNTHETIC_FMV_VOLATILITY_DAMPENING', 0.6),
+            'trending_correlation': self.config.get('SYNTHETIC_FMV_TRENDING_CORRELATION', 0.90),
+            'sideways_correlation': self.config.get('SYNTHETIC_FMV_SIDEWAYS_CORRELATION', 0.75),
+            'volatile_correlation': self.config.get('SYNTHETIC_FMV_VOLATILE_CORRELATION', 0.65)
+        }
+        
+        return config
+    
+    def get_synthetic_data_presets(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Get predefined synthetic data configuration presets.
+        
+        Returns:
+            Dict of preset configurations for different testing scenarios
+        """
+        return {
+            'development': {
+                'description': 'Low-frequency development testing',
+                'ENABLE_MULTI_FREQUENCY': True,
+                'WEBSOCKET_PER_SECOND_ENABLED': True,
+                'WEBSOCKET_PER_MINUTE_ENABLED': False,
+                'WEBSOCKET_FAIR_VALUE_ENABLED': False,
+                'SYNTHETIC_ACTIVITY_LEVEL': 'medium',
+                'SYNTHETIC_PER_SECOND_FREQUENCY': 2.0,  # Every 2 seconds
+                'ENABLE_SYNTHETIC_DATA_VALIDATION': True
+            },
+            'integration_testing': {
+                'description': 'Full multi-frequency integration testing',
+                'ENABLE_MULTI_FREQUENCY': True,
+                'WEBSOCKET_PER_SECOND_ENABLED': True,
+                'WEBSOCKET_PER_MINUTE_ENABLED': True,
+                'WEBSOCKET_FAIR_VALUE_ENABLED': True,
+                'SYNTHETIC_ACTIVITY_LEVEL': 'high',
+                'SYNTHETIC_PER_SECOND_FREQUENCY': 0.5,  # Every 0.5 seconds
+                'SYNTHETIC_FMV_UPDATE_INTERVAL': 15,  # Every 15 seconds
+                'ENABLE_SYNTHETIC_DATA_VALIDATION': True,
+                'VALIDATION_PRICE_TOLERANCE': 0.0005  # Stricter validation
+            },
+            'performance_testing': {
+                'description': 'High-frequency performance testing',
+                'ENABLE_MULTI_FREQUENCY': True,
+                'WEBSOCKET_PER_SECOND_ENABLED': True,
+                'WEBSOCKET_PER_MINUTE_ENABLED': True,
+                'WEBSOCKET_FAIR_VALUE_ENABLED': True,
+                'SYNTHETIC_ACTIVITY_LEVEL': 'opening_bell',
+                'SYNTHETIC_PER_SECOND_FREQUENCY': 0.1,  # Every 0.1 seconds
+                'SYNTHETIC_FMV_UPDATE_INTERVAL': 5,  # Every 5 seconds
+                'ENABLE_SYNTHETIC_DATA_VALIDATION': False,  # Disable for performance
+                'SYNTHETIC_PER_MINUTE_MAX_TICKS': 50
+            },
+            'market_simulation': {
+                'description': 'Realistic market behavior simulation',
+                'ENABLE_MULTI_FREQUENCY': True,
+                'WEBSOCKET_PER_SECOND_ENABLED': True,
+                'WEBSOCKET_PER_MINUTE_ENABLED': True,
+                'WEBSOCKET_FAIR_VALUE_ENABLED': True,
+                'SYNTHETIC_ACTIVITY_LEVEL': 'medium',
+                'SYNTHETIC_PER_SECOND_FREQUENCY': 1.0,
+                'SYNTHETIC_FMV_UPDATE_INTERVAL': 30,
+                'SYNTHETIC_FMV_CORRELATION': 0.82,  # Realistic correlation
+                'SYNTHETIC_FMV_TRENDING_CORRELATION': 0.88,
+                'SYNTHETIC_FMV_VOLATILE_CORRELATION': 0.65,
+                'ENABLE_SYNTHETIC_DATA_VALIDATION': True
+            },
+            'minimal': {
+                'description': 'Minimal synthetic data for basic testing',
+                'ENABLE_MULTI_FREQUENCY': False,
+                'WEBSOCKET_PER_SECOND_ENABLED': True,
+                'WEBSOCKET_PER_MINUTE_ENABLED': False,
+                'WEBSOCKET_FAIR_VALUE_ENABLED': False,
+                'SYNTHETIC_ACTIVITY_LEVEL': 'low',
+                'SYNTHETIC_PER_SECOND_FREQUENCY': 5.0,  # Every 5 seconds
+                'ENABLE_SYNTHETIC_DATA_VALIDATION': False
+            }
+        }
+    
+    def apply_synthetic_data_preset(self, preset_name: str) -> bool:
+        """
+        Apply a synthetic data configuration preset.
+        
+        Args:
+            preset_name: Name of the preset to apply
+            
+        Returns:
+            bool: True if preset was applied successfully
+        """
+        presets = self.get_synthetic_data_presets()
+        
+        if preset_name not in presets:
+            logger.error(f"Unknown synthetic data preset: {preset_name}")
+            return False
+        
+        preset_config = presets[preset_name]
+        logger.info(f"Applying synthetic data preset '{preset_name}': {preset_config['description']}")
+        
+        # Apply preset configuration
+        changes_made = 0
+        for key, value in preset_config.items():
+            if key != 'description':  # Skip the description field
+                if self.config.get(key) != value:
+                    self.config[key] = value
+                    changes_made += 1
+        
+        if changes_made > 0:
+            logger.info(f"Applied {changes_made} configuration changes from preset '{preset_name}'")
+            self._notify_configuration_change()
+        else:
+            logger.info(f"Preset '{preset_name}' already active, no changes needed")
+        
+        return True
+    
+    def validate_synthetic_data_config(self) -> Tuple[bool, List[str]]:
+        """
+        Validate synthetic data configuration for consistency.
+        
+        Returns:
+            Tuple of (is_valid, error_messages)
+        """
+        errors = []
+        
+        # Check if multi-frequency is enabled but no frequencies are active
+        if self.config.get('ENABLE_MULTI_FREQUENCY', False):
+            active_frequencies = 0
+            if self.config.get('WEBSOCKET_PER_SECOND_ENABLED', False):
+                active_frequencies += 1
+            if self.config.get('WEBSOCKET_PER_MINUTE_ENABLED', False):
+                active_frequencies += 1
+            if self.config.get('WEBSOCKET_FAIR_VALUE_ENABLED', False):
+                active_frequencies += 1
+            
+            if active_frequencies == 0:
+                errors.append("Multi-frequency enabled but no frequency streams are active")
+        
+        # Validate frequency intervals
+        per_second_freq = self.config.get('SYNTHETIC_PER_SECOND_FREQUENCY', 1.0)
+        if per_second_freq < 0.1 or per_second_freq > 60.0:
+            errors.append(f"Per-second frequency {per_second_freq} outside valid range (0.1-60.0)")
+        
+        fmv_interval = self.config.get('SYNTHETIC_FMV_UPDATE_INTERVAL', 30)
+        if fmv_interval < 5 or fmv_interval > 300:
+            errors.append(f"FMV update interval {fmv_interval} outside valid range (5-300 seconds)")
+        
+        # Validate correlation parameters
+        correlations = [
+            ('SYNTHETIC_FMV_CORRELATION', 0.85),
+            ('SYNTHETIC_FMV_TRENDING_CORRELATION', 0.90),
+            ('SYNTHETIC_FMV_SIDEWAYS_CORRELATION', 0.75),
+            ('SYNTHETIC_FMV_VOLATILE_CORRELATION', 0.65)
+        ]
+        
+        for param, default in correlations:
+            value = self.config.get(param, default)
+            if not (0.0 <= value <= 1.0):
+                errors.append(f"Correlation parameter {param} ({value}) outside valid range (0.0-1.0)")
+        
+        # Validate tolerance parameters
+        tolerances = [
+            ('VALIDATION_PRICE_TOLERANCE', 0.001, 0.0001, 0.01),
+            ('VALIDATION_VOLUME_TOLERANCE', 0.05, 0.001, 0.20),
+            ('VALIDATION_VWAP_TOLERANCE', 0.002, 0.0001, 0.01)
+        ]
+        
+        for param, default, min_val, max_val in tolerances:
+            value = self.config.get(param, default)
+            if not (min_val <= value <= max_val):
+                errors.append(f"Tolerance parameter {param} ({value}) outside valid range ({min_val}-{max_val})")
+        
+        is_valid = len(errors) == 0
+        if not is_valid:
+            logger.warning(f"Synthetic data configuration validation failed: {len(errors)} errors")
+        
+        return is_valid, errors
