@@ -1,8 +1,11 @@
 import os
 import json
+import time
+import re
+import threading
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Callable
 from config.logging_config import get_domain_logger, LogDomain
 
 logger = get_domain_logger(LogDomain.CORE, 'config_manager')
@@ -315,6 +318,20 @@ class ConfigManager:
 
         'SURGE_DETECTION_MODE_DEFAULT': 'STRICT',      # Ensure STRICT is enforced
         'SURGE_DETECTION_MODE_MIDDAY': 'STRICT',       # NEW: Force STRICT for midday
+        
+        # Multi-frequency configuration defaults
+        'DATA_SOURCE_MODE': 'production',
+        'ACTIVE_DATA_PROVIDERS': ['polygon'],
+        'ENABLE_MULTI_FREQUENCY': False,
+        'WEBSOCKET_SUBSCRIPTIONS_FILE': 'config/websocket_subscriptions.json',
+        'PROCESSING_CONFIG_FILE': 'config/processing_config.json',
+        'WEBSOCKET_CONNECTION_POOL_SIZE': 3,
+        'WEBSOCKET_CONNECTION_TIMEOUT': 15,
+        'WEBSOCKET_SUBSCRIPTION_BATCH_SIZE': 50,
+        'WEBSOCKET_HEALTH_CHECK_INTERVAL': 30,
+        'WEBSOCKET_PER_SECOND_ENABLED': True,
+        'WEBSOCKET_PER_MINUTE_ENABLED': False,
+        'WEBSOCKET_FAIR_VALUE_ENABLED': False,
 
     }
 
@@ -570,13 +587,35 @@ class ConfigManager:
         'SURGE_BUFFER_MAX_AGE_SECONDS': int,
         'SURGE_COOLDOWN_MULTIPLIER_MARKET': float,
         'SURGE_DETECTION_MODE_DEFAULT': str,
-        'SURGE_DETECTION_MODE_MIDDAY': str
+        'SURGE_DETECTION_MODE_MIDDAY': str,
+        
+        # Multi-frequency configuration types
+        'DATA_SOURCE_MODE': str,
+        'ACTIVE_DATA_PROVIDERS': list,
+        'ENABLE_MULTI_FREQUENCY': bool,
+        'WEBSOCKET_SUBSCRIPTIONS_FILE': str,
+        'PROCESSING_CONFIG_FILE': str,
+        'WEBSOCKET_CONNECTION_POOL_SIZE': int,
+        'WEBSOCKET_CONNECTION_TIMEOUT': int,
+        'WEBSOCKET_SUBSCRIPTION_BATCH_SIZE': int,
+        'WEBSOCKET_HEALTH_CHECK_INTERVAL': int,
+        'WEBSOCKET_PER_SECOND_ENABLED': bool,
+        'WEBSOCKET_PER_MINUTE_ENABLED': bool,
+        'WEBSOCKET_FAIR_VALUE_ENABLED': bool
 
     }
 
     def __init__(self):
         self.config = {}
         self._load_defaults()
+        
+        # Multi-frequency configuration caches
+        self._websocket_subscriptions = None
+        self._processing_config = None
+        self._last_config_load = None
+        self._config_change_callbacks = []
+        self._file_watcher_thread = None
+        
         logger.info("Configuration manager initialized with defaults")
     
     def _load_defaults(self):
@@ -632,6 +671,15 @@ class ConfigManager:
             else:
                 logger.warning(f"Invalid list value for {key}: {value}, using default")
         
+        elif expected_type is list:
+            if isinstance(value, str):
+                # Handle comma-separated provider lists
+                self.config[key] = [item.strip() for item in value.split(',') if item.strip()]
+            elif isinstance(value, list):
+                self.config[key] = value
+            else:
+                logger.warning(f"Invalid list value for {key}: {value}, using default")
+        
         elif expected_type is dict:
             if isinstance(value, str):
                 try:
@@ -663,13 +711,28 @@ class ConfigManager:
     def validate_config(self):
         """Validate the loaded configuration for consistency."""
         errors = []
+        warnings = []
         
+        # Legacy validation
         if self.config.get('USE_POLYGON_API') and not self.config.get('POLYGON_API_KEY'):
             errors.append("POLYGON_API_KEY is required when USE_POLYGON_API is enabled")
         
         if self.config.get('USE_SYNTHETIC_DATA') and self.config.get('USE_POLYGON_API'):
-            logger.warning("Both USE_SYNTHETIC_DATA and USE_POLYGON_API enabled; prioritizing synthetic data")
+            warnings.append("Both USE_SYNTHETIC_DATA and USE_POLYGON_API enabled; prioritizing synthetic data")
             self.config['USE_POLYGON_API'] = False
+        
+        # Multi-frequency validation
+        if self.config.get('ENABLE_MULTI_FREQUENCY'):
+            multi_errors, multi_warnings = self._validate_multi_frequency_config()
+            errors.extend(multi_errors)
+            warnings.extend(multi_warnings)
+        
+        # Apply backward compatibility migrations
+        self._migrate_legacy_configuration()
+        
+        # Log warnings
+        for warning in warnings:
+            logger.warning(f"CONFIG: {warning}")
         
         if errors:
             logger.error("Configuration validation failed:")
@@ -712,4 +775,275 @@ class ConfigManager:
             return True
         except Exception as e:
             logger.error(f"Error loading configuration: {e}")
+            return False
+    
+    def _validate_multi_frequency_config(self):
+        """Validate multi-frequency configuration for consistency."""
+        errors = []
+        warnings = []
+        
+        # Validate data source mode
+        valid_modes = ['production', 'test', 'hybrid']
+        data_source_mode = self.config.get('DATA_SOURCE_MODE', 'production')
+        if data_source_mode not in valid_modes:
+            errors.append(f"Invalid DATA_SOURCE_MODE: {data_source_mode}. Must be one of {valid_modes}")
+        
+        # Validate active providers
+        active_providers = self.config.get('ACTIVE_DATA_PROVIDERS', [])
+        valid_providers = ['polygon', 'synthetic', 'simulated']
+        invalid_providers = [p for p in active_providers if p not in valid_providers]
+        if invalid_providers:
+            errors.append(f"Invalid providers in ACTIVE_DATA_PROVIDERS: {invalid_providers}")
+        
+        # Polygon API key validation
+        if 'polygon' in active_providers and not self.config.get('POLYGON_API_KEY'):
+            errors.append("POLYGON_API_KEY required when 'polygon' is in ACTIVE_DATA_PROVIDERS")
+        
+        # Connection pool validation
+        pool_size = self.config.get('WEBSOCKET_CONNECTION_POOL_SIZE', 3)
+        if pool_size < 1 or pool_size > 10:
+            warnings.append(f"WEBSOCKET_CONNECTION_POOL_SIZE ({pool_size}) outside recommended range 1-10")
+        
+        return errors, warnings
+    
+    def _migrate_legacy_configuration(self):
+        """Automatically migrate legacy configuration to multi-frequency format."""
+        migrations_applied = []
+        
+        # Migrate USE_POLYGON_API to ACTIVE_DATA_PROVIDERS
+        if self.config.get('USE_POLYGON_API'):
+            providers = list(self.config.get('ACTIVE_DATA_PROVIDERS', []))
+            if 'polygon' not in providers:
+                providers.append('polygon')
+                self.config['ACTIVE_DATA_PROVIDERS'] = providers
+                migrations_applied.append('USE_POLYGON_API -> ACTIVE_DATA_PROVIDERS')
+        
+        # Migrate USE_SYNTHETIC_DATA to ACTIVE_DATA_PROVIDERS
+        if self.config.get('USE_SYNTHETIC_DATA'):
+            providers = list(self.config.get('ACTIVE_DATA_PROVIDERS', []))
+            if 'synthetic' not in providers:
+                providers.append('synthetic')
+                self.config['ACTIVE_DATA_PROVIDERS'] = providers
+                migrations_applied.append('USE_SYNTHETIC_DATA -> ACTIVE_DATA_PROVIDERS')
+        
+        # Ensure at least one provider is active
+        if not self.config.get('ACTIVE_DATA_PROVIDERS'):
+            self.config['ACTIVE_DATA_PROVIDERS'] = ['simulated']
+            migrations_applied.append('Added default simulated provider')
+        
+        if migrations_applied:
+            logger.info(f"Applied legacy configuration migrations: {migrations_applied}")
+        
+        return migrations_applied
+    
+    def load_json_configurations(self):
+        """Load JSON configuration files with caching and validation."""
+        current_time = time.time()
+        
+        # Check if reload is needed (cache for 60 seconds)
+        if (self._last_config_load and 
+            current_time - self._last_config_load < 60):
+            return True
+        
+        try:
+            # Load WebSocket subscriptions configuration
+            subscriptions_file = self.config.get('WEBSOCKET_SUBSCRIPTIONS_FILE')
+            if subscriptions_file and Path(subscriptions_file).exists():
+                with open(subscriptions_file, 'r') as f:
+                    raw_config = json.load(f)
+                    self._websocket_subscriptions = self._interpolate_environment_variables(raw_config)
+                
+                # Validate subscriptions configuration
+                errors = self._validate_websocket_subscriptions_schema(self._websocket_subscriptions)
+                if errors:
+                    logger.error(f"WebSocket subscriptions configuration errors: {errors}")
+                    return False
+            
+            # Load processing configuration
+            processing_file = self.config.get('PROCESSING_CONFIG_FILE')  
+            if processing_file and Path(processing_file).exists():
+                with open(processing_file, 'r') as f:
+                    raw_config = json.load(f)
+                    self._processing_config = self._interpolate_environment_variables(raw_config)
+            
+            self._last_config_load = current_time
+            logger.info("JSON configurations loaded successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error loading JSON configurations: {e}")
+            return False
+    
+    def _interpolate_environment_variables(self, config_dict):
+        """Recursively interpolate environment variables in configuration values."""
+        def interpolate_value(value):
+            if isinstance(value, str):
+                # Replace ${VAR} and ${VAR:default} patterns
+                pattern = r'\$\{([^:}]+)(?::([^}]*))?\}'
+                
+                def replace_var(match):
+                    var_name = match.group(1)
+                    default_value = match.group(2) or ''
+                    return os.environ.get(var_name, default_value)
+                
+                return re.sub(pattern, replace_var, value)
+            elif isinstance(value, dict):
+                return {k: interpolate_value(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [interpolate_value(item) for item in value]
+            else:
+                return value
+        
+        return interpolate_value(config_dict)
+    
+    def _validate_websocket_subscriptions_schema(self, subscriptions_config):
+        """Validate WebSocket subscriptions JSON configuration."""
+        required_fields = ['version', 'subscriptions']
+        errors = []
+        
+        # Check required top-level fields
+        for field in required_fields:
+            if field not in subscriptions_config:
+                errors.append(f"Missing required field: {field}")
+        
+        # Validate subscription entries
+        subscriptions = subscriptions_config.get('subscriptions', {})
+        for freq_name, freq_config in subscriptions.items():
+            # Required fields per subscription
+            sub_required = ['enabled', 'provider', 'tickers']
+            for field in sub_required:
+                if field not in freq_config:
+                    errors.append(f"Subscription '{freq_name}' missing required field: {field}")
+            
+            # Provider validation
+            provider = freq_config.get('provider')
+            if provider not in ['polygon', 'synthetic', 'simulated']:
+                errors.append(f"Subscription '{freq_name}' has invalid provider: {provider}")
+            
+            # Ticker validation
+            tickers = freq_config.get('tickers', [])
+            if not isinstance(tickers, list) or not tickers:
+                errors.append(f"Subscription '{freq_name}' must have non-empty tickers list")
+            
+            # Max ticker validation
+            max_tickers = freq_config.get('max_tickers', 1000)
+            if len(tickers) > max_tickers:
+                errors.append(f"Subscription '{freq_name}' has {len(tickers)} tickers, exceeds max_tickers {max_tickers}")
+        
+        return errors
+    
+    def get_websocket_subscriptions(self):
+        """Get WebSocket subscriptions configuration with lazy loading."""
+        if self._websocket_subscriptions is None:
+            self.load_json_configurations()
+        return self._websocket_subscriptions or {}
+    
+    def get_processing_config(self):
+        """Get processing configuration with lazy loading.""" 
+        if self._processing_config is None:
+            self.load_json_configurations()
+        return self._processing_config or {}
+    
+    def get_legacy_config_value(self, key):
+        """Get configuration value using legacy key names for backward compatibility.""" 
+        legacy_mappings = {
+            'USE_POLYGON_API': lambda: 'polygon' in self.config.get('ACTIVE_DATA_PROVIDERS', []),
+            'USE_SYNTHETIC_DATA': lambda: 'synthetic' in self.config.get('ACTIVE_DATA_PROVIDERS', [])
+        }
+        
+        if key in legacy_mappings:
+            try:
+                return legacy_mappings[key]()
+            except Exception as e:
+                logger.warning(f"Error resolving legacy config key {key}: {e}")
+                return self.config.get(key)
+        
+        return self.config.get(key)
+    
+    def register_config_change_callback(self, callback: Callable[[], None]):
+        """Register a callback to be called when configuration changes."""
+        self._config_change_callbacks.append(callback)
+    
+    def _notify_configuration_change(self):
+        """Notify all registered callbacks of configuration changes."""
+        for callback in self._config_change_callbacks:
+            try:
+                callback()
+            except Exception as e:
+                logger.error(f"Error in configuration change callback: {e}")
+    
+    def setup_file_watching(self):
+        """Set up file system watching for configuration changes.""" 
+        if self._file_watcher_thread is not None:
+            return  # Already watching
+        
+        def watch_config_files():
+            """Background thread to monitor configuration file changes."""
+            config_files = [
+                self.config.get('WEBSOCKET_SUBSCRIPTIONS_FILE'),
+                self.config.get('PROCESSING_CONFIG_FILE')
+            ]
+            
+            file_timestamps = {}
+            
+            while True:
+                try:
+                    for file_path in config_files:
+                        if file_path and Path(file_path).exists():
+                            current_mtime = Path(file_path).stat().st_mtime
+                            
+                            if file_path not in file_timestamps:
+                                file_timestamps[file_path] = current_mtime
+                            elif current_mtime > file_timestamps[file_path]:
+                                logger.info(f"Configuration file changed: {file_path}")
+                                self._reload_json_configurations_safe()
+                                file_timestamps[file_path] = current_mtime
+                    
+                    time.sleep(5)  # Check every 5 seconds
+                    
+                except Exception as e:
+                    logger.error(f"Error in configuration file watching: {e}")
+                    time.sleep(30)  # Wait longer on error
+        
+        # Start file watcher thread
+        self._file_watcher_thread = threading.Thread(target=watch_config_files, daemon=True)
+        self._file_watcher_thread.start()
+        logger.info("Configuration file watching enabled")
+    
+    def _reload_json_configurations_safe(self):
+        """Safely reload JSON configurations with validation."""
+        try:
+            # Store current configuration as backup
+            backup_subscriptions = self._websocket_subscriptions
+            backup_processing = self._processing_config
+            
+            # Clear cache to force reload
+            self._websocket_subscriptions = None
+            self._processing_config = None
+            self._last_config_load = None
+            
+            # Attempt to load new configurations
+            if self.load_json_configurations():
+                # Validate new configuration
+                if self.config.get('ENABLE_MULTI_FREQUENCY'):
+                    subscriptions = self.get_websocket_subscriptions()
+                    if subscriptions:
+                        errors = self._validate_websocket_subscriptions_schema(subscriptions)
+                        if errors:
+                            logger.error(f"Configuration hot-reload validation failed: {errors}")
+                            self._websocket_subscriptions = backup_subscriptions
+                            self._processing_config = backup_processing
+                            return False
+                
+                logger.info("Configuration hot-reload successful")
+                self._notify_configuration_change()
+                return True
+            else:
+                logger.error("Configuration hot-reload failed to load files, reverting to backup")
+                self._websocket_subscriptions = backup_subscriptions
+                self._processing_config = backup_processing
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error during configuration hot-reload: {e}")
             return False
