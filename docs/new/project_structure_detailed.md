@@ -434,8 +434,8 @@ Key Methods:
 
 | Service | Dependencies |
 |---------|-------------|
-| MarketDataService | WorkerPoolManager, UserSettingsService, WebSocketPublisher, UniverseCoordinator, DataPublisher |
-| UniverseCoordinator | CoreUniverseManager, SubscriptionManager, UserUniverseManager |
+| MarketDataService | UniverseCoordinator, UserSettingsService, WebSocketPublisher, DataPublisher, SessionAccumulationManager |
+| UniverseCoordinator | SubscriptionManager, UserUniverseManager, CoreUniverseManager |
 | WebSocketPublisher | UserSettingsService, UserFiltersService |
 
 ## Quick Reference Index

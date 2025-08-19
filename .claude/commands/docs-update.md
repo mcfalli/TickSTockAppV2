@@ -1,0 +1,1 @@
+Run C:\Users\McDude\TickStockAppV2\.claude-code-docs\scripts\fetch_claude_docs.py to update local claude documentation from source

@@ -1,6 +1,8 @@
 # CLAUDE.md
 
 This file provides comprehensive guidance to Claude Code when working with Python code in this repository.
+**Important** - CLAUDE documentation is stored local at ./claude-code-docs to reference not having to go out to anthropic to find documentation.  This is kept current daily. 
+
 
 ## Important Notes
 - **NEVER ASSUME OR GUESS** - When in doubt, ask for clarification
@@ -62,6 +64,26 @@ Architecture: Component-based with Pull Model Event Distribution
 Sprint Capacity Monitoring: Alert at 80% chat capacity
 Context Preservation: Capture all relevant context before chat transitions
 Task Tracking: Maintain sprint tasks with ongoing task list for items that arise
+
+
+# Git Workflow
+Branch Strategy
+main - primary repository 
+Never include claude code, or written by claude code in commit messages
+``
+<type>(<scope>): <subject>
+<body>
+<footer>
+``
+``
+Types: feat, fix, docs, style, refactor, test, chore
+Example:
+feat(auth): add two-factor authentication
+Implement TOTP generation and validation
+Add QR code generation for authenticator apps
+Update user model with 2FA fields
+Closes #123
+``
 
 # Communication Protocol
 When working on sprints/problems:

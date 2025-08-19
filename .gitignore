@@ -1,5 +1,5 @@
 ./CLAUDE.local.md  
-
+.claude-code-docs
 # Node modules
 node_modules/
 
@@ -74,3 +74,6 @@ test_log.txt
 # But ignore Python cache in migrations
 migrations/__pycache__/
 migrations/versions/__pycache__/
+
+# AI Dev Tasks - keep active tasks local, track completed ones
+tasks/active/
