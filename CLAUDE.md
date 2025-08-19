@@ -8,7 +8,7 @@ This file provides comprehensive guidance to Claude Code when working with Pytho
 - **NEVER ASSUME OR GUESS** - When in doubt, ask for clarification
 - **Always verify file paths and module names** before use
 - **Keep CLAUDE.md updated** when adding new patterns or dependencies
-- **Test your code** - No feature is complete without tests
+- **Test your code** - No feature is complete without tests (see Testing Framework section)
 - **Document your decisions** - Future developers (including yourself) will thank you
 _This document is a living guide. Update it as the project evolves and new patterns emerge._
 
@@ -352,6 +352,155 @@ rg --files | rg "\.py$"
 rg --files -g "*.py"
 ```
 
+## Testing Framework
+***TickStock uses a comprehensive testing strategy with pytest for quality assurance and performance verification.***
+
+### Test Organization & Structure
+```
+tests/
+├── conftest.py              # Shared fixtures and configuration
+├── unit/                    # Fast, isolated component tests
+│   ├── core/               # Domain logic tests
+│   ├── infrastructure/     # Data providers, database
+│   ├── presentation/       # WebSocket, converters
+│   └── processing/         # Event detectors, processors
+├── integration/            # Multi-component interaction tests
+├── performance/            # Load and timing tests
+└── fixtures/               # Test data and utilities
+```
+
+### Test Configuration (pytest.ini)
+- **Coverage Target**: 70% minimum for core business logic
+- **Test Markers**: unit, integration, performance, slow, api, database
+- **Coverage Reports**: HTML (htmlcov/) + terminal output
+- **Test Discovery**: Automatic for test_*.py files
+
+### Quick Test Commands
+```bash
+# Fast development cycle
+make test-quick              # Run fast tests only
+make test-unit              # Unit tests with coverage
+make test-all               # Full test suite
+
+# Specific test types
+pytest tests/unit/ -m unit                    # Unit tests only
+pytest tests/ -m "not slow and not api"      # Skip slow tests
+pytest tests/unit/core/ -v                   # Specific directory
+```
+
+### Writing Tests - Key Patterns
+
+#### 1. Test Structure (Arrange-Act-Assert)
+```python
+def test_high_low_event_creation(event_builder):
+    # Arrange
+    ticker = "AAPL"
+    price = 150.25
+    
+    # Act
+    event = event_builder.high_low_event(ticker=ticker, price=price)
+    
+    # Assert
+    assert event.ticker == ticker
+    assert event.price == price
+    assert event.type == "high"
+```
+
+#### 2. Use Fixtures for Test Data
+```python
+@pytest.fixture
+def mock_tick():
+    return MockTick.create(ticker="AAPL", price=150.0, volume=1000)
+
+def test_event_detection(mock_tick, detector):
+    result = detector.detect(mock_tick.ticker, mock_tick.price)
+    assert result is not None
+```
+
+#### 3. Performance Testing
+```python
+@pytest.mark.performance
+def test_event_creation_speed(performance_timer):
+    performance_timer.start()
+    for _ in range(1000):
+        create_event()
+    performance_timer.stop()
+    
+    assert performance_timer.elapsed < 0.1  # 100ms max
+```
+
+#### 4. Mock External Dependencies
+```python
+@patch('requests.get')
+def test_polygon_api_call(mock_get, provider):
+    mock_get.return_value.json.return_value = {"status": "OK"}
+    result = provider.get_tick("AAPL")
+    assert result is not None
+```
+
+### Testing Requirements by Component
+
+#### Core Domain Events (src/core/domain/events/)
+- ✅ Event creation and validation
+- ✅ Transport dict generation
+- ✅ Event ID uniqueness
+- ✅ Performance benchmarks
+
+#### Event Detectors (src/processing/detectors/)
+- ✅ Detection logic accuracy
+- ✅ Threshold configuration
+- ✅ Edge case handling
+- ✅ Performance under load
+
+#### Data Providers (src/infrastructure/data_sources/)
+- ✅ API response handling
+- ✅ Error recovery
+- ✅ Fallback mechanisms
+- ✅ Rate limiting compliance
+
+#### WebSocket Components (src/presentation/websocket/)
+- 🔄 Event emission
+- 🔄 User filtering
+- 🔄 Connection management
+- 🔄 Message serialization
+
+### Test Execution Performance Requirements
+- **Unit Tests**: < 10 seconds total execution
+- **Integration Tests**: < 30 seconds total execution
+- **Individual Test**: < 100ms maximum
+- **Memory Usage**: No memory leaks during test runs
+
+### Continuous Integration
+- **GitHub Actions**: Automated on push/PR
+- **Multi-Python**: Tests on 3.9, 3.10, 3.11
+- **Quality Gates**: Linting, type checking, security scan
+- **Coverage Reporting**: Codecov integration
+
+### Test Data Management
+- **Fixtures**: Reusable test data in conftest.py
+- **Builders**: EventBuilder for creating test events
+- **Generators**: MarketDataGenerator for realistic data
+- **Mocks**: Database, Redis, WebSocket, API responses
+
+### Development Workflow
+1. **Write failing test** for new feature
+2. **Implement minimum code** to pass test
+3. **Refactor** while keeping tests green
+4. **Run full test suite** before committing
+5. **Check coverage** meets minimum threshold
+
+### Test Debugging
+```bash
+# Run single test with detailed output
+pytest tests/unit/core/test_events.py::TestHighLowEvent::test_create_valid_high_event -v -s
+
+# Profile slow tests
+pytest tests/ --durations=10
+
+# Debug test failures
+pytest tests/ --pdb --tb=short
+```
+
 ## Common Pitfalls to Avoid
 ### DON'T
 - Mix typed events and dicts after Worker boundary
@@ -359,9 +508,14 @@ rg --files -g "*.py"
 - Access database in hot paths (use memory/cache)
 - Create synchronous WebSocket operations
 - Exceed 500 lines per file or 50 lines per function
+- **Skip writing tests** for new functionality
+- **Mock everything** - test real domain logic
 ### DO
 - Maintain event type consistency through pipeline
 - Let WebSocketPublisher control emission timing
 - Use Redis/memory for real-time operations
 - Batch DOM updates with requestAnimationFrame
 - Refactor when approaching size limits
+- **Write tests first** for complex logic
+- **Use appropriate test types** (unit vs integration)
+- **Mock external dependencies** only
