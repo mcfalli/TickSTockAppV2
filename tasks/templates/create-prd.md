@@ -9,7 +9,7 @@ To guide an AI assistant in creating a detailed Product Requirements Document (P
 1.  **Receive Initial Prompt:** The user provides a brief description or request for a new feature or functionality.
 2.  **Ask Clarifying Questions:** Before writing the PRD, the AI *must* ask clarifying questions to gather sufficient detail. The goal is to understand the "what" and "why" of the feature, not necessarily the "how" (which the developer will figure out). Make sure to provide options in letter/number lists so I can respond easily with my selections.
 3.  **Generate PRD:** Based on the initial prompt and the user's answers to the clarifying questions, generate a PRD using the structure outlined below.
-4.  **Save PRD:** Save the generated document as `[sprint]-prd-[feature-name].md` inside the `tasks\active` directory.
+4.  **Save PRD:** Save the generated document as `[sprint number]-prd-[feature-name].md` inside the `tasks\active` directory.  The sprint number is the actual number excluding the word 'sprint'.
 
 ## Clarifying Questions (Examples)
 
@@ -47,7 +47,7 @@ Assume the primary reader of the PRD is a **junior developer**. Therefore, requi
 
 *   **Format:** Markdown (`.md`)
 *   **Location:** `tasks/active/`
-*   **Filename:** `[sprint]-prd-[feature-name].md`
+*   **Filename:** `[sprint number]-prd-[feature-name].md`
 
 ## Final instructions
 

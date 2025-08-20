@@ -8,7 +8,7 @@ To guide an AI assistant in creating a detailed, step-by-step task list in Markd
 
 - **Format:** Markdown (`.md`)
 - **Location:** `tasks/active/`
-- **Filename:** `[sprint]-tasks-[prd-file-name].md` (e.g., `100-tasks-prd-user-profile-editing.md`)
+- **Filename:** `[sprint number]-tasks-[prd-file-name].md` (e.g., `100-tasks-prd-user-profile-editing.md`)
 
 ## Process
 
@@ -21,7 +21,7 @@ To guide an AI assistant in creating a detailed, step-by-step task list in Markd
 7.  **Phase 2: Generate Sub-Tasks:** Once the user confirms, break down each parent task into smaller, actionable sub-tasks necessary to complete the parent task. Ensure sub-tasks logically follow from the parent task, cover the implementation details implied by the PRD, and consider existing codebase patterns where relevant without being constrained by them.
 8.  **Identify Relevant Files:** Based on the tasks and PRD, identify potential files that will need to be created or modified. List these under the `Relevant Files` section, including corresponding test files if applicable.
 9.  **Generate Final Output:** Combine the parent tasks, sub-tasks, relevant files, and notes into the final Markdown structure.
-10.  **Save Task List:** Save the generated document in the `/tasks/active/` directory with the filename `[sprint]-tasks-[prd-file-name].md`, where `[prd-file-name]` matches the base name of the input PRD file (e.g., if the input was `100-prd-user-profile-editing.md`, the output is `100-tasks-prd-user-profile-editing.md`).
+10.  **Save Task List:** Save the generated document in the `/tasks/active/` directory with the filename `[sprint number]-tasks-[prd-file-name].md`, where `[prd-file-name]` matches the base name of the input PRD file (e.g., if the input was `100-prd-user-profile-editing.md`, the output is `100-tasks-prd-user-profile-editing.md`).
 
 ## Output Format
 

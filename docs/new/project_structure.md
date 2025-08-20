@@ -3,7 +3,9 @@ config/
     __init__.py
     app_config.py
     logging_config.py
+    processing_config.json
     prometheus.yml
+    websocket_subscriptions.json
     environments/
         __init__.py
         dev.py
@@ -16,6 +18,7 @@ requirements/
 scripts/
     README.md
     __init__.py
+    test_runner.py
     deployment/
     dev_tools/
         __init__.py
@@ -30,10 +33,15 @@ scripts/
         test_polygon_comprehensive_api_config.py
         util_dump_trace_details.py
         util_dump_trace_entries.py
-        util_prepare_viz_data.py
         util_proj_gen_structure.py
         util_proj_gen_structure_detailed.py
         util_proj_gen_structure_docs.py
+    index/
+        detect_external_changes.py
+        index_utils.py
+        project_index.py
+        reindex_if_needed.py
+        update_index.py
     maintenance/
     migration/
         __init__.py
@@ -41,6 +49,7 @@ scripts/
         temp.py
         util_temp_run.py
 src/
+    CLAUDE.md
     README.md
     __init__.py
     app.py
@@ -67,8 +76,10 @@ src/
             __init__.py
             events/
                 __init__.py
+                aggregate.py
                 base.py
                 control.py
+                fmv.py
                 highlow.py
                 surge.py
                 trend.py
@@ -136,6 +147,15 @@ src/
                 generator.py
                 loader.py
                 provider.py
+                types.py
+                generators/
+                    __init__.py
+                    fmv_generator.py
+                    per_minute_generator.py
+                    per_second_generator.py
+                validators/
+                    __init__.py
+                    data_consistency.py
         messaging/
             __init__.py
             email_service.py
@@ -173,6 +193,7 @@ src/
     processing/
         README.md
         __init__.py
+        stream_manager.py
         detectors/
             __init__.py
             buysell_engine.py
@@ -201,6 +222,9 @@ src/
             __init__.py
         exceptions/
             __init__.py
+        types/
+            __init__.py
+            frequency.py
         utils/
             __init__.py
             app_utils.py
@@ -208,9 +232,57 @@ src/
             general.py
             market_utils.py
             validation.py
+tasks/
+    task-introduction.md
+    track-plans.md
+    active/
+        103_draft_sprint.md
+        command-create-prrd.md
+    completed/
+        events/
+        source_data/
+            100_101_102_draft_data_source_enhancements.md
+            101-polygon-reference.md
+            prd-sprint-100-architecture-config.md
+            prd-sprint-101-websocket-multifrequency.md
+            prd-sprint-102-synthetic-data-docs.md
+            process-tasks-prd-sprint-100-architecture-config.md
+            process-tasks-prd-sprint-101-websocket-multifrequency.md
+            process-tasks-prd-sprint-102-synthetic-data-docs.md
+            tasks-prd-sprint-100-architecture-config.md
+            tasks-prd-sprint-101-websocket-multifrequency.md
+            tasks-prd-sprint-102-synthetic-data-docs.md
+        unit_tests/
+            unit_testing_framework_implementation.md
+            unit_testing_framework_prd.md
+    templates/
+        create-prd.md
+        generate-tasks.md
+        process-task-list.md
 tests/
     README.md
     __init__.py
+    conftest.py
+    test_framework_verification.py
+    analytics/
+    data_source/
+        __init__.py
+        fixtures/
+            __init__.py
+            synthetic_data_fixtures.py
+        integration/
+            __init__.py
+            test_synthetic_data_app_integration.py
+            test_synthetic_data_multifrequency.py
+            test_synthetic_data_quick_validation.py
+            test_synthetic_data_system_validation.py
+        performance/
+            __init__.py
+            test_synthetic_data_performance.py
+        unit/
+            __init__.py
+            test_data_providers.py
+    event_detection/
     fixtures/
         __init__.py
         trace/
@@ -221,6 +293,11 @@ tests/
             util_trace_dump_utility.py
     integration/
         __init__.py
+        multi_frequency/
+            __init__.py
+            test_cross_frequency_validation.py
+            test_end_to_end_multifrequency.py
+            test_polygon_integration.py
         trace/
             test_trace_coverage.py
             test_trace_diagnostics.py
@@ -245,10 +322,20 @@ tests/
         __init__.py
         test_utilities.py
         core/
+            test_detectors.py
+            test_events.py
+            test_multifrequency_events.py
         infrastructure/
         presentation/
+            websocket/
+                test_polygon_client_multifrequency.py
+                test_websocket_publisher_multifrequency.py
         processing/
+            test_highlow_detector.py
+            test_stream_manager_multifrequency.py
+    websocket/
 web/
+    CLAUDE.md
     package-lock.json
     package.json
     static/
