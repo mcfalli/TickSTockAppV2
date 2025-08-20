@@ -88,6 +88,12 @@ Update user model with 2FA fields
 Closes #123
 ``
 
+# AI Dev Tasks
+Use these files when I request structured feature development using PRD or Sprint:
+tasks\templates\create-prd.md
+tasks\templates\generate-tasks.md
+tasks\templates\process-task-list.md
+
 # Communication Protocol
 When working on sprints/problems:
 Repeat understanding of goals in response
