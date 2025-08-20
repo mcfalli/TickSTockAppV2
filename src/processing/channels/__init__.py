@@ -5,6 +5,7 @@ This package implements the core channel infrastructure for processing different
 data types (Tick, OHLCV, FMV) through specialized processing channels.
 
 Sprint 105: Core Channel Infrastructure Implementation
+Sprint 106: Data Type Handlers - Specialized channel implementations
 """
 
 from .base_channel import (
@@ -34,6 +35,22 @@ from .channel_router import (
     RouterConfig
 )
 
+# Sprint 106: Data Type Handler Channels
+from .tick_channel import TickChannel
+from .ohlcv_channel import OHLCVChannel
+from .fmv_channel import FMVChannel
+
+# Sprint 106: Event Creation Logic
+from .event_creators import (
+    BaseEventCreator,
+    TickEventCreator,
+    OHLCVEventCreator,
+    FMVEventCreator,
+    create_event_creator,
+    validate_event_transport_format,
+    batch_create_transport_dicts
+)
+
 __all__ = [
     # Base channel classes
     'ProcessingChannel',
@@ -56,5 +73,19 @@ __all__ = [
     'DataChannelRouter',
     'DataTypeIdentifier',
     'ChannelLoadBalancer',
-    'RouterConfig'
+    'RouterConfig',
+    
+    # Sprint 106: Specialized Channel Implementations
+    'TickChannel',
+    'OHLCVChannel', 
+    'FMVChannel',
+    
+    # Sprint 106: Event Creation System
+    'BaseEventCreator',
+    'TickEventCreator',
+    'OHLCVEventCreator',
+    'FMVEventCreator',
+    'create_event_creator',
+    'validate_event_transport_format',
+    'batch_create_transport_dicts'
 ]

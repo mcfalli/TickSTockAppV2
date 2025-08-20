@@ -12,17 +12,41 @@ the sprint it is correlated with add another line for "Sprint:" and add the spri
 
 
 
-### Primary References
-tasks\active\prd-sprint-100-architecture-config.md
-tasks\active\process-tasks-prd-sprint-100-architecture-config.md
-tasks\active\tasks-prd-sprint-100-architecture-config.md
-tasks\active\prd-sprint-101-websocket-multifrequency.md
-tasks\active\process-tasks-prd-sprint-101-websocket-multifrequency.md
-tasks\active\tasks-prd-sprint-101-websocket-multifrequency.mdtasks\active\prd-sprint-102-synthetic-data-docs.md
-tasks\active\process-tasks-prd-sprint-102-synthetic-data-docs.md
-tasks\active\tasks-prd-sprint-102-synthetic-data-docs.md
+## Primary References
+tasks\active\107-prd-architecture-review-analysis.md
+tasks\active\107-tasks-architecture-review-analysis.md
 
-### Other References
+## Supporting Design Documents, Sprint Summaries, Documentation References
+docs\new\project_structure.md (overall codebase organization)
+tasks\active\Design (design documents)
+tasks\active\Summaries (sprint summary documents)
 
+## Test Location For This Sprint
+tests\pipeline\ (functional tests exist from related completed sprints)
 
-Please start on task 1.1 and use tasks\templates\process-task-list.md
+## Technical Debt Backlog
+tasks\active\Support\technical-debt-backlog.md
+
+## Architectural Descisions
+tasks\active\Support\architectural_decisions.md
+
+## Related Past Sprints 
+### Related Sprint PRDs Completed
+tasks\active\103-prd-architecture-review-analysis.md
+tasks\active\104-prd-architecture-review-analysis.md
+tasks\active\105-prd-architecture-review-analysis.md
+tasks\active\106-prd-architecture-review-analysis.md
+tasks\active\108-prd-architecture-review-analysis.md
+### Related Sprint PRD Tasks Completed
+tasks\active\103-tasks-architecture-review-analysis.md
+tasks\active\104-tasks-architecture-review-analysis.md
+tasks\active\105-tasks-architecture-review-analysis.md
+tasks\active\106-tasks-architecture-review-analysis.md
+tasks\active\108-tasks-architecture-review-analysis.md
+
+## Related Future Sprints 
+### Related Sprint PRDs Completed
+tasks\active\108-prd-architecture-review-analysis.md
+### Related Sprint PRD Tasks Completed
+tasks\active\108-tasks-architecture-review-analysis.md
+

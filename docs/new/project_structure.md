@@ -194,6 +194,16 @@ src/
         README.md
         __init__.py
         stream_manager.py
+        channels/
+            __init__.py
+            base_channel.py
+            channel_config.py
+            channel_metrics.py
+            channel_router.py
+            event_creators.py
+            fmv_channel.py
+            ohlcv_channel.py
+            tick_channel.py
         detectors/
             __init__.py
             buysell_engine.py
@@ -222,6 +232,9 @@ src/
             __init__.py
         exceptions/
             __init__.py
+        models/
+            __init__.py
+            data_types.py
         types/
             __init__.py
             frequency.py
@@ -236,8 +249,22 @@ tasks/
     task-introduction.md
     track-plans.md
     active/
+        103-prd-architecture-review-analysis.md
+        103-tasks-architecture-review-analysis.md
         103_draft_sprint.md
+        104-prd-multi-channel-design-planning.md
+        104-tasks-multi-channel-design-planning.md
+        105-prd-core-channel-infrastructure.md
+        105-tasks-core-channel-infrastructure.md
+        106-prd-data-type-handlers.md
+        106-tasks-data-type-handlers.md
+        107-prd-event-processing-refactor.md
+        107-tasks-event-processing-refactor.md
+        108-prd-integration-testing.md
+        108-tasks-integration-testing.md
         command-create-prrd.md
+        sprint-105-completion-summary.md
+        sprint-106-completion-summary.md
     completed/
         events/
         source_data/
@@ -318,6 +345,21 @@ tests/
             test_trace_visualization.py
     performance/
         __init__.py
+    pipeline/
+        __init__.py
+        run_channel_tests.py
+        simple_perf_test.py
+        test_base_channel.py
+        test_channel_config.py
+        test_channel_metrics.py
+        test_channel_router.py
+        test_data_types.py
+        test_event_creators.py
+        test_multi_channel_integration.py
+        test_router_fix_validation.py
+        test_router_perf.py
+        test_tick_channel.py
+        validate_channel_performance.py
     unit/
         __init__.py
         test_utilities.py
