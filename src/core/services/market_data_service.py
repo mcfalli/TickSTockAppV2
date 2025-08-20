@@ -160,6 +160,7 @@ class MarketDataService:
         self._initialize_real_time_adapter()
         self._validate_complete_architecture()
         self._establish_component_references()
+        self._initialize_sprint_107_components()
 
         # Display queue for frontend events
         # Size: ~10KB per event * 10000 = ~100MB max memory
@@ -195,6 +196,23 @@ class MarketDataService:
                 
         except Exception as e:
             logger.error(f"❌ Error establishing component references: {e}")
+    
+    def _initialize_sprint_107_components(self):
+        """SPRINT 107: Initialize multi-channel integration components"""
+        try:
+            # Initialize channel router from Sprint 105
+            from src.processing.channels.channel_router import DataChannelRouter, RouterConfig
+            router_config = RouterConfig()
+            self.channel_router = DataChannelRouter(router_config)
+            
+            # Connect channel router to event processor
+            if hasattr(self, 'event_processor') and self.event_processor:
+                self.event_processor.set_channel_router(self.channel_router)
+            
+            logger.info("✅ SPRINT 107: Multi-channel integration components initialized")
+            
+        except Exception as e:
+            logger.error(f"❌ Error initializing Sprint 107 components: {e}", exc_info=True)
         
     def _initialize_basic_properties(self):
         """Initialize basic service properties."""
@@ -678,8 +696,21 @@ class MarketDataService:
                     ticker=tick_ticker
                 )
             
-            # Delegate to EventProcessor
-            processing_result = self.event_processor.handle_tick(tick_data)
+            # SPRINT 107: Updated to route through channel system while maintaining compatibility
+            # Check if multi-source integration is available
+            if hasattr(self.event_processor, 'handle_multi_source_data'):
+                # Use new multi-source pathway
+                import asyncio
+                if asyncio.iscoroutinefunction(self.event_processor.handle_multi_source_data):
+                    loop = asyncio.get_event_loop()
+                    processing_result = loop.run_until_complete(
+                        self.event_processor.handle_multi_source_data(tick_data, "websocket_tick")
+                    )
+                else:
+                    processing_result = self.event_processor.handle_multi_source_data(tick_data, "websocket_tick")
+            else:
+                # Fallback to original method for backward compatibility
+                processing_result = self.event_processor.handle_tick(tick_data)
             
             # TRACE
             if tracer.should_trace(tick_ticker):
@@ -755,6 +786,112 @@ class MarketDataService:
                 success=False,
                 errors=[error_msg],
                 ticker=tick_ticker
+            )
+    
+    async def handle_ohlcv_data(self, ohlcv_data) -> EventProcessingResult:
+        """
+        SPRINT 107: New entry point for OHLCV channel integration.
+        Processes OHLCV aggregate data with source-specific rules.
+        
+        Args:
+            ohlcv_data: OHLCV data object or dictionary
+            
+        Returns:
+            EventProcessingResult: Processing result from multi-source coordinator
+        """
+        try:
+            self.stats.ticks_received += 1
+            
+            # Convert to typed data if needed
+            from src.shared.models.data_types import OHLCVData, convert_to_typed_data
+            
+            if not isinstance(ohlcv_data, OHLCVData):
+                if isinstance(ohlcv_data, dict):
+                    ohlcv_data = convert_to_typed_data(ohlcv_data, 'ohlcv')
+                else:
+                    logger.error(f"❌ Invalid OHLCV data type: {type(ohlcv_data)}")
+                    return EventProcessingResult(
+                        success=False,
+                        errors=["Invalid OHLCV data format"],
+                        ticker=getattr(ohlcv_data, 'ticker', 'unknown')
+                    )
+            
+            # Log first few OHLCV entries
+            if self.stats.ticks_received <= 10:
+                logger.info(f"📊 SPRINT 107: OHLCV data #{self.stats.ticks_received}: {ohlcv_data}")
+            
+            # Process through multi-source system
+            result = await self.event_processor.handle_multi_source_data(ohlcv_data, "ohlcv_channel")
+            
+            if result.success:
+                self.stats.ticks_delegated += 1
+                logger.debug(f"✅ OHLCV data processed for {ohlcv_data.ticker}: {result.events_processed} events")
+            else:
+                logger.warning(f"⚠️ OHLCV processing failed for {ohlcv_data.ticker}: {result.errors}")
+            
+            return result
+            
+        except Exception as e:
+            error_msg = f"Error in OHLCV data handler: {e}"
+            logger.error(f"❌ {error_msg}", exc_info=True)
+            
+            return EventProcessingResult(
+                success=False,
+                errors=[error_msg],
+                ticker=getattr(ohlcv_data, 'ticker', 'unknown')
+            )
+    
+    async def handle_fmv_data(self, fmv_data) -> EventProcessingResult:
+        """
+        SPRINT 107: New entry point for FMV channel integration.
+        Processes Fair Market Value data with confidence filtering.
+        
+        Args:
+            fmv_data: FMV data object or dictionary
+            
+        Returns:
+            EventProcessingResult: Processing result from multi-source coordinator
+        """
+        try:
+            self.stats.ticks_received += 1
+            
+            # Convert to typed data if needed
+            from src.shared.models.data_types import FMVData, convert_to_typed_data
+            
+            if not isinstance(fmv_data, FMVData):
+                if isinstance(fmv_data, dict):
+                    fmv_data = convert_to_typed_data(fmv_data, 'fmv')
+                else:
+                    logger.error(f"❌ Invalid FMV data type: {type(fmv_data)}")
+                    return EventProcessingResult(
+                        success=False,
+                        errors=["Invalid FMV data format"],
+                        ticker=getattr(fmv_data, 'ticker', 'unknown')
+                    )
+            
+            # Log first few FMV entries
+            if self.stats.ticks_received <= 10:
+                logger.info(f"💰 SPRINT 107: FMV data #{self.stats.ticks_received}: {fmv_data}")
+            
+            # Process through multi-source system
+            result = await self.event_processor.handle_multi_source_data(fmv_data, "fmv_channel")
+            
+            if result.success:
+                self.stats.ticks_delegated += 1
+                logger.debug(f"✅ FMV data processed for {fmv_data.ticker}: {result.events_processed} events")
+            else:
+                logger.warning(f"⚠️ FMV processing failed for {fmv_data.ticker}: {result.errors}")
+            
+            return result
+            
+        except Exception as e:
+            error_msg = f"Error in FMV data handler: {e}"
+            logger.error(f"❌ {error_msg}", exc_info=True)
+            
+            return EventProcessingResult(
+                success=False,
+                errors=[error_msg],
+                ticker=getattr(fmv_data, 'ticker', 'unknown')
             )
     
     def handle_websocket_status(self, status, extra_info=None) -> CoreServiceResult:

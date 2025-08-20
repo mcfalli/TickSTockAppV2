@@ -152,8 +152,19 @@ class EventProcessor:
 
         # Initialize new extracted components
         self.tick_processor = TickProcessor(config)
-
         self.event_detector = EventDetector(config, event_manager=event_manager)
+        
+        # SPRINT 107: Initialize multi-channel integration components
+        from src.processing.pipeline.source_context_manager import SourceContextManager
+        from src.processing.rules.source_specific_rules import SourceSpecificRulesEngine
+        from src.processing.pipeline.multi_source_coordinator import MultiSourceCoordinator
+        
+        self.source_context_manager = SourceContextManager()
+        self.source_rules_engine = SourceSpecificRulesEngine()
+        self.multi_source_coordinator = MultiSourceCoordinator()
+        
+        # Initialize channel router (will be set by market service)
+        self.channel_router = None
         
         # Initialize logging
         self.logger = get_domain_logger(LogDomain.CORE, 'event_processor')
@@ -190,6 +201,120 @@ class EventProcessor:
         except Exception as e:
             logger.error(f"❌ SPRINT27-SAFETY: Error validating core universe: {e}")
             return False
+    
+    def set_channel_router(self, channel_router):
+        """Set the channel router for multi-source integration"""
+        self.channel_router = channel_router
+        self.channel_router.set_event_processor(self)
+        logger.info("✅ SPRINT 107: Channel router connected to EventProcessor")
+    
+    async def handle_multi_source_data(self, data: Any, source: str) -> EventProcessingResult:
+        """
+        SPRINT 107: New multi-channel entry point for processing data from multiple sources.
+        
+        Args:
+            data: Incoming data (TickData, OHLCVData, FMVData, or dict)
+            source: Source identifier string
+            
+        Returns:
+            EventProcessingResult: Processing result with events and metadata
+        """
+        start_time = time.time()
+        result = EventProcessingResult(ticker=getattr(data, 'ticker', 'unknown'))
+        
+        try:
+            # Step 1: Create source context
+            from src.processing.pipeline.source_context_manager import DataSource
+            source_type = DataSource.CHANNEL if source.startswith('channel') else DataSource.WEBSOCKET
+            context = self.source_context_manager.create_context(data, source_type)
+            
+            # Step 2: Apply source-specific rules
+            if not self.source_rules_engine.apply_rules(data, context):
+                result.success = False
+                result.warnings.append(f"Data filtered by source rules for {source}")
+                context.add_warning("filtered_by_source_rules")
+                return result
+            
+            # Step 3: Route through channel system if available
+            if self.channel_router:
+                channel_result = await self.channel_router.route_data(data)
+                if channel_result and channel_result.success and channel_result.events:
+                    # Process events from channel routing
+                    for event in channel_result.events:
+                        # Add source context to event
+                        self.source_context_manager.add_event_metadata(event, context)
+                        
+                        # Coordinate with other sources
+                        if self.multi_source_coordinator.coordinate_event(event, context):
+                            result.events_processed += 1
+                        else:
+                            result.warnings.append(f"Event coordination failed for {event.type}")
+                    
+                    result.success = True
+                    context.add_processing_stage("channel_routing_completed")
+                else:
+                    result.success = False
+                    result.errors.append("Channel routing failed")
+                    context.increment_error_count()
+            else:
+                # Fallback to direct processing if no channel router
+                result.warnings.append("No channel router available, using direct processing")
+                direct_result = await self._process_data_directly(data, context)
+                result.success = direct_result.success
+                result.events_processed = direct_result.events_processed
+                result.errors.extend(direct_result.errors)
+                result.warnings.extend(direct_result.warnings)
+            
+            # Step 4: Emit coordinated events
+            coordinated_events = self.multi_source_coordinator.get_pending_events(max_events=50)
+            for event, coordination_metadata in coordinated_events:
+                # Forward to priority manager
+                if hasattr(self.market_service, 'priority_manager'):
+                    self.market_service.priority_manager.add_event(event)
+                    self.stats.events_published += 1
+            
+            return result
+            
+        except Exception as e:
+            error_msg = f"Error in multi-source data handling: {e}"
+            logger.error(f"❌ {error_msg}", exc_info=True)
+            result.success = False
+            result.errors.append(error_msg)
+            return result
+        finally:
+            result.processing_time_ms = (time.time() - start_time) * 1000
+            
+            # Performance warning
+            if result.processing_time_ms > 500:
+                logger.warning(f"⚠️ SLOW MULTI-SOURCE PROCESSING > 500ms: {result.processing_time_ms:.0f}ms")
+    
+    async def _process_data_directly(self, data: Any, context) -> EventProcessingResult:
+        """Direct processing fallback when channel router is not available"""
+        result = EventProcessingResult()
+        
+        try:
+            # Convert to TickData if possible
+            if hasattr(data, 'ticker') and hasattr(data, 'price'):
+                # Process as tick data using existing logic
+                tick_result = self.handle_tick(data)
+                result.success = tick_result.success
+                result.events_processed = tick_result.events_processed
+                result.errors = tick_result.errors
+                result.warnings = tick_result.warnings
+                context.add_processing_stage("direct_tick_processing")
+            else:
+                result.success = False
+                result.errors.append("Unable to process data directly - unsupported format")
+                context.increment_error_count()
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in direct data processing: {e}", exc_info=True)
+            result.success = False
+            result.errors.append(str(e))
+            context.increment_error_count()
+            return result
         
     def handle_tick(self, tick_data: TickData) -> EventProcessingResult:
         """

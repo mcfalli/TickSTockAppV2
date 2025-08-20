@@ -1,20 +1,25 @@
+# Sprint Task Introduction Template
+
+**Use this template when creating task-introduction.md for new Sprints**
+
+---
+
 **Important**: This will be provided over prompt as link used to instruct actions for the current sprint/PRD.  
 
 # Sprint Introduction and PRD Overview
 This document serves as your entry point to understand the defined work, objectives, and deliverables for this iteration.
 
 # Sprint PRD Number
-107
+[SPRINT_NUMBER]
 
 ## Introduction
 Please see the following markdown documents to fully understand the goals of this Sprint/PRD.  
-The focus for this sprint is 107, see Primary References below.  
-We just finalized related sprints 103, 104, 105, 106 the reference information below.
-
+The focus for this sprint is [SPRINT_NUMBER], see Primary References below.  
+We just finalized related sprints [PREVIOUS_SPRINTS] the reference information below.
 
 ## Primary References
-tasks\active\107-prd-event-processing-refactor.md
-tasks\active\107-tasks-event-processing-refactor.md
+tasks\active\[SPRINT_NUMBER]-prd-[SPRINT_NAME].md
+tasks\active\[SPRINT_NUMBER]-tasks-[SPRINT_NAME].md
 
 ## Supporting Design Documents, Sprint Summaries, Documentation References
 docs\new\project_structure.md (overall codebase organization)
@@ -22,7 +27,7 @@ tasks\active\Design (design documents)
 tasks\active\Summaries (sprint summary documents)
 
 ## Test Location For This Sprint
-tests\event_processing\sprint_107\ - Sprint 107 event processing refactor tests
+tests\[FUNCTIONAL_AREA]\sprint_[SPRINT_NUMBER]\ - Sprint [SPRINT_NUMBER] [BRIEF_DESCRIPTION] tests
 
 ### 📂 **Functional Area Selection**
 Choose the appropriate functional area for your Sprint:
@@ -37,7 +42,7 @@ Choose the appropriate functional area for your Sprint:
 | `user_management/` | Authentication, preferences, sessions | User auth, preferences, session management |
 | `system_integration/` | End-to-end, performance, regression | System-wide tests, performance benchmarks |
 
-**For this Sprint:** `tests\event_processing\sprint_107\`
+**For this Sprint:** `tests\[FUNCTIONAL_AREA]\sprint_[SPRINT_NUMBER]\`
 
 ### 📋 **Required Test Coverage**
 Create comprehensive test suites with the following structure:
@@ -77,40 +82,36 @@ Create comprehensive test suites with the following structure:
 #### ⚡ **Quick Test Commands**
 ```bash
 # Run all Sprint tests
-pytest tests/event_processing/sprint_107/ -v
+pytest tests/[FUNCTIONAL_AREA]/sprint_[SPRINT_NUMBER]/ -v
 
 # Run by test type within Sprint
-pytest tests/event_processing/sprint_107/test_*_refactor.py     # Unit tests
-pytest tests/event_processing/sprint_107/test_*_integration.py  # Integration tests
-pytest tests/event_processing/sprint_107/test_*_preservation.py # Regression tests
+pytest tests/[FUNCTIONAL_AREA]/sprint_[SPRINT_NUMBER]/test_*_refactor.py     # Unit tests
+pytest tests/[FUNCTIONAL_AREA]/sprint_[SPRINT_NUMBER]/test_*_integration.py  # Integration tests
+pytest tests/[FUNCTIONAL_AREA]/sprint_[SPRINT_NUMBER]/test_*_preservation.py # Regression tests
 
 # Run all tests in functional area (all Sprints + components)
-pytest tests/event_processing/ -v                  # All event processing tests
+pytest tests/[FUNCTIONAL_AREA]/ -v                  # All [FUNCTIONAL_AREA] tests
 ```
 
 ## Technical Debt Backlog
 tasks\active\Support\technical-debt-backlog.md
 
-## Architectural Descisions
+## Architectural Decisions
 tasks\active\Support\architectural_decisions.md
 
 ## Related Past Sprints 
 ### Related Sprint PRDs Completed
-tasks\active\103-prd-architecture-review-analysis.md
-tasks\active\104-prd-multi-channel-design-planning.md
-tasks\active\105-prd-core-channel-infrastructure.md
-tasks\active\106-prd-data-type-handlers.md
+[LIST_PREVIOUS_PRD_FILES]
+
 ### Related Sprint PRD Tasks Completed
-tasks\active\103-tasks-architecture-review-analysis.md
-tasks\active\104-tasks-multi-channel-design-planning.md
-tasks\active\105-tasks-core-channel-infrastructure.md
-tasks\active\106-tasks-data-type-handlers.md
+[LIST_PREVIOUS_TASK_FILES]
 
 ## Related Future Sprints 
 ### Related Future Sprint PRDs
-tasks\active\108-prd-integration-testing.md
+[LIST_FUTURE_PRD_FILES]
+
 ### Related Future Sprint PRD Tasks
-tasks\active\108-tasks-integration-testing.md
+[LIST_FUTURE_TASK_FILES]
 
 # When wrapping up the sprint
 Create a completion summary in the task\active\ folder.
@@ -118,4 +119,28 @@ Create a completion summary in the task\active\ folder.
 ## 📚 Additional Resources
 - **Detailed Testing Patterns**: See `CLAUDE.md` Testing Framework section
 - **Template Guidelines**: See `tasks\templates\test-guidelines-template.md`
-- **Test Organization**: See `tasks\templates\test-reorganization-guide.md` 
+- **Test Organization**: See `tasks\templates\test-reorganization-guide.md`
+
+---
+
+## 🔧 **Template Usage Instructions:**
+
+### **Replace These Placeholders:**
+- `[SPRINT_NUMBER]` - Sprint number (e.g., 108, 109)
+- `[SPRINT_NAME]` - Sprint name (e.g., integration-testing, performance-optimization)
+- `[FUNCTIONAL_AREA]` - Functional area (e.g., event_processing, data_processing, market_data)
+- `[BRIEF_DESCRIPTION]` - Brief description of Sprint focus
+- `[PREVIOUS_SPRINTS]` - List of completed related Sprints
+- `[LIST_PREVIOUS_PRD_FILES]` - List previous PRD markdown files
+- `[LIST_PREVIOUS_TASK_FILES]` - List previous task markdown files
+- `[LIST_FUTURE_PRD_FILES]` - List future PRD markdown files
+- `[LIST_FUTURE_TASK_FILES]` - List future task markdown files
+
+### **Functional Area Selection Guide:**
+- **Event Processing**: EventProcessor changes, detector modifications, event model updates
+- **Data Processing**: Channel work, data type handlers, provider changes, routing
+- **WebSocket Communication**: WebSocket publisher changes, client modifications, protocol updates
+- **Market Data**: MarketDataService changes, analytics, aggregation, market state
+- **Infrastructure**: Database changes, caching, external API integration
+- **User Management**: Authentication, user preferences, session management
+- **System Integration**: End-to-end testing, performance optimization, system-wide changes

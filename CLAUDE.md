@@ -366,18 +366,72 @@ rg --files -g "*.py"
 ***TickStock uses a comprehensive testing strategy with pytest for quality assurance and performance verification.***
 
 ### Test Organization & Structure
+**Organized by Functional Area for Easy Navigation**
+
 ```
 tests/
-├── conftest.py              # Shared fixtures and configuration
-├── unit/                    # Fast, isolated component tests
-│   ├── core/               # Domain logic tests
-│   ├── infrastructure/     # Data providers, database
-│   ├── presentation/       # WebSocket, converters
-│   └── processing/         # Event detectors, processors
-├── integration/            # Multi-component interaction tests
-├── performance/            # Load and timing tests
-└── fixtures/               # Test data and utilities
+├── conftest.py                    # Shared fixtures and configuration
+├── fixtures/                     # Shared test data and utilities
+│
+├── event_processing/             # Event Processing & Detection
+│   ├── sprint_107/              # Sprint-specific event processing refactor
+│   │   ├── test_event_processor_refactor.py
+│   │   ├── test_multi_source_integration.py
+│   │   └── test_existing_functionality_preservation.py
+│   ├── detectors/               # Event detector tests
+│   │   ├── test_highlow_detector.py
+│   │   ├── test_trend_detector.py
+│   │   └── test_surge_detector.py
+│   └── events/                  # Event model tests
+│       ├── test_base_events.py
+│       ├── test_event_creation.py
+│       └── test_event_serialization.py
+│
+├── data_processing/              # Data Processing & Channels
+│   ├── sprint_105/              # Core channel infrastructure
+│   │   ├── test_base_channel.py
+│   │   ├── test_channel_router.py
+│   │   └── test_channel_metrics.py
+│   ├── sprint_106/              # Data type handlers
+│   │   ├── test_data_types.py
+│   │   ├── test_tick_channel.py
+│   │   └── test_multi_channel_integration.py
+│   └── providers/               # Data provider tests
+│       ├── test_polygon_provider.py
+│       └── test_synthetic_provider.py
+│
+├── websocket_communication/      # WebSocket & Real-time Communication
+│   ├── publishers/              # WebSocket publisher tests
+│   ├── clients/                 # WebSocket client tests
+│   └── protocols/               # Communication protocol tests
+│
+├── market_data/                  # Market Data Processing
+│   ├── services/                # Market data service tests
+│   ├── aggregation/             # Data aggregation tests
+│   └── analytics/               # Market analytics tests
+│
+├── infrastructure/               # Infrastructure & External Systems
+│   ├── database/                # Database integration tests
+│   ├── caching/                 # Redis/caching tests
+│   └── external_apis/           # External API integration tests
+│
+├── user_management/              # User & Authentication
+│   ├── authentication/          # Auth tests
+│   ├── preferences/             # User preference tests
+│   └── sessions/                # Session management tests
+│
+└── system_integration/           # End-to-End System Tests
+    ├── performance/             # System performance tests
+    ├── regression/              # System regression tests
+    └── end_to_end/             # Complete workflow tests
 ```
+
+**Test Organization Guidelines:**
+- **Functional Area First**: Tests grouped by primary functionality (event_processing, data_processing, etc.)
+- **Sprint Subfolders**: Sprint-specific work gets its own subfolder within the functional area
+- **Component Subfolders**: Related components grouped together (detectors, events, providers)
+- **Clear Navigation**: Easy to find all tests related to a specific feature
+- **Separation of Concerns**: System tests separate from component tests
 
 ### Test Configuration (pytest.ini)
 - **Coverage Target**: 70% minimum for core business logic
@@ -392,10 +446,30 @@ make test-quick              # Run fast tests only
 make test-unit              # Unit tests with coverage
 make test-all               # Full test suite
 
-# Specific test types
-pytest tests/unit/ -m unit                    # Unit tests only
-pytest tests/ -m "not slow and not api"      # Skip slow tests
-pytest tests/unit/core/ -v                   # Specific directory
+# Functional area testing (recommended)
+pytest tests/event_processing/ -v           # All event processing tests
+pytest tests/data_processing/ -v            # All data processing tests
+pytest tests/websocket_communication/ -v    # All WebSocket tests
+pytest tests/market_data/ -v                # All market data tests
+
+# Sprint-specific testing
+pytest tests/event_processing/sprint_107/ -v    # Sprint 107 event processing
+pytest tests/data_processing/sprint_105/ -v     # Sprint 105 channels
+pytest tests/data_processing/sprint_106/ -v     # Sprint 106 data types
+
+# Component-specific testing
+pytest tests/event_processing/detectors/ -v     # All detector tests
+pytest tests/event_processing/events/ -v        # All event model tests
+pytest tests/data_processing/providers/ -v      # All data provider tests
+
+# System-level testing
+pytest tests/system_integration/ -v             # All system integration tests
+pytest tests/system_integration/performance/ -v # Performance tests only
+pytest tests/system_integration/regression/ -v  # Regression tests only
+
+# Legacy test structure (being migrated)
+pytest tests/pipeline/ -v                       # Current Sprint 105-107 tests
+pytest tests/unit/ -v                          # Legacy unit tests
 ```
 
 ### Writing Tests - Key Patterns
