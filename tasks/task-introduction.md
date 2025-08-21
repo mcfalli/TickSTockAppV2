@@ -59,11 +59,11 @@ none
 Create a completion summary in the task\active\summaries folder.
 
 ## 📚 Development Standards
-All sprint work must adhere to these instruction guides:
+Follow these comprehensive instruction guides for all development work:
 
-- **Sprint Documentation**: `docs\instructions\sprint-documentation-tasks.md`
-- **Testing Standards**: `docs\instructions\unit_testing.md`  for complete testing standards and patterns
-- **Coding Practices**: `docs\instructions\coding-practices.md` for development standards and best practices
-- **Documentation Standards**: `docs\instructions\code-documentation-standards.md` for documentation guidelines 
-- **Technical Debt Management**: `docs\instructions\technical-debt-management.md`
-- **Architectural Decisions**: `docs\instructions\architectural-decision-process.md`
+- **Sprint Documentation**: See `docs/instructions/sprint-documentation-tasks.md` - Process for handling documentation during sprints
+- **Testing Standards**: See `docs/instructions/unit_testing.md` - Complete testing organization, standards, and sprint requirements
+- **Coding Practices**: See `docs/instructions/coding-practices.md` - Development philosophy, style, error handling, anti-patterns, and best practices
+- **Documentation Standards**: See `docs/instructions/code-documentation-standards.md` - Docstrings, comments, API documentation, and inline comment standards
+- **Technical Debt Management**: See `docs/instructions/technical-debt-management.md` - Systematic debt identification, prioritization, and resolution process
+- **Architectural Decisions**: See `docs/instructions/architectural-decision-process.md` - ADR creation, review, and governance process
