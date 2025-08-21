@@ -1,3 +1,7 @@
+# Documentation Warning
+**DISCLAIMER**: This documentation is not current and should not be relied upon. As of August 21, 2025, it requires review to determine its relevance. Content must be evaluated for accuracy and applicability to the project. If found relevant, update and retain; if obsolete or duplicative of content elsewhere, delete.
+
+
 # TickStock Logging Architecture
 
 **Version:** 2.0  

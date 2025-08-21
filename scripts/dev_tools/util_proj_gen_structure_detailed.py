@@ -548,7 +548,7 @@ if __name__ == '__main__':
     IGNORE_DIRS = ['venv', '__pycache__', 'tests', '.git', 'migrations', 'scripts', 
                    'requirements', 'logs', 'docs', 'build', 'dist', 'static', 
                    'templates', 'web']  # Added 'web' to ignore list
-    OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs/new'))
+    OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs'))
 
     output_file = generate_project_structure(ROOT_DIR, IGNORE_DIRS, OUTPUT_DIR)
     print('Complete!')

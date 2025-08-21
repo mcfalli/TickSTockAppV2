@@ -1,3 +1,8 @@
+# Documentation Warning
+**DISCLAIMER**: This documentation is not current and should not be relied upon. As of August 21, 2025, it requires review to determine its relevance. Content must be evaluated for accuracy and applicability to the project. If found relevant, update and retain; if obsolete or duplicative of content elsewhere, delete.
+
+
+
 Architecture Overview
 System Design
 TickStock is built on a component-based architecture with 17 specialized core components plus 4 dedicated WebSocket components that work together to process real-time market data. The system follows event-driven patterns with a new pull-based event distribution model for zero event loss and a display queue separation for optimized event processing and delivery.

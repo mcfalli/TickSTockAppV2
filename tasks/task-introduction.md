@@ -4,89 +4,29 @@
 This document serves as your entry point to understand the defined work, objectives, and deliverables for this iteration.
 
 # Sprint PRD Number
-107
+108
 
 ## Introduction
 Please see the following markdown documents to fully understand the goals of this Sprint/PRD.  
-The focus for this sprint is 107, see Primary References below.  
-We just finalized related sprints 103, 104, 105, 106 the reference information below.
-
+The focus for this sprint is 108, see Primary References below.  
+We just finalized related sprints 103, 104, 105, 106, 107 the reference information below.
 
 ## Primary References
-tasks\active\107-prd-event-processing-refactor.md
-tasks\active\107-tasks-event-processing-refactor.md
+tasks\active\108-prd-integration-testing.md
+tasks\active\108-tasks-integration-testing.md
+
 
 ## Supporting Design Documents, Sprint Summaries, Documentation References
 docs\new\project_structure.md (overall codebase organization)
 tasks\active\Design (design documents)
 tasks\active\Summaries (sprint summary documents)
 
-## Test Location For This Sprint
-tests\event_processing\sprint_107\ - Sprint 107 event processing refactor tests
+## Testing Requirements
+**Comprehensive Testing Guidelines**: See `docs/instructions/unit_testing.md` for complete testing standards, organization structure, functional area selection, sprint requirements, and test commands.
 
-### 📂 **Functional Area Selection**
-Choose the appropriate functional area for your Sprint:
-
-| **Functional Area** | **Use For** | **Examples** |
-|-------------------|-------------|-------------|
-| `event_processing/` | Event processing, detection, event models | EventProcessor, detectors, event creation |
-| `data_processing/` | Data channels, providers, data types | Channels, routers, OHLCV/FMV data |
-| `websocket_communication/` | WebSocket publishers, clients, protocols | WebSocket publisher, real-time communication |
-| `market_data/` | Market data services, aggregation, analytics | MarketDataService, analytics, aggregation |
-| `infrastructure/` | Database, caching, external APIs | Database integration, Redis, Polygon API |
-| `user_management/` | Authentication, preferences, sessions | User auth, preferences, session management |
-| `system_integration/` | End-to-end, performance, regression | System-wide tests, performance benchmarks |
-
-**For this Sprint:** `tests\event_processing\sprint_107\`
-
-### 📋 **Required Test Coverage**
-Create comprehensive test suites with the following structure:
-
-#### **Test File Requirements**
-1. **Unit/Refactor Tests**: `test_<component>_refactor.py`
-   - Test individual component functionality
-   - Test new methods and interfaces  
-   - Test initialization and configuration
-   - **Target**: 30+ test methods
-
-2. **Integration Tests**: `test_<feature>_integration.py`
-   - Test end-to-end feature workflows
-   - Test component interactions
-   - Test external system integrations
-   - **Target**: 15+ test methods
-
-3. **Regression Tests**: `test_<feature>_preservation.py`
-   - Test backward compatibility preservation
-   - Test existing functionality unchanged
-   - Test performance has not regressed
-   - **Target**: 20+ test methods
-
-4. **Performance Tests**: `test_<component>_performance.py` (if applicable)
-   - Test processing speed requirements
-   - Test memory usage patterns
-   - Test scalability characteristics
-   - **Target**: 5+ test methods
-
-#### 🎯 **Test Quality Standards**
-- **Coverage**: Comprehensive coverage of new functionality
-- **Compatibility**: Verify all existing functionality preserved
-- **Performance**: Validate performance meets existing benchmarks
-- **Error Handling**: Test error scenarios and edge cases
-- **Documentation**: All test classes and complex methods documented
-
-#### ⚡ **Quick Test Commands**
-```bash
-# Run all Sprint tests
-pytest tests/event_processing/sprint_107/ -v
-
-# Run by test type within Sprint
-pytest tests/event_processing/sprint_107/test_*_refactor.py     # Unit tests
-pytest tests/event_processing/sprint_107/test_*_integration.py  # Integration tests
-pytest tests/event_processing/sprint_107/test_*_preservation.py # Regression tests
-
-# Run all tests in functional area (all Sprints + components)
-pytest tests/event_processing/ -v                  # All event processing tests
-```
+### Test Location For This Sprint
+tests\system_integration\ - system wide integration tests
+tests\system_integration\sprint_108\ - Sprint 108 specific system wide tests
 
 ## Technical Debt Backlog
 tasks\active\Support\technical-debt-backlog.md
@@ -100,22 +40,30 @@ tasks\active\103-prd-architecture-review-analysis.md
 tasks\active\104-prd-multi-channel-design-planning.md
 tasks\active\105-prd-core-channel-infrastructure.md
 tasks\active\106-prd-data-type-handlers.md
+tasks\active\107-prd-event-processing-refactor.md
+
 ### Related Sprint PRD Tasks Completed
 tasks\active\103-tasks-architecture-review-analysis.md
 tasks\active\104-tasks-multi-channel-design-planning.md
 tasks\active\105-tasks-core-channel-infrastructure.md
 tasks\active\106-tasks-data-type-handlers.md
+tasks\active\107-tasks-event-processing-refactor.md
 
 ## Related Future Sprints 
 ### Related Future Sprint PRDs
-tasks\active\108-prd-integration-testing.md
+none
 ### Related Future Sprint PRD Tasks
-tasks\active\108-tasks-integration-testing.md
+none
 
 # When wrapping up the sprint
-Create a completion summary in the task\active\ folder.
+Create a completion summary in the task\active\summaries folder.
 
-## 📚 Additional Resources
-- **Detailed Testing Patterns**: See `CLAUDE.md` Testing Framework section
-- **Template Guidelines**: See `tasks\templates\test-guidelines-template.md`
-- **Test Organization**: See `tasks\templates\test-reorganization-guide.md` 
+## 📚 Development Standards
+All sprint work must adhere to these instruction guides:
+
+- **Sprint Documentation**: `docs\instructions\sprint-documentation-tasks.md`
+- **Testing Standards**: `docs\instructions\unit_testing.md`  for complete testing standards and patterns
+- **Coding Practices**: `docs\instructions\coding-practices.md` for development standards and best practices
+- **Documentation Standards**: `docs\instructions\code-documentation-standards.md` for documentation guidelines 
+- **Technical Debt Management**: `docs\instructions\technical-debt-management.md`
+- **Architectural Decisions**: `docs\instructions\architectural-decision-process.md`
