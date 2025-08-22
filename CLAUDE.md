@@ -130,11 +130,14 @@ These guides provide complete coverage of TickStock's development workflow and m
 
 **Comprehensive Testing Guidelines**: See `docs/instructions/unit_testing.md` for complete testing standards, organization structure, sprint requirements, and best practices.
 
+**Testing Agent**: The `tickstock-test-specialist` agent (`.claude/agents/tickstock-test-specialist.md`) provides automated test generation and quality assurance. This agent is automatically invoked when creating features, fixing bugs, or modifying core processing components to ensure comprehensive test coverage following TickStock standards.
+
 #### Key Testing Principles
 - **Quality First**: No feature is complete without tests
 - **Performance Critical**: Sub-millisecond processing requires performance validation
 - **Functional Organization**: Tests organized by business domain (event_processing, data_processing, etc.)
 - **Sprint-Specific**: Each sprint creates tests in appropriate functional area with sprint subfolders
+- **Agent-Assisted**: Automated test generation through specialized testing agent
 
 ### Quality Assurance
 **Comprehensive Guidelines**: See `docs/instructions/coding-practices.md` for complete quality standards, code review guidelines, and common pitfalls.
@@ -150,6 +153,7 @@ These guides provide complete coverage of TickStock's development workflow and m
 - **Sprint Capacity Monitoring**: Alert at 80% chat capacity
 - **Context Preservation**: Capture all relevant context before chat transitions
 - **Task Tracking**: Maintain sprint tasks with ongoing task list for items that arise
+- **Testing Agent Integration**: The `tickstock-test-specialist` agent automatically creates comprehensive test suites during feature development, organized by functional area with sprint-specific subfolders
 
 ### Git Workflow
 #### Branch Strategy
@@ -192,6 +196,7 @@ When working on sprints/problems:
 - Ask clarifying questions before generating code
 - Provide clear directions with code examples
 - Track additional items that arise during sprint work
+- Leverage specialized agents (tickstock-test-specialist) for domain-specific tasks
 
 ## Important Operating Guidelines
 

@@ -79,6 +79,7 @@ When creating sprint instructions, reference this index to point teams to releva
 | `instructions/technical-debt-management.md` | **Technical debt process** - identification, prioritization, resolution workflow | Technical debt sprints, maintenance |
 | `instructions/architectural-decision-process.md` | **ADR process guide** - decision making, documentation, governance | Architecture sprints, design decisions |
 | `instructions/sprint-documentation-tasks.md` | Sprint documentation workflow and requirements | Sprint planning and completion |
+| `agents/` | **Configured agent documentation** - Describes active agents, their capabilities and development impact | Understanding available automation tools |
 
 ### 🧪 **Testing & Quality (Legacy)**
 
@@ -114,7 +115,7 @@ Point to: `instructions/coding-practices.md`, `data_source/`, `features/event-de
 Point to: `instructions/coding-practices.md`, `instructions/code-documentation-standards.md`, `UI/`, `architecture/rest-endpoints.md`
 
 ### **For Testing/QA Sprints**
-Point to: `instructions/unit_testing.md` (**PRIMARY**), `instructions/coding-practices.md`, `sprints/sprint-108-completion-summary.md` (testing framework)
+Point to: `instructions/unit_testing.md` (**PRIMARY**), `instructions/coding-practices.md`, `sprints/sprint-108-completion-summary.md` (testing framework), `agents/` (automated testing capabilities)
 
 ### **For Operations/Maintenance Sprints**
 Point to: `instructions/coding-practices.md` (configuration management), `instructions/technical-debt-management.md`, `maintenance/`, `features/`
@@ -134,6 +135,7 @@ Point to: `instructions/architectural-decision-process.md` (**PRIMARY**), `instr
 2. `sprints/sprint-108-completion-summary.md` - Current system state
 3. `instructions/coding-practices.md` - Development standards and practices
 4. `instructions/unit_testing.md` - Testing organization and standards
+5. `agents/` - Available automation and development tools
 
 ### **Multi-Channel Architecture Work**
 1. `design/multi_channel_architecture.md` - **Primary reference**
@@ -202,6 +204,7 @@ See: docs/design/integration_patterns.md (Integration Guidelines)
 - **Follow** `instructions/coding-practices.md` for all development work
 - **Use** `instructions/unit_testing.md` for testing standards and organization
 - **Reference** `instructions/code-documentation-standards.md` for documentation requirements
+- **Check** `agents/` for available automated development tools and capabilities
 - **Reference sprint summaries** for understanding evolution and context
 - **Use design documents** for implementation patterns
 
