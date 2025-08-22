@@ -205,6 +205,36 @@ class MarketDataService:
             router_config = RouterConfig()
             self.channel_router = DataChannelRouter(router_config)
             
+            # SPRINT 109 FIX: Register TickChannel for tick data processing
+            from src.processing.channels.tick_channel import TickChannel
+            from src.processing.channels.channel_config import TickChannelConfig
+            tick_config = TickChannelConfig(name="primary_tick_config")
+            tick_channel = TickChannel("primary_tick", tick_config)
+            
+            # SPRINT 109: Start channel immediately during registration (blocking)
+            import asyncio
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                logger.info(f"🔄 SPRINT 109: Starting TickChannel (ID: {id(tick_channel)}) during initialization...")
+                start_result = loop.run_until_complete(tick_channel.start())
+                logger.info(f"✅ SPRINT 109: TickChannel started successfully (ID: {id(tick_channel)}) - status={tick_channel.status.value}")
+            except Exception as e:
+                logger.error(f"❌ SPRINT 109: TickChannel startup failed during initialization: {e}", exc_info=True)
+                raise
+            
+            self.tick_channel = tick_channel
+            self.channel_router.register_channel(tick_channel)
+            
+            # SPRINT 109 DIAGNOSTIC: Verify registration worked
+            from src.processing.channels.base_channel import ChannelType
+            registered_channels = self.channel_router.channels.get(ChannelType.TICK, [])
+            logger.info(f"✅ SPRINT 109: TickChannel registered with router (ID: {id(tick_channel)}) - Ready for routing")
+            logger.info(f"🔍 SPRINT 109: Router has {len(registered_channels)} tick channels: {[ch.name for ch in registered_channels]}")
+            if registered_channels:
+                ch = registered_channels[0]
+                logger.info(f"🔍 SPRINT 109: First channel status: {ch.name} status={ch.status.value} healthy={ch.is_healthy()}")
+            
             # Connect channel router to event processor
             if hasattr(self, 'event_processor') and self.event_processor:
                 self.event_processor.set_channel_router(self.channel_router)
@@ -553,6 +583,11 @@ class MarketDataService:
             else:
                 result.warnings.append("DataPublisher startup issues")
             
+            # Step 4.5: SPRINT 109: TickChannel already started during initialization - skip duplicate startup
+            if hasattr(self, 'tick_channel') and self.tick_channel:
+                logger.info(f"✅CORE-SRVC: TickChannel already started during initialization (ID: {id(self.tick_channel)}) - status={self.tick_channel.status.value}")
+                result.components_affected += 1
+            
             # Step 5: Start WebSocket heartbeat
             self.websocket_publisher.start_heartbeat_loop(self.api_health, self.current_session)
             result.components_affected += 1
@@ -702,7 +737,13 @@ class MarketDataService:
                 # Use new multi-source pathway
                 import asyncio
                 if asyncio.iscoroutinefunction(self.event_processor.handle_multi_source_data):
-                    loop = asyncio.get_event_loop()
+                    try:
+                        loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        # No event loop in thread - create new one
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                    
                     processing_result = loop.run_until_complete(
                         self.event_processor.handle_multi_source_data(tick_data, "websocket_tick")
                     )
@@ -733,6 +774,9 @@ class MarketDataService:
 
             if processing_result.success:
                 self.stats.ticks_delegated += 1
+            else:
+                # SPRINT 109 DIAGNOSTIC: Log delegation failures
+                logger.warning(f"🔍 DELEGATION FAILED for {tick_ticker}: {processing_result.errors if hasattr(processing_result, 'errors') else 'No error details'}")
             
             # Update API health based on processing result
             if processing_result.success:

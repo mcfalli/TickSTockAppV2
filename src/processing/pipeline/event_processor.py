@@ -238,23 +238,38 @@ class EventProcessor:
             # Step 3: Route through channel system if available
             if self.channel_router:
                 channel_result = await self.channel_router.route_data(data)
-                if channel_result and channel_result.success and channel_result.events:
-                    # Process events from channel routing
-                    for event in channel_result.events:
-                        # Add source context to event
-                        self.source_context_manager.add_event_metadata(event, context)
-                        
-                        # Coordinate with other sources
-                        if self.multi_source_coordinator.coordinate_event(event, context):
-                            result.events_processed += 1
-                        else:
-                            result.warnings.append(f"Event coordination failed for {event.type}")
+                
+                # Success should not depend on events being generated
+                # Router success means data was processed successfully, even if no events were generated
+                if channel_result and channel_result.success:
+                    # Process events from channel routing if any were generated
+                    if channel_result.events:
+                        for event in channel_result.events:
+                            # Add source context to event
+                            self.source_context_manager.add_event_metadata(event, context)
+                            
+                            # Coordinate with other sources
+                            if self.multi_source_coordinator.coordinate_event(event, context):
+                                result.events_processed += 1
+                            else:
+                                result.warnings.append(f"Event coordination failed for {event.type}")
                     
+                    # Always mark as successful if router succeeded, regardless of event generation
                     result.success = True
                     context.add_processing_stage("channel_routing_completed")
+                    
+                    # Add metadata about event generation
+                    events_count = len(channel_result.events) if channel_result.events else 0
+                    result.metadata = getattr(result, 'metadata', {})
+                    result.metadata.update({
+                        'router_success': True,
+                        'events_generated': events_count,
+                        'channel_used': channel_result.metadata.get('channel', 'unknown') if channel_result.metadata else 'unknown'
+                    })
                 else:
                     result.success = False
-                    result.errors.append("Channel routing failed")
+                    error_details = channel_result.errors if channel_result and channel_result.errors else ["Channel routing failed - no result or router reported failure"]
+                    result.errors.extend(error_details)
                     context.increment_error_count()
             else:
                 # Fallback to direct processing if no channel router
@@ -267,7 +282,7 @@ class EventProcessor:
             
             # Step 4: Emit coordinated events
             coordinated_events = self.multi_source_coordinator.get_pending_events(max_events=50)
-            for event, coordination_metadata in coordinated_events:
+            for event, coordination_metadata, priority in coordinated_events:
                 # Forward to priority manager
                 if hasattr(self.market_service, 'priority_manager'):
                     self.market_service.priority_manager.add_event(event)

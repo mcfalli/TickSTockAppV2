@@ -1,15 +1,12 @@
 
 # tasks\templates\create-prd.md with content:
 
-Please use the structured workflow in tasks\templates\create-prd.md to help me create a Sprint PRD for a new feature.
+Please use the structured workflow in tasks\templates\create-prd.md to help me create a Sprint PRD for a new feature draft at tasks\active\110-sprint-pipeline-diagnosis-summary.md and place output in this directory tasks\active\.  let me know what clarifying questions you have if any.  thank you. 
 
-
-  - tasks\active\sprint-105-completion-summary.md
-  - tasks\active\sprint-106-completion-summary.md
 
 # tasks\templates\generate-tasks.md with content:
 
-Please generate tasks from the following Sprint PRD using tasks\templates\generate-tasks.md
+Please generate tasks from tasks\active\110-prd-channel-router-fix.md Sprint PRD using tasks\templates\generate-tasks.md.  
 
 
 

@@ -14,7 +14,7 @@ def list_files(startpath, exclude_dirs=None, include_hidden=False):
         str: The formatted directory structure as a string.
     """
     if exclude_dirs is None:
-        exclude_dirs = ['__pycache__', 'venv', '.venv', '.git', 'node_modules', 'docs', 'docker', 'logs', 'migrations', '.claude', '.claude-code-docs', 'htmlcov']
+        exclude_dirs = ['__pycache__', 'venv', '.venv', '.git', 'node_modules', 'docs', 'docker', 'logs', 'migrations', '.claude', '.claude-code-docs', 'htmlcov', 'requirements' 'tasks']
     
     structure = f"{os.path.basename(startpath)}/\n"
     print(structure, end='')  # Print root directory to terminal
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     
     # Define logs directory at project root
-    logs_dir = 'docs/new'
+    logs_dir = 'docs'
     logs_path = os.path.join(project_root, logs_dir)
     
     # Ensure the logs folder exists

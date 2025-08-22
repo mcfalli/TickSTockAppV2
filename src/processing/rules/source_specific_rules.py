@@ -207,8 +207,9 @@ class SourceSpecificRulesEngine:
             if not all_passed:
                 self._execution_stats['total_failures'] += 1
             
-            # Log summary
-            if self.config.enable_logging:
+            # Log summary (reduced verbosity)
+            verbose_logging = getattr(self.config, 'verbose_rules_logging', False)
+            if self.config.enable_logging and verbose_logging:
                 if not all_passed or not self.config.log_failures_only:
                     logger.debug(f"Rules execution for {context.ticker}: {rules_executed} rules, "
                                f"passed={all_passed}, time={execution_time_ms:.1f}ms")

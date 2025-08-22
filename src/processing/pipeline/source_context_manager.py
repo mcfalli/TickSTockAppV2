@@ -178,7 +178,10 @@ class SourceContextManager:
             # Periodic cleanup
             self._maybe_cleanup_contexts()
             
-            logger.debug(f"Created source context: {source_id}")
+            # Reduced logging: only log context creation for non-routine operations
+            verbose_logging = getattr(self, 'verbose_context_logging', False)
+            if verbose_logging:
+                logger.debug(f"Created source context: {source_id}")
             return context
             
         except Exception as e:

@@ -4,35 +4,21 @@
 This document serves as your entry point to understand the defined work, objectives, and deliverables for this iteration.
 
 # Sprint PRD Number
-108
+110
 
 ## Introduction
 Please see the following markdown documents to fully understand the goals of this Sprint/PRD.  
-The focus for this sprint is 108, see Primary References below.  
-We just finalized related sprints 103, 104, 105, 106, 107 the reference information below.
 
 ## Primary References
-tasks\active\108-prd-integration-testing.md
-tasks\active\108-tasks-integration-testing.md
-
-
-## Supporting Design Documents, Sprint Summaries, Documentation References
-docs\new\project_structure.md (overall codebase organization)
-tasks\active\Design (design documents)
-tasks\active\Summaries (sprint summary documents)
+tasks\active\110-prd-channel-router-fix.md
+tasks\active\110-tasks-channel-router-fix.md
 
 ## Testing Requirements
 **Comprehensive Testing Guidelines**: See `docs/instructions/unit_testing.md` for complete testing standards, organization structure, functional area selection, sprint requirements, and test commands.
 
 ### Test Location For This Sprint
-tests\system_integration\ - system wide integration tests
-tests\system_integration\sprint_108\ - Sprint 108 specific system wide tests
-
-## Technical Debt Backlog
-tasks\active\Support\technical-debt-backlog.md
-
-## Architectural Descisions
-tasks\active\Support\architectural_decisions.md
+tests\router\ - system wide integration tests
+tests\router\sprint_110\ - Sprint 110 specific system wide tests
 
 ## Related Past Sprints 
 ### Related Sprint PRDs Completed
@@ -51,16 +37,15 @@ tasks\active\107-tasks-event-processing-refactor.md
 
 ## Related Future Sprints 
 ### Related Future Sprint PRDs
-none
+none relative at this time
 ### Related Future Sprint PRD Tasks
-none
+none relative at this time
 
 # When wrapping up the sprint
-Create a completion summary in the task\active\summaries folder.
+Create a completion summary in the docs\sprints\ folder.
 
 ## 📚 Development Standards
 Follow these comprehensive instruction guides for all development work:
-
 - **Sprint Documentation**: See `docs/instructions/sprint-documentation-tasks.md` - Process for handling documentation during sprints
 - **Testing Standards**: See `docs/instructions/unit_testing.md` - Complete testing organization, standards, and sprint requirements
 - **Coding Practices**: See `docs/instructions/coding-practices.md` - Development philosophy, style, error handling, anti-patterns, and best practices

@@ -87,6 +87,8 @@ src/
                 __init__.py
                 state.py
                 tick.py
+        integration/
+            multi_channel_system.py
         interfaces/
             __init__.py
             data_provider.py
@@ -164,6 +166,7 @@ src/
             subscribers/
     monitoring/
         __init__.py
+        channel_monitoring.py
         health_monitor.py
         metrics_collector.py
         performance_monitor.py
@@ -218,11 +221,16 @@ src/
             __init__.py
             event_detector.py
             event_processor.py
+            multi_source_coordinator.py
+            source_context_manager.py
             tick_processor.py
         queues/
             __init__.py
             base_queue.py
             priority_manager.py
+        rules/
+            __init__.py
+            source_specific_rules.py
         workers/
             __init__.py
             worker_pool.py
@@ -247,26 +255,29 @@ src/
             validation.py
 tasks/
     task-introduction.md
+    technical-debt-backlog.md
     track-plans.md
     active/
-        103-prd-architecture-review-analysis.md
-        103-tasks-architecture-review-analysis.md
-        103_draft_sprint.md
-        104-prd-multi-channel-design-planning.md
-        104-tasks-multi-channel-design-planning.md
-        105-prd-core-channel-infrastructure.md
-        105-tasks-core-channel-infrastructure.md
-        106-prd-data-type-handlers.md
-        106-tasks-data-type-handlers.md
-        107-prd-event-processing-refactor.md
-        107-tasks-event-processing-refactor.md
-        108-prd-integration-testing.md
-        108-tasks-integration-testing.md
-        command-create-prrd.md
-        sprint-105-completion-summary.md
-        sprint-106-completion-summary.md
+        109-draft_next_sprint_prd.md
+        109-prd-data-flow-pipeline-diagnosis.md
+        110-draft-pipeline-diagnosis-summary.md
+        110-prd-channel-router-fix.md
+        110-tasks-channel-router-fix.md
     completed/
-        events/
+        pipeline/
+            103-prd-architecture-review-analysis.md
+            103-tasks-architecture-review-analysis.md
+            104-prd-multi-channel-design-planning.md
+            104-tasks-multi-channel-design-planning.md
+            105-prd-core-channel-infrastructure.md
+            105-tasks-core-channel-infrastructure.md
+            106-prd-data-type-handlers.md
+            106-tasks-data-type-handlers.md
+            107-prd-event-processing-refactor.md
+            107-tasks-event-processing-refactor.md
+            108-prd-integration-testing.md
+            108-tasks-integration-testing.md
+            draft_sprint.md
         source_data/
             100_101_102_draft_data_source_enhancements.md
             101-polygon-reference.md
@@ -282,16 +293,27 @@ tasks/
         unit_tests/
             unit_testing_framework_implementation.md
             unit_testing_framework_prd.md
+    future/
+        future-sprint-monitoring-consolidation.md
     templates/
+        command-create-prrd.md
         create-prd.md
         generate-tasks.md
         process-task-list.md
+        sprint-task-introduction-template.md
 tests/
     README.md
     __init__.py
     conftest.py
     test_framework_verification.py
     analytics/
+    data_processing/
+        sprint_105/
+            test_base_channel.py
+            test_channel_router.py
+        sprint_106/
+            test_data_types.py
+            test_tick_channel.py
     data_source/
         __init__.py
         fixtures/
@@ -310,8 +332,14 @@ tests/
             __init__.py
             test_data_providers.py
     event_detection/
+    event_processing/
+        sprint_107/
+            test_event_processor_refactor.py
+            test_existing_functionality_preservation.py
+            test_multi_source_integration.py
     fixtures/
         __init__.py
+        market_data_fixtures.py
         trace/
             trace_analysis_tools.md
             trace_analyzer_base.py
@@ -325,6 +353,7 @@ tests/
             test_cross_frequency_validation.py
             test_end_to_end_multifrequency.py
             test_polygon_integration.py
+        processing/
         trace/
             test_trace_coverage.py
             test_trace_diagnostics.py
@@ -355,11 +384,20 @@ tests/
         test_channel_router.py
         test_data_types.py
         test_event_creators.py
+        test_event_processor_refactor.py
+        test_existing_functionality_preservation.py
         test_multi_channel_integration.py
+        test_multi_source_integration.py
         test_router_fix_validation.py
         test_router_perf.py
         test_tick_channel.py
         validate_channel_performance.py
+    regression/
+    system_integration/
+        sprint_108/
+            test_monitoring_integration.py
+            test_multi_channel_integration.py
+            test_performance_validation.py
     unit/
         __init__.py
         test_utilities.py
@@ -375,6 +413,7 @@ tests/
         processing/
             test_highlow_detector.py
             test_stream_manager_multifrequency.py
+            pipeline/
     websocket/
 web/
     CLAUDE.md
