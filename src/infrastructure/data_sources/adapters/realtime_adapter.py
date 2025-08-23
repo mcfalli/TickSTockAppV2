@@ -81,7 +81,15 @@ class SyntheticDataAdapter(RealTimeDataAdapter):
         self.connected = False
    
     def connect(self, tickers):
-        logger.info("REAL-TIME-DATA-ADAPTOR: Starting synthetic data simulation")
+        # PRODUCTION HARDENING: Don't start legacy adapter when multi-frequency is enabled
+        if self.config.get('ENABLE_MULTI_FREQUENCY', False):
+            logger.info("REAL-TIME-DATA-ADAPTOR: Multi-frequency enabled - starting multi-frequency data generation")
+            logger.info("REAL-TIME-DATA-ADAPTOR: Data generation handled by SimulatedDataProvider instead")
+            self.connected = True
+            threading.Thread(target=self._simulate_multi_frequency_events, daemon=True).start()
+            return True
+        
+        logger.info("REAL-TIME-DATA-ADAPTOR: Starting legacy synthetic data simulation")
         self.connected = True
         threading.Thread(target=self._simulate_events, daemon=True).start()
         return True
@@ -103,6 +111,81 @@ class SyntheticDataAdapter(RealTimeDataAdapter):
                 self.tick_callback(event)  # event is now a TickData object
             time.sleep(update_interval)
    
+    def _simulate_multi_frequency_events(self):
+        """Multi-frequency data generation loop for synthetic data."""
+        from src.infrastructure.data_sources.factory import DataProviderFactory
+        from src.infrastructure.data_sources.synthetic.types import DataFrequency
+        
+        # Get the multi-frequency provider
+        try:
+            data_provider = DataProviderFactory.get_provider(self.config)
+            logger.info("REAL-TIME-DATA-ADAPTOR: Multi-frequency provider initialized")
+        except Exception as e:
+            logger.error(f"REAL-TIME-DATA-ADAPTOR: Failed to initialize multi-frequency provider: {e}")
+            return
+        
+        # Get universe of tickers
+        universe = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'NFLX', 'META', 'NVDA']  # Basic test universe
+        logger.info(f"REAL-TIME-DATA-ADAPTOR: Multi-frequency generation for {len(universe)} tickers")
+        
+        per_minute_interval = self.config.get('SYNTHETIC_MINUTE_WINDOW', 60)
+        fmv_interval = self.config.get('SYNTHETIC_FMV_UPDATE_INTERVAL', 30)
+        
+        logger.info(f"REAL-TIME-DATA-ADAPTOR: Per-minute interval: {per_minute_interval}s, FMV interval: {fmv_interval}s")
+        
+        last_per_minute = 0
+        last_fmv = 0
+        
+        while self.connected:
+            current_time = time.time()
+            
+            # Generate per-minute data
+            if self.config.get('WEBSOCKET_PER_MINUTE_ENABLED', False):
+                if current_time - last_per_minute >= per_minute_interval:
+                    logger.info("REAL-TIME-DATA-ADAPTOR: Generating per-minute data...")
+                    for ticker in universe[:3]:  # Start with just 3 tickers for testing
+                        try:
+                            logger.info(f"🔍 REAL-TIME-DATA-ADAPTOR: Calling generate_frequency_data for {ticker}")
+                            minute_data = data_provider.generate_frequency_data(ticker, DataFrequency.PER_MINUTE)
+                            logger.info(f"🔍 REAL-TIME-DATA-ADAPTOR: Got minute_data for {ticker}: {minute_data}")
+                            if minute_data:
+                                # Convert to TickData for the callback
+                                from src.core.domain.market.tick import TickData
+                                tick_data = TickData(
+                                    ticker=ticker,
+                                    price=minute_data.get('c', 150.0),
+                                    volume=minute_data.get('v', 1000),
+                                    timestamp=current_time,
+                                    source='multi_frequency_per_minute',
+                                    event_type='AM'
+                                )
+                                logger.info(f"REAL-TIME-DATA-ADAPTOR: Calling tick_callback for {ticker}")
+                                self.tick_callback(tick_data)
+                                logger.info(f"REAL-TIME-DATA-ADAPTOR: Generated per-minute data for {ticker}")
+                            else:
+                                logger.warning(f"REAL-TIME-DATA-ADAPTOR: No minute_data returned for {ticker}")
+                        except Exception as e:
+                            logger.error(f"REAL-TIME-DATA-ADAPTOR: Error generating per-minute data for {ticker}: {e}")
+                    last_per_minute = current_time
+            
+            # Generate FMV data  
+            if self.config.get('WEBSOCKET_FAIR_VALUE_ENABLED', False):
+                if current_time - last_fmv >= fmv_interval:
+                    logger.info("REAL-TIME-DATA-ADAPTOR: Generating FMV data...")
+                    for ticker in universe[:3]:  # Start with just 3 tickers for testing
+                        try:
+                            fmv_data = data_provider.generate_frequency_data(ticker, DataFrequency.FAIR_VALUE)
+                            if fmv_data:
+                                # FMV data doesn't go through tick callback - it's handled internally
+                                logger.debug(f"REAL-TIME-DATA-ADAPTOR: Generated FMV data for {ticker}")
+                        except Exception as e:
+                            logger.error(f"REAL-TIME-DATA-ADAPTOR: Error generating FMV data for {ticker}: {e}")
+                    last_fmv = current_time
+            
+            time.sleep(5)  # Check every 5 seconds
+        
+        logger.info("REAL-TIME-DATA-ADAPTOR: Multi-frequency data generation stopped")
+
     def disconnect(self):
         self.connected = False
         logger.info("REAL-TIME-DATA-ADAPTOR: Stopped synthetic data simulation")

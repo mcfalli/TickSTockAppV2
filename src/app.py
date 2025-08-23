@@ -79,26 +79,69 @@ def initialize_market_services(config, cache_control, ws_manager):
     event_manager = EventDetectionManager(config, cache_control)
 
     
-    # Initialize data provider with retry logic
-    retries = 3
-    data_provider = None
+    # PRODUCTION HARDENING: Clear startup messaging with no fallbacks
+    logger.info("=" * 80)
+    logger.info("🚀 TICKSTOCK DATA PROVIDER INITIALIZATION")
+    logger.info("=" * 80)
     
-    for attempt in range(retries):
-        try:
-            data_provider = DataProviderFactory.get_provider(config)
-            logger.info(f"Important: Selected data provider: {data_provider.__class__.__name__}")
+    # Display configuration status clearly
+    logger.info("📋 DATA SOURCE CONFIGURATION:")
+    logger.info(f"    USE_SYNTHETIC_DATA: {'✅ ENABLED' if config.get('USE_SYNTHETIC_DATA') else '❌ DISABLED'}")
+    logger.info(f"    USE_POLYGON_API: {'✅ ENABLED' if config.get('USE_POLYGON_API') else '❌ DISABLED'}")
+    logger.info(f"    ENABLE_MULTI_FREQUENCY: {'✅ ENABLED' if config.get('ENABLE_MULTI_FREQUENCY') else '❌ DISABLED'}")
+    
+    if config.get('ENABLE_MULTI_FREQUENCY'):
+        logger.info("📡 MULTI-FREQUENCY CONFIGURATION:")
+        logger.info(f"    WEBSOCKET_PER_SECOND_ENABLED: {'✅ ENABLED' if config.get('WEBSOCKET_PER_SECOND_ENABLED') else '❌ DISABLED'}")
+        logger.info(f"    WEBSOCKET_PER_MINUTE_ENABLED: {'✅ ENABLED' if config.get('WEBSOCKET_PER_MINUTE_ENABLED') else '❌ DISABLED'}")
+        logger.info(f"    WEBSOCKET_FAIR_VALUE_ENABLED: {'✅ ENABLED' if config.get('WEBSOCKET_FAIR_VALUE_ENABLED') else '❌ DISABLED'}")
+    
+    logger.info("🔧 INITIALIZING DATA PROVIDER (strict validation, no fallbacks)...")
+    
+    # Initialize data provider with strict validation (no fallbacks)
+    try:
+        data_provider = DataProviderFactory.get_provider(config)
+        
+        # Success messaging
+        provider_name = data_provider.__class__.__name__
+        logger.info("=" * 80)
+        logger.info(f"✅ DATA PROVIDER SUCCESSFULLY INITIALIZED: {provider_name}")
+        
+        # Provider-specific messaging
+        if provider_name == 'PolygonDataProvider':
+            logger.info("📊 LIVE DATA MODE: Connected to Polygon.io API")
             
-            # Test Polygon API if using it
-            if data_provider.__class__.__name__ == 'PolygonDataProvider' and not healthcheck_polygon_api(config):
-                raise Exception("Polygon API unavailable")
-            break
+            # Test API connectivity
+            if not healthcheck_polygon_api(config):
+                raise Exception("Polygon API connectivity test failed")
+            logger.info("✅ Polygon API connectivity verified")
             
-        except Exception as e:
-            logger.error(f"Provider init failed (attempt {attempt+1}/{retries}): {e}")
-            if attempt == retries - 1:
-                logger.error("All provider attempts failed—falling back to SimulatedDataProvider")
-                data_provider = DataProviderFactory.get_default_provider(config)
-            time.sleep(5)
+        elif provider_name == 'SimulatedDataProvider':
+            logger.info("🧪 SYNTHETIC DATA MODE: Using simulated market data")
+            if config.get('ENABLE_MULTI_FREQUENCY'):
+                enabled_frequencies = []
+                if config.get('WEBSOCKET_PER_SECOND_ENABLED'): enabled_frequencies.append('per-second')
+                if config.get('WEBSOCKET_PER_MINUTE_ENABLED'): enabled_frequencies.append('per-minute') 
+                if config.get('WEBSOCKET_FAIR_VALUE_ENABLED'): enabled_frequencies.append('fair-value')
+                logger.info(f"📈 Multi-frequency enabled: {', '.join(enabled_frequencies)}")
+                
+                # Show interval settings
+                if config.get('SYNTHETIC_PER_SECOND_FREQUENCY'):
+                    logger.info(f"⏱️  Per-second interval: {config.get('SYNTHETIC_PER_SECOND_FREQUENCY')}s")
+                if config.get('SYNTHETIC_FMV_UPDATE_INTERVAL'):
+                    logger.info(f"⏱️  FMV interval: {config.get('SYNTHETIC_FMV_UPDATE_INTERVAL')}s")
+        
+        logger.info("=" * 80)
+        
+    except Exception as e:
+        # PRODUCTION HARDENING: Fail fast, no fallbacks
+        logger.error("=" * 80)
+        logger.error("🚨 CRITICAL STARTUP ERROR: Data provider initialization failed!")
+        logger.error(f"    Error: {str(e)}")
+        logger.error("    Application cannot start without valid data provider configuration.")
+        logger.error("    Check your .env file and ensure configuration is explicit.")
+        logger.error("=" * 80)
+        raise SystemExit(f"Startup failed: {str(e)}")
     
     # Create market service
     market_service = MarketDataService(

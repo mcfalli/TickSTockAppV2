@@ -99,10 +99,10 @@ class WebSocketPublisher:
         self.last_emission_time = 0
         
         # SPRINT 101: Multi-frequency emission support
-        self.enabled_frequencies = set([FrequencyType.PER_SECOND])  # Default to per-second
+        self.enabled_frequencies = set()  # Start with empty set - will be populated based on config
         self.frequency_emission_config = {
             FrequencyType.PER_SECOND.value: {
-                'enabled': True,
+                'enabled': config.get('ENABLE_PER_SECOND_EVENTS', True),  # Respect configuration
                 'user_preference_key': 'enable_per_second_events',
                 'default_enabled': True
             },
@@ -119,7 +119,7 @@ class WebSocketPublisher:
         }
         
         # Update enabled frequencies based on config
-        for freq_type in [FrequencyType.PER_MINUTE, FrequencyType.FAIR_MARKET_VALUE]:
+        for freq_type in [FrequencyType.PER_SECOND, FrequencyType.PER_MINUTE, FrequencyType.FAIR_MARKET_VALUE]:
             if self.frequency_emission_config[freq_type.value]['enabled']:
                 self.enabled_frequencies.add(freq_type)
         

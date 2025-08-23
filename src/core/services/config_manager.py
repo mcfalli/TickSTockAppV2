@@ -633,6 +633,11 @@ class ConfigManager:
         'WEBSOCKET_PER_MINUTE_ENABLED': bool,
         'WEBSOCKET_FAIR_VALUE_ENABLED': bool,
         
+        # WebSocket Emission Controls (Sprint 111)
+        'ENABLE_PER_SECOND_EVENTS': bool,
+        'ENABLE_PER_MINUTE_EVENTS': bool,  
+        'ENABLE_FMV_EVENTS': bool,
+        
         # Synthetic Data Multi-Frequency Configuration Types
         'ENABLE_SYNTHETIC_DATA_VALIDATION': bool,
         'VALIDATION_PRICE_TOLERANCE': float,
@@ -1384,3 +1389,109 @@ class ConfigManager:
             logger.warning(f"Synthetic data configuration validation failed: {len(errors)} errors")
         
         return is_valid, errors
+    
+    def set_synthetic_data_intervals(self, per_second_interval: float = 1.0, 
+                                   per_minute_interval: int = 60, 
+                                   fmv_interval: int = 30) -> bool:
+        """
+        Set synthetic data generation intervals for testing flexibility.
+        
+        Args:
+            per_second_interval: Seconds between per-second data generation (0.1-60.0)
+            per_minute_interval: Seconds for minute aggregation window (30-300)  
+            fmv_interval: Seconds between FMV updates (5-300)
+            
+        Returns:
+            bool: True if intervals were set successfully
+        """
+        # Validate intervals
+        if not (0.1 <= per_second_interval <= 60.0):
+            logger.error(f"Per-second interval {per_second_interval} outside valid range (0.1-60.0)")
+            return False
+            
+        if not (30 <= per_minute_interval <= 300):
+            logger.error(f"Per-minute interval {per_minute_interval} outside valid range (30-300)")
+            return False
+            
+        if not (5 <= fmv_interval <= 300):
+            logger.error(f"FMV interval {fmv_interval} outside valid range (5-300)")
+            return False
+        
+        # Set the intervals
+        self.config['SYNTHETIC_PER_SECOND_FREQUENCY'] = per_second_interval
+        self.config['SYNTHETIC_MINUTE_WINDOW'] = per_minute_interval
+        self.config['SYNTHETIC_FMV_UPDATE_INTERVAL'] = fmv_interval
+        
+        logger.info(
+            f"CONFIG: Set synthetic data intervals - "
+            f"Per-second: {per_second_interval}s, "
+            f"Per-minute: {per_minute_interval}s, "
+            f"FMV: {fmv_interval}s"
+        )
+        
+        return True
+    
+    def get_common_interval_presets(self) -> Dict[str, Dict[str, float]]:
+        """
+        Get common interval presets for testing (15s, 30s, 60s as mentioned in PRD).
+        
+        Returns:
+            Dict of preset configurations with different interval combinations
+        """
+        return {
+            'fast_15s': {
+                'description': '15-second intervals for rapid testing',
+                'per_second_interval': 15.0,
+                'per_minute_interval': 60,
+                'fmv_interval': 15
+            },
+            'standard_30s': {
+                'description': '30-second intervals for standard testing',
+                'per_second_interval': 30.0,
+                'per_minute_interval': 60, 
+                'fmv_interval': 30
+            },
+            'slow_60s': {
+                'description': '60-second intervals for slow testing',
+                'per_second_interval': 60.0,
+                'per_minute_interval': 60,
+                'fmv_interval': 60
+            },
+            'mixed_intervals': {
+                'description': 'Mixed intervals (15s per-second, 30s FMV, 60s per-minute)',
+                'per_second_interval': 15.0,
+                'per_minute_interval': 60,
+                'fmv_interval': 30
+            },
+            'high_frequency': {
+                'description': 'High frequency testing (5s per-second, 15s FMV)', 
+                'per_second_interval': 5.0,
+                'per_minute_interval': 60,
+                'fmv_interval': 15
+            }
+        }
+    
+    def apply_interval_preset(self, preset_name: str) -> bool:
+        """
+        Apply a common interval preset for easy testing.
+        
+        Args:
+            preset_name: Name of the preset to apply
+            
+        Returns:
+            bool: True if preset was applied successfully
+        """
+        presets = self.get_common_interval_presets()
+        
+        if preset_name not in presets:
+            logger.error(f"Unknown interval preset: {preset_name}")
+            return False
+        
+        preset = presets[preset_name]
+        logger.info(f"Applying interval preset '{preset_name}': {preset['description']}")
+        
+        return self.set_synthetic_data_intervals(
+            per_second_interval=preset['per_second_interval'],
+            per_minute_interval=preset['per_minute_interval'], 
+            fmv_interval=preset['fmv_interval']
+        )

@@ -55,12 +55,15 @@ class PerMinuteGenerator:
         current_time = time.time()
         minute_timestamp = self._round_to_minute(current_time)
         
+        logger.info(f"🔍 PER-MIN-GEN: Attempting to generate data for {ticker}, current_time={current_time}, minute_timestamp={minute_timestamp}")
+        
         # Check if we already generated this minute (avoid duplicates)
         if ticker in self._last_minute_generated:
             if minute_timestamp <= self._last_minute_generated[ticker]:
-                logger.debug(f"PER-MIN-GEN: Skipping duplicate minute for {ticker}")
+                logger.info(f"🔍 PER-MIN-GEN: Skipping duplicate minute for {ticker} - minute_timestamp={minute_timestamp}, last_generated={self._last_minute_generated[ticker]}")
                 return None
         
+        logger.info(f"🔍 PER-MIN-GEN: Proceeding with generation for {ticker}")
         self._last_minute_generated[ticker] = minute_timestamp
         
         # Generate realistic OHLCV based on underlying tick simulation

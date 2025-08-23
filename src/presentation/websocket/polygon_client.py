@@ -352,47 +352,105 @@ class PolygonWebSocketClient:
         self._initialize_frequency_config()
     
     def _initialize_frequency_config(self):
-        """Initialize enabled frequencies based on configuration"""
-        # Check standard config keys first (preferred)
-        if self.config.get('WEBSOCKET_PER_SECOND_ENABLED', True):
+        """Initialize enabled frequencies based on configuration - NO FALLBACKS"""
+        # PRODUCTION HARDENING: Validate configuration first
+        self._validate_configuration()
+        
+        # Check standard config keys ONLY (no fallbacks)
+        if self.config.get('WEBSOCKET_PER_SECOND_ENABLED', False):
             self.enabled_frequencies.append(FrequencyType.PER_SECOND)
+            logger.info("POLYGON-CLIENT: ✅ Per-second WebSocket connections ENABLED")
+        else:
+            logger.info("POLYGON-CLIENT: ❌ Per-second WebSocket connections DISABLED")
         
         if self.config.get('WEBSOCKET_PER_MINUTE_ENABLED', False):
             self.enabled_frequencies.append(FrequencyType.PER_MINUTE)
+            logger.info("POLYGON-CLIENT: ✅ Per-minute WebSocket connections ENABLED")
+        else:
+            logger.info("POLYGON-CLIENT: ❌ Per-minute WebSocket connections DISABLED")
             
         if self.config.get('WEBSOCKET_FAIR_VALUE_ENABLED', False):
             self.enabled_frequencies.append(FrequencyType.FAIR_MARKET_VALUE)
+            logger.info("POLYGON-CLIENT: ✅ Fair Market Value WebSocket connections ENABLED")
+        else:
+            logger.info("POLYGON-CLIENT: ❌ Fair Market Value WebSocket connections DISABLED")
         
-        # Fallback to legacy config format if standard keys not found
+        # REMOVED ALL FALLBACK CODE - Configuration must be explicit
         if not self.enabled_frequencies:
-            frequency_config = self.config.get('enabled_frequencies', ['per_second'])
-            
-            for freq_str in frequency_config:
-                if freq_str == 'per_second':
-                    self.enabled_frequencies.append(FrequencyType.PER_SECOND)
-                elif freq_str == 'per_minute':
-                    self.enabled_frequencies.append(FrequencyType.PER_MINUTE)
-                elif freq_str == 'fmv' or freq_str == 'fair_market_value':
-                    self.enabled_frequencies.append(FrequencyType.FAIR_MARKET_VALUE)
+            error_msg = (
+                "🚨 POLYGON-CLIENT: CONFIGURATION ERROR - No WebSocket frequencies enabled!\n"
+                "   Required: Set at least one WEBSOCKET_*_ENABLED=true in configuration:\n"
+                "   - WEBSOCKET_PER_SECOND_ENABLED=true\n"
+                "   - WEBSOCKET_PER_MINUTE_ENABLED=true\n" 
+                "   - WEBSOCKET_FAIR_VALUE_ENABLED=true"
+            )
+            logger.error(error_msg)
+            raise ValueError("No WebSocket frequencies enabled. Configuration must be explicit.")
         
-        # Ensure at least per-second is enabled for backward compatibility
-        if not self.enabled_frequencies:
-            self.enabled_frequencies = [FrequencyType.PER_SECOND]
+        logger.info(f"POLYGON-CLIENT: 🚀 Initialized with frequencies: {[f.value for f in self.enabled_frequencies]}")
+    
+    def _validate_configuration(self):
+        """Validate that configuration is explicit and complete"""
+        enabled_flags = {
+            'WEBSOCKET_PER_SECOND_ENABLED': self.config.get('WEBSOCKET_PER_SECOND_ENABLED', False),
+            'WEBSOCKET_PER_MINUTE_ENABLED': self.config.get('WEBSOCKET_PER_MINUTE_ENABLED', False),
+            'WEBSOCKET_FAIR_VALUE_ENABLED': self.config.get('WEBSOCKET_FAIR_VALUE_ENABLED', False)
+        }
         
-        logger.info(f"POLYGON-CLIENT: Enabled frequencies: {[f.value for f in self.enabled_frequencies]}")
+        enabled_count = sum(enabled_flags.values())
+        
+        logger.info("POLYGON-CLIENT: 🔧 Configuration validation:")
+        for flag_name, enabled in enabled_flags.items():
+            status = "✅ ENABLED" if enabled else "❌ DISABLED"
+            logger.info(f"POLYGON-CLIENT:    {flag_name}: {status}")
+        
+        if enabled_count == 0:
+            error_msg = (
+                "🚨 POLYGON-CLIENT: CONFIGURATION ERROR - No frequencies enabled!\n"
+                "   At least one WebSocket frequency must be enabled.\n"
+                "   Check your .env file configuration."
+            )
+            logger.error(error_msg)
+            raise ValueError("At least one WebSocket frequency must be enabled")
+        
+        # Validate API key for FMV
+        if self.config.get('WEBSOCKET_FAIR_VALUE_ENABLED') and not self.api_key:
+            error_msg = (
+                "🚨 POLYGON-CLIENT: CONFIGURATION ERROR - FMV requires API key!\n"
+                "   WEBSOCKET_FAIR_VALUE_ENABLED=true but POLYGON_API_KEY is missing.\n"
+                "   Either disable FMV or provide valid API key."
+            )
+            logger.error(error_msg)
+            raise ValueError("Fair Market Value requires valid Polygon API key")
+        
+        logger.info(f"POLYGON-CLIENT: ✅ Configuration validated - {enabled_count} frequencies enabled")
     
     @property
     def connected(self) -> bool:
         """
-        Check if the client is connected - backward compatibility property.
-        Returns True if the primary per-second connection is active.
+        Check if client is connected - no primary connection assumptions.
+        Returns True if ALL enabled connections are active.
         """
-        primary_connection = self.connections.get(FrequencyType.PER_SECOND)
-        if primary_connection:
-            return primary_connection.connected
+        if not self.connections:
+            return False
         
-        # If no per-second connection, check if any connection is active
-        return any(conn.connected for conn in self.connections.values())
+        # Get connections for enabled frequencies only
+        enabled_connections = [conn for freq, conn in self.connections.items() 
+                              if freq in self.enabled_frequencies]
+        
+        if not enabled_connections:
+            return False
+            
+        # ALL enabled connections must be connected for system to be "connected"
+        all_connected = all(conn.connected for conn in enabled_connections)
+        
+        if all_connected:
+            logger.debug(f"POLYGON-CLIENT: All {len(enabled_connections)} enabled connections active")
+        else:
+            disconnected = [conn.frequency_type.value for conn in enabled_connections if not conn.connected]
+            logger.warning(f"POLYGON-CLIENT: Disconnected frequencies: {disconnected}")
+            
+        return all_connected
     
     @property
     def ws(self):

@@ -726,6 +726,13 @@ class DataPublisher:
                 frequency_count = self._count_frequency_events(frequency_events)
                 total_events += frequency_count
             
+            # DEBUG LOGGING: Show what we're returning to WebSocketPublisher
+            logger.info(f"🔍 DATA-PUB-DEBUG: get_buffered_events returning {total_events} total events")
+            logger.info(f"🔍 DATA-PUB-DEBUG: Target frequencies: {[f.value for f in target_frequencies]}")
+            for freq_key, freq_data in events.get('frequencies', {}).items():
+                freq_count = self._count_frequency_events(freq_data)
+                logger.info(f"🔍 DATA-PUB-DEBUG: Frequency '{freq_key}' has {freq_count} events: {freq_data}")
+            
             # Clear buffer if requested
             if clear_buffer and total_events > 0:
                 for frequency_type in target_frequencies:
@@ -743,6 +750,8 @@ class DataPublisher:
                         self.buffer_stats['frequency_breakdown'][frequency_key]['delivered'] += freq_count
                 
                 logger.debug(f"📤 Multi-frequency event buffer cleared: delivered {total_events} events from {len(target_frequencies)} frequencies")
+            elif clear_buffer and total_events == 0:
+                logger.info("🔍 DATA-PUB-DEBUG: Not clearing buffer because total_events == 0")
                 
                 # Trace buffer pull with multi-frequency details
                 if tracer.should_trace('SYSTEM'):

@@ -20,9 +20,13 @@ class DataProviderFactory:
 
     @classmethod
     def get_provider(cls, config: Dict[str, Any]) -> DataProvider:
-        """Get the appropriate data provider based on configuration."""
+        """Get the appropriate data provider based on configuration - NO FALLBACKS."""
+        # PRODUCTION HARDENING: Validate configuration first
+        cls._validate_provider_configuration(config)
+        
         # Check for multi-frequency configuration first
         if config.get('ENABLE_MULTI_FREQUENCY', False):
+            logger.info("DATA-PROVIDER-FACTORY: 🔧 Multi-frequency mode enabled")
             return cls._get_multi_frequency_provider(config)
         
         # Legacy single-frequency configuration
@@ -30,13 +34,16 @@ class DataProviderFactory:
         use_polygon = config.get('USE_POLYGON_API', False)
         polygon_api_key = config.get('POLYGON_API_KEY', '')
 
-        logger.info(f"DIAG-DATA-PROVIDER: Selecting provider - USE_SYNTHETIC_DATA={use_synthetic}, USE_POLYGON_API={use_polygon}")
+        logger.info("DATA-PROVIDER-FACTORY: 🔧 Configuration validation:")
+        logger.info(f"DATA-PROVIDER-FACTORY:    USE_SYNTHETIC_DATA: {'✅ ENABLED' if use_synthetic else '❌ DISABLED'}")
+        logger.info(f"DATA-PROVIDER-FACTORY:    USE_POLYGON_API: {'✅ ENABLED' if use_polygon else '❌ DISABLED'}")
+        logger.info(f"DATA-PROVIDER-FACTORY:    POLYGON_API_KEY: {'✅ PROVIDED' if polygon_api_key else '❌ MISSING'}")
 
-        # Priority: Synthetic > Polygon > Default (Simulated)
+        # REMOVED FALLBACK - Configuration must be explicit
         if use_synthetic:
             provider_name = "synthetic"
             provider_class = cls._providers.get(provider_name, SimulatedDataProvider)
-            logger.info(f"DIAG-DATA-PROVIDER: Selected {provider_name} provider (synthetic enabled)")
+            logger.info(f"DATA-PROVIDER-FACTORY: ✅ Selected {provider_name} provider (synthetic enabled)")
             return provider_class(config)
 
         if use_polygon and polygon_api_key:
@@ -45,44 +52,114 @@ class DataProviderFactory:
             try:
                 provider = provider_class(config)
                 if provider.is_available():
-                    logger.info(f"DIAG-DATA-PROVIDER: Selected {provider_name} provider (API available)")
+                    logger.info(f"DATA-PROVIDER-FACTORY: ✅ Selected {provider_name} provider (API available)")
                     return provider
                 else:
-                    logger.warning(f"DIAG-DATA-PROVIDER: {provider_name} API not available")
+                    error_msg = (
+                        f"🚨 DATA-PROVIDER-FACTORY: CONFIGURATION ERROR - {provider_name} API not available!\n"
+                        f"   USE_POLYGON_API=true but API is not responding.\n"
+                        f"   Either fix API connectivity or switch to synthetic data."
+                    )
+                    logger.error(error_msg)
+                    raise ValueError(f"{provider_name} API not available")
             except Exception as e:
-                logger.error(f"DIAG-DATA-PROVIDER: Failed to initialize {provider_name} provider: {str(e)}")
+                error_msg = (
+                    f"🚨 DATA-PROVIDER-FACTORY: CONFIGURATION ERROR - Failed to initialize {provider_name}!\n"
+                    f"   Error: {str(e)}\n"
+                    f"   Check API key and connectivity."
+                )
+                logger.error(error_msg)
+                raise ValueError(f"Failed to initialize {provider_name} provider: {str(e)}")
 
-        # Fallback to default
-        logger.info("DIAG-DATA-PROVIDER: Falling back to default SimulatedDataProvider")
-        return cls._default_provider(config)
+        # NO FALLBACK - Fail explicitly 
+        error_msg = (
+            "🚨 DATA-PROVIDER-FACTORY: CONFIGURATION ERROR - No data provider configured!\n"
+            "   Required: Set one of the following in configuration:\n"
+            "   - USE_SYNTHETIC_DATA=true (for synthetic/simulated data)\n"
+            "   - USE_POLYGON_API=true + POLYGON_API_KEY=<key> (for live data)"
+        )
+        logger.error(error_msg)
+        raise ValueError("No data provider configured. Configuration must be explicit.")
+    
+    @classmethod
+    def _validate_provider_configuration(cls, config: Dict[str, Any]):
+        """Validate provider configuration is explicit and complete"""
+        use_synthetic = config.get('USE_SYNTHETIC_DATA', False)
+        use_polygon = config.get('USE_POLYGON_API', False)
+        polygon_api_key = config.get('POLYGON_API_KEY', '')
+        multi_frequency = config.get('ENABLE_MULTI_FREQUENCY', False)
+        
+        # At least one provider must be configured
+        if not use_synthetic and not use_polygon:
+            error_msg = (
+                "🚨 DATA-PROVIDER-FACTORY: CONFIGURATION ERROR - No data source configured!\n"
+                "   At least one data source must be enabled:\n"
+                "   - USE_SYNTHETIC_DATA=true\n"
+                "   - USE_POLYGON_API=true"
+            )
+            logger.error(error_msg)
+            raise ValueError("No data source configured")
+        
+        # If Polygon is enabled, API key is required
+        if use_polygon and not polygon_api_key:
+            error_msg = (
+                "🚨 DATA-PROVIDER-FACTORY: CONFIGURATION ERROR - Polygon requires API key!\n"
+                "   USE_POLYGON_API=true but POLYGON_API_KEY is missing.\n"
+                "   Either provide API key or switch to synthetic data."
+            )
+            logger.error(error_msg)
+            raise ValueError("Polygon API requires valid API key")
+        
+        logger.info("DATA-PROVIDER-FACTORY: ✅ Provider configuration validated")
     
     @classmethod
     def _get_multi_frequency_provider(cls, config: Dict[str, Any]) -> DataProvider:
-        """Get provider for multi-frequency configuration."""
-        active_providers = config.get('ACTIVE_DATA_PROVIDERS', ['simulated'])
+        """Get provider for multi-frequency configuration - NO FALLBACKS."""
+        use_synthetic = config.get('USE_SYNTHETIC_DATA', False)
+        use_polygon = config.get('USE_POLYGON_API', False)
         polygon_api_key = config.get('POLYGON_API_KEY', '')
         
-        logger.info(
-            f"DIAG-DATA-PROVIDER: Multi-frequency mode enabled with providers: {active_providers}"
-        )
+        logger.info("DATA-PROVIDER-FACTORY: 🔧 Multi-frequency provider selection:")
+        logger.info(f"DATA-PROVIDER-FACTORY:    USE_SYNTHETIC_DATA: {'✅ ENABLED' if use_synthetic else '❌ DISABLED'}")
+        logger.info(f"DATA-PROVIDER-FACTORY:    USE_POLYGON_API: {'✅ ENABLED' if use_polygon else '❌ DISABLED'}")
         
-        # Priority order: polygon (if available) > synthetic > simulated
-        if 'polygon' in active_providers and polygon_api_key:
+        # Priority order: polygon (if configured) > synthetic (if configured)
+        if use_polygon and polygon_api_key:
             try:
                 provider = PolygonDataProvider(config)
                 if provider.is_available():
-                    logger.info("DIAG-DATA-PROVIDER: Selected Polygon provider for multi-frequency")
+                    logger.info("DATA-PROVIDER-FACTORY: ✅ Selected Polygon provider for multi-frequency")
                     return provider
+                else:
+                    error_msg = (
+                        "🚨 DATA-PROVIDER-FACTORY: MULTI-FREQUENCY ERROR - Polygon API not available!\n"
+                        "   USE_POLYGON_API=true but API is not responding.\n"
+                        "   Either fix API connectivity or switch to USE_SYNTHETIC_DATA=true."
+                    )
+                    logger.error(error_msg)
+                    raise ValueError("Polygon API not available for multi-frequency")
             except Exception as e:
-                logger.warning(f"DIAG-DATA-PROVIDER: Polygon provider failed, falling back: {e}")
+                error_msg = (
+                    f"🚨 DATA-PROVIDER-FACTORY: MULTI-FREQUENCY ERROR - Polygon initialization failed!\n"
+                    f"   Error: {str(e)}\n"
+                    f"   Check API key and connectivity or switch to synthetic data."
+                )
+                logger.error(error_msg)
+                raise ValueError(f"Polygon provider failed for multi-frequency: {str(e)}")
         
-        if 'synthetic' in active_providers or 'simulated' in active_providers:
-            logger.info("DIAG-DATA-PROVIDER: Selected SimulatedDataProvider for multi-frequency")
+        if use_synthetic:
+            logger.info("DATA-PROVIDER-FACTORY: ✅ Selected SimulatedDataProvider for multi-frequency")
             return SimulatedDataProvider(config)
         
-        # Ultimate fallback
-        logger.warning("DIAG-DATA-PROVIDER: No valid multi-frequency providers, using default")
-        return SimulatedDataProvider(config)
+        # NO FALLBACK - Fail explicitly
+        error_msg = (
+            "🚨 DATA-PROVIDER-FACTORY: MULTI-FREQUENCY ERROR - No provider configured!\n"
+            "   Multi-frequency mode requires explicit data source:\n"
+            "   - USE_SYNTHETIC_DATA=true (for synthetic multi-frequency data)\n"
+            "   - USE_POLYGON_API=true + POLYGON_API_KEY=<key> (for live multi-frequency data)"
+        )
+        logger.error(error_msg)
+        raise ValueError("No multi-frequency provider configured. Configuration must be explicit.")
 
     @classmethod
     def get_providers_for_frequency(cls, config: Dict[str, Any], frequency: str) -> List[DataProvider]:
