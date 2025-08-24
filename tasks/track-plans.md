@@ -23,6 +23,10 @@
 - paint events
 - go
 
+- search fro this and fix the fact that we do have connected users and this pypass is BS                # TEMPORARY TESTING BYPASS - REMOVE AFTER USER CONNECTION ISSUE FIXED
+                
+
+
 ## Past Plans
 - 110 Fix Router and Route to front end Event Connection and general flow back to not tripping on itself - result is ok, but functional
 - 109 pre router bugs

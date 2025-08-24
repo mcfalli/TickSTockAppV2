@@ -446,18 +446,33 @@ class DataPublisher:
         last_publish_time = time.time()
         publish_interval = self.config.get('UPDATE_INTERVAL', 0.5)
         
+        # DEBUG: Log loop startup
+        logger.info(f"🔍 DATA-PUB-LOOP: Starting collection loop with {publish_interval}s interval")
+        
         while self.publishing_active:
             try:
                 current_time = time.time()
                 time_since_publish = current_time - last_publish_time
                 
+                # DEBUG: Log timing details every few seconds
+                loop_count = getattr(self, '_loop_count', 0)
+                if loop_count % 100 == 0:  # Every ~1 second (0.01s * 100)
+                    logger.info(f"🔍 DATA-PUB-TIMING: Loop #{loop_count}, time_since_publish={time_since_publish:.3f}s, interval={publish_interval}s")
+                self._loop_count = loop_count + 1
+                
                 # Publish updates at regular intervals
                 if time_since_publish >= publish_interval:
+                    # DEBUG: Log collection attempt
+                    logger.info(f"🔍 DATA-PUB-COLLECT: Starting collection cycle (interval: {publish_interval}s, elapsed: {time_since_publish:.3f}s)")
+                    
                     publish_result = self.publish_to_users()
                     
                     if publish_result.success:
                         last_publish_time = time.time()
                         self._update_stats(publish_result)
+                        
+                        # DEBUG: Log successful collection
+                        logger.info(f"🔍 DATA-PUB-COLLECT: Collection completed successfully")
                         
                         # Notify monitors/callbacks about successful collection
                         self._notify_collection_complete(publish_result)
@@ -527,6 +542,19 @@ class DataPublisher:
             
             # Collect from queue (KEEP)
             recent_events = self._collect_display_events_from_queue()
+            
+            # DEBUG: Log what we got after collection
+            if recent_events:
+                highs = recent_events.get("highs", [])
+                lows = recent_events.get("lows", [])
+                trending = recent_events.get("trending", {'up': [], 'down': []})
+                surging = recent_events.get("surging", {'up': [], 'down': []})
+                total_collected = len(highs) + len(lows) + len(trending.get('up', [])) + len(trending.get('down', [])) + len(surging.get('up', [])) + len(surging.get('down', []))
+                
+                if total_collected > 0:
+                    logger.info(f"🔍 DATAPUB-DEBUG: After processing collection - highs:{len(highs)}, lows:{len(lows)}, trends:{len(trending.get('up', []))+len(trending.get('down', []))}, surges:{len(surging.get('up', []))+len(surging.get('down', []))}")
+                else:
+                    logger.warning(f"🔍 DATAPUB-DEBUG: Collection processed but resulted in 0 categorized events")
             
             highs = recent_events.get("highs", [])
             lows = recent_events.get("lows", [])
@@ -647,9 +675,25 @@ class DataPublisher:
             clear_buffer: Whether to clear the buffer after retrieval
             frequencies: List of frequencies to retrieve. If None, retrieves all enabled frequencies.
         """
-        with self.buffer_lock:
+        # FIX: Use timeout lock to prevent deadlock with collection thread
+        lock_acquired = self.buffer_lock.acquire(timeout=2.0)  # 2 second timeout
+        if not lock_acquired:
+            logger.warning("🔍 BUFFER-DEBUG: Failed to acquire buffer lock within 2s, returning empty events")
+            return {'frequencies': {}}
+            
+        try:
             # Determine which frequencies to retrieve
             target_frequencies = frequencies or list(self.enabled_frequencies)
+            
+            # DEBUG: Log frequency retrieval (avoid double locking - calculate sizes directly)
+            per_second_total = (len(self.event_buffer['per_second']['highs']) + 
+                              len(self.event_buffer['per_second']['lows']) +
+                              len(self.event_buffer['per_second']['trending']['up']) +
+                              len(self.event_buffer['per_second']['trending']['down']) +
+                              len(self.event_buffer['per_second']['surging']['up']) +
+                              len(self.event_buffer['per_second']['surging']['down']))
+            
+            logger.info(f"🔍 BUFFER-DEBUG: Retrieving {per_second_total} events from buffer")
             
             # Initialize response structure with multi-frequency support
             events = {
@@ -667,6 +711,7 @@ class DataPublisher:
             for frequency_type in target_frequencies:
                 frequency_key = frequency_type.value
                 frequency_events = {}
+                
                 
                 if frequency_type == FrequencyType.PER_SECOND:
                     # Copy per-second events to both root level (backward compatibility) and frequency structure
@@ -726,13 +771,7 @@ class DataPublisher:
                 frequency_count = self._count_frequency_events(frequency_events)
                 total_events += frequency_count
             
-            # DEBUG LOGGING: Show what we're returning to WebSocketPublisher
-            logger.info(f"🔍 DATA-PUB-DEBUG: get_buffered_events returning {total_events} total events")
-            logger.info(f"🔍 DATA-PUB-DEBUG: Target frequencies: {[f.value for f in target_frequencies]}")
-            for freq_key, freq_data in events.get('frequencies', {}).items():
-                freq_count = self._count_frequency_events(freq_data)
-                logger.info(f"🔍 DATA-PUB-DEBUG: Frequency '{freq_key}' has {freq_count} events: {freq_data}")
-            
+
             # Clear buffer if requested
             if clear_buffer and total_events > 0:
                 for frequency_type in target_frequencies:
@@ -785,7 +824,12 @@ class DataPublisher:
                         }
                     )
             
+            if total_events > 0:
+                logger.info(f"🔍 BUFFER-DEBUG: Returning {total_events} events to WebSocket publisher")
             return events
+        finally:
+            # Always release the lock
+            self.buffer_lock.release()
     
     def _count_frequency_events(self, frequency_events: Dict) -> int:
         """Count total events in a frequency-specific event dictionary"""
@@ -945,6 +989,10 @@ class DataPublisher:
             # Get queue size before collection
             queue_size_before = self.market_service.display_queue.qsize()
             
+            # DEBUG: Log collection attempt
+            if queue_size_before > 0:
+                logger.info(f"🔍 DATAPUB-DEBUG: Starting collection from display_queue with {queue_size_before} events")
+            
             # Collect with timeout to prevent blocking
             deadline = time.time() + self.collection_timeout
             
@@ -961,6 +1009,11 @@ class DataPublisher:
                     )
                     events.append(event)
                     
+                    # DEBUG: Log collected event
+                    if len(events) <= 10:  # Only log first 10 to avoid spam
+                        event_type = event[0] if isinstance(event, tuple) and len(event) > 0 else 'unknown'
+                        logger.info(f"🔍 DATAPUB-DEBUG: Collected event #{len(events)}: {event_type}")
+                    
                     # Update statistics
                     self.market_service.display_queue_stats['events_collected'] += 1
                     
@@ -976,8 +1029,12 @@ class DataPublisher:
             # Get queue size after collection
             queue_size_after = self.market_service.display_queue.qsize()
             
-            # Update diagnostics
+            # DEBUG: Log collection completion
             events_collected = len(events)
+            if queue_size_before > 0 or events_collected > 0:
+                logger.info(f"🔍 DATAPUB-DEBUG: Collection completed - queue_before={queue_size_before}, collected={events_collected}, queue_after={queue_size_after}")
+            
+            # Update diagnostics
             if events_collected == 0:
                 self.collection_diagnostics['empty_collections'] += 1
             
@@ -1202,18 +1259,33 @@ class DataPublisher:
         last_publish_time = time.time()
         publish_interval = self.config.get('UPDATE_INTERVAL', 0.5)
         
+        # DEBUG: Log loop startup
+        logger.info(f"🔍 DATA-PUB-LOOP: Starting SIMPLIFIED collection loop with {publish_interval}s interval")
+        
         while self.publishing_active:
             try:
                 current_time = time.time()
                 time_since_publish = current_time - last_publish_time
                 
+                # DEBUG: Log timing details every few seconds
+                loop_count = getattr(self, '_loop_count', 0)
+                if loop_count % 100 == 0:  # Every ~1 second (0.01s * 100)
+                    logger.info(f"🔍 DATA-PUB-TIMING: SIMPLIFIED Loop #{loop_count}, time_since_publish={time_since_publish:.3f}s, interval={publish_interval}s")
+                self._loop_count = loop_count + 1
+                
                 # Publish updates at regular intervals
                 if time_since_publish >= publish_interval:
+                    # DEBUG: Log collection attempt
+                    logger.info(f"🔍 DATA-PUB-COLLECT: SIMPLIFIED Starting collection cycle (interval: {publish_interval}s, elapsed: {time_since_publish:.3f}s)")
+                    
                     publish_result = self.publish_to_users()
                     
                     if publish_result.success:
                         last_publish_time = time.time()
                         self._update_stats(publish_result)
+                        
+                        # DEBUG: Log successful collection
+                        logger.info(f"🔍 DATA-PUB-COLLECT: SIMPLIFIED Collection completed successfully")
                         
                         # Notify callbacks (monitor will handle diagnostics)
                         for callback in self._collection_callbacks:

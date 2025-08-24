@@ -66,6 +66,9 @@ class TypedEventQueue:
             # Create queued event
             queued = QueuedEvent(event=event, priority=priority)
             
+            # DEBUG: Log event being added
+            logger.info(f"🔍 QUEUE-DEBUG: Adding {event.type} event for {event.ticker} with priority {priority}")
+            
             # Add to queue
             if self.use_priority:
                 self._queue.put(queued, block=False)
@@ -81,6 +84,10 @@ class TypedEventQueue:
                         'queued': 0, 'processed': 0, 'failed': 0
                     }
                 self._stats['by_type'][event_type]['queued'] += 1
+            
+            # DEBUG: Log queue state after adding
+            new_size = self.qsize()
+            logger.info(f"🔍 QUEUE-DEBUG: Queue size after adding {event.type}: {new_size}")
                 
             return True
             
@@ -97,6 +104,10 @@ class TypedEventQueue:
             if queued.should_expire():
                 with self._lock:
                     self._stats['events_expired'] += 1
+                # DEBUG: Log expired event
+                logger.warning(f"🔍 QUEUE-DEBUG: Event expired in get(): {queued.event.type} for {queued.event.ticker}, age={queued.age_seconds:.1f}s")
+                # Call task_done to prevent queue from getting stuck
+                self._queue.task_done()
                 return None
                 
             return queued
@@ -177,12 +188,36 @@ class TypedEventQueue:
         batch = []
         deadline = time.time() + timeout
         
+        # DEBUG: Log queue state before retrieval
+        queue_size_before = self.qsize()
+        if queue_size_before > 0:
+            logger.info(f"🔍 QUEUE-DEBUG: get_typed_batch starting with {queue_size_before} events in queue")
+        
+        attempts = 0
+        expired_events = 0
+        
         while len(batch) < max_items and time.time() < deadline:
+            attempts += 1
             queued_event = self.get(timeout=0.01)
+            
             if queued_event:
+                # Check if event expired
+                if queued_event.should_expire():
+                    expired_events += 1
+                    logger.warning(f"🔍 QUEUE-DEBUG: Event expired during retrieval: {queued_event.event.type} age={queued_event.age_seconds:.1f}s")
+                    continue
+                
                 # Filter by type if specified
                 if event_types is None or type(queued_event.event) in event_types:
                     batch.append(queued_event.event)
+                    logger.info(f"🔍 QUEUE-DEBUG: Retrieved {queued_event.event.type} event for {queued_event.event.ticker}")
+            else:
+                # No event available
+                break
+        
+        # DEBUG: Log results
+        if queue_size_before > 0 or len(batch) > 0:
+            logger.info(f"🔍 QUEUE-DEBUG: get_typed_batch completed - queue_before={queue_size_before}, batch_size={len(batch)}, attempts={attempts}, expired={expired_events}")
                     
         return batch
 

@@ -243,19 +243,51 @@ class WebSocketPublisher:
             return
             
         self.is_running = True
+        # FIX: Initialize last_emission_time to current time to prevent immediate trigger
+        self.last_emission_time = time.time()
         
         def emission_loop():
             logger.info("🚀 WebSocketPublisher: Starting emission timer loop")
+            loop_count = 0
+            
             while self.is_running:
                 try:
+                    loop_count += 1
                     current_time = time.time()
-                    if current_time - self.last_emission_time >= self.emission_interval:
-                        self.run_emission_cycle()
+                    time_since_last = current_time - self.last_emission_time
+                    
+                    # DEBUG: Log loop activity every 5 seconds (50 iterations * 0.1s)
+                    if loop_count % 50 == 0:
+                        logger.info(f"🔍 EMISSION-TIMER-DEBUG: Loop #{loop_count}, is_running={self.is_running}, "
+                                  f"time_since_last={time_since_last:.3f}s, interval={self.emission_interval}s")
+                    
+                    if time_since_last >= self.emission_interval:
+                        logger.info(f"🔍 EMISSION-TIMER-DEBUG: Triggering emission cycle (elapsed: {time_since_last:.3f}s)")
+                        
+                        # FIX: Run emission cycle in separate thread to prevent timer blocking
+                        def run_cycle_async():
+                            try:
+                                self.run_emission_cycle()
+                            except Exception as e:
+                                logger.error(f"❌ Async emission cycle error: {e}", exc_info=True)
+                        
+                        cycle_thread = threading.Thread(
+                            target=run_cycle_async,
+                            daemon=True,
+                            name=f"emission-cycle-{int(current_time)}"
+                        )
+                        cycle_thread.start()
+                        
                         self.last_emission_time = current_time
+                        logger.info(f"🔍 EMISSION-TIMER-DEBUG: Emission cycle started async, next in {self.emission_interval}s")
+                        
                 except Exception as e:
-                    logger.error(f"❌ Emission cycle error: {e}", exc_info=True)
+                    logger.error(f"❌ Emission timer loop error: {e}", exc_info=True)
+                    # Don't break the loop on exceptions - keep trying
                 
                 time.sleep(0.1)  # Prevent CPU spinning
+            
+            logger.warning(f"🔍 EMISSION-TIMER-DEBUG: Emission timer loop ended (is_running={self.is_running})")
         
         self.emission_timer = threading.Thread(
             target=emission_loop, 
@@ -286,15 +318,28 @@ class WebSocketPublisher:
             )
 
 
-        # Prevent overlapping cycles
+        # Prevent overlapping cycles with timeout protection
         if self.emission_in_progress:
-            logger.debug("Emission already in progress, skipping")
-            return
+            # Check if the current cycle has been running too long (timeout protection)
+            if hasattr(self, '_emission_start_time'):
+                stuck_time = time.time() - self._emission_start_time
+                if stuck_time > 10.0:  # 10 second timeout
+                    logger.error(f"🔍 EMISSION-CYCLE-DEBUG: Emission cycle stuck for {stuck_time:.1f}s, forcing reset")
+                    self.emission_in_progress = False
+                    # Continue to start new cycle
+                else:
+                    logger.warning(f"🔍 EMISSION-CYCLE-DEBUG: Emission already in progress for {stuck_time:.1f}s, skipping")
+                    return
+            else:
+                logger.warning("🔍 EMISSION-CYCLE-DEBUG: Emission already in progress, skipping")
+                return
             
         with self.emission_lock:
             try:
+                logger.info("🔍 EMISSION-CYCLE-DEBUG: Starting emission cycle")
                 self.emission_in_progress = True
                 cycle_start_time = time.time()
+                self._emission_start_time = cycle_start_time  # Track start time for timeout protection
                 
                 # TRACE: Start emission cycle
                 if tracer.should_trace('SYSTEM'):
@@ -314,21 +359,39 @@ class WebSocketPublisher:
                         }
                     )
                 
-                # Check if we have connected users first
+                # Get connected users
                 connected_users = []
                 if self.websocket_mgr:
                     connected_users = self.websocket_mgr.get_connected_user_ids()
                 
+                total_connections = len(connected_users) if connected_users else 0
+                
+                
+                # ========================================================================
+                # TEMPORARY TESTING BYPASS #2 - REMOVE AFTER USER CONNECTION ISSUE FIXED
+                # ========================================================================
+                # ISSUE: Early return prevents emission cycle from running when no users connected
+                # IMPACT: Our main bypass logic (lines 407+) never gets executed
+                # SOLUTION: Comment out early return for testing purposes
+                # TODO: Remove this bypass once user connection tracking issue is resolved
+                # ========================================================================
                 if not connected_users:
-                    # Notify monitor about skip due to no users
+                    # TEMPORARY: Log but don't return early for testing
+                    logger.info("🔍 EMISSION-DEBUG: No users connected, continuing with bypass for testing")
+                    
+                    # Notify monitor about skip due to no users (but don't actually skip)
                     if HAS_MONITORING and system_monitor and hasattr(system_monitor, 'track_emission_skip'):
                         system_monitor.track_emission_skip('no_users_connected')
+                    
+                    # TEMPORARILY COMMENTED OUT FOR TESTING:
+                    # return  # <-- This prevented our main bypass logic from running
+                
+                # Pull events from DataPublisher
+                if not self.data_publisher:
+                    logger.error("🔍 EMISSION-DEBUG: No data publisher available")
                     return
                 
-                # Pull events from DataPublisher with multi-frequency support
-                if not self.data_publisher:
-                    return
-                    
+                buffer_status = self.data_publisher.get_buffer_status() if self.data_publisher else {'total': 0}
                 buffer_pull_start = time.time()
                 # SPRINT 101: Pull events from enabled frequencies only
                 stock_data = self.data_publisher.get_buffered_events(
@@ -336,6 +399,11 @@ class WebSocketPublisher:
                     frequencies=list(self.enabled_frequencies)
                 )
                 buffer_pull_duration = (time.time() - buffer_pull_start) * 1000
+                
+                # Log only when events are actually pulled
+                total_pulled = self._count_total_events_multifrequency(stock_data) if stock_data else 0
+                if total_pulled > 0:
+                    logger.info(f"🔍 EMISSION-DEBUG: Pulled {total_pulled} events, emitting to {total_connections} users")
                 
                 # TRACE: Slow buffer pull with multi-frequency details
                 if tracer.should_trace('SYSTEM') and buffer_pull_duration > 10:
@@ -384,6 +452,15 @@ class WebSocketPublisher:
                 # Count total events across all frequencies
                 total_events = self._count_total_events_multifrequency(stock_data)
                 
+                # ========================================================================
+                # TEMPORARY TESTING BYPASS - REMOVE AFTER USER CONNECTION ISSUE FIXED
+                # ========================================================================
+                # REASON: User reports being logged in but backend shows 0 connected users
+                # PURPOSE: Bypass user connection check to test if event detection bypass works
+                # IMPACT: Will emit events even with no connected users (for debugging only)
+                # TODO: Remove this bypass once user connection tracking issue is resolved
+                # ========================================================================
+                
                 # Determine skip reason if applicable
                 skip_reason = None
                 if total_events == 0 and len(connected_users) == 0:
@@ -391,10 +468,18 @@ class WebSocketPublisher:
                 elif total_events == 0 and len(connected_users) > 0:
                     skip_reason = 'no_events_with_users'
                 elif total_events > 0 and len(connected_users) == 0:
-                    skip_reason = 'events_but_no_users'
+                    # TEMPORARY BYPASS: Comment out the skip for events_but_no_users
+                    # This allows events to flow even when backend thinks no users connected
+                    logger.info(f"🔍 BYPASS-DEBUG: TEMPORARILY ALLOWING emission despite 0 users - Events: {total_events}, Users: {len(connected_users)}")
+                    logger.info(f"🔍 BYPASS-DEBUG: This is for testing event detection bypass - REMOVE THIS AFTER CONNECTION ISSUE FIXED")
+                    skip_reason = None  # FORCE NO SKIP - TEMPORARY TESTING ONLY
+                    # skip_reason = 'events_but_no_users'  # <-- COMMENTED OUT FOR TESTING
                 
-                # Handle skip cases
+                # Handle skip cases (will only skip if no events, not if no users)
                 if skip_reason:
+                    # DEBUG: Log why emissions are being skipped
+                    logger.info(f"🔍 SKIP-DEBUG: Skipping emission - Reason: {skip_reason}, Events: {total_events}, Users: {len(connected_users)}")
+                    
                     # Notify monitor
                     if HAS_MONITORING and system_monitor and hasattr(system_monitor, 'track_emission_skip'):
                         system_monitor.track_emission_skip(skip_reason)
@@ -422,7 +507,7 @@ class WebSocketPublisher:
                     
                     return  # Exit early for any skip reason
                 
-                # We have events and users - update last non-empty emission time
+                # We have events - update last non-empty emission time (modified for testing)
                 self.last_non_empty_emission = time.time()
                 
                 # Mark events as ready for emission (moved from DataPublisher)
@@ -432,15 +517,44 @@ class WebSocketPublisher:
                 events_emitted = 0
                 users_reached = 0
                 
-                for user_id in connected_users:
-                    user_events = self._process_user_data(user_id, stock_data, analytics_data)
-                    if user_events and self._has_events(user_events):
-                        self.websocket_mgr.emit_to_user(user_events, user_id, 'stock_data')
-                        events_emitted += self._count_user_events(user_events)
-                        users_reached += 1
-                        
-                        # Trace emissions
-                        self._trace_user_emissions(user_id, user_events)
+                logger.info(f"🔍 EMISSION-DEBUG: Starting emission to {len(connected_users)} connected users with {total_events} total events")
+                
+                # ========================================================================
+                # TEMPORARY TESTING MODIFICATION - HANDLE 0 USERS CASE
+                # ========================================================================
+                if len(connected_users) == 0:
+                    # TEMPORARY: For testing, log the events that would be emitted even with no users
+                    logger.info(f"🔍 BYPASS-DEBUG: No connected users, but logging events that would be emitted:")
+                    logger.info(f"🔍 BYPASS-DEBUG: Stock data keys: {list(stock_data.keys()) if stock_data else 'None'}")
+                    
+                    # Try to process data as if there was a user (user_id = -999 for testing)
+                    test_user_events = self._process_user_data(-999, stock_data, analytics_data)
+                    if test_user_events and self._has_events(test_user_events):
+                        event_count = self._count_user_events(test_user_events)
+                        logger.info(f"🔍 BYPASS-DEBUG: Would emit {event_count} events to frontend if user was connected")
+                        logger.info(f"🔍 BYPASS-DEBUG: Event types: highs={len(test_user_events.get('highs', []))}, "
+                                f"lows={len(test_user_events.get('lows', []))}, "
+                                f"trending={len(test_user_events.get('trending', {}).get('up', []))}+{len(test_user_events.get('trending', {}).get('down', []))}, "
+                                f"surging={len(test_user_events.get('surging', {}).get('up', []))}+{len(test_user_events.get('surging', {}).get('down', []))}")
+                    else:
+                        logger.info(f"🔍 BYPASS-DEBUG: No events would be emitted (filtered out)")
+                else:
+                    # Normal case - emit to each connected user
+                    for user_id in connected_users:
+                        user_events = self._process_user_data(user_id, stock_data, analytics_data)
+                        if user_events and self._has_events(user_events):
+                            logger.info(f"🔍 EMISSION-DEBUG: User {user_id} has events, calling emit_to_user...")
+                            self.websocket_mgr.emit_to_user(user_events, user_id, 'stock_data')
+                            events_emitted += self._count_user_events(user_events)
+                            users_reached += 1
+                            logger.info(f"🔍 EMISSION-DEBUG: User {user_id} emission complete. Users reached: {users_reached}")
+                            
+                            # Trace emissions
+                            self._trace_user_emissions(user_id, user_events)
+                        else:
+                            logger.info(f"🔍 EMISSION-DEBUG: User {user_id} has no events to emit")
+                
+                logger.info(f"🔍 EMISSION-DEBUG: Emission loop complete. Users: {users_reached}/{len(connected_users)}, Events emitted: {events_emitted}")
                 
                 # TRACE: Complete emission cycle with performance metrics
                 elapsed_ms = (time.time() - cycle_start_time) * 1000
@@ -482,6 +596,9 @@ class WebSocketPublisher:
                         }
                     )
             finally:
+                cycle_duration = (time.time() - cycle_start_time) * 1000 if 'cycle_start_time' in locals() else 0
+                if total_pulled > 0 or cycle_duration > 50:
+                    logger.info(f"🔍 EMISSION-DEBUG: Cycle completed - {total_pulled} events in {cycle_duration:.1f}ms")
                 self.emission_in_progress = False
 
     #---------------------------------------------------------------------

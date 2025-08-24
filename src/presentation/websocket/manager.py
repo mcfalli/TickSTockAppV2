@@ -267,12 +267,14 @@ class WebSocketManager:
                     try:
                         connection_emit_start = time.time()
                         
-                        # Only log first few emissions for debugging
-                        #if successful_emissions < 3:
-                        #    logger.debug(f"✅ WEB-SOCKET: Emitting {payload_size} bytes to connection {connection_id}")
-                        #logger.debug(f"✅ WEB-SOCKET PAYLOAD: 777777777777777777777777777777777777777777777777777")
-                        #logger.debug(f"✅ WEB-SOCKET PAYLOAD: Emitting eventname: {event_name} contents: {payload}")
-                        #logger.debug(f"✅ WEB-SOCKET PAYLOAD: 777777777777777777777777777777777777777777777777777")
+                        # DEBUG: Log WebSocket emissions to trace data flow
+                        # 777777777777777777777777777777777777777777777777777777777777777777777
+                        logger.info("7" * 80)
+                        logger.info(f"🔍 EMIT-DEBUG: Emitting {payload_size} bytes to user {user_id} connection {connection_id}")
+                        logger.info("7" * 80)
+                        if successful_emissions == 0:  # Log first emission content
+                            logger.info(f"🔍 EMIT-DEBUG: Event: {event_name}, Content: {payload[:1000]}...")  # First 1000 chars
+                            logger.info(f"🔍 EMIT-DEBUG: Full payload size: {payload_size} bytes")
                         self.socketio.emit(event_name, payload, room=connection_id)
                         successful_emissions += 1
                         

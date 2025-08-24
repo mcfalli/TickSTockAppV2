@@ -62,13 +62,6 @@ class HighLowDetector:
         # ===== STATE TRACKING =====
         self.ticker_data = {}
         self.last_emission_times = {}
-        
-        logger.info(f"HighLowDetector initialized with:")
-        logger.info(f"  - Base Min Price Change: ${self.base_min_price_change}")
-        logger.info(f"  - Base Min Percent Change: {self.base_min_percent_change}%")
-        logger.info(f"  - Cooldown: {self.cooldown_seconds}s")
-        logger.info(f"  - Market Aware: {self.market_aware}")
-        logger.info(f"  - Reversal Tracking: {self.track_reversals}")
 
     def reset_for_new_market_session(self, market_status):
         """Reset all tickers for new market session."""
@@ -145,8 +138,10 @@ class HighLowDetector:
 
     def detect_highlow(self, tick_data: TickData, stock_data: StockData):
         """
-        Process a stock tick event for event detection.
+        TEMPORARY BYPASS: Process a stock tick event for event detection.
         PHASE 4: Now works exclusively with typed objects.
+        
+        TEMPORARY: Returns HIGH event for ALL ticks with real data
         
         Args:
             tick_data: TickData object containing the current tick
@@ -163,6 +158,61 @@ class HighLowDetector:
             price = tick_data.price
             market_status = tick_data.market_status
             timestamp = tick_data.timestamp
+            
+            # TEMPORARY BYPASS: Initialize state normally but force event creation
+            # Initialize or get ticker state
+            if ticker not in self.ticker_data:
+                from src.processing.detectors.utils import initialize_ticker_state
+                self.ticker_data[ticker] = initialize_ticker_state(
+                    ticker=ticker,
+                    price=price,
+                    market_status=market_status,
+                    market_open_price=tick_data.market_open_price,
+                    timestamp=timestamp,
+                    tick_data=tick_data
+                )
+                internal_state = self.ticker_data[ticker]
+            else:
+                internal_state = self.ticker_data[ticker]
+            
+            # Get real base price calculation
+            from src.processing.detectors.utils import get_base_price, calculate_percent_change
+            base_price, base_price_source = get_base_price(
+                stock_data=stock_data,
+                market_status=market_status,
+                market_open_price=tick_data.market_open_price,
+                current_price=price
+            )
+            
+            percent_change = calculate_percent_change(price, base_price)
+            
+            # Update session highs/lows normally
+            internal_state['session_high'] = max(internal_state.get('session_high', price), price)
+            internal_state['session_low'] = min(internal_state.get('session_low', price), price)
+            internal_state['last_price'] = price
+            
+            # TEMPORARY BYPASS: Force creation of HIGH event for every tick
+            from src.core.domain.events.highlow import HighLowEvent
+            
+            event = HighLowEvent(
+                ticker=ticker,
+                price=price,
+                type='high',
+                time=timestamp,
+                direction='up',
+                percent_change=percent_change,
+                vwap=getattr(tick_data, 'vwap', None),
+                volume=getattr(tick_data, 'volume', 0),
+                session_high=internal_state['session_high'],
+                session_low=internal_state['session_low'],
+                trend_flag=getattr(stock_data, 'trend_flag', 'unknown'),
+                surge_flag=getattr(stock_data, 'surge_flag', 'unknown'),
+                is_initial=False,
+                label=f"BYPASS-HIGH-{ticker}-{int(current_time)}"
+            )
+            
+            result = {"events": [event]}
+            return result
             
             # TRACE: Start of processing
             tracer.create_trace_event(

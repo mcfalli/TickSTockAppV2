@@ -119,6 +119,7 @@ class DataProviderFactory:
         use_polygon = config.get('USE_POLYGON_API', False)
         polygon_api_key = config.get('POLYGON_API_KEY', '')
         
+        logger.info("=" * 80)
         logger.info("DATA-PROVIDER-FACTORY: 🔧 Multi-frequency provider selection:")
         logger.info(f"DATA-PROVIDER-FACTORY:    USE_SYNTHETIC_DATA: {'✅ ENABLED' if use_synthetic else '❌ DISABLED'}")
         logger.info(f"DATA-PROVIDER-FACTORY:    USE_POLYGON_API: {'✅ ENABLED' if use_polygon else '❌ DISABLED'}")
@@ -150,7 +151,9 @@ class DataProviderFactory:
         if use_synthetic:
             logger.info("DATA-PROVIDER-FACTORY: ✅ Selected SimulatedDataProvider for multi-frequency")
             return SimulatedDataProvider(config)
-        
+        logger.info("=" * 80)
+
+
         # NO FALLBACK - Fail explicitly
         error_msg = (
             "🚨 DATA-PROVIDER-FACTORY: MULTI-FREQUENCY ERROR - No provider configured!\n"

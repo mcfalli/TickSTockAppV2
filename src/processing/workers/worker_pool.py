@@ -343,12 +343,12 @@ class WorkerPoolManager:
         while self.processing_active:
             try:
                 # Sprint 26: Log batch size on first collection for this worker
-                if events_processed_locally == 0:
-                    logger.info(f"📊 SPRINT 26 - Worker-{worker_id} using batch_size={self.worker_event_batch_size}")
+                #if events_processed_locally == 0:
+                #    logger.info(f"📊 SPRINT 26 - Worker-{worker_id} using batch_size={self.worker_event_batch_size}")
                 
                 # DIAGNOSTIC: Every 100 attempts, check what's available
-                if consecutive_empty_collections % 100 == 0 and consecutive_empty_collections > 0:
-                    logger.debug(f"🔍 DIAG-WORKER-POOL: Worker-{worker_id}: No events for {consecutive_empty_collections} attempts")
+                #if consecutive_empty_collections % 100 == 0 and consecutive_empty_collections > 0:
+                #    logger.debug(f"🔍 DIAG-WORKER-POOL: Worker-{worker_id}: No events for {consecutive_empty_collections} attempts")
                 
                 # Workers process ALL events
                 batch_start_time = time.time()
@@ -636,15 +636,20 @@ class WorkerPoolManager:
             
             # NEW: Re-queue display events after processing
             if event_type in ['high', 'low', 'session_high', 'session_low', 'trend', 'surge']:
+                # DEBUG: Log that we're about to re-queue for display
+                logger.info(f"🔍 WORKER-DEBUG: Worker-{worker_id}: Re-queuing {event_type} for {ticker} to display_queue")
+                
                 # Display events need to be sent to frontend
                 try:
                     # SPRINT 29: Convert ALL typed events to transport format before queuing
                     if hasattr(event_data, 'to_transport_dict'):
                         # Convert typed event to dict format for frontend
                         transport_data = event_data.to_transport_dict()
+                        logger.info(f"🔍 WORKER-DEBUG: Converted {event_type} to transport format")
                     elif isinstance(event_data, dict):
                         # Already a dict, pass through
                         transport_data = event_data
+                        logger.info(f"🔍 WORKER-DEBUG: {event_type} already in dict format")
                     else:
                         logger.warning(f"Unknown event format for {event_type}: {type(event_data)}")
                         transport_data = {'error': 'unknown_format', 'type': event_type}
@@ -655,11 +660,17 @@ class WorkerPoolManager:
                         block=False
                     )
                     
+                    # DEBUG: Log successful queuing
+                    logger.info(f"🔍 WORKER-DEBUG: Successfully queued {event_type} for {ticker} to display_queue")
+                    
                     # Update statistics
                     self.market_service.display_queue_stats['events_queued'] += 1
                     current_size = self.market_service.display_queue.qsize()
                     if current_size > self.market_service.display_queue_stats['max_depth_seen']:
                         self.market_service.display_queue_stats['max_depth_seen'] = current_size
+                    
+                    # DEBUG: Log display_queue state
+                    logger.info(f"🔍 WORKER-DEBUG: display_queue size after adding {event_type}: {current_size}")
                     
                     # TRACE: Event re-queued for display
                     if ticker and tracer.should_trace(ticker):

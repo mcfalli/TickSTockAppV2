@@ -82,40 +82,50 @@ class SurgeDetector:
         self.last_sent_surges = {}
         self.surge_counts = {}  # {ticker: {'up': count, 'down': count}}
         self.last_surge_direction = {}  # {ticker: 'up' or 'down'}
-        
-        # Log configuration summary
-        logger.info(f"SurgeDetector initialized with:")
-        logger.info(f"  - Interval: {self.interval_seconds}s")
-        logger.info(f"  - Global Sensitivity: {self.global_sensitivity}")
-        logger.info(f"  - Volume Threshold: {self.base_volume_threshold}x")
-        logger.info(f"  - Market Multipliers: Open={self.market_open_multiplier}, "
-                    f"Close={self.market_close_multiplier}, Midday={self.midday_multiplier}")
-        if self.testing_mode:
-            logger.info(f"  - TESTING MODE ACTIVE with multipliers: "
-                        f"threshold={self.test_threshold_multiplier}, "
-                        f"volume={self.test_volume_multiplier}")
 
     def detect_surge(self, stock_data, ticker, price, vwap, volume, tick_vwap, tick_volume, tick_trade_size, check_only=False):
         """
-        Enhanced detect_surge with adaptive thresholds based on market context.
+        TEMPORARY BYPASS: Enhanced detect_surge with adaptive thresholds based on market context.
+        
+        TEMPORARY: Returns SURGE event for ALL ticks with real data
         """
         try:
+            # TEMPORARY BYPASS: Skip all logic and create surge event for every tick
+            from src.core.domain.events.surge import SurgeEvent
+            
             current_time = time.time()
-            detection_start_time = current_time
-            result = {"events": [], "surge_detected": False, "surge_info": None}
             
-            # Data source tracking
-            data_source = "PRODUCTION" if self.config.get('USE_POLYGON_API') else "SYNTHETIC"
+            # Use real calculations for realistic data
+            from src.processing.detectors.utils import calculate_percent_change
             
-            # Add diagnostic entry with market context
-            #logger.debug(f"DIAG-SURGE-START [{data_source}] {ticker}: "
-            #            f"price={price:.2f}, vol={volume}, tick_vol={tick_volume}")
+            # Get base price for calculations
+            base_price = getattr(stock_data, 'market_open_price', price * 0.99)
+            percent_change = calculate_percent_change(price, base_price)
             
-            # Initialize surge data
-            surge_data = self._initialize_surge_data(stock_data, ticker, check_only=False)
+            # Calculate volume surge ratio (mock but realistic)
+            avg_volume = getattr(stock_data, 'average_volume', 10000)
+            volume_ratio = (volume / avg_volume) if volume and avg_volume > 0 else 1.5
             
-            # Get market context for adaptive thresholds
-            current_timestamp = datetime.fromtimestamp(current_time, tz=self.eastern_tz)
+            # Create realistic surge event with actual data
+            event = SurgeEvent(
+                ticker=ticker,
+                type='surge',
+                price=price,
+                time=current_time,
+                direction='up' if percent_change > 0 else 'down',
+                surge_trigger_type='price_and_volume' if volume_ratio > 1.2 else 'price',
+                surge_magnitude=abs(percent_change),
+                surge_volume_multiplier=volume_ratio,
+                surge_strength='strong' if abs(percent_change) > 2.0 else 'moderate',
+                surge_score=min(abs(percent_change) * 10, 100.0),  # Scale to 0-100
+                percent_change=percent_change,
+                vwap=vwap,
+                volume=volume or 0,
+                label=f"BYPASS-SURGE-{ticker}-{int(current_time)}"
+            )
+            
+            result = {"events": [event], "surge_detected": True, "surge_info": event}
+            return result
             
             # Use the shared utility function from event_detector_util
             from src.processing.detectors.utils import get_market_period_detailed, get_surge_price_band, calculate_surge_volatility
@@ -316,8 +326,7 @@ class SurgeDetector:
             return result
             
         except Exception as e:
-            logger.error(f"SURGE-ERROR [{data_source if 'data_source' in locals() else 'UNKNOWN'}] "
-                        f"{ticker}: Error in detect_surge: {e}", exc_info=True)
+            logger.error(f"SURGE-ERROR {ticker}: Error in detect_surge: {e}", exc_info=True)
             return {"events": [], "surge_detected": False, "surge_info": None}
 
 

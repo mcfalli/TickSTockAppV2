@@ -97,6 +97,7 @@ def initialize_market_services(config, cache_control, ws_manager):
         logger.info(f"    WEBSOCKET_FAIR_VALUE_ENABLED: {'✅ ENABLED' if config.get('WEBSOCKET_FAIR_VALUE_ENABLED') else '❌ DISABLED'}")
     
     logger.info("🔧 INITIALIZING DATA PROVIDER (strict validation, no fallbacks)...")
+    logger.info("=" * 80)
     
     # Initialize data provider with strict validation (no fallbacks)
     try:
@@ -277,13 +278,24 @@ def register_socketio_handlers(socketio, ws_manager, market_service):
         
         client_id = request.sid
         
+        # DEBUG: Add comprehensive connection debugging
+        logger.info(f"🔍 CONNECT-DEBUG: WebSocket connection attempt from {client_id}")
+        logger.info(f"🔍 CONNECT-DEBUG: Auth parameter: {auth}")
+        logger.info(f"🔍 CONNECT-DEBUG: current_user type: {type(current_user)}")
+        logger.info(f"🔍 CONNECT-DEBUG: current_user.is_authenticated: {getattr(current_user, 'is_authenticated', 'MISSING')}")
+        
+        if hasattr(current_user, 'id'):
+            logger.info(f"🔍 CONNECT-DEBUG: current_user.id: {current_user.id}")
+        if hasattr(current_user, 'username'):
+            logger.info(f"🔍 CONNECT-DEBUG: current_user.username: {current_user.username}")
+            
         try:
             # 🆕 SPRINT 1D.3: Get authenticated user
             if current_user.is_authenticated:
                 user_id = current_user.id
                 username = current_user.username
                 
-                logger.info(f"Authenticated user {username} (ID: {user_id}) connected: {client_id}")
+                logger.info(f"✅ CONNECT-SUCCESS: Authenticated user {username} (ID: {user_id}) connected: {client_id}")
                 
                 # Register user connection with enhanced tracking
                 ws_manager.register_user_connection(user_id, client_id)
@@ -350,7 +362,9 @@ def register_socketio_handlers(socketio, ws_manager, market_service):
                 
             else:
                 # 🚨 SPRINT 1D.3: Reject unauthenticated connections
-                logger.warning(f"UNAUTHENTICATED_CONNECTION_REJECTED: {client_id}")
+                logger.warning(f"❌ CONNECT-FAILED: UNAUTHENTICATED_CONNECTION_REJECTED: {client_id}")
+                logger.info(f"🔍 CONNECT-DEBUG: Authentication failed - current_user.is_authenticated = {getattr(current_user, 'is_authenticated', 'MISSING')}")
+                logger.info(f"🔍 CONNECT-DEBUG: This connection will be rejected and disconnected")
                 
                 # Send clear rejection message before disconnecting
                 emit('error', {
@@ -382,11 +396,23 @@ def register_socketio_handlers(socketio, ws_manager, market_service):
         """
         client_id = request.sid if hasattr(request, 'sid') else 'unknown'
         
+        # DEBUG: Track disconnect reason and context
+        import inspect
+        frame = inspect.currentframe()
+        stack_info = []
+        try:
+            # Get stack trace to understand what triggered the disconnect
+            for f in inspect.stack()[:5]:  # First 5 frames
+                stack_info.append(f"{f.filename}:{f.lineno} in {f.function}")
+        except:
+            stack_info = ["Stack trace unavailable"]
+        
         # Get user info before cleanup
         user_id = ws_manager.get_connection_user_id(client_id)
         
         if user_id:
-            logger.info(f"Authenticated user {user_id} disconnected: {client_id}")
+            logger.info(f"🔍 DISCONNECT-DEBUG: Authenticated user {user_id} disconnected: {client_id}")
+            logger.info(f"🔍 DISCONNECT-DEBUG: Disconnect triggered by: {' -> '.join(stack_info[:3])}")
             
             # Check remaining connections before cleanup
             connections_before = ws_manager.get_user_connection_count(user_id)
@@ -398,13 +424,13 @@ def register_socketio_handlers(socketio, ws_manager, market_service):
             connections_after = ws_manager.get_user_connection_count(user_id)
             
             if connections_after == 0:
-                logger.info(f"User {user_id} has no remaining connections")
+                logger.info(f"🔍 DISCONNECT-DEBUG: User {user_id} has no remaining connections (was {connections_before}, now {connections_after})")
                 # 🆕 SPRINT 1D.3: Could optionally clear filter cache here if desired
                 # market_service.websocket_publisher.invalidate_user_filter_cache(user_id)
             else:
                 logger.debug(f"User {user_id} still has {connections_after} connections")
         else:
-            logger.info(f"Unauthenticated client disconnected: {client_id}")
+            logger.info(f"🔍 DISCONNECT-DEBUG: Unauthenticated client disconnected: {client_id}")
         
         # Clean up generic client tracking
         ws_manager.unregister_client(client_id)

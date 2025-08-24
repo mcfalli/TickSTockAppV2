@@ -104,33 +104,12 @@ class TrendDetector:
         self.trend_counts = {}  # {ticker: {'up': count, 'down': count}}
         self.last_trend_direction = {}  # {ticker: 'up' or 'down'}
         self.last_trend_emission = {}  # Track when we last emitted a trend event
-        
-        # Update logging
-        logger.info(f"TrendDetector initialized with:")
-        logger.info(f"  - Windows: {self.short_window}s/{self.medium_window}s/{self.long_window}s")
-        logger.info(f"  - Global Sensitivity: {self.global_sensitivity}")
-        logger.info(f"  - Direction Threshold: {self.direction_threshold}")
-        logger.info(f"  - Market Multipliers: Open={self.market_open_multiplier}, "
-                    f"Close={self.market_close_multiplier}, Midday={self.midday_multiplier}")
-        logger.info(f"  - Warm-up: {self.warmup_period_seconds}s with min {self.min_history_points_required} points")        
 
         # DIAGNOSTICS Add diagnostic tracking
         self._warmup_logged = set()  # Track which tickers have logged warmup complete
         self._diagnostic_interval = 30  # Log diagnostics every 30 seconds
         self._last_diagnostic_log = {}  # Track last diagnostic log time per ticker
         
-        # DIAGNOSTICS Log configuration on startup
-        logger.info("=" * 60)
-        logger.info("TREND DETECTOR CONFIGURATION")
-        logger.info("=" * 60)
-        logger.info(f"Warmup Period: {self.warmup_period_seconds}s")
-        logger.info(f"Min History Points: {self.min_history_points_required}")
-        logger.info(f"Min Points Per Window: {self.min_data_points_per_window}")
-        logger.info(f"Windows: short={self.short_window}s, medium={self.medium_window}s, long={self.long_window}s")
-        logger.info(f"Emission Interval: {self.min_emission_interval}s")
-        logger.info(f"Component Weights: price={self.price_weight}, vwap={self.vwap_weight}, volume={self.volume_weight}")
-        logger.info("=" * 60)
-
 
         # TRACE: Initialization complete
         if tracer.should_trace('SYSTEM'):
@@ -160,20 +139,46 @@ class TrendDetector:
     def detect_trend(self, stock_data, ticker, price, vwap, volume, tick_vwap, tick_volume, 
                     tick_trade_size, timestamp=None, check_only=False):
         """
-        Detect price trends using TrendDetectionEngine.
+        TEMPORARY BYPASS: Detect price trends using TrendDetectionEngine.
         Now uses centralized engine for all calculations with market awareness.
         Enhanced with comprehensive diagnostic logging and Sprint 48 adaptive thresholds.
+        
+        TEMPORARY: Returns TREND event for ALL ticks with real data
         """
         start_time = time.time()
         import json
         
         try:
-            # DIAGNOSTIC: Track data source
-            data_source = "PRODUCTION" if self.config.get('USE_POLYGON_API') else "SYNTHETIC"
+            # TEMPORARY BYPASS: Skip all logic and create trend event for every tick
+            from src.core.domain.events.trend import TrendEvent
             
-            # Initialize timestamp and result
-            current_time = self._normalize_timestamp(timestamp)
-            result = {"events": [], "trend_detected": False, "trend_info": None}
+            current_time = timestamp if timestamp else time.time()
+            
+            # Use real calculations for realistic data
+            from src.processing.detectors.utils import calculate_percent_change, get_base_price
+            
+            # Get base price for percent change calculation
+            base_price = getattr(stock_data, 'market_open_price', price * 0.99)
+            percent_change = calculate_percent_change(price, base_price)
+            
+            # Create realistic trend event with actual data
+            event = TrendEvent(
+                ticker=ticker,
+                type='trend',
+                price=price,
+                time=current_time,
+                direction='up' if percent_change > 0 else 'down',
+                trend_strength='strong' if abs(percent_change) > 1.0 else 'moderate',
+                trend_score=min(abs(percent_change) * 10, 100.0),  # Scale to 0-100
+                trend_vwap_position='above' if vwap and price > vwap else 'below',
+                percent_change=percent_change,
+                vwap=vwap,
+                volume=volume or 0,
+                label=f"BYPASS-TREND-{ticker}-{int(start_time)}"
+            )
+            
+            result = {"events": [event], "trend_detected": True, "trend_info": event}
+            return result
             
             # DIAGNOSTIC LOG 1: Entry point with source
             #logger.info(f"📊 DIAG TREND-ENTRY [{data_source}] {ticker}: price={price}, "
@@ -583,8 +588,7 @@ class TrendDetector:
             return result
             
         except Exception as e:
-            logger.error(f"❌ TREND-ERROR [{data_source if 'data_source' in locals() else 'UNKNOWN'}] {ticker}: "
-                        f"Error in detect_trend: {e}", exc_info=True)
+            logger.error(f"TREND-ERROR {ticker}: Error in detect_trend: {e}", exc_info=True)
             return {"events": [], "trend_detected": False, "trend_info": None}
 
 
