@@ -719,8 +719,7 @@ class CacheControl:
         Returns:
             dict: Detailed membership information for logging
         """
-        from config.logging_config import get_domain_logger, LogDomain
-        logger = get_domain_logger(LogDomain.UNIVERSE_TRACKING, 'cache_control')
+        method_logger = logging.getLogger(f"{__name__}.get_user_membership_info")
         
         membership_info = {
             'ticker': ticker,
@@ -758,8 +757,7 @@ class CacheControl:
         Returns:
             dict: Coverage statistics for logging
         """
-        from config.logging_config import get_domain_logger, LogDomain
-        logger = get_domain_logger(LogDomain.UNIVERSE_TRACKING, 'cache_control')
+        method_logger = logging.getLogger(f"{__name__}.get_user_filtered_tickers")
         
         # Get all tickers from user's selected universes
         universe_tickers = set()
@@ -792,7 +790,7 @@ class CacheControl:
             'universe_breakdown': universe_breakdown
         }
         
-        logger.info(f"Universe coverage stats: {coverage_stats['overlap_count']} overlapping stocks, "
+        method_logger.info(f"Universe coverage stats: {coverage_stats['overlap_count']} overlapping stocks, "
                    f"{coverage_stats['coverage_percentage']}% universe coverage, "
                    f"{coverage_stats['subscription_efficiency']}% subscription efficiency")
         
@@ -809,8 +807,7 @@ class CacheControl:
         Returns:
             dict: Summary information for logging
         """
-        from config.logging_config import get_domain_logger, LogDomain
-        logger = get_domain_logger(LogDomain.UNIVERSE_TRACKING, 'cache_control')
+        method_logger = logging.getLogger(f"{__name__}.get_all_filtered_tickers")
         
         all_tickers = set()
         universe_details = {}
@@ -828,7 +825,7 @@ class CacheControl:
                 }
                 
             except Exception as e:
-                logger.warning(f"Error getting details for universe {universe_key}: {e}")
+                method_logger.warning(f"Error getting details for universe {universe_key}: {e}")
                 universe_details[universe_key] = {
                     'count': 0,
                     'description': 'Error loading universe',

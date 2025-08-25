@@ -3,9 +3,7 @@ config/
     __init__.py
     app_config.py
     logging_config.py
-    processing_config.json
     prometheus.yml
-    websocket_subscriptions.json
     environments/
         __init__.py
         dev.py
@@ -15,41 +13,7 @@ requirements/
     base.txt
     dev.txt
     prod.txt
-scripts/
-    README.md
-    __init__.py
-    test_runner.py
-    deployment/
-    dev_tools/
-        __init__.py
-        extract_documentation.py
-        load_stocks_cache_entries.py
-        maint_get_stocks.py
-        maint_load_stock_cache_entries.py
-        maint_read_stock_cache_entries.py
-        scan_unused_code.py
-        test_monitoring_optimization.py
-        test_polygon_api_check.py
-        test_polygon_comprehensive_api_config.py
-        util_dump_trace_details.py
-        util_dump_trace_entries.py
-        util_proj_gen_structure.py
-        util_proj_gen_structure_detailed.py
-        util_proj_gen_structure_docs.py
-    index/
-        detect_external_changes.py
-        index_utils.py
-        project_index.py
-        reindex_if_needed.py
-        update_index.py
-    maintenance/
-    migration/
-        __init__.py
-    temp/
-        temp.py
-        util_temp_run.py
 src/
-    CLAUDE.md
     README.md
     __init__.py
     app.py
@@ -60,6 +24,7 @@ src/
         rest/
             __init__.py
             api.py
+            api_complex_backup.py
             auth.py
             main.py
         websocket/
@@ -74,49 +39,25 @@ src/
         __init__.py
         domain/
             __init__.py
-            events/
-                __init__.py
-                aggregate.py
-                base.py
-                control.py
-                fmv.py
-                highlow.py
-                surge.py
-                trend.py
             market/
                 __init__.py
                 state.py
                 tick.py
         integration/
-            multi_channel_system.py
         interfaces/
             __init__.py
             data_provider.py
             data_result.py
         services/
             __init__.py
-            accumulation_manager.py
-            analytics_coordinator.py
-            analytics_manager.py
-            analytics_sync.py
             config_manager.py
             database_sync.py
             market_data_service.py
-            market_metrics.py
-            memory_accumulation.py
-            memory_analytics.py
             session_manager.py
             startup_service.py
-            universe_coordinator.py
             universe_service.py
             user_filters_service.py
             user_settings_service.py
-            universe/
-                __init__.py
-                analytics.py
-                core_manager.py
-                subscription_manager.py
-                user_manager.py
     infrastructure/
         README.md
         __init__.py
@@ -128,7 +69,6 @@ src/
             __init__.py.bak
             models/
                 __init__.py
-                analytics.py
                 base.py
             repositories/
                 __init__.py
@@ -146,33 +86,13 @@ src/
                 provider.py
             synthetic/
                 __init__.py
-                generator.py
-                loader.py
                 provider.py
-                types.py
-                generators/
-                    __init__.py
-                    fmv_generator.py
-                    per_minute_generator.py
-                    per_second_generator.py
-                validators/
-                    __init__.py
-                    data_consistency.py
         messaging/
             __init__.py
             email_service.py
             sms_service.py
             publishers/
             subscribers/
-    monitoring/
-        __init__.py
-        channel_monitoring.py
-        health_monitor.py
-        metrics_collector.py
-        performance_monitor.py
-        query_debug_logger.py
-        system_monitor.py
-        tracer.py
     presentation/
         __init__.py
         converters/
@@ -183,57 +103,11 @@ src/
             forms.py
         websocket/
             __init__.py
-            analytics.py
-            data_filter.py
             data_publisher.py
             display_converter.py
-            filter_cache.py
             manager.py
             polygon_client.py
             publisher.py
-            statistics.py
-            universe_cache.py
-    processing/
-        README.md
-        __init__.py
-        stream_manager.py
-        channels/
-            __init__.py
-            base_channel.py
-            channel_config.py
-            channel_metrics.py
-            channel_router.py
-            event_creators.py
-            fmv_channel.py
-            ohlcv_channel.py
-            tick_channel.py
-        detectors/
-            __init__.py
-            buysell_engine.py
-            buysell_tracker.py
-            engines.py
-            highlow_detector.py
-            manager.py
-            surge_detector.py
-            trend_detector.py
-            utils.py
-        pipeline/
-            __init__.py
-            event_detector.py
-            event_processor.py
-            multi_source_coordinator.py
-            source_context_manager.py
-            tick_processor.py
-        queues/
-            __init__.py
-            base_queue.py
-            priority_manager.py
-        rules/
-            __init__.py
-            source_specific_rules.py
-        workers/
-            __init__.py
-            worker_pool.py
     shared/
         __init__.py
         constants/
@@ -249,71 +123,14 @@ src/
         utils/
             __init__.py
             app_utils.py
-            event_factory.py
             general.py
             market_utils.py
             validation.py
-tasks/
-    task-introduction.md
-    technical-debt-backlog.md
-    track-plans.md
-    active/
-        109-draft_next_sprint_prd.md
-        109-prd-data-flow-pipeline-diagnosis.md
-        110-draft-pipeline-diagnosis-summary.md
-        110-prd-channel-router-fix.md
-        110-tasks-channel-router-fix.md
-    completed/
-        pipeline/
-            103-prd-architecture-review-analysis.md
-            103-tasks-architecture-review-analysis.md
-            104-prd-multi-channel-design-planning.md
-            104-tasks-multi-channel-design-planning.md
-            105-prd-core-channel-infrastructure.md
-            105-tasks-core-channel-infrastructure.md
-            106-prd-data-type-handlers.md
-            106-tasks-data-type-handlers.md
-            107-prd-event-processing-refactor.md
-            107-tasks-event-processing-refactor.md
-            108-prd-integration-testing.md
-            108-tasks-integration-testing.md
-            draft_sprint.md
-        source_data/
-            100_101_102_draft_data_source_enhancements.md
-            101-polygon-reference.md
-            prd-sprint-100-architecture-config.md
-            prd-sprint-101-websocket-multifrequency.md
-            prd-sprint-102-synthetic-data-docs.md
-            process-tasks-prd-sprint-100-architecture-config.md
-            process-tasks-prd-sprint-101-websocket-multifrequency.md
-            process-tasks-prd-sprint-102-synthetic-data-docs.md
-            tasks-prd-sprint-100-architecture-config.md
-            tasks-prd-sprint-101-websocket-multifrequency.md
-            tasks-prd-sprint-102-synthetic-data-docs.md
-        unit_tests/
-            unit_testing_framework_implementation.md
-            unit_testing_framework_prd.md
-    future/
-        future-sprint-monitoring-consolidation.md
-    templates/
-        command-create-prrd.md
-        create-prd.md
-        generate-tasks.md
-        process-task-list.md
-        sprint-task-introduction-template.md
 tests/
     README.md
     __init__.py
     conftest.py
     test_framework_verification.py
-    analytics/
-    data_processing/
-        sprint_105/
-            test_base_channel.py
-            test_channel_router.py
-        sprint_106/
-            test_data_types.py
-            test_tick_channel.py
     data_source/
         __init__.py
         fixtures/
@@ -321,8 +138,9 @@ tests/
             synthetic_data_fixtures.py
         integration/
             __init__.py
+            test_full_data_flow_to_frontend.py
             test_synthetic_data_app_integration.py
-            test_synthetic_data_multifrequency.py
+            test_synthetic_data_flow.py
             test_synthetic_data_quick_validation.py
             test_synthetic_data_system_validation.py
         performance/
@@ -331,90 +149,16 @@ tests/
         unit/
             __init__.py
             test_data_providers.py
-    event_detection/
-    event_processing/
-        sprint_107/
-            test_event_processor_refactor.py
-            test_existing_functionality_preservation.py
-            test_multi_source_integration.py
+            synthetic/
+                __init__.py
+                test_config_validation.py
+                test_provider.py
     fixtures/
         __init__.py
         market_data_fixtures.py
-        trace/
-            trace_analysis_tools.md
-            trace_analyzer_base.py
-            trace_component_definitions.py
-            trace_system_documentation.md
-            util_trace_dump_utility.py
-    integration/
-        __init__.py
-        multi_frequency/
-            __init__.py
-            test_cross_frequency_validation.py
-            test_end_to_end_multifrequency.py
-            test_polygon_integration.py
-        processing/
-        trace/
-            test_trace_coverage.py
-            test_trace_diagnostics.py
-            test_trace_emission_gap.py
-            test_trace_emission_timing.py
-            test_trace_flow_validation.py
-            test_trace_format_validator.py
-            test_trace_highlow_analysis.py
-            test_trace_lost_events.py
-            test_trace_orchestrator.py
-            test_trace_run_all_tests.py
-            test_trace_run_all_tests_diag.py
-            test_trace_statistical.py
-            test_trace_surge_analysis.py
-            test_trace_system_health.py
-            test_trace_trend_analysis.py
-            test_trace_user_connections.py
-            test_trace_visualization.py
-    performance/
-        __init__.py
-    pipeline/
-        __init__.py
-        run_channel_tests.py
-        simple_perf_test.py
-        test_base_channel.py
-        test_channel_config.py
-        test_channel_metrics.py
-        test_channel_router.py
-        test_data_types.py
-        test_event_creators.py
-        test_event_processor_refactor.py
-        test_existing_functionality_preservation.py
-        test_multi_channel_integration.py
-        test_multi_source_integration.py
-        test_router_fix_validation.py
-        test_router_perf.py
-        test_tick_channel.py
-        validate_channel_performance.py
-    regression/
-    system_integration/
-        sprint_108/
-            test_monitoring_integration.py
-            test_multi_channel_integration.py
-            test_performance_validation.py
     unit/
         __init__.py
         test_utilities.py
-        core/
-            test_detectors.py
-            test_events.py
-            test_multifrequency_events.py
-        infrastructure/
-        presentation/
-            websocket/
-                test_polygon_client_multifrequency.py
-                test_websocket_publisher_multifrequency.py
-        processing/
-            test_highlow_detector.py
-            test_stream_manager_multifrequency.py
-            pipeline/
-    websocket/
 web/
     CLAUDE.md
     package-lock.json

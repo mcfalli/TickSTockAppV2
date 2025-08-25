@@ -22,9 +22,9 @@ from src.auth.registration import RegistrationManager
 from src.auth.authentication import AuthenticationManager
 from src.auth.session import SessionManager
 from src.infrastructure.messaging.email_service import EmailManager
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 
-logger = get_domain_logger(LogDomain.AUTH_SESSION, 'app_routes_auth')
+logger = logging.getLogger(__name__)
 
 
 def register_auth_routes(app, extensions, cache_control, config):

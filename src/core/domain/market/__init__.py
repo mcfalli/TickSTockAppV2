@@ -1,5 +1,7 @@
-"""Module initialization."""
+"""Market Domain Module - Simplified for TickStockPL integration.
+
+PHASE 10 CLEANUP: Removed analytics imports that no longer exist.
+"""
 
 from .tick import TickData
-from .analytics import MarketAnalytics
-__all__ = ['TickData', 'MarketAnalytics']
+__all__ = ['TickData']

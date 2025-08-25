@@ -1,1 +1,0 @@
-# Multi-frequency integration tests

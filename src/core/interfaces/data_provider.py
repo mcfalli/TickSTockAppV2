@@ -3,9 +3,9 @@ from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
 
 from src.core.interfaces.data_result import DataResult
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 
-logger = get_domain_logger(LogDomain.CORE, 'data_provider')
+logger = logging.getLogger(__name__)
 
 class DataProvider(abc.ABC):
     """Abstract base class for stock market data providers."""

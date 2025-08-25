@@ -6,10 +6,10 @@ Handles all database operations with proper Flask context management.
 import time
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 from sqlalchemy import text
 
-logger = get_domain_logger(LogDomain.CORE, 'database_sync')
+logger = logging.getLogger(__name__)
 
 class DatabaseSyncService:
     """

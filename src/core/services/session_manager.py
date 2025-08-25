@@ -11,11 +11,10 @@ from typing import Dict, List, Any, Optional, Callable
 from dataclasses import dataclass
 from enum import Enum
 
-from config.logging_config import get_domain_logger, LogDomain
 from src.shared.utils import get_eastern_time
 import pytz
 
-logger = get_domain_logger(LogDomain.CORE, 'session_manager')
+logger = logging.getLogger(__name__)
 
 class MarketSession(Enum):
     """Market session types."""

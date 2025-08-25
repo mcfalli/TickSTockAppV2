@@ -16,10 +16,10 @@ from src.shared.utils.app_utils import (
 from src.infrastructure.database.models.base import User, db, Subscription, BillingInfo
 from src.auth.registration import RegistrationManager
 from src.infrastructure.messaging.email_service import EmailManager
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 
 
-logger = get_domain_logger(LogDomain.USER_SETTINGS, 'app_routes_main')
+logger = logging.getLogger(__name__)
 
 
 def register_main_routes(app, extensions, cache_control, config):

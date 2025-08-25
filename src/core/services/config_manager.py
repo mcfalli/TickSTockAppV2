@@ -6,9 +6,9 @@ import threading
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
 from typing import Any, Dict, List, Optional, Callable, Tuple
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 
-logger = get_domain_logger(LogDomain.CORE, 'config_manager')
+logger = logging.getLogger(__name__)
 
 # Global instance for get_config() compatibility function
 _global_config_manager = None
@@ -34,19 +34,8 @@ class ConfigManager:
     EMISSION_INTERVAL = 1.0     # WebSocketPublisher emission rate
     UPDATE_INTERVAL = 0.5       # Already used by DataPublisher
 
-    # Core Detection Parameters (hardcode as class constants)
-    SURGE_INTERVAL_SECONDS = 5              # Baseline comparison window
-    SURGE_MIN_DATA_POINTS = 3               # Minimum buffer size before detection
-    SURGE_VOLUME_THRESHOLD = 1.3            # Base volume multiplier threshold
-    SURGE_GLOBAL_SENSITIVITY = 1.0          # Global threshold multiplier (NEW)
-    SURGE_BUFFER_SIZE = 20                  # Maximum buffer points
-    SURGE_MAX_HISTORY_POINTS = 15           # Surge history retention
-    SURGE_EXPIRATION_SECONDS = 30           # Event expiration time
-    SURGE_COOLDOWN_SECONDS = 5              # Time between surge events (matches interval)
-
-    # Scoring System (hardcode as class constants)
-    SURGE_SCORE_PRICE_WEIGHT = 50           # Weight for price component
-    SURGE_SCORE_VOLUME_WEIGHT = 50          # Weight for volume component
+    # Core Processing Parameters
+    # (Removed legacy surge detection constants)
 
     # Default configuration values
     DEFAULTS = {
@@ -88,15 +77,7 @@ class ConfigManager:
         'LOG_FILE_ENABLED': True,
         'LOG_FILE_PRODUCTION_MODE': False,
 
-        # TRACING
-        'DATA_DEBUG_TRACE': False,
-        'DATA_DEBUG_TRACE_LEVEL': 'NORMAL',
-        'TRACE_ENABLED': False,
-        'TRACE_TICKERS': ['AAPL', 'TSLA', 'NVDA'],
-        'TRACE_LEVEL': 'NORMAL',
-        'TRACE_OUTPUT_DIR': './logs/trace',
-        'TRACE_AUTO_EXPORT_INTERVAL': 300,
-        'TRACE_MAX_SIZE_MB': 50,
+        # (Removed legacy tracing configuration - no longer needed after event detection cleanup)
 
         # POOL WORKERS CONFIGURATION - SPRINT 26 BASELINE
         'WORKER_POOL_SIZE': 12,
@@ -130,17 +111,7 @@ class ConfigManager:
 
         
         
-        # HighLow Event Detection Configuration
-        'HIGHLOW_MIN_PRICE_CHANGE': 0.01,
-        'HIGHLOW_MIN_PERCENT_CHANGE': 0.1,
-        'HIGHLOW_COOLDOWN_SECONDS': 1,
-        'HIGHLOW_MARKET_AWARE': True,
-        'HIGHLOW_EXTENDED_HOURS_MULTIPLIER': 2.0,
-        'HIGHLOW_OPENING_MULTIPLIER': 1.5,
-        'HIGHLOW_SIGNIFICANCE_SCORING': True,
-        'HIGHLOW_SIGNIFICANCE_VOLUME_WEIGHT': 0.5,
-        'HIGHLOW_TRACK_REVERSALS': True,
-        'HIGHLOW_REVERSAL_WINDOW': 300,
+        # (Removed legacy HighLow detection configuration)
         
         # SMS Settings
         'SMS_TEST_MODE': True,
@@ -154,7 +125,6 @@ class ConfigManager:
 
         # Migration Validation Settings
         'MIGRATION_VALIDATION': True,
-        'MIGRATION_PERFORMANCE_LOGGING': True,
         'MIGRATION_PARALLEL_PROCESSING': False,
 
         # Event Processor Configuration
@@ -171,153 +141,9 @@ class ConfigManager:
         'ENABLE_LEGACY_FALLBACK': True,
         'DATA_PUBLISHER_DEBUG_MODE': True,
 
-        # MARKET PERIOD - OPENING (9:30-9:45 AM ET)  # CHANGED from 9:30-10:00 AM
-        'TREND_DIRECTION_THRESHOLD_OPENING': 0.25,
-        'TREND_STRENGTH_THRESHOLD_OPENING': 0.45,
-        'TREND_GLOBAL_SENSITIVITY_OPENING': 1.0,
-        'TREND_MIN_EMISSION_INTERVAL_OPENING': 45,
-        'TREND_RETRACEMENT_THRESHOLD_OPENING': 0.5,
-        'TREND_MIN_DATA_POINTS_PER_WINDOW_OPENING': 4,
-        'TREND_WARMUP_PERIOD_SECONDS_OPENING': 45,
+        # (Removed legacy trend detection parameters)
 
-        # MARKET PERIOD - MIDDAY (9:45 AM - 3:30 PM ET)  # CHANGED from 10:00 AM - 3:30 PM
-        'TREND_DIRECTION_THRESHOLD_MIDDAY': 0.025,
-        'TREND_STRENGTH_THRESHOLD_MIDDAY': 0.05,
-        'TREND_GLOBAL_SENSITIVITY_MIDDAY': 1.5,
-        'TREND_MIN_EMISSION_INTERVAL_MIDDAY': 90,
-        'TREND_RETRACEMENT_THRESHOLD_MIDDAY': 0.25,
-        'TREND_MIN_DATA_POINTS_PER_WINDOW_MIDDAY': 8,
-        'TREND_WARMUP_PERIOD_SECONDS_MIDDAY': 90,
-
-        # MARKET PERIOD - CLOSING (3:30-4:00 PM ET)
-        'TREND_DIRECTION_THRESHOLD_CLOSING': 0.25,  # Increased from 0.20
-        'TREND_STRENGTH_THRESHOLD_CLOSING': 0.50,   # Increased from 0.40
-        'TREND_GLOBAL_SENSITIVITY_CLOSING': 1.0,    # Reduced from 1.2
-        'TREND_MIN_EMISSION_INTERVAL_CLOSING': 30,  # Increased from 20
-        'TREND_RETRACEMENT_THRESHOLD_CLOSING': 0.6, # Reduced from 0.8
-        'TREND_MIN_DATA_POINTS_PER_WINDOW_CLOSING': 4,  # Increased from 3
-        'TREND_WARMUP_PERIOD_SECONDS_CLOSING': 30,  # Increased from 20
-
-        # MARKET PERIOD - AFTERHOURS (4:00-8:00 PM ET)
-        'TREND_DIRECTION_THRESHOLD_AFTERHOURS': 0.015,  # Increased from 0.005 (3x)
-        'TREND_STRENGTH_THRESHOLD_AFTERHOURS': 0.04,    # Increased from 0.015 (2.6x)
-        'TREND_GLOBAL_SENSITIVITY_AFTERHOURS': 2.5,     # Reduced from 5.0
-        'TREND_MIN_EMISSION_INTERVAL_AFTERHOURS': 150,  # Increased from 120
-        'TREND_RETRACEMENT_THRESHOLD_AFTERHOURS': 0.15, # Reduced from 0.2
-        'TREND_MIN_DATA_POINTS_PER_WINDOW_AFTERHOURS': 12,  # Increased from 10
-        'TREND_WARMUP_PERIOD_SECONDS_AFTERHOURS': 240,  # Increased from 180
-
-        # MARKET PERIOD - PREMARKET (4:00-9:30 AM ET)
-        'TREND_DIRECTION_THRESHOLD_PREMARKET': 0.02,   # Increased from 0.01 (2x)
-        'TREND_STRENGTH_THRESHOLD_PREMARKET': 0.05,    # Increased from 0.025 (2x)
-        'TREND_GLOBAL_SENSITIVITY_PREMARKET': 2.0,     # Reduced from 4.0
-        'TREND_MIN_EMISSION_INTERVAL_PREMARKET': 120,  # Increased from 90
-        'TREND_RETRACEMENT_THRESHOLD_PREMARKET': 0.2,  # Reduced from 0.25
-        'TREND_MIN_DATA_POINTS_PER_WINDOW_PREMARKET': 10,  # Increased from 8
-        'TREND_WARMUP_PERIOD_SECONDS_PREMARKET': 180,  # Increased from 120
-
-        # PRICE BUCKET THRESHOLDS - More conservative
-        'TREND_DIRECTION_THRESHOLD_PENNY': 0.04,    # Increased from 0.02 (2x)
-        'TREND_STRENGTH_THRESHOLD_PENNY': 0.08,     # Increased from 0.05
-        'TREND_PRICE_CHANGE_PERCENT_PENNY': 1.5,    # Increased from 1.0
-
-        'TREND_DIRECTION_THRESHOLD_LOW': 0.02,      # Increased from 0.01 (2x)
-        'TREND_STRENGTH_THRESHOLD_LOW': 0.05,       # Increased from 0.03
-        'TREND_PRICE_CHANGE_PERCENT_LOW': 0.75,     # Increased from 0.5
-
-        'TREND_DIRECTION_THRESHOLD_MID': 0.015,     # Increased from 0.008
-        'TREND_STRENGTH_THRESHOLD_MID': 0.035,      # Increased from 0.02
-        'TREND_PRICE_CHANGE_PERCENT_MID': 0.5,      # Increased from 0.3
-
-        'TREND_DIRECTION_THRESHOLD_HIGH': 0.01,     # Increased from 0.005 (2x)
-        'TREND_STRENGTH_THRESHOLD_HIGH': 0.025,     # Increased from 0.015
-        'TREND_PRICE_CHANGE_PERCENT_HIGH': 0.35,    # Increased from 0.2
-
-        'TREND_DIRECTION_THRESHOLD_ULTRA': 0.006,   # Increased from 0.003 (2x)
-        'TREND_STRENGTH_THRESHOLD_ULTRA': 0.02,     # Increased from 0.01 (2x)
-        'TREND_PRICE_CHANGE_PERCENT_ULTRA': 0.2,    # Increased from 0.1 (2x)
-
-        # VOLATILITY MULTIPLIERS - Less aggressive adjustments
-        'TREND_VOLATILITY_MULTIPLIER_HIGH': 0.7,    # Increased from 0.5 (less reduction)
-        'TREND_VOLATILITY_MULTIPLIER_NORMAL': 1.0,  # No change
-        'TREND_VOLATILITY_MULTIPLIER_LOW': 1.3,     # Reduced from 2.0 (less amplification)
-
-        # ===============================================
-        # SURGE DETECTION PARAMETERS - UPDATED VALUES
-        # ===============================================
-        
-        # MARKET PERIOD - OPENING (9:30-9:45 AM ET)  # CHANGED from 9:30-10:00 AM
-        'SURGE_THRESHOLD_MULTIPLIER_OPENING': 0.7,     # Reduced from 1.0
-        'SURGE_VOLUME_THRESHOLD_OPENING': 3.0,         # Increased from 2.0 
-        'SURGE_GLOBAL_SENSITIVITY_OPENING': 0.5,       # Reduced from 0.8
-        'SURGE_MIN_DATA_POINTS_OPENING': 4,            # Increased from 3
-        'SURGE_INTERVAL_SECONDS_OPENING': 5,           # Increased from 3
-        'SURGE_PRICE_THRESHOLD_PERCENT_OPENING': 4.5,  # Increased from 3.0
-
-        # MARKET PERIOD - MIDDAY (9:45 AM - 3:30 PM ET)  # CHANGED from 10:00 AM - 3:30 PM
-        # CRITICAL: This is where 60%+ false positives are happening
-        'SURGE_THRESHOLD_MULTIPLIER_MIDDAY': 0.4,      # AGGRESSIVE: Reduced from 1.0
-        'SURGE_VOLUME_THRESHOLD_MIDDAY': 3.0,          # DOUBLED from 1.5
-        'SURGE_GLOBAL_SENSITIVITY_MIDDAY': 0.4,        # AGGRESSIVE: Reduced from 1.0
-        'SURGE_MIN_DATA_POINTS_MIDDAY': 8,             # Increased from 5
-        'SURGE_INTERVAL_SECONDS_MIDDAY': 20,           # Doubled from 10
-        'SURGE_PRICE_THRESHOLD_PERCENT_MIDDAY': 4.0,   # DOUBLED from 2.0
-
-        # MARKET PERIOD - CLOSING (3:30-4:00 PM ET)
-        'SURGE_THRESHOLD_MULTIPLIER_CLOSING': 0.9,  # Increased from 0.7
-        'SURGE_VOLUME_THRESHOLD_CLOSING': 2.5,      # Increased from 2.0
-        'SURGE_GLOBAL_SENSITIVITY_CLOSING': 0.8,    # Reduced from 1.0
-        'SURGE_MIN_DATA_POINTS_CLOSING': 3,         # Increased from 2
-        'SURGE_INTERVAL_SECONDS_CLOSING': 2,        # Increased from 1
-        'SURGE_PRICE_THRESHOLD_PERCENT_CLOSING': 3.5,  # Increased from 2.5
-
-        # MARKET PERIOD - AFTERHOURS (4:00-8:00 PM ET)
-        'SURGE_THRESHOLD_MULTIPLIER_AFTERHOURS': 1.5,  # Reduced from 2.0
-        'SURGE_VOLUME_THRESHOLD_AFTERHOURS': 1.0,   # Increased from 0.8
-        'SURGE_GLOBAL_SENSITIVITY_AFTERHOURS': 2.0, # Reduced from 3.0
-        'SURGE_MIN_DATA_POINTS_AFTERHOURS': 5,      # Increased from 4
-        'SURGE_INTERVAL_SECONDS_AFTERHOURS': 15,    # Increased from 10
-        'SURGE_PRICE_THRESHOLD_PERCENT_AFTERHOURS': 1.0,  # Increased from 0.5 (2x)
-
-        # MARKET PERIOD - PREMARKET (4:00-9:30 AM ET)
-        'SURGE_THRESHOLD_MULTIPLIER_PREMARKET': 1.3,  # Reduced from 1.8
-        'SURGE_VOLUME_THRESHOLD_PREMARKET': 1.2,    # Increased from 0.9
-        'SURGE_GLOBAL_SENSITIVITY_PREMARKET': 1.5,  # Reduced from 2.5
-        'SURGE_MIN_DATA_POINTS_PREMARKET': 4,       # Increased from 3
-        'SURGE_INTERVAL_SECONDS_PREMARKET': 12,     # Increased from 8
-        'SURGE_PRICE_THRESHOLD_PERCENT_PREMARKET': 1.25,  # Increased from 0.75
-
-        # PRICE BANDS - More conservative thresholds
-        'SURGE_PRICE_BAND_PENNY_MAX': 10,
-        'SURGE_PRICE_BAND_PENNY_PCT': 8.0,             # Increased from 5.0
-        'SURGE_PRICE_BAND_PENNY_DOLLAR': 0.15,      # Increased from 0.10
-
-        'SURGE_PRICE_BAND_LOW_MAX': 50,
-        'SURGE_PRICE_BAND_LOW_PCT': 5.0,               # Increased from 3.0
-        'SURGE_PRICE_BAND_LOW_DOLLAR': 0.75,        # Increased from 0.50
-
-        'SURGE_PRICE_BAND_MID_MAX': 200,
-        'SURGE_PRICE_BAND_MID_PCT': 4.0,               # Increased from 2.5
-        'SURGE_PRICE_BAND_MID_DOLLAR': 1.50,        # Increased from 1.00
-
-        'SURGE_PRICE_BAND_HIGH_MAX': 500,
-        'SURGE_PRICE_BAND_HIGH_PCT': 3.0,              # Increased from 1.5
-        'SURGE_PRICE_BAND_HIGH_DOLLAR': 3.00,       # Increased from 2.00
-
-        'SURGE_PRICE_BAND_ULTRA_PCT': 2.0,             # Increased from 1.0
-        'SURGE_PRICE_BAND_ULTRA_DOLLAR': 5.00,      # Increased from 3.00
-
-        # VOLATILITY MULTIPLIERS - Less aggressive
-        'SURGE_VOLATILITY_MULTIPLIER_HIGH': 0.8,    # Increased from 0.7 (less reduction)
-        'SURGE_VOLATILITY_MULTIPLIER_NORMAL': 1.0,  # No change
-        'SURGE_VOLATILITY_MULTIPLIER_LOW': 1.2,     # Reduced from 1.5 (less amplification)
-
-        # ADDITIONAL PARAMETERS
-        'SURGE_BUFFER_MAX_AGE_SECONDS': 120,           # Increased from 90
-        'SURGE_COOLDOWN_MULTIPLIER_MARKET': 2.0,       # Increased from 1.5
-
-        'SURGE_DETECTION_MODE_DEFAULT': 'STRICT',      # Ensure STRICT is enforced
-        'SURGE_DETECTION_MODE_MIDDAY': 'STRICT',       # NEW: Force STRICT for midday
+        # (Removed legacy surge detection parameters)
         
         # Multi-frequency configuration defaults
         'DATA_SOURCE_MODE': 'production',
@@ -404,15 +230,7 @@ class ConfigManager:
         'LOG_FILE_ENABLED': bool,
         'LOG_FILE_PRODUCTION_MODE': bool,
 
-        # TRACING
-        'DATA_DEBUG_TRACE': bool,
-        'DATA_DEBUG_TRACE_LEVEL': str,
-        'TRACE_ENABLED': bool,
-        'TRACE_TICKERS': list,
-        'TRACE_LEVEL': str,
-        'TRACE_OUTPUT_DIR': str,
-        'TRACE_AUTO_EXPORT_INTERVAL': int,
-        'TRACE_MAX_SIZE_MB': int,
+        # (Removed legacy tracing type definitions)
 
         # POOL WORKERS CONFIGURATION
         'WORKER_POOL_SIZE': int,
@@ -442,23 +260,13 @@ class ConfigManager:
 
 
 
-        # HighLow Event Detection Configuration
-        'HIGHLOW_MIN_PRICE_CHANGE': float,
-        'HIGHLOW_MIN_PERCENT_CHANGE': float,
-        'HIGHLOW_COOLDOWN_SECONDS': int,
-        'HIGHLOW_MARKET_AWARE': bool,
-        'HIGHLOW_EXTENDED_HOURS_MULTIPLIER': float,
-        'HIGHLOW_OPENING_MULTIPLIER': float,
-        'HIGHLOW_SIGNIFICANCE_SCORING': bool,
-        'HIGHLOW_SIGNIFICANCE_VOLUME_WEIGHT': float,
-        'HIGHLOW_TRACK_REVERSALS': bool,
-        'HIGHLOW_REVERSAL_WINDOW': int,
+        # (Removed legacy HighLow detection type definitions)
         
         # SMS Settings
         'SMS_TEST_MODE': bool,
-        'TWILIO_ACCOUNT_SID': '',
-        'TWILIO_AUTH_TOKEN': '',
-        'TWILIO_PHONE_NUMBER': '+15551234567',
+        'TWILIO_ACCOUNT_SID': str,
+        'TWILIO_AUTH_TOKEN': str,
+        'TWILIO_PHONE_NUMBER': str,
         'SMS_VERIFICATION_CODE_LENGTH': int,
         'SMS_VERIFICATION_CODE_EXPIRY': int,
         'RENEWAL_SMS_MAX_ATTEMPTS': int,
@@ -466,7 +274,6 @@ class ConfigManager:
 
         # Migration Validation Settings
         'MIGRATION_VALIDATION': bool,
-        'MIGRATION_PERFORMANCE_LOGGING': bool,
         'MIGRATION_PARALLEL_PROCESSING': bool,
 
         # Event Processor Configuration
@@ -483,141 +290,9 @@ class ConfigManager:
         'ENABLE_LEGACY_FALLBACK': bool,
         'DATA_PUBLISHER_DEBUG_MODE': bool,
 
-        # TREND DETECTION PARAMETERS
-        'TREND_DIRECTION_THRESHOLD_OPENING': float,
-        'TREND_STRENGTH_THRESHOLD_OPENING': float,
-        'TREND_GLOBAL_SENSITIVITY_OPENING': float,
-        'TREND_MIN_EMISSION_INTERVAL_OPENING': int,
-        'TREND_RETRACEMENT_THRESHOLD_OPENING': float,
-        'TREND_MIN_DATA_POINTS_PER_WINDOW_OPENING': int,
-        'TREND_WARMUP_PERIOD_SECONDS_OPENING': int,
+        # (Removed legacy trend detection type definitions)
 
-        'TREND_DIRECTION_THRESHOLD_MIDDAY': float,
-        'TREND_STRENGTH_THRESHOLD_MIDDAY': float,
-        'TREND_GLOBAL_SENSITIVITY_MIDDAY': float,
-        'TREND_MIN_EMISSION_INTERVAL_MIDDAY': int,
-        'TREND_RETRACEMENT_THRESHOLD_MIDDAY': float,
-        'TREND_MIN_DATA_POINTS_PER_WINDOW_MIDDAY': int,
-        'TREND_WARMUP_PERIOD_SECONDS_MIDDAY': int,
-
-        'TREND_DIRECTION_THRESHOLD_CLOSING': float,
-        'TREND_STRENGTH_THRESHOLD_CLOSING': float,
-        'TREND_GLOBAL_SENSITIVITY_CLOSING': float,
-        'TREND_MIN_EMISSION_INTERVAL_CLOSING': int,
-        'TREND_RETRACEMENT_THRESHOLD_CLOSING': float,
-        'TREND_MIN_DATA_POINTS_PER_WINDOW_CLOSING': int,
-        'TREND_WARMUP_PERIOD_SECONDS_CLOSING': int,
-
-        'TREND_DIRECTION_THRESHOLD_AFTERHOURS': float,
-        'TREND_STRENGTH_THRESHOLD_AFTERHOURS': float,
-        'TREND_GLOBAL_SENSITIVITY_AFTERHOURS': float,
-        'TREND_MIN_EMISSION_INTERVAL_AFTERHOURS': int,
-        'TREND_RETRACEMENT_THRESHOLD_AFTERHOURS': float,
-        'TREND_MIN_DATA_POINTS_PER_WINDOW_AFTERHOURS': int,
-        'TREND_WARMUP_PERIOD_SECONDS_AFTERHOURS': int,
-
-        'TREND_DIRECTION_THRESHOLD_PREMARKET': float,
-        'TREND_STRENGTH_THRESHOLD_PREMARKET': float,
-        'TREND_GLOBAL_SENSITIVITY_PREMARKET': float,
-        'TREND_MIN_EMISSION_INTERVAL_PREMARKET': int,
-        'TREND_RETRACEMENT_THRESHOLD_PREMARKET': float,
-        'TREND_MIN_DATA_POINTS_PER_WINDOW_PREMARKET': int,
-        'TREND_WARMUP_PERIOD_SECONDS_PREMARKET': int,
-
-        'TREND_DIRECTION_THRESHOLD_PENNY': float,
-        'TREND_STRENGTH_THRESHOLD_PENNY': float,
-        'TREND_PRICE_CHANGE_PERCENT_PENNY': float,
-
-        'TREND_DIRECTION_THRESHOLD_LOW': float,
-        'TREND_STRENGTH_THRESHOLD_LOW': float,
-        'TREND_PRICE_CHANGE_PERCENT_LOW': float,
-
-        'TREND_DIRECTION_THRESHOLD_MID': float,
-        'TREND_STRENGTH_THRESHOLD_MID': float,
-        'TREND_PRICE_CHANGE_PERCENT_MID': float,
-
-        'TREND_DIRECTION_THRESHOLD_HIGH': float,
-        'TREND_STRENGTH_THRESHOLD_HIGH': float,
-        'TREND_PRICE_CHANGE_PERCENT_HIGH': float,
-
-        'TREND_DIRECTION_THRESHOLD_ULTRA': float,
-        'TREND_STRENGTH_THRESHOLD_ULTRA': float,
-        'TREND_PRICE_CHANGE_PERCENT_ULTRA': float,
-
-        'TREND_VOLATILITY_MULTIPLIER_HIGH': float,
-        'TREND_VOLATILITY_MULTIPLIER_NORMAL': float,
-        'TREND_VOLATILITY_MULTIPLIER_LOW': float,
-
-        # MARKET PERIOD - OPENING (9:30-10:00 AM ET)
-        'SURGE_THRESHOLD_MULTIPLIER_OPENING': float,
-        'SURGE_VOLUME_THRESHOLD_OPENING': float,
-        'SURGE_GLOBAL_SENSITIVITY_OPENING': float,
-        'SURGE_MIN_DATA_POINTS_OPENING': int,
-        'SURGE_INTERVAL_SECONDS_OPENING': int,
-        'SURGE_PRICE_THRESHOLD_PERCENT_OPENING': float,
-
-        # MARKET PERIOD - MIDDAY (10:00 AM - 3:30 PM ET)
-        'SURGE_THRESHOLD_MULTIPLIER_MIDDAY': float,
-        'SURGE_VOLUME_THRESHOLD_MIDDAY': float,
-        'SURGE_GLOBAL_SENSITIVITY_MIDDAY': float,
-        'SURGE_MIN_DATA_POINTS_MIDDAY': int,
-        'SURGE_INTERVAL_SECONDS_MIDDAY': int,
-        'SURGE_PRICE_THRESHOLD_PERCENT_MIDDAY': float,
-
-        # MARKET PERIOD - CLOSING (3:30-4:00 PM ET)
-        'SURGE_THRESHOLD_MULTIPLIER_CLOSING': float,
-        'SURGE_VOLUME_THRESHOLD_CLOSING': float,
-        'SURGE_GLOBAL_SENSITIVITY_CLOSING': float,
-        'SURGE_MIN_DATA_POINTS_CLOSING': int,
-        'SURGE_INTERVAL_SECONDS_CLOSING': int,
-        'SURGE_PRICE_THRESHOLD_PERCENT_CLOSING': float,
-
-        # MARKET PERIOD - AFTERHOURS (4:00-8:00 PM ET)
-        'SURGE_THRESHOLD_MULTIPLIER_AFTERHOURS': float,
-        'SURGE_VOLUME_THRESHOLD_AFTERHOURS': float,
-        'SURGE_GLOBAL_SENSITIVITY_AFTERHOURS': float,
-        'SURGE_MIN_DATA_POINTS_AFTERHOURS': int,
-        'SURGE_INTERVAL_SECONDS_AFTERHOURS': int,
-        'SURGE_PRICE_THRESHOLD_PERCENT_AFTERHOURS': float,
-
-        # MARKET PERIOD - PREMARKET (4:00-9:30 AM ET)
-        'SURGE_THRESHOLD_MULTIPLIER_PREMARKET': float,
-        'SURGE_VOLUME_THRESHOLD_PREMARKET': float,
-        'SURGE_GLOBAL_SENSITIVITY_PREMARKET': float,
-        'SURGE_MIN_DATA_POINTS_PREMARKET': int,
-        'SURGE_INTERVAL_SECONDS_PREMARKET': int,
-        'SURGE_PRICE_THRESHOLD_PERCENT_PREMARKET': float,
-
-        # PRICE BANDS
-        'SURGE_PRICE_BAND_PENNY_MAX': int,
-        'SURGE_PRICE_BAND_PENNY_PCT': float,
-        'SURGE_PRICE_BAND_PENNY_DOLLAR': float,
-
-        'SURGE_PRICE_BAND_LOW_MAX': int,
-        'SURGE_PRICE_BAND_LOW_PCT': float,
-        'SURGE_PRICE_BAND_LOW_DOLLAR': float,
-
-        'SURGE_PRICE_BAND_MID_MAX': int,
-        'SURGE_PRICE_BAND_MID_PCT': float,
-        'SURGE_PRICE_BAND_MID_DOLLAR': float,
-
-        'SURGE_PRICE_BAND_HIGH_MAX': int,
-        'SURGE_PRICE_BAND_HIGH_PCT': float,
-        'SURGE_PRICE_BAND_HIGH_DOLLAR': float,
-
-        'SURGE_PRICE_BAND_ULTRA_PCT': float,
-        'SURGE_PRICE_BAND_ULTRA_DOLLAR': float,
-
-        # VOLATILITY MULTIPLIERS
-        'SURGE_VOLATILITY_MULTIPLIER_HIGH': float,
-        'SURGE_VOLATILITY_MULTIPLIER_NORMAL': float,
-        'SURGE_VOLATILITY_MULTIPLIER_LOW': float,
-
-        # ADDITIONAL PARAMETERS
-        'SURGE_BUFFER_MAX_AGE_SECONDS': int,
-        'SURGE_COOLDOWN_MULTIPLIER_MARKET': float,
-        'SURGE_DETECTION_MODE_DEFAULT': str,
-        'SURGE_DETECTION_MODE_MIDDAY': str,
+        # (Removed legacy surge detection type definitions)
         
         # Multi-frequency configuration types
         'DATA_SOURCE_MODE': str,

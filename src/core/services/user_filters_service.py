@@ -13,9 +13,7 @@ from typing import Dict, Any, Optional, List, Union
 from flask import has_app_context
 
 from src.infrastructure.database import db, UserFilters, User
-from config.logging_config import get_domain_logger, LogDomain
-
-logger = get_domain_logger(LogDomain.USER_SETTINGS, 'user_filters_service')
+logger = logging.getLogger(__name__)
 
 class UserFiltersService:
     """

@@ -3,9 +3,9 @@ import json
 from flask import flash, url_for
 from itsdangerous import URLSafeTimedSerializer
 from src.infrastructure.database import User, db
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 
-logger = get_domain_logger(LogDomain.AUTH_SESSION, 'registration')
+logger = logging.getLogger(__name__)
 
 class RegistrationManager:
     def __init__(self, app_secret_key, mail):

@@ -6,9 +6,9 @@ All WTForms form classes used throughout the application.
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, HiddenField, RadioField
 from wtforms.validators import DataRequired, Email, Length, EqualTo
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 
-logger = get_domain_logger(LogDomain.USER_SETTINGS, 'app_forms')
+logger = logging.getLogger(__name__)
 
 class RegisterForm(FlaskForm):
     """User registration form with subscription and billing information."""

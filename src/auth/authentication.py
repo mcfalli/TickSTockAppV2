@@ -4,11 +4,11 @@ from flask_login import login_user, logout_user
 from src.infrastructure.database import User, db
 from itsdangerous import URLSafeTimedSerializer
 from datetime import datetime, timedelta, timezone
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 import random
 import string
 
-logger = get_domain_logger(LogDomain.AUTH_SESSION, 'authentication')
+logger = logging.getLogger(__name__)
 
 class AuthenticationManager:
     def __init__(self, app_secret_key, mail):

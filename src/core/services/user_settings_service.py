@@ -7,9 +7,7 @@ from flask import session, has_app_context, current_app
 from flask_login import current_user
 
 from src.infrastructure.database import db, User, UserSettings
-from config.logging_config import get_domain_logger, LogDomain
-
-logger = get_domain_logger(LogDomain.USER_SETTINGS, 'user_settings_service')
+logger = logging.getLogger(__name__)
 
 class UserSettingsService:
     """

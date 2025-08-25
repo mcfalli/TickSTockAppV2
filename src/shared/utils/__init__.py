@@ -1,10 +1,8 @@
 # utils/__init__.py
-"""Utility modules for TickStock"""
+"""Utility modules for TickStock - Simplified for Phase 6-11"""
 
-from src.shared.utils.event_factory import EventFactory
-# Phase 4: MigrationHelper removed - no backward compatibility
-# Phase 4: compatibility.py DELETED - no backward compatibility utilities
-# Phase 4: conversion.py DELETED - no dict conversion utilities
+# Phase 6-11: EventFactory removed during cleanup
+# from src.shared.utils.event_factory import EventFactory
 
 from src.shared.utils.general import (
     get_eastern_time,
@@ -18,17 +16,10 @@ from src.shared.utils.general import (
     sanitize_float,
     sanitize_dict,
     generate_event_key,
-    # Import any other functions/classes from src.shared.utils.py that are used elsewhere
 )
 
 __all__ = [
-    'EventFactory',
-    # Phase 4: 'MigrationHelper' removed
-    # Phase 4: 'TypeConverter' removed
-    # Phase 4: 'BatchConverter' removed
-    # Phase 4: 'ensure_dict_format' removed
-    # Phase 4: 'ensure_typed_format' removed
-    # Phase 4: 'process_mixed_events' removed
+    # Phase 6-11: 'EventFactory' removed during cleanup
     'get_eastern_time',
     'detect_market_status',
     'format_price',
@@ -40,5 +31,4 @@ __all__ = [
     'sanitize_float',
     'sanitize_dict',
     'generate_event_key',
-    # Add any other exports here
 ]

@@ -6,9 +6,9 @@ from flask_mail import Message
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from typing import Optional
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 
-logger = get_domain_logger(LogDomain.AUTH_SESSION, 'email_manager')
+logger = logging.getLogger(__name__)
 
 from src.infrastructure.cache.cache_control import CacheControl
 

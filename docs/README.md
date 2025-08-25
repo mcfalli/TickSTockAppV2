@@ -1,88 +1,113 @@
-# TickStock Documentation
+# TickStock Documentation - Simplified Architecture
+
+**Version**: 2.0.0-simplified  
+**Last Updated**: August 25, 2025  
+**Status**: Post-Cleanup Documentation
 
 ## Overview
 
-TickStock is a real-time market data processing and visualization application that handles live stock market data from 4,000+ tickers. The system processes data through sophisticated event detection algorithms to identify trading patterns and delivers personalized data streams to authenticated users.
+Welcome to the TickStock documentation for the simplified architecture. After a major cleanup effort (Phases 6-11), TickStock has been transformed from a complex system into a streamlined, maintainable application optimized for TickStockPL integration.
 
-## Quick Links
+## Quick Start
 
-### Core Documentation
-- [System Architecture](architecture/system-architecture.md) - High-level system design and components
-- [Data Flow Pipeline](architecture/data-flow-pipeline.md) - How data moves through the system
-- [Component Architecture](architecture/component-architecture.md) - Detailed component specifications
+- **🚀 TickStockPL Integration**: [`evolution/tickstockpl-integration-guide.md`](evolution/tickstockpl-integration-guide.md)
+- **🏗️ Architecture Overview**: [`evolution/simplified-architecture-overview.md`](evolution/simplified-architecture-overview.md)
+- **📊 Technical Details**: [`technical_overview.md`](technical_overview.md)
 
-### API Documentation
-- [WebSocket Events](api/websocket-events.md) - Real-time event specifications
-- [REST Endpoints](api/rest-endpoints.md) - HTTP API reference
+## Documentation Structure
 
-### Development Guides
-- [Quick Start Guide](development/quick-start.md) - Get running in 5 minutes
-- [Testing Guide](development/testing-guide.md) - Testing strategies and patterns
-- [Coding Standards](development/coding-standards.md) - Style guide and best practices
+### Essential Documentation
 
-### Operations
-- [Deployment Guide](operations/deployment.md) - Production deployment procedures
-- [Monitoring Guide](operations/monitoring.md) - Health checks and metrics
+#### Architecture & Design
+- [`architecture_overview.md`](architecture_overview.md) - Current architecture overview (redirects to simplified)
+- [`evolution/simplified-architecture-overview.md`](evolution/simplified-architecture-overview.md) - **Main architecture document**
+- [`technical_overview.md`](technical_overview.md) - Technical specifications and performance
+- [`architecture/`](architecture/) - Architectural decisions and REST endpoints
 
-## System Overview
+#### Integration & Features
+- [`evolution/tickstockpl-integration-guide.md`](evolution/tickstockpl-integration-guide.md) - **TickStockPL integration guide**
+- [`features/`](features/) - Feature documentation (simplified)
+  - [`features/README.md`](features/README.md) - Feature overview
+  - [`features/data-integration.md`](features/data-integration.md) - Data source integration
+  - [`features/redis-integration.md`](features/redis-integration.md) - Redis pub-sub details
+  - [`features/user-authentication.md`](features/user-authentication.md) - User management
 
-TickStock consists of 17 specialized components organized into four functional groups:
+#### Data Sources & Configuration
+- [`data_source/README.md`](data_source/README.md) - Data source configuration
+- [`data_source/settings-configuration.md`](data_source/settings-configuration.md) - Settings management
 
-1. **Core Processing Components (6)** - Heart of the data pipeline
-2. **Event Processing Components (3)** - Event detection and prioritization  
-3. **Universe Management Components (4)** - User preferences and filtering
-4. **Data Flow Components (4)** - Data preparation and monitoring
+#### Development Guidelines
+- [`instructions/`](instructions/) - Development instructions
+  - [`instructions/coding-practices.md`](instructions/coding-practices.md) - Development standards
+  - [`instructions/code-documentation-standards.md`](instructions/code-documentation-standards.md) - Documentation standards
+  - [`instructions/unit_testing.md`](instructions/unit_testing.md) - Testing guidelines
+  - [`instructions/technical-debt-management.md`](instructions/technical-debt-management.md) - **Updated for simplified system**
+  - [`instructions/architectural-decision-process.md`](instructions/architectural-decision-process.md) - ADR process
 
-### Key Features
+### Evolution & History
+- [`evolution/`](evolution/) - Project evolution and cleanup history
+  - [`evolution/phase-6-11-completion-summary.md`](evolution/phase-6-11-completion-summary.md) - **Complete cleanup summary**
+  - [`evolution/phase-10-validation-summary.md`](evolution/phase-10-validation-summary.md) - Validation results
+  - Other phase-specific documentation
 
-- **Real-time Processing**: Sub-millisecond tick processing
-- **Dual Universe Architecture**: Core universe (2,800 stocks) for analytics, user universe (800 stocks) for display
-- **Per-User Personalization**: Individual universe selection and filtering
-- **Memory-First Architecture**: 500:1 database write efficiency
-- **Scalable Worker Pool**: Dynamic scaling from 2-16 workers
-- **Comprehensive Monitoring**: Health checks, metrics, and performance tracking
+### Supporting Documentation
+- [`UI/`](UI/) - User interface documentation
+- [`agents/`](agents/) - AI agent specifications
+- [`maintenance/`](maintenance/) - System maintenance procedures
 
-## Navigation Guide
+## System Summary
 
-### For New Developers
-1. Start with the [Quick Start Guide](development/quick-start.md)
-2. Review the [System Architecture](architecture/system-architecture.md)
-3. Understand the [Data Flow Pipeline](architecture/data-flow-pipeline.md)
-4. Explore specific components in [Component Architecture](architecture/component-architecture.md)
+### What Changed
+- **60%+ Code Reduction**: 14,300+ lines removed/simplified
+- **Architecture Simplification**: 6+ layers → 3 components
+- **Performance Improvements**: Eliminated processing overhead
+- **Integration Ready**: Clean Redis interface for TickStockPL
 
-### For API Integration
-1. Review [WebSocket Events](api/websocket-events.md) for real-time data
-2. Check [REST Endpoints](api/rest-endpoints.md) for configuration APIs
-3. See authentication requirements in the respective API docs
+### Current System
+- **Real-time Data Processing**: Polygon.io + Synthetic data sources
+- **Redis Pub-Sub**: Event streaming for TickStockPL integration
+- **WebSocket Broadcasting**: Live UI updates
+- **Simple Configuration**: Environment-based setup
 
-### For Operations
-1. Follow the [Deployment Guide](operations/deployment.md)
-2. Set up monitoring per the [Monitoring Guide](operations/monitoring.md)
-3. Review performance benchmarks in System Architecture
+### Core Components
+1. **Market Data Service** (232 lines) - Central tick processing
+2. **Data Publisher** (181 lines) - Redis event publishing  
+3. **WebSocket Publisher** (243 lines) - Real-time client updates
 
-## Documentation Standards
+## Getting Started
 
-All documentation follows these principles:
-- **Current State**: Documents describe the system as it exists today
-- **Clear Examples**: Code examples for complex concepts
-- **Practical Focus**: How to use and operate the system
-- **Maintenance**: Regular updates with each sprint
+### For TickStockPL Integration
+1. Read: [`evolution/tickstockpl-integration-guide.md`](evolution/tickstockpl-integration-guide.md)
+2. Set up Redis connection and subscribe to `tickstock.all_ticks`
+3. Process incoming tick data with your algorithms
+4. Optionally publish events back to TickStock
 
-## Contributing to Documentation
+### For Development
+1. Review: [`evolution/simplified-architecture-overview.md`](evolution/simplified-architecture-overview.md)
+2. Check: [`instructions/coding-practices.md`](instructions/coding-practices.md)
+3. Understand: [`features/data-integration.md`](features/data-integration.md)
 
-When updating documentation:
-1. Follow the established format and style
-2. Include code examples where helpful
-3. Update the relevant index sections
-4. Keep focus on current system state
-5. Review the [Documentation Checklist](DOCUMENTATION_CHECKLIST.md)
+### For System Administration
+1. Monitor: Use `/health` and `/stats` endpoints
+2. Configure: Environment variables for data sources and Redis
+3. Deploy: Simple Docker/traditional deployment with Redis dependency
 
-## Support
+## Documentation Status
 
-For questions about the documentation or system:
-- Check the relevant documentation section first
-- Review the FAQ (if applicable)
-- Contact the development team
+### Updated for Simplified System ✅
+- Architecture documentation
+- Feature documentation  
+- Integration guides
+- Technical specifications
+- Development instructions
+
+### Removed/Deprecated ❌
+- Complex sprint documentation
+- Multi-frequency processing docs
+- Advanced analytics documentation
+- Complex design pattern docs
+- Event detection system docs
 
 ---
-*Last Updated: June 2025*
+
+**For the most current information**, refer to documents in the [`evolution/`](evolution/) folder, which contain the latest post-cleanup documentation.

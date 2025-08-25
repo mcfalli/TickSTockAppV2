@@ -135,13 +135,13 @@ def websocket_connection(client_id: str):
 
 ## Logging Strategy
 
-### Domain-Specific Logging
+### Standard Logging
 ```python
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 from functools import wraps
 
-# Configure domain-specific logging
-logger = get_domain_logger(LogDomain.CORE, "market_service")
+# Configure standard logging
+logger = logging.getLogger(__name__)
 
 # Log market event processing
 def log_market_event(func):

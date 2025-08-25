@@ -1,135 +1,67 @@
+"""Simplified display converter for TickStockPL integration.
+
+PHASE 7 CLEANUP: Simplified to basic data conversion with:
+- Simple TickData to display format conversion
+- Basic field mapping
+- No complex transformations or filtering
+
+Removed: Complex analytics, transformations, aggregations.
 """
-WebSocket Display Conversion Module
-Sprint 32: Centralizes display data formatting and field configuration
-"""
-from typing import Dict, Any, Set
-from config.logging_config import get_domain_logger, LogDomain
 
-logger = get_domain_logger(LogDomain.CORE, 'websocket_display')
+import time
+from typing import Dict, Any
+from src.core.domain.market.tick import TickData
+import logging
 
-# Display field configuration
-DISPLAY_FIELDS = {
-    'common': {
-        'ticker', 'type', 'price', 'time', 'event_id', 'direction', 
-        'reversal', 'count', 'count_up', 'count_down', 'percent_change',
-        'vwap', 'vwap_divergence', 'volume', 'rel_volume', 'label'
-    },
-    'highlow': {
-        'session_high', 'session_low', 'last_update', 'trend_flag', 'surge_flag',
-        'significance_score', 'reversal_info' 
-    },
-    'trend': {
-        'trend_strength', 'trend_score', 'trend_short_score', 
-        'trend_medium_score', 'trend_long_score', 'trend_vwap_position',
-        'trend_age', 'last_trend_update'
-    },
-    'surge': {
-        'magnitude', 'score', 'strength', 'trigger_type', 'description',
-        'volume_multiplier', 'event_key', 'surge_age', 'expiration',
-        'daily_surge_count', 'last_surge_timestamp'
-    }
-}
-
+logger = logging.getLogger(__name__)
 
 class WebSocketDisplayConverter:
-    """
-    Handles conversion of internal event data to display format.
-    Sprint 32: Centralizes display formatting logic.
-    """
+    """Simplified converter for WebSocket display data."""
     
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
-        self.enabled = config.get('CONVERT_TO_DISPLAY_FORMAT', True)
-        
-        # Allow field overrides from config
-        self.display_fields = config.get('DISPLAY_EVENT_FIELDS', DISPLAY_FIELDS)
-        
-    def convert_event_to_display_format(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Convert full event data to display format by keeping only UI-relevant fields.
-        
-        Args:
-            event: Full event dictionary
+    def __init__(self, config=None):
+        self.config = config or {}
+        logger.info("DISPLAY-CONVERTER: Simplified converter initialized")
+    
+    def convert_tick_data(self, tick_data: TickData) -> Dict[str, Any]:
+        """Convert TickData to simple display format."""
+        try:
+            display_data = {
+                'ticker': tick_data.ticker,
+                'price': tick_data.price,
+                'volume': tick_data.volume,
+                'timestamp': tick_data.timestamp,
+                'source': tick_data.source,
+                'event_type': 'tick_update',
+                'market_status': tick_data.market_status
+            }
             
-        Returns:
-            dict: Display-ready event data
-        """
-        if not self.enabled:
-            return event
-        
-        # Build display event
-        display_event = {}
-        
-        # Get event type
-        event_type = event.get('type', '').lower()
-        
-        # Copy common fields
-        for field in self.display_fields.get('common', set()):
-            if field in event:
-                display_event[field] = event[field]
-        
-        # Add type-specific fields
-        if event_type in ['high', 'low'] and 'highlow' in self.display_fields:
-            for field in self.display_fields['highlow']:
-                if field in event:
-                    display_event[field] = event[field]
-        
-        elif event_type == 'trend' and 'trend' in self.display_fields:
-            for field in self.display_fields['trend']:
-                if field in event:
-                    display_event[field] = event[field]
-        
-        elif event_type == 'surge' and 'surge' in self.display_fields:
-            for field in self.display_fields['surge']:
-                if field in event:
-                    display_event[field] = event[field]
-        
-        return display_event
-    
-    def convert_to_display_data(self, events_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Convert full events collection to display format.
-        
-        Args:
-            events_data: Full events data structure
+            # Add optional fields if available
+            if hasattr(tick_data, 'bid') and tick_data.bid:
+                display_data['bid'] = tick_data.bid
             
-        Returns:
-            dict: Display-ready data structure
-        """
-        if not self.enabled:
-            return events_data
+            if hasattr(tick_data, 'ask') and tick_data.ask:
+                display_data['ask'] = tick_data.ask
             
-        display_data = {}
-        
-        # Process highs and lows (simple lists)
-        for event_type in ['highs', 'lows']:
-            if event_type in events_data:
-                display_data[event_type] = [
-                    self.convert_event_to_display_format(event) 
-                    for event in events_data[event_type]
-                ]
-        
-        # Process trending and surging (nested by direction)
-        for event_type in ['trending', 'surging']:
-            if event_type in events_data and isinstance(events_data[event_type], dict):
-                display_data[event_type] = {}
-                for direction in ['up', 'down']:
-                    if direction in events_data[event_type]:
-                        display_data[event_type][direction] = [
-                            self.convert_event_to_display_format(event)
-                            for event in events_data[event_type][direction]
-                        ]
-        
-        # Copy all non-event fields (analytics, universe_context, etc.)
-        for key, value in events_data.items():
-            if key not in ['highs', 'lows', 'trending', 'surging']:
-                display_data[key] = value
-        
+            if hasattr(tick_data, 'tick_high') and tick_data.tick_high:
+                display_data['high'] = tick_data.tick_high
+            
+            if hasattr(tick_data, 'tick_low') and tick_data.tick_low:
+                display_data['low'] = tick_data.tick_low
+            
+            return display_data
+            
+        except Exception as e:
+            logger.error(f"DISPLAY-CONVERTER: Error converting tick data: {e}")
+            return self._create_error_response(str(e))
     
-        return display_data
+    def convert_multiple_ticks(self, tick_data_list: list) -> list:
+        """Convert multiple TickData objects."""
+        return [self.convert_tick_data(tick) for tick in tick_data_list]
     
-    '''
-    def get_field_configuration(self) -> Dict[str, Set[str]]:
-        """Get current field configuration for documentation/debugging."""
-        return self.display_fields
-    '''
+    def _create_error_response(self, error_message: str) -> Dict[str, Any]:
+        """Create error response for failed conversions."""
+        return {
+            'error': True,
+            'message': error_message,
+            'timestamp': time.time()
+        }

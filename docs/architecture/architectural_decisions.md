@@ -1,287 +1,163 @@
-# Architectural Decision Records (ADRs)
+# Architectural Decision Records (ADRs) - Simplified Architecture
 
-## Sprint 107: Event Processing Refactor
+**Version**: 2.0.0-simplified  
+**Last Updated**: August 25, 2025  
+**Status**: Post-Cleanup Architecture Decisions
 
-### ADR-107.1: Multi-Source Integration Strategy
-**Date:** 2025-08-20  
+## Major Cleanup Decision (Phases 6-11)
+
+### ADR-CLEANUP: System Simplification Strategy
+**Date:** 2025-08-25  
 **Status:** Accepted  
 
 **Context:**  
-Sprint 107 required integrating the EventProcessor with the multi-channel architecture from Sprints 105-106 while maintaining backward compatibility.
+TickStock had grown into a complex, over-engineered system with 25,000+ lines of code, 6+ processing layers, and extensive analytics systems that were hindering development velocity and maintenance.
 
 **Decision:**  
-Implemented a layered integration approach:
-- New `handle_multi_source_data()` method for channel integration
-- Preserved existing `handle_tick()` method unchanged
-- Added fallback mechanisms for backward compatibility
-
-**Consequences:**  
- **Positive:**
-- Zero breaking changes to existing code
-- Gradual adoption path available
-- Full channel integration capabilities
-
-� **Negative:**
-- Slight code complexity increase
-- Two processing pathways to maintain
-
-### ADR-107.2: Source Context Management Design
-**Date:** 2025-08-20  
-**Status:** Accepted  
-
-**Context:**  
-Need to track source metadata throughout the processing pipeline without impacting performance.
-
-**Decision:**  
-Implemented SourceContextManager with:
-- Context creation on data ingestion
-- Automatic cleanup with configurable retention
-- Thread-safe context storage and retrieval
-- Performance monitoring and statistics
-
-**Consequences:**  
- **Positive:**
-- Complete source traceability
-- Efficient memory management
-- Performance monitoring capabilities
-
-� **Negative:**
-- Additional memory overhead for context storage
-- Cleanup process adds background processing
-
-### ADR-107.3: Source-Specific Rules Architecture
-**Date:** 2025-08-20  
-**Status:** Accepted  
-
-**Context:**  
-Different data sources (tick, OHLCV, FMV) require different filtering and processing rules.
-
-**Decision:**  
-Created SourceSpecificRulesEngine with:
-- Configurable rules per source type
-- Runtime rule management
-- Performance tracking and circuit breakers
-- Default rules for each source type
-
-**Consequences:**  
- **Positive:**
-- Flexible rule configuration
-- Circuit breaker protection
-- Performance visibility
-
-� **Negative:**
-- Complex rule configuration management
-- Potential for rule conflicts
-
-### ADR-107.4: Multi-Source Coordination Strategy
-**Date:** 2025-08-20  
-**Status:** Accepted  
-
-**Context:**  
-Multiple sources may generate conflicting events for the same ticker/event type that need coordination.
-
-**Decision:**  
-Implemented MultiSourceCoordinator with:
-- Time window-based coordination
-- Multiple conflict resolution strategies
-- Priority-based emission ordering
-- Configurable coordination windows
-
-**Consequences:**  
- **Positive:**
-- Intelligent conflict resolution
-- Consistent event ordering
-- Configurable behavior
-
-� **Negative:**
-- Added processing latency for coordination
-- Complex coordination logic
-
-### ADR-107.5: Backward Compatibility Guarantee
-**Date:** 2025-08-20  
-**Status:** Accepted  
-
-**Context:**  
-Sprint 107 must not break any existing functionality or interfaces.
-
-**Decision:**  
-Enforced strict backward compatibility:
-- All existing method signatures preserved
-- Existing behavior maintained
-- Fallback mechanisms for new features
-- Comprehensive regression testing
-
-**Consequences:**  
- **Positive:**
-- Safe deployment with zero risk
-- Gradual feature adoption possible
-- Existing code works unchanged
-
-� **Negative:**
-- Increased codebase complexity
-- Need to maintain dual pathways
-
-## Previous Sprint Decisions
-
-### ADR-105.1: Channel Infrastructure Design
-**Date:** Previous Sprint  
-**Status:** Accepted  
-
-Foundation for Sprint 107 integration - established base channel infrastructure.
-
-### ADR-106.1: Data Type Handlers
-**Date:** Previous Sprint  
-**Status:** Accepted  
-
-Established typed data models (OHLCVData, FMVData) used by Sprint 107.
-
-## Sprint 108: Integration & Testing
-
-### ADR-108.1: Big-Bang Deployment Architecture
-**Date:** 2025-08-21  
-**Status:** Accepted  
-
-**Context:**  
-Sprint 108 required preparation for complete architectural replacement without rollback capability.
-
-**Decision:**  
-Implemented comprehensive system integration with big-bang deployment strategy:
-- Complete multi-channel system orchestrator (MultiChannelSystem)
-- Full backward compatibility preservation during transition
-- Production-ready configuration management
-- Comprehensive monitoring and alerting for post-deployment
+Implemented massive system simplification:
+- **60%+ codebase reduction** (14,300+ lines removed)
+- **Architecture simplification** from 6+ layers to 3 components
+- **Removed complex systems**: Analytics, event detection, multi-frequency processing
+- **Added Redis pub-sub integration** for TickStockPL
+- **Maintained essential functionality** with simplified linear data flow
 
 **Consequences:**  
 ✅ **Positive:**
-- Single deployment event reduces deployment complexity
-- Complete architectural benefits available immediately
-- No need to maintain dual systems in production
-- Clear cut-over point with comprehensive validation
+- Dramatically improved maintainability and development velocity
+- Reduced system complexity while preserving core functionality
+- Created clean integration interface for TickStockPL via Redis
+- Eliminated technical debt and over-engineering
 
 ⚠️ **Negative:**
-- Higher deployment risk due to no rollback option
-- Requires extensive pre-deployment testing and validation
-- Must ensure 100% compatibility before deployment
+- Lost advanced analytics and event detection capabilities
+- Required extensive testing to ensure essential features preserved
+- Documentation required complete overhaul
 
-### ADR-108.2: Performance Validation Strategy
-**Date:** 2025-08-21  
+## Current Architecture Decisions
+
+### ADR-SIMPLE-001: Three-Component Architecture
+**Date:** 2025-08-25  
 **Status:** Accepted  
 
 **Context:**  
-Sprint 108 required validation of specific performance targets: 8k OHLCV symbols, <50ms tick latency, <2GB memory.
+After cleanup, system needed clear architectural boundaries for the simplified components.
 
 **Decision:**  
-Implemented comprehensive performance validation approach:
-- Dedicated performance test suite with realistic load simulation
-- Automated performance regression detection
-- Production-equivalent performance benchmarking
-- Memory leak detection and resource management validation
+Implemented clean three-component architecture:
+1. **Market Data Service** (`market_data_service.py`) - Central tick orchestration
+2. **Data Publisher** (`data_publisher.py`) - Redis event publishing
+3. **WebSocket Publisher** (`publisher.py`) - Real-time client updates
 
 **Consequences:**  
 ✅ **Positive:**
-- High confidence in production performance
-- Automated performance validation in CI/CD
-- Clear performance baseline establishment
-- Production issues prevention through extensive testing
+- Clear separation of concerns
+- Simple linear data flow
+- Easy to understand and maintain
+- Minimal component coupling
 
 ⚠️ **Negative:**
-- Significant test infrastructure complexity
-- Longer test execution times
-- Higher compute requirements for performance testing
+- Less flexibility for complex processing
+- May require careful design for future enhancements
 
-### ADR-108.3: Monitoring Integration Architecture
-**Date:** 2025-08-21  
+### ADR-SIMPLE-002: Redis Pub-Sub Integration
+**Date:** 2025-08-25  
 **Status:** Accepted  
 
 **Context:**  
-Sprint 108 required integration of channel-specific monitoring with existing TickStock infrastructure.
+Need clean integration interface for TickStockPL without tight coupling.
 
 **Decision:**  
-Implemented layered monitoring integration:
-- ChannelMonitor as dedicated multi-channel monitoring system
-- Integration with existing monitoring infrastructure via adapters
-- Channel-specific metrics with system-wide aggregation
-- Intelligent alerting with configurable thresholds and cooldown
+Implemented Redis pub-sub messaging:
+- **Primary channel**: `tickstock.all_ticks` for all data streaming
+- **Per-ticker channels**: `tickstock.ticks.{TICKER}` for selective consumption
+- **Standardized message format** with ticker, price, volume, timestamp
 
 **Consequences:**  
 ✅ **Positive:**
-- Complete observability of multi-channel system
-- Seamless integration with existing monitoring tools
-- Channel-specific debugging and troubleshooting capabilities
-- Proactive issue detection and alerting
+- Clean integration interface for external systems
+- Horizontal scaling support for multiple consumers
+- Fault tolerance through Redis persistence
+- No tight coupling between TickStock and TickStockPL
 
 ⚠️ **Negative:**
-- Additional monitoring complexity
-- Potential alert fatigue if thresholds not properly tuned
-- Learning curve for operations team
+- Dependency on Redis infrastructure
+- Message format versioning considerations
 
-### ADR-108.4: Test Organization Strategy
-**Date:** 2025-08-21  
+### ADR-SIMPLE-003: Data Source Factory Pattern
+**Date:** 2025-08-25  
 **Status:** Accepted  
 
 **Context:**  
-Sprint 108 required comprehensive testing across integration, performance, and monitoring concerns.
+Need simple, reliable data source selection between Polygon.io and synthetic data.
 
 **Decision:**  
-Organized tests by functional concern rather than technical layer:
-- `test_multi_channel_integration.py` - System integration scenarios
-- `test_performance_validation.py` - Performance requirements validation
-- `test_monitoring_integration.py` - Monitoring and alerting validation
-- Comprehensive test fixtures and utilities for reusability
+Implemented simplified factory pattern:
+- **Priority logic**: Polygon if available, synthetic as fallback
+- **Environment-based configuration** via simple boolean flags
+- **Graceful error handling** with automatic fallback
 
 **Consequences:**  
 ✅ **Positive:**
-- Clear test organization aligned with Sprint 108 goals
-- Comprehensive coverage of all integration scenarios
-- Reusable test infrastructure for future sprints
-- Clear separation of integration vs performance vs monitoring concerns
+- Simple configuration management
+- Reliable fallback for development/testing
+- Clear data source abstraction
 
 ⚠️ **Negative:**
-- Test execution time increased due to comprehensive coverage
-- Potential test interdependencies requiring careful management
+- Limited to two data sources
+- Manual configuration required for complex scenarios
 
-### ADR-108.5: Production Readiness Validation Framework
-**Date:** 2025-08-21  
+### ADR-SIMPLE-004: Configuration Simplification
+**Date:** 2025-08-25  
 **Status:** Accepted  
 
 **Context:**  
-Sprint 108 required validation that the system is ready for production big-bang deployment.
+Previous system had complex configuration management that was difficult to maintain.
 
 **Decision:**  
-Implemented multi-level validation framework:
-- System initialization and shutdown validation
-- Component integration health checking
-- Performance target compliance verification
-- Data integrity and zero-loss validation
-- Client compatibility preservation testing
+Implemented environment-based configuration:
+- **Simple boolean flags** for feature toggles
+- **Direct environment variable access** instead of complex config layers
+- **Sensible defaults** for all optional settings
 
 **Consequences:**  
 ✅ **Positive:**
-- High confidence in production readiness
-- Systematic validation of all deployment concerns
-- Clear go/no-go decision framework
-- Comprehensive deployment risk mitigation
+- Easy deployment configuration
+- Reduced configuration complexity
+- Clear configuration documentation
 
 ⚠️ **Negative:**
-- Complex validation framework requiring maintenance
-- Extended validation time before deployment
-- False positives could delay deployment unnecessarily
+- Less flexible than previous configuration system
+- Requires environment variable management
+
+## Removed Architecture (Historical Reference)
+
+### Removed Systems
+The following complex systems were removed during the cleanup:
+- **Event Detection System**: 17+ specialized detection components
+- **Analytics Engine**: Memory accumulation and complex analytics
+- **Multi-Frequency Processing**: Per-second, per-minute processing layers
+- **Advanced Filtering**: Complex user filtering and statistical analysis
+- **Worker Pool Management**: Dynamic scaling and queue management
+- **Multi-Layer Caching**: Complex caching and coordination systems
+
+### Previous Sprint Decisions (OBSOLETE)
+All ADRs from Sprints 105-110 are now obsolete as the systems they described have been removed or completely redesigned.
 
 ## Future Architecture Considerations
 
-### Sprint 109+: Optimization and Scaling
-- Advanced performance tuning based on production metrics
-- Dynamic scaling capabilities for variable load patterns
-- Machine learning-based performance optimization
+### Expansion Guidelines
+When adding new features to the simplified system:
+1. **Maintain simplicity**: Resist urge to re-introduce complex systems
+2. **Clean interfaces**: Use Redis pub-sub for external integrations
+3. **Single responsibility**: Keep components focused on their core purpose
+4. **Performance first**: Preserve the performance gains from simplification
 
-### Long-term: Advanced Features
-- Machine learning-based conflict resolution
-- Dynamic rule generation based on market conditions
-- Real-time adaptive performance tuning
-- Advanced analytics and predictive capabilities
+### Integration Points
+- **TickStockPL Integration**: Via Redis pub-sub channels
+- **External Systems**: Through standardized Redis message formats
+- **Monitoring**: Via `/health` and `/stats` endpoints
+- **Configuration**: Through environment variables
 
-### Post-Deployment: Operational Excellence
-- Advanced observability and debugging tools
-- Automated performance optimization
-- Intelligent capacity planning and scaling
-- Enhanced error recovery and self-healing capabilities
+---
+
+**Key Principle**: Any new architectural decisions should prioritize simplicity and maintainability over feature complexity, preserving the benefits achieved through the major cleanup effort.

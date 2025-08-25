@@ -1,21 +1,12 @@
-# classes/__init__.py
-"""TickStock type-safe class definitions"""
+"""TickStock Domain - Simplified Architecture.
 
-from src.core.domain.events import BaseEvent, HighLowEvent, TrendEvent, SurgeEvent
-from src.core.domain.market import TickData, TickerState
-from src.core.domain.transport import StockData, EventCounts, HighLowBar
-from src.core.domain.analytics import TickerAnalytics, UniverseAnalytics, GaugeAnalytics
-from src.core.domain.processing import QueuedEvent, TypedEventQueue
+Core domain models for the simplified TickStock system.
+Event models removed as part of cleanup - system now focuses on basic tick data processing.
+"""
+
+from src.core.domain.market import TickData
 
 __all__ = [
-    # Events
-    'BaseEvent', 'HighLowEvent', 'TrendEvent', 'SurgeEvent',
-    # Market
-    'TickData', 'TickerState',
-    # Transport
-    'StockData', 'EventCounts', 'HighLowBar',
-    # Analytics
-    'TickerAnalytics', 'UniverseAnalytics', 'GaugeAnalytics',
-    # Processing
-    'QueuedEvent', 'TypedEventQueue'
+    # Market Data
+    'TickData',
 ]

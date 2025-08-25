@@ -3,10 +3,10 @@ from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 from src.infrastructure.database import User, CommunicationLog, db, VerificationCode
 from datetime import datetime, timedelta
-from config.logging_config import get_domain_logger, LogDomain
+import logging
 from src.infrastructure.messaging import EmailManager 
 
-logger = get_domain_logger(LogDomain.AUTH_SESSION, 'sms_manager')
+logger = logging.getLogger(__name__)
 
 class SMSManager:
     """Manages sending SMS with retry logic and test mode support."""

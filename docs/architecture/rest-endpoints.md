@@ -1,293 +1,199 @@
-# Documentation Warning
-**DISCLAIMER**: This documentation is not current and should not be relied upon. As of August 21, 2025, it requires review to determine its relevance. Content must be evaluated for accuracy and applicability to the project. If found relevant, update and retain; if obsolete or duplicative of content elsewhere, delete.
+# REST API Endpoints - Simplified Architecture
 
-
-
-# REST API Endpoints
+**Version**: 2.0.0-simplified  
+**Last Updated**: August 25, 2025  
+**Status**: Post-Cleanup API Documentation
 
 ## Overview
 
-TickStock provides REST endpoints for configuration, user management, and data queries. All endpoints require authentication unless specified otherwise.
+TickStock's simplified architecture provides essential REST endpoints for system monitoring, user management, and basic configuration. Many complex analytics and trace endpoints have been removed as part of the system simplification.
 
 ## Base URL
-https://your-domain.com/api
+```
+http://localhost:5000
+```
 
-## Authentication
+## Core System Endpoints
 
-All API requests require authentication via session cookies or API tokens.
+### Health and Monitoring
 
-### Session Authentication
-Obtained through login endpoint. Cookie-based for web clients.
+#### GET `/health`
+Basic system health check endpoint.
 
-### API Token
-For programmatic access:
-Authorization: Bearer <your-api-token>
-
-## Endpoints
-
-### Authentication
-
-#### POST `/auth/login`
-User login endpoint.
-
-**Request:**
+**Response:**
 ```json
 {
-    "email": "user@example.com",
-    "password": "secure-password"
+    "status": "healthy",
+    "timestamp": "2025-08-25T14:30:00Z"
 }
-Response:
-json{
-    "success": true,
-    "user": {
-        "id": 123,
-        "email": "user@example.com",
-        "username": "johndoe"
+```
+
+#### GET `/stats`  
+System statistics for simplified components.
+
+**Response:**
+```json
+{
+    "market_data": {
+        "ticks_processed": 1500,
+        "events_published": 1200,
+        "data_source": "synthetic"
+    },
+    "websocket": {
+        "active_connections": 3,
+        "messages_sent": 850
+    },
+    "redis": {
+        "connected": true,
+        "published_messages": 1200
     }
 }
-POST /auth/logout
-Terminate user session.
-Response:
-json{
-    "success": true,
-    "message": "Logged out successfully"
-}
-POST /auth/register
-Create new user account.
-Request:
-json{
-    "email": "new@example.com",
-    "username": "newuser",
-    "password": "secure-password",
-    "phone": "+1234567890"
-}
-Universe Management
-GET /api/user/universe-selections
-Get current user's universe selections.
-Response:
-json{
-    "success": true,
-    "selections": {
-        "market": ["DEFAULT_UNIVERSE"],
-        "highlow": ["DEFAULT_UNIVERSE", "TECH_UNIVERSE"]
-    },
-    "user_id": 123
-}
-POST /api/universes/select
-Update user's universe selections.
-Request:
-json{
-    "tracker": "market",
-    "universes": ["DEFAULT_UNIVERSE", "LARGE_CAP_UNIVERSE"]
-}
-Response:
-json{
-    "status": "success",
-    "tracker": "market",
-    "universes": ["DEFAULT_UNIVERSE", "LARGE_CAP_UNIVERSE"],
-    "cache_invalidated": true,
-    "user_id": 123
-}
-GET /api/user/universe-cache-status
-Debug endpoint for cache status.
-Response:
-json{
-    "cached_users": [1, 2, 3],
-    "cache_size": 3,
-    "cache_hits": 150,
-    "cache_misses": 10,
-    "hit_rate": 93.75
-}
-User Filters
-GET /api/user-filters
-Get current user's filter settings.
-Response:
-json{
-    "success": true,
-    "filter_data": {
-        "filter_name": "default",
-        "filters": {
-            "highlow": {
-                "min_count": 25,
-                "min_volume": 100000
-            },
-            "trends": {
-                "strength": "moderate",
-                "vwap_position": "any_vwap_position"
-            },
-            "surges": {
-                "magnitude_threshold": 2.0,
-                "trigger_types": ["price", "volume"]
-            }
-        },
-        "version": "1.0"
-    },
-    "user_id": 123
-}
-POST /api/user-filters
-Save user's filter settings.
-Request:
-json{
-    "filter_data": {
-        "filters": {
-            "highlow": {
-                "min_count": 50,
-                "min_volume": 500000
-            }
-        }
-    }
-}
-Response:
-json{
-    "success": true,
-    "message": "Filters saved successfully",
-    "user_id": 123,
-    "cache_invalidated": true
-}
-POST /api/user-filters/cache/invalidate
-Force cache invalidation for user filters.
-Response:
-json{
-    "success": true,
-    "cache_invalidated": true
-}
-System Status
-GET /api/health
-System health check endpoint.
-Response:
-json{
+```
+
+#### GET `/api/health`
+Extended health check with component status.
+
+**Response:**
+```json
+{
     "status": "healthy",
     "components": {
         "database": "healthy",
-        "redis": "healthy",
-        "websocket": "healthy"
+        "redis": "healthy", 
+        "websocket": "healthy",
+        "market_data_service": "healthy"
     },
-    "timestamp": "2024-12-19T14:30:00Z"
+    "timestamp": "2025-08-25T14:30:00Z"
 }
-GET /api/metrics
-System metrics endpoint.
-Response:
-json{
-    "processing": {
-        "ticks_processed": 1500000,
-        "events_detected": 3200,
-        "active_users": 45
+```
+
+## User Management Endpoints
+
+### Authentication
+Basic user authentication endpoints (preserved from original system):
+
+- `POST /register` - User registration
+- `POST /login` - User login  
+- `POST /logout` - User logout
+- `POST /change_password` - Change password
+- `GET /account` - Account management
+
+### User Settings
+Simplified user settings management:
+
+#### GET `/api/user/settings`
+Get user settings.
+
+#### POST `/api/user/settings`
+Update user settings.
+
+#### GET `/api/user/universe-selections`
+Get current user's universe selections.
+
+**Response:**
+```json
+{
+    "success": true,
+    "selections": {
+        "market": ["DEFAULT_UNIVERSE"]
     },
-    "performance": {
-        "avg_tick_processing_ms": 0.8,
-        "avg_publishing_ms": 7.2
-    },
-    "resources": {
-        "memory_mb": 512,
-        "cpu_percent": 35,
-        "worker_pool_size": 8
-    }
+    "user_id": 123
 }
-Available Universes
-GET /api/universes/available
-List all available universes.
-Response:
-json{
-    "universes": [
-        {
-            "id": "DEFAULT_UNIVERSE",
-            "name": "Default Universe",
-            "description": "Balanced selection across sectors",
-            "stock_count": 762
-        },
-        {
-            "id": "LARGE_CAP_UNIVERSE",
-            "name": "Large Cap Universe",
-            "description": "Large capitalization stocks",
-            "stock_count": 545
-        }
-    ]
-}
-Error Responses
-All errors follow consistent format:
-json{
+```
+
+## WebSocket Events
+
+### Connection Events
+- `connect` - Client connection established
+- `disconnect` - Client disconnection
+- `subscribe_tickers` - Subscribe to specific ticker updates
+
+### Data Events  
+- Real-time tick data broadcast to connected clients
+- Market status updates
+- System notifications
+
+## Removed Endpoints
+
+The following endpoint categories have been **removed** during simplification:
+
+### Analytics Endpoints (REMOVED)
+- `/api/analytics/summary` ❌
+- `/api/analytics/pressure-data` ❌ 
+- `/api/analytics/performance` ❌
+
+### Trace System Endpoints (REMOVED)
+- `/api/trace/status` ❌
+- `/api/trace/enable` ❌
+- `/api/trace/export/*` ❌
+
+### Quality Metrics Endpoints (REMOVED)  
+- `/api/quality/metrics/*` ❌
+- `/api/quality/validate/*` ❌
+- `/api/quality/summary` ❌
+
+### Complex Filter Endpoints (REMOVED)
+- Advanced filter endpoints have been simplified or removed
+
+## Error Responses
+
+Standard error format:
+```json
+{
     "success": false,
     "error": {
-        "code": "VALIDATION_ERROR",
-        "message": "Invalid universe selection",
-        "details": {
-            "field": "universes",
-            "issue": "TECH_UNIVERSE not available"
-        }
+        "code": "ERROR_CODE",
+        "message": "Error description"
     }
 }
-Common Error Codes
-CodeHTTP StatusDescriptionUNAUTHORIZED401Authentication requiredFORBIDDEN403Insufficient permissionsNOT_FOUND404Resource not foundVALIDATION_ERROR400Invalid request dataRATE_LIMITED429Too many requestsSERVER_ERROR500Internal server error
-Rate Limiting
+```
 
-Default limit: 100 requests per minute per user
-Filter updates: 10 per minute
-Universe updates: 10 per minute
+## Rate Limiting
 
-Rate limit headers:
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1703001234
-Request Examples
-cURL
-bash# Get universe selections
-curl -X GET https://your-domain.com/api/user/universe-selections \
-  -H "Authorization: Bearer your-token"
+Basic rate limiting in place:
+- **Default**: 100 requests per minute per user
+- **Settings updates**: 10 per minute
 
-# Update filters
-curl -X POST https://your-domain.com/api/user-filters \
-  -H "Authorization: Bearer your-token" \
-  -H "Content-Type: application/json" \
-  -d '{"filter_data":{"filters":{"highlow":{"min_count":25}}}}'
-Python
-pythonimport requests
+## Request Examples
 
-# Setup session
-session = requests.Session()
-session.headers.update({'Authorization': 'Bearer your-token'})
+### cURL Examples
+```bash
+# Health check
+curl -X GET http://localhost:5000/health
 
-# Get universe selections
-response = session.get('https://your-domain.com/api/user/universe-selections')
-data = response.json()
+# System stats
+curl -X GET http://localhost:5000/stats
 
-# Update filters
-filter_data = {
-    'filter_data': {
-        'filters': {
-            'highlow': {'min_count': 25}
-        }
-    }
-}
-response = session.post('https://your-domain.com/api/user-filters', json=filter_data)
-JavaScript
-javascript// Get universe selections
-fetch('/api/user/universe-selections', {
-    credentials: 'include'
-})
-.then(res => res.json())
-.then(data => console.log(data));
+# User settings (requires authentication)
+curl -X GET http://localhost:5000/api/user/settings \
+  -H "Cookie: session=your-session-cookie"
+```
 
-// Update filters
-fetch('/api/user-filters', {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-        filter_data: {
-            filters: {
-                highlow: { min_count: 25 }
-            }
-        }
-    })
-})
-.then(res => res.json())
-.then(data => console.log(data));
-Versioning
-API version is included in response headers:
-X-API-Version: 1.0
-Future versions will use URL versioning:
-/api/v2/endpoint
+### Python Example
+```python
+import requests
 
-For WebSocket real-time API, see WebSocket Events
+# Check system health
+response = requests.get('http://localhost:5000/health')
+print(response.json())
+
+# Get system stats  
+response = requests.get('http://localhost:5000/stats')
+print(response.json())
+```
+
+## Integration Notes
+
+### TickStockPL Integration
+- **Primary interface**: Redis pub-sub channels, not REST endpoints
+- **Monitoring**: Use `/health` and `/stats` for system status
+- **Configuration**: Via environment variables, not API endpoints
+
+### Real-time Data Access
+- **WebSocket**: Connect to root URL for real-time tick data
+- **Subscribe**: Use `subscribe_tickers` event to specify tickers
+- **Data format**: Standardized tick data objects
+
+---
+
+**Note**: This simplified API focuses on essential functionality. Complex analytics and trace systems that provided extensive REST endpoints have been removed in favor of a cleaner, more maintainable architecture.
