@@ -2,7 +2,7 @@
 
 This file provides comprehensive guidance to Claude Code when working with Python code in this repository.
 
-**Important** - CLAUDE documentation is stored local at ./claude-code-docs to reference not having to go out to anthropic to find documentation. This is kept current daily.
+**Important** - CLAUDE documentation is stored local at ./.claude-code-docs to reference not having to go out to anthropic to find documentation. This is kept current daily.
 
 _This document is a living guide. Update it as the project evolves and new patterns emerge._
 
@@ -39,8 +39,7 @@ Follow these comprehensive instruction guides for all development work:
 These guides provide complete coverage of TickStock's development workflow and must be followed for all development assistance and code generation.
 
 ### Project Structure
-- See `docs/new/project_structure.md` for complete folder organization
-- See `docs/new/project_structure_docs.md` for documentation structure
+- See `docs/project_structure.md` for complete folder organization
 
 ### Key Components Reference
 #### Core Processing Pipeline
@@ -119,9 +118,6 @@ These guides provide complete coverage of TickStock's development workflow and m
 ### Common Development Tasks
 **Detailed Task Guides**: See `docs/instructions/coding-practices.md` for complete development task workflows, database schema patterns, and implementation guidelines.
 
-#### Quick Reference
-- **New Event Type**: Create class → Add detection → Implement transport → Update routing
-- **Database Changes**: Always provide ALTER and CREATE statements with proper grants
 
 ## Testing & Reliability
 

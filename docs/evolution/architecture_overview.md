@@ -19,3 +19,24 @@
 - **Primary Functionality**: Data loading/preprocessing, pattern scanning (batch/real-time), event publishing to TickStockApp. Extensible for new patterns.
 
 Overall: Event-driven (pub-sub) for loose coupling; DB-centric for persistence. Scales via microservices (e.g., Docker later).
+
+### Architecture Diagram (Text-Based)
+[External Data Sources: Polygon APIs/WebSockets, yfinance]
+|
+v
+[TickStockApp: Ingestion (WS Handler) --> Redis (Data Channel: e.g., "tickstock_data")]
+|
+v
+[TickStockPL: DataBlender (Blend Historical DB + Live) --> PatternScanner (Detect via BasePattern) --> EventPublisher]
+|
+v
+[Redis (Patterns Channel: e.g., "tickstock_patterns")]
+|
+v
+[TickStockApp: Event Subscriber --> Processing (Alerts, Trades, UI Updates, DB Logging)]
+|
+v
+[User Outputs: Dashboard Visuals, Backtests]
+[Shared DB: PostgreSQL/TimescaleDB for symbols, ohlcv_*, events persistence]
+
+This diagram illustrates the loose coupling: TickStockPL publishes events to Redis independently, while TickStockApp subscribes for consumption—perfect for our modular Python setup!

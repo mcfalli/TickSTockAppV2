@@ -52,4 +52,3 @@ Development teams or AI systems responsible for executing and documenting sprint
 
 ### Conditional Updates (if applicable)
 - **Feature Docs**: Document new features in `docs/features/[feature-name].md`.
-- **Update Existing Docs**: Modify relevant `docs/[folder]/[file].md` as needed for sprint changes.
