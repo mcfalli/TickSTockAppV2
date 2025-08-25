@@ -10,11 +10,8 @@ from src.infrastructure.database.models.base import (
     BillingInfo,
     CacheEntry,
     CommunicationLog,
-    EventSession,
-    MarketAnalytics,
     PaymentHistory,
     Session,
-    StockData,
     Subscription,
     TaggedStock,
     User,
@@ -28,7 +25,8 @@ from src.infrastructure.database.models.base import (
 from src.infrastructure.database.migrations.run_migrations import (
     run_migration_command,
 )
-from .models.analytics import TickerAnalytics
+# Analytics models removed during Phase 2 cleanup
+
 __all__ = [
     # Database instance
     'db',
@@ -38,11 +36,8 @@ __all__ = [
     'BillingInfo',
     'CacheEntry',
     'CommunicationLog',
-    'EventSession',
-    'MarketAnalytics',
     'PaymentHistory',
     'Session',
-    'StockData',
     'Subscription',
     'TaggedStock',
     'User',
@@ -50,7 +45,7 @@ __all__ = [
     'UserHistory',
     'UserSettings',
     'VerificationCode',
-    'TickerAnalytics',
+    
     # Migration utilities
     'run_migration_command',
 ]

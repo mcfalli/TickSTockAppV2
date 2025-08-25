@@ -1,6 +1,7 @@
-# classes/analytics/__init__.py
-"""Analytics related classes"""
+# Database models __init__.py
+"""Database models package - Phase 2 cleanup completed"""
 
-from src.infrastructure.database.models.analytics import TickerAnalytics, UniverseAnalytics, GaugeAnalytics
+# Analytics models removed during cleanup
+# TickerAnalytics, UniverseAnalytics, GaugeAnalytics removed
 
-__all__ = ['TickerAnalytics', 'UniverseAnalytics', 'GaugeAnalytics']
+__all__ = []

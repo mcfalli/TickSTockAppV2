@@ -38,7 +38,7 @@ from src.processing.queues.priority_manager import PriorityManager
 from src.core.services.universe_service import TickStockUniverseManager
 from src.core.services import AnalyticsManager
 from src.presentation.websocket.publisher import WebSocketPublisher
-from src.processing.detectors.buysell_tracker import BuySellMarketTracker
+# BuySellMarketTracker import removed - Phase 3 cleanup
 from src.core.services import SessionAccumulationManager
 from src.infrastructure.data_sources.adapters.realtime_adapter import SyntheticDataAdapter, RealTimeDataAdapter
 
@@ -201,9 +201,9 @@ class MarketDataService:
         """SPRINT 107: Initialize multi-channel integration components"""
         try:
             # Initialize channel router from Sprint 105
-            from src.processing.channels.channel_router import DataChannelRouter, RouterConfig
-            router_config = RouterConfig()
-            self.channel_router = DataChannelRouter(router_config)
+            # Channel router removed - Phase 5 cleanup
+            # from src.processing.channels.channel_router import DataChannelRouter, RouterConfig
+            # self.channel_router = DataChannelRouter(router_config)
             
             # SPRINT 109 FIX: Register TickChannel for tick data processing
             from src.processing.channels.tick_channel import TickChannel
@@ -320,17 +320,12 @@ class MarketDataService:
                 self.market_analytics_manager.memory_analytics.config.update(self.config)
             self.market_analytics_manager.initialize_session(current_session_date)
             
-            # Initialize tracker components with core universe
-            self.buysell_market_tracker = BuySellMarketTracker(self.config, self.cache_control)
-            self.buysell_market_tracker.tracked_stocks = set(core_universe_tickers)
-            self.buysell_market_tracker.reset_tracking()
-            self.buysell_market_tracker.set_analytics_manager(self.market_analytics_manager)
+            # Tracker components removed - Phase 3 cleanup
+            # self.buysell_market_tracker = BuySellMarketTracker(self.config, self.cache_control)
+            # self.trend_detector = TrendDetector(self.config, self.cache_control)
+            # self.surge_detector = SurgeDetector(self.config, self.cache_control)
             
-            # Additional components (keeping for compatibility)
-            from src.processing.detectors.trend_detector import TrendDetector
-            from src.processing.detectors.surge_detector import SurgeDetector
-            self.trend_detector = TrendDetector(self.config, self.cache_control)
-            self.surge_detector = SurgeDetector(self.config, self.cache_control)
+            logger.info("✅ Detector components disabled (Phase 3 cleanup)")
             
         except Exception as e:
             logger.error(f"❌ Error initializing infrastructure: {e}", exc_info=True)

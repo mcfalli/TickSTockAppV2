@@ -18,7 +18,7 @@ from src.core.domain.events import *
 from src.core.services import *
 from src.infrastructure.data_sources import DataProviderFactory
 from src.presentation.websocket import WebSocketManager, WebSocketPublisher
-from src.processing.detectors import EventDetectionManager
+# EventDetectionManager import removed - Phase 3 cleanup
 
 
 import os
@@ -38,9 +38,9 @@ from config.app_config import create_flask_app, initialize_flask_extensions, ini
 from config.logging_config import get_domain_logger, LogDomain, get_session_id, configure_logging
 from src.presentation.websocket.manager import WebSocketManager
 from src.core.services.market_data_service import MarketDataService
-from src.processing.detectors.manager import EventDetectionManager
+# EventDetectionManager.manager import removed - Phase 3 cleanup
 
-from src.infrastructure.database import MarketAnalytics
+# MarketAnalytics import removed - Phase 2 cleanup
 
 from src.infrastructure.data_sources.factory import DataProviderFactory
 from src.infrastructure.messaging.sms_service import SMSManager
@@ -76,7 +76,7 @@ def initialize_market_services(config, cache_control, ws_manager):
     logger.info("initialize_market_services: Initializing market data services")
     
     # Initialize components
-    event_manager = EventDetectionManager(config, cache_control)
+    # event_manager = EventDetectionManager(config, cache_control) # Removed - Phase 3 cleanup
 
     
     # PRODUCTION HARDENING: Clear startup messaging with no fallbacks
@@ -148,13 +148,13 @@ def initialize_market_services(config, cache_control, ws_manager):
     market_service = MarketDataService(
         config=config,
         data_provider=data_provider,
-        event_manager=event_manager,
+        # event_manager=event_manager,  # Removed - Phase 3 cleanup
         websocket_mgr=ws_manager,
         cache_control=cache_control
     )
 
 
-    return event_manager, data_provider, market_service
+    return None, data_provider, market_service  # event_manager removed
 
 #TRACE TRACING    
 def initialize_tracer(config):
@@ -960,7 +960,8 @@ if __name__ == '__main__':
     ws_manager = WebSocketManager(socketio, config)
     
     # Initialize market services with proper order
-    event_manager, data_provider, market_service = initialize_market_services(config, cache_control, ws_manager)
+    _, data_provider, market_service = initialize_market_services(config, cache_control, ws_manager)
+    # event_manager removed - Phase 3 cleanup
     
     #TRACE TRACING
     initialize_tracer(config)

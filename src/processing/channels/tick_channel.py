@@ -91,10 +91,10 @@ class TickChannel(ProcessingChannel):
         
         # Use real detector implementations
         try:
-            # Import real detectors
-            from src.processing.detectors.highlow_detector import HighLowDetector
-            from src.processing.detectors.trend_detector import TrendDetector  
-            from src.processing.detectors.surge_detector import SurgeDetector
+            # Real detectors removed - Phase 3 cleanup
+            # from src.processing.detectors.highlow_detector import HighLowDetector
+            # from src.processing.detectors.trend_detector import TrendDetector  
+            # from src.processing.detectors.surge_detector import SurgeDetector
             
             # Get config for detector initialization (use app config structure)
             detector_config = {
@@ -108,23 +108,9 @@ class TickChannel(ProcessingChannel):
                 'SURGE_VOLUME_THRESHOLD': 1.3
             }
             
-            if self.tick_config.highlow_detection['enabled']:
-                self._highlow_detector = RealHighLowDetectorAdapter(
-                    HighLowDetector(detector_config)
-                )
-                logger.info(f"✅ Initialized REAL HighLow detector for channel {self.name}")
-            
-            if self.tick_config.trend_detection['enabled']:
-                self._trend_detector = RealTrendDetectorAdapter(
-                    TrendDetector(detector_config)
-                )
-                logger.info(f"✅ Initialized REAL Trend detector for channel {self.name}")
-            
-            if self.tick_config.surge_detection['enabled']:
-                self._surge_detector = RealSurgeDetectorAdapter(
-                    SurgeDetector(detector_config)
-                )
-                logger.info(f"✅ Initialized REAL Surge detector for channel {self.name}")
+            # Real detector initialization disabled - Phase 3 cleanup
+            # Detection will be handled by TickStockPL via Redis
+            logger.info(f"✅ Real detectors disabled for channel {self.name} (Phase 3 cleanup)")
                 
         except Exception as e:
             logger.error(f"Failed to initialize real detectors, falling back to placeholders: {e}")
