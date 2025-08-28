@@ -15,14 +15,15 @@ TickStock is a high-performance, real-time market data processing system that ha
 - Real-time processing of market data with <100ms end-to-end latency
 - Zero event loss through Pull Model architecture
 - Per-user filtering and personalization
+- **Sprint 10 Complete**: Full TickStockPL integration with backtesting platform and pattern alerts
 
 ### Technology Stack
 - **Backend**: Python 3.x, Flask, Flask-SocketIO, Eventlet
 - **Frontend**: JavaScript ES6+ SPA with Socket.IO client
-- **Database**: PostgreSQL with SQLAlchemy
-- **Cache**: Redis for user preferences and universe caching
+- **Database**: PostgreSQL + TimescaleDB for time-series data
+- **Cache**: Redis for user preferences, TickStockPL integration, and pub-sub messaging
 - **Data Provider**: Polygon.io (live) / Synthetic (dev/test)
-- **Architecture**: Component-based with Pull Model Event Distribution
+- **Architecture**: Component-based with Pull Model + TickStockPL Integration via Redis
 
 ## Project Organization
 
@@ -126,7 +127,11 @@ These guides provide complete coverage of TickStock's development workflow and m
 
 **Comprehensive Testing Guidelines**: See `docs/instructions/unit_testing.md` for complete testing standards, organization structure, sprint requirements, and best practices.
 
-**Testing Agent**: The `tickstock-test-specialist` agent (`.claude/agents/tickstock-test-specialist.md`) provides automated test generation and quality assurance. This agent is automatically invoked when creating features, fixing bugs, or modifying core processing components to ensure comprehensive test coverage following TickStock standards.
+**Testing Agents**: Comprehensive testing is provided by multiple specialized agents:
+- **`tickstock-test-specialist`**: Automated test generation and quality assurance for TickStock processing components
+- **`integration-testing-specialist`**: Cross-system testing for TickStockApp ↔ TickStockPL communication via Redis
+
+These agents are automatically invoked when creating features, fixing bugs, or modifying core processing components to ensure comprehensive test coverage following TickStock standards.
 
 #### Key Testing Principles
 - **Quality First**: No feature is complete without tests
@@ -149,7 +154,11 @@ These guides provide complete coverage of TickStock's development workflow and m
 - **Sprint Capacity Monitoring**: Alert at 80% chat capacity
 - **Context Preservation**: Capture all relevant context before chat transitions
 - **Task Tracking**: Maintain sprint tasks with ongoing task list for items that arise
-- **Testing Agent Integration**: The `tickstock-test-specialist` agent automatically creates comprehensive test suites during feature development, organized by functional area with sprint-specific subfolders
+- **Specialized Agent Integration**: Multiple specialized agents provide domain expertise:
+  - `appv2-integration-specialist` for Sprint 10 UI integration phases
+  - `tickstock-test-specialist` for comprehensive test coverage
+  - `architecture-validation-specialist` for continuous compliance checking
+  - See complete agent list in Specialized Agents section below
 
 ### Git Workflow
 #### Branch Strategy
@@ -192,7 +201,78 @@ When working on sprints/problems:
 - Ask clarifying questions before generating code
 - Provide clear directions with code examples
 - Track additional items that arise during sprint work
-- Leverage specialized agents (tickstock-test-specialist) for domain-specific tasks
+- Leverage specialized agents for domain-specific tasks (see Specialized Agents section below)
+
+## Specialized Agents
+
+TickStock.ai uses specialized agents for domain-specific tasks. These agents have deep expertise in specific areas and should be used proactively when their domain is encountered.
+
+### Implementation Agents
+
+#### `appv2-integration-specialist`
+**Domain**: TickStockAppV2 UI integration and Redis consumption  
+**Use When**: Sprint 10 implementation phases, Flask/SocketIO integration, WebSocket broadcasting, maintaining lean ~11,000 line architecture  
+**Expertise**: Database read-only connections, Redis event consumption, backtesting UI, pattern alert management  
+**Key Focus**: Consumer role (triggers jobs, displays results), no heavy data processing
+
+#### `redis-integration-specialist` 
+**Domain**: Redis pub-sub architecture and message handling  
+**Use When**: Redis Streams, channel management, WebSocket broadcasting patterns, message queuing  
+**Expertise**: Persistent message queuing, offline user handling, Redis scaling and performance optimization  
+**Key Focus**: Loose coupling between TickStockApp and TickStockPL via async pub-sub
+
+#### `database-query-specialist`
+**Domain**: TimescaleDB read-only queries and health monitoring  
+**Use When**: UI data queries, health monitoring dashboards, connection pooling, database performance  
+**Expertise**: Simple performant queries (<50ms), connection management, read-only boundaries  
+**Key Focus**: TickStockAppV2 database access (read-only), UI dropdowns, basic stats
+
+### Quality Assurance Agents
+
+#### `tickstock-test-specialist`
+**Domain**: TickStock real-time financial data processing testing  
+**Use When**: Creating features, fixing bugs, modifying core processing components  
+**Expertise**: Performance benchmarks, financial data mocking, functional test organization, Sprint-specific testing  
+**Key Focus**: Sub-millisecond requirements, Pull Model architecture, zero event loss guarantee  
+**Usage**: MUST BE USED proactively for comprehensive test coverage
+
+#### `integration-testing-specialist`
+**Domain**: Cross-system integration testing (TickStockApp ↔ TickStockPL)  
+**Use When**: Redis message flow validation, database integration testing, end-to-end workflow verification  
+**Expertise**: Message delivery performance, system resilience, loose coupling validation  
+**Key Focus**: <100ms message delivery, role boundary enforcement, system health validation
+
+### Architecture & Documentation Agents
+
+#### `documentation-sync-specialist`
+**Domain**: Documentation alignment and consistency across planning documents  
+**Use When**: Cross-reference validation, architecture consistency checking, sprint documentation updates  
+**Expertise**: Terminology standardization, navigation updates, consolidated information architecture maintenance  
+**Key Focus**: Single source of truth, consistent cross-references, evolution tracking
+
+#### `architecture-validation-specialist`
+**Domain**: Architecture compliance and role separation enforcement  
+**Use When**: Detecting tight coupling, role boundary violations, anti-patterns  
+**Expertise**: Redis pub-sub pattern validation, database access control, performance pattern compliance  
+**Key Focus**: TickStockApp (consumer) vs TickStockPL (producer) separation, loose coupling via Redis
+
+### Agent Usage Guidelines
+
+#### Proactive Agent Usage
+- **`tickstock-test-specialist`**: Automatically invoke when creating features, fixing bugs, or modifying core components
+- **`architecture-validation-specialist`**: Use for continuous compliance checking throughout development
+- **`documentation-sync-specialist`**: Invoke when updating documentation or cross-references
+
+#### Phase-Based Agent Usage (Sprint 10)
+- **Phase 1-3**: `appv2-integration-specialist` + `database-query-specialist`
+- **Phase 2-4**: `redis-integration-specialist` + `integration-testing-specialist`  
+- **Throughout**: `architecture-validation-specialist` + `documentation-sync-specialist`
+
+#### Agent Coordination
+- All agents understand the role boundaries (AppV2 = Consumer, TickStockPL = Producer)
+- All agents reference consolidated documentation (`project-overview.md`, `architecture_overview.md`)
+- All agents enforce performance targets (<100ms WebSocket, <50ms DB queries)
+- All agents maintain Redis pub-sub loose coupling patterns
 
 ## Important Operating Guidelines
 

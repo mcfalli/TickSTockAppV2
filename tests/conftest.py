@@ -422,7 +422,7 @@ def test_config():
     """Test configuration settings"""
     return {
         "TESTING": True,
-        "DATABASE_URL": "sqlite:///:memory:",
+        "DATABASE_URI": "sqlite:///:memory:",
         "REDIS_URL": "redis://localhost:6379/15",  # Test database
         "POLYGON_API_KEY": "test_api_key",
         "USE_SIMULATED_DATA": True,

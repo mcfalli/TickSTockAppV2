@@ -267,6 +267,34 @@ class UserFiltersService:
             logger.error(f"Error getting filter summary for user {user_id}: {e}")
             return {'user_id': user_id, 'error': 'Unable to retrieve filter summary'}
 
+    def get_filters(self, user_id: int) -> Dict[str, Any]:
+        """
+        Get user filters (compatibility method).
+        
+        Args:
+            user_id: User ID to get filters for
+            
+        Returns:
+            Dict containing user filters
+        """
+        try:
+            user_filters = UserFilters.query.filter_by(user_id=user_id).first()
+            
+            if user_filters and user_filters.filter_data:
+                try:
+                    filters = json.loads(user_filters.filter_data)
+                except (json.JSONDecodeError, TypeError):
+                    filters = self.default_filters
+            else:
+                filters = self.default_filters
+                
+            logger.debug(f"Retrieved filters for user {user_id}")
+            return filters
+            
+        except Exception as e:
+            logger.error(f"Failed to get filters for user {user_id}: {e}")
+            return self.default_filters
+
 # Maintain interface compatibility
 def create_user_filters_service(app=None) -> UserFiltersService:
     """Factory function for user filters service"""

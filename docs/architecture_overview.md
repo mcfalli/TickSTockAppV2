@@ -7,7 +7,7 @@
 
 This document has been **replaced** with updated architecture documentation that reflects the simplified system after the major cleanup effort (Phases 6-11).
 
-**👉 Current Architecture Documentation**: [`docs/evolution/simplified-architecture-overview.md`](evolution/simplified-architecture-overview.md)
+**👉 Current Architecture Documentation**: [`docs/planning/simplified-architecture-overview.md`](evolution/simplified-architecture-overview.md)
 
 ## Quick Summary
 
@@ -27,4 +27,4 @@ TickStock has been dramatically simplified from a complex 25,000+ line system to
 
 ---
 
-**For current architecture details, please see**: [`docs/evolution/simplified-architecture-overview.md`](evolution/simplified-architecture-overview.md)
+**For current architecture details, please see**: [`docs/planning/simplified-architecture-overview.md`](evolution/simplified-architecture-overview.md)

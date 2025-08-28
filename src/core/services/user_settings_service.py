@@ -458,3 +458,31 @@ class UserSettingsService:
             logger.error(f"Error deleting setting {key} for user {user_id}: {e}", exc_info=True)
             db.session.rollback()
             return False
+
+    def get_user_settings(self, user_id: int) -> Dict[str, Any]:
+        """
+        Get all user settings for a given user ID.
+        
+        Args:
+            user_id: User ID to get settings for
+            
+        Returns:
+            Dict containing all user settings
+        """
+        try:
+            user_settings = UserSettings.query.filter_by(user_id=user_id).all()
+            settings_dict = {}
+            
+            for setting in user_settings:
+                try:
+                    # Try to parse as JSON, fall back to string
+                    settings_dict[setting.key] = json.loads(setting.value) if setting.value else None
+                except (json.JSONDecodeError, TypeError):
+                    settings_dict[setting.key] = setting.value
+                    
+            logger.debug(f"Retrieved {len(settings_dict)} settings for user {user_id}")
+            return settings_dict
+            
+        except Exception as e:
+            logger.error(f"Failed to get user settings for user {user_id}: {e}")
+            return {}

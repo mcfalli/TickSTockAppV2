@@ -358,6 +358,24 @@ def publish_pattern_event(tick_data):
 - **Health Endpoint**: `GET /health` for system status
 - **Statistics**: `GET /stats` for performance metrics
 
+## Related Documentation
+
+### Architecture & System Design
+- **[`project-overview.md`](project-overview.md)** - Complete system vision, requirements, and architecture principles
+- **[`architecture_overview.md`](architecture_overview.md)** - Detailed role separation between TickStockApp and TickStockPL
+- **[`database_architecture.md`](database_architecture.md)** - Shared TimescaleDB database schema and optimization
+
+### Implementation Plans  
+- **[`sprint10/sprint10-appv2-implementation-plan.md`](sprint10/sprint10-appv2-implementation-plan.md)** - Current TickStockAppV2 integration roadmap
+- **[`sprint10/sprint10-completed-summary.md`](sprint10/sprint10-completed-summary.md)** - TickStockPL completed backend work
+- **[`user_stories.md`](user_stories.md)** - User-focused requirements and functionality
+
+### Technical Details
+- **[`pattern_library_architecture.md`](pattern_library_architecture.md)** - Pattern detection framework for TickStockPL
+- **[`websockets_integration.md`](websockets_integration.md)** - WebSocket technical implementation details
+
 ---
 
 This integration guide provides everything needed to connect TickStockPL with the simplified TickStock system. The Redis pub-sub architecture enables real-time, scalable communication between the systems while maintaining clean separation of concerns.
+
+**For complete system understanding**, start with [`project-overview.md`](project-overview.md) and [`architecture_overview.md`](architecture_overview.md) before implementing this integration guide.

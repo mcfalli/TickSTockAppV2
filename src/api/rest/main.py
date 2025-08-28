@@ -385,6 +385,27 @@ def register_main_routes(app, extensions, cache_control, config):
                               billing_info=billing_info)
 
 
+    # SPRINT 10 PHASE 1: Health Dashboard
+    @app.route('/health-dashboard')
+    @login_required
+    def health_dashboard():
+        """Display TickStockPL integration health dashboard."""
+        return render_template('health_dashboard.html')
+    
+    # SPRINT 10 PHASE 3: Backtesting Dashboard
+    @app.route('/backtest-dashboard')
+    @login_required
+    def backtest_dashboard():
+        """Display TickStockPL backtesting dashboard."""
+        return render_template('backtest_dashboard.html')
+    
+    # SPRINT 10 PHASE 4: Pattern Alerts Dashboard
+    @app.route('/pattern-alerts')
+    @login_required
+    def pattern_alerts():
+        """Display TickStockPL pattern alerts management dashboard."""
+        return render_template('pattern_alerts.html')
+    
     #TRACE TRACING
     @app.route('/trace/ScoobyDoo123')
     @login_required

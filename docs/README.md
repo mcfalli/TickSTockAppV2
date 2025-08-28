@@ -1,8 +1,8 @@
 # TickStock Documentation - Simplified Architecture
 
-**Version**: 2.0.0-simplified  
-**Last Updated**: August 25, 2025  
-**Status**: Post-Cleanup Documentation
+**Version**: 2.0.0-simplified + Sprint 10 Integration Complete  
+**Last Updated**: August 28, 2025  
+**Status**: TickStockPL Integration Complete ✅
 
 ## Overview
 
@@ -10,22 +10,23 @@ Welcome to the TickStock documentation for the simplified architecture. After a 
 
 ## Quick Start
 
-- **🚀 TickStockPL Integration**: [`evolution/tickstockpl-integration-guide.md`](evolution/tickstockpl-integration-guide.md)
-- **🏗️ Architecture Overview**: [`evolution/simplified-architecture-overview.md`](evolution/simplified-architecture-overview.md)
+- **🎯 Project Overview**: [`planning/project-overview.md`](planning/project-overview.md) - Vision, requirements, system architecture
+- **🏗️ Architecture Details**: [`planning/architecture_overview.md`](planning/architecture_overview.md) - Role separation and communication  
+- **🚀 Sprint 10 Complete**: [`planning/sprint10/sprint10-completed-summary.md`](planning/sprint10/sprint10-completed-summary.md) - **Complete TickStockPL integration achieved**
 - **📊 Technical Details**: [`technical_overview.md`](technical_overview.md)
 
 ## Documentation Structure
 
 ### Essential Documentation
 
-#### Architecture & Design
-- [`architecture_overview.md`](architecture_overview.md) - Current architecture overview (redirects to simplified)
-- [`evolution/simplified-architecture-overview.md`](evolution/simplified-architecture-overview.md) - **Main architecture document**
+#### Architecture & Design  
+- [`planning/project-overview.md`](planning/project-overview.md) - **Complete project overview with vision and requirements**
+- [`planning/architecture_overview.md`](planning/architecture_overview.md) - **Architecture details with role separation**
 - [`technical_overview.md`](technical_overview.md) - Technical specifications and performance
 - [`architecture/`](architecture/) - Architectural decisions and REST endpoints
 
 #### Integration & Features
-- [`evolution/tickstockpl-integration-guide.md`](evolution/tickstockpl-integration-guide.md) - **TickStockPL integration guide**
+- [`planning/tickstockpl-integration-guide.md`](planning/tickstockpl-integration-guide.md) - **TickStockPL integration guide**
 - [`features/`](features/) - Feature documentation (simplified)
   - [`features/README.md`](features/README.md) - Feature overview
   - [`features/data-integration.md`](features/data-integration.md) - Data source integration
@@ -63,29 +64,38 @@ Welcome to the TickStock documentation for the simplified architecture. After a 
 - **Performance Improvements**: Eliminated processing overhead
 - **Integration Ready**: Clean Redis interface for TickStockPL
 
-### Current System
+### Current System (Sprint 10 Integration Complete)
 - **Real-time Data Processing**: Polygon.io + Synthetic data sources
-- **Redis Pub-Sub**: Event streaming for TickStockPL integration
-- **WebSocket Broadcasting**: Live UI updates
-- **Simple Configuration**: Environment-based setup
+- **TickStockPL Integration**: Complete Redis pub-sub consumption with UI layer
+- **Backtesting Platform**: Full UI for job creation, management, and results visualization  
+- **Pattern Alert System**: Personalized notifications with comprehensive management
+- **Health Monitoring**: Real-time system status and connectivity dashboards
+- **WebSocket Broadcasting**: <100ms real-time updates for all TickStockPL events
 
 ### Core Components
 1. **Market Data Service** (232 lines) - Central tick processing
 2. **Data Publisher** (181 lines) - Redis event publishing  
 3. **WebSocket Publisher** (243 lines) - Real-time client updates
+4. **Sprint 10 Integration Services**:
+   - **TickStockDatabase Service** - Read-only TimescaleDB integration
+   - **RedisEventSubscriber** - TickStockPL event consumption
+   - **WebSocketBroadcaster** - Real-time browser updates
+   - **BacktestJobManager** - Backtesting job lifecycle management
+   - **PatternAlertManager** - User alert subscription and preferences
 
 ## Getting Started
 
 ### For TickStockPL Integration
-1. Read: [`evolution/tickstockpl-integration-guide.md`](evolution/tickstockpl-integration-guide.md)
-2. Set up Redis connection and subscribe to `tickstock.all_ticks`
-3. Process incoming tick data with your algorithms
-4. Optionally publish events back to TickStock
+1. Read: [`planning/project-overview.md`](planning/project-overview.md) - Understand the complete system vision
+2. Study: [`planning/architecture_overview.md`](planning/architecture_overview.md) - Learn role separation and communication
+3. Follow: [`planning/tickstockpl-integration-guide.md`](planning/tickstockpl-integration-guide.md) - Complete integration steps
+4. Implement: Set up Redis connection and subscribe to `tickstock.all_ticks`
 
 ### For Development
-1. Review: [`evolution/simplified-architecture-overview.md`](evolution/simplified-architecture-overview.md)
-2. Check: [`instructions/coding-practices.md`](instructions/coding-practices.md)
-3. Understand: [`features/data-integration.md`](features/data-integration.md)
+1. Start: [`planning/project-overview.md`](planning/project-overview.md) - Project vision and requirements
+2. Review: [`planning/architecture_overview.md`](planning/architecture_overview.md) - System architecture and boundaries  
+3. Check: [`instructions/coding-practices.md`](instructions/coding-practices.md) - Development standards
+4. Understand: [`features/data-integration.md`](features/data-integration.md) - Data flow implementation
 
 ### For System Administration
 1. Monitor: Use `/health` and `/stats` endpoints

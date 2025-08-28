@@ -56,20 +56,31 @@ class DataPublisher:
     
     def _init_redis(self):
         """Initialize Redis connection for TickStockPL integration."""
+        # Check if Redis is configured
+        redis_url = self.config.get('REDIS_URL')
+        if not redis_url or redis_url.strip() == '':
+            logger.info("DATA-PUBLISHER: No Redis URL configured, skipping Redis initialization")
+            self.redis_client = None
+            return
+            
         redis_host = self.config.get('REDIS_HOST', 'localhost')
         redis_port = self.config.get('REDIS_PORT', 6379)
         redis_db = self.config.get('REDIS_DB', 0)
+        
+        logger.info(f"DATA-PUBLISHER: Attempting to connect to Redis at {redis_host}:{redis_port}")
         
         try:
             self.redis_client = redis.Redis(
                 host=redis_host,
                 port=redis_port,
                 db=redis_db,
-                decode_responses=True
+                decode_responses=True,
+                socket_timeout=2,
+                socket_connect_timeout=2
             )
             # Test connection
             self.redis_client.ping()
-            logger.info(f"DATA-PUBLISHER: Redis connected to {redis_host}:{redis_port}")
+            logger.info(f"DATA-PUBLISHER: Redis connected successfully to {redis_host}:{redis_port}")
         except Exception as e:
             logger.warning(f"DATA-PUBLISHER: Redis connection failed: {e}")
             self.redis_client = None

@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TickStock Backtesting Dashboard - Sprint 10</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities/main.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        .backtest-dashboard {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard-header h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .dashboard-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .tab-button {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-button.active {
+            border-bottom-color: #3498db;
+            color: #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .backtest-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .backtest-form {
+            background: #fff;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+        
+        .backtest-results {
+            background: #fff;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+        
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .checkbox-item input {
+            margin: 0;
+        }
+        
+        .submit-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 16px;
+            width: 100%;
+            transition: background 0.3s ease;
+        }
+        
+        .submit-btn:hover {
+            background: #229954;
+        }
+        
+        .submit-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .job-list {
+            margin-top: 20px;
+        }
+        
+        .job-item {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .job-item.running {
+            border-left-color: #f39c12;
+        }
+        
+        .job-item.completed {
+            border-left-color: #27ae60;
+        }
+        
+        .job-item.failed {
+            border-left-color: #e74c3c;
+        }
+        
+        .job-item.cancelled {
+            border-left-color: #95a5a6;
+        }
+        
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .job-id {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .job-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .job-status.queued { background: #f8f9fa; color: #7f8c8d; }
+        .job-status.running { background: #fef7e0; color: #f39c12; }
+        .job-status.completed { background: #d5f4e6; color: #27ae60; }
+        .job-status.failed { background: #fdf2f2; color: #e74c3c; }
+        .job-status.cancelled { background: #f8f9fa; color: #95a5a6; }
+        
+        .job-details {
+            color: #5a6c7d;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .job-progress {
+            margin: 10px 0;
+        }
+        
+        .progress-bar {
+            background: #ecf0f1;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .job-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .btn-view {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-cancel {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-download {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .results-chart {
+            margin: 20px 0;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+        
+        .error-message {
+            background: #fdf2f2;
+            color: #e74c3c;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        
+        .success-message {
+            background: #d5f4e6;
+            color: #27ae60;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        
+        .job-config {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+        }
+        
+        .realtime-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: #27ae60;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #27ae60;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="backtest-dashboard">
+        <div class="dashboard-header">
+            <h1>📊 TickStock Backtesting Dashboard</h1>
+            <div class="realtime-indicator">
+                <div class="status-dot"></div>
+                Real-time Updates
+            </div>
+        </div>
+        
+        <div class="dashboard-tabs">
+            <button class="tab-button active" onclick="switchTab('create')">Create Backtest</button>
+            <button class="tab-button" onclick="switchTab('jobs')">My Jobs</button>
+            <button class="tab-button" onclick="switchTab('results')">Results</button>
+        </div>
+        
+        <!-- Create Backtest Tab -->
+        <div id="create-tab" class="tab-content active">
+            <div class="backtest-grid">
+                <div class="backtest-form">
+                    <h3>Create New Backtest</h3>
+                    <form id="backtest-form">
+                        <div class="form-group">
+                            <label for="symbols">Symbols</label>
+                            <div id="symbols-container" class="checkbox-grid">
+                                <div class="loading">Loading symbols...</div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="patterns">Patterns to Test</label>
+                            <div id="patterns-container" class="checkbox-grid">
+                                <div class="loading">Loading patterns...</div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="start-date">Start Date</label>
+                            <input type="date" id="start-date" class="form-control" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="end-date">End Date</label>
+                            <input type="date" id="end-date" class="form-control" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="initial-capital">Initial Capital ($)</label>
+                            <input type="number" id="initial-capital" class="form-control" value="100000" step="1000" min="1000">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="commission-rate">Commission Rate (%)</label>
+                            <input type="number" id="commission-rate" class="form-control" value="0.1" step="0.01" min="0" max="2">
+                        </div>
+                        
+                        <button type="submit" class="submit-btn">Submit Backtest</button>
+                    </form>
+                </div>
+                
+                <div class="backtest-results">
+                    <h3>Quick Start Guide</h3>
+                    <div style="color: #5a6c7d; line-height: 1.6;">
+                        <h4>How to Create a Backtest:</h4>
+                        <ol>
+                            <li><strong>Select Symbols:</strong> Choose 1-50 stocks to test</li>
+                            <li><strong>Choose Patterns:</strong> Pick candlestick patterns from our library</li>
+                            <li><strong>Set Date Range:</strong> Select historical period (up to 5 years)</li>
+                            <li><strong>Configure Parameters:</strong> Set capital, commission, and risk management</li>
+                            <li><strong>Submit:</strong> Your job will be processed by TickStockPL</li>
+                        </ol>
+                        
+                        <h4>Available Patterns:</h4>
+                        <p>All patterns from Sprint 5-9 are available, including Doji, Hammer, Engulfing, Morning Star, and more.</p>
+                        
+                        <h4>Results Include:</h4>
+                        <ul>
+                            <li>Win Rate & ROI</li>
+                            <li>Sharpe Ratio & Max Drawdown</li>
+                            <li>Trade-by-trade analysis</li>
+                            <li>Equity curve visualization</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- My Jobs Tab -->
+        <div id="jobs-tab" class="tab-content">
+            <div class="job-list">
+                <h3>My Backtest Jobs</h3>
+                <div id="jobs-container">
+                    <div class="loading">Loading your jobs...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Tab -->
+        <div id="results-tab" class="tab-content">
+            <h3>Backtest Results</h3>
+            <div id="results-container">
+                <p style="color: #7f8c8d; text-align: center;">Select a completed job from the "My Jobs" tab to view detailed results.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/core/tickstockpl-integration.js') }}"></script>
+    <script>
+        let socket;
+        let tickstockplIntegration;
+        let currentJobs = [];
+        let selectedJobId = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Socket.IO
+            socket = io();
+            tickstockplIntegration = new TickStockPLIntegration(socket);
+            
+            // Load initial data
+            loadBacktestConfig();
+            loadUserJobs();
+            
+            // Set up form submission
+            document.getElementById('backtest-form').addEventListener('submit', handleFormSubmit);
+            
+            // Set up WebSocket event handlers for backtesting
+            tickstockplIntegration.addEventListener('backtest_progress', handleBacktestProgress);
+            tickstockplIntegration.addEventListener('backtest_result', handleBacktestResult);
+            
+            // Set default dates
+            setDefaultDates();
+        });
+        
+        function switchTab(tabName) {
+            // Remove active class from all tabs and buttons
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to selected tab and button
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load data if needed
+            if (tabName === 'jobs') {
+                loadUserJobs();
+            }
+        }
+        
+        function setDefaultDates() {
+            const today = new Date();
+            const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+            
+            document.getElementById('end-date').value = today.toISOString().split('T')[0];
+            document.getElementById('start-date').value = oneYearAgo.toISOString().split('T')[0];
+        }
+        
+        async function loadBacktestConfig() {
+            try {
+                const response = await fetch('/api/tickstockpl/backtest/config', {
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError('Failed to load configuration: ' + data.error);
+                    return;
+                }
+                
+                // Populate symbols
+                const symbolsContainer = document.getElementById('symbols-container');
+                symbolsContainer.innerHTML = '';
+                data.symbols.forEach(symbol => {
+                    const item = document.createElement('div');
+                    item.className = 'checkbox-item';
+                    item.innerHTML = `
+                        <input type="checkbox" id="symbol-${symbol}" name="symbols" value="${symbol}">
+                        <label for="symbol-${symbol}">${symbol}</label>
+                    `;
+                    symbolsContainer.appendChild(item);
+                });
+                
+                // Populate patterns
+                const patternsContainer = document.getElementById('patterns-container');
+                patternsContainer.innerHTML = '';
+                data.patterns.forEach(pattern => {
+                    const item = document.createElement('div');
+                    item.className = 'checkbox-item';
+                    item.innerHTML = `
+                        <input type="checkbox" id="pattern-${pattern}" name="patterns" value="${pattern}">
+                        <label for="pattern-${pattern}">${pattern}</label>
+                    `;
+                    patternsContainer.appendChild(item);
+                });
+                
+                // Set default config values
+                if (data.default_config) {
+                    document.getElementById('initial-capital').value = data.default_config.initial_capital;
+                    document.getElementById('commission-rate').value = (data.default_config.commission_rate * 100).toFixed(2);
+                }
+                
+            } catch (error) {
+                console.error('Error loading backtest config:', error);
+                showError('Failed to load backtest configuration');
+            }
+        }
+        
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const submitBtn = event.target.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            
+            try {
+                // Collect form data
+                const symbols = Array.from(document.querySelectorAll('input[name="symbols"]:checked'))
+                    .map(cb => cb.value);
+                const patterns = Array.from(document.querySelectorAll('input[name="patterns"]:checked'))
+                    .map(cb => cb.value);
+                
+                const formData = {
+                    symbols: symbols,
+                    patterns: patterns,
+                    start_date: document.getElementById('start-date').value,
+                    end_date: document.getElementById('end-date').value,
+                    initial_capital: parseFloat(document.getElementById('initial-capital').value),
+                    commission_rate: parseFloat(document.getElementById('commission-rate').value) / 100,
+                    slippage_rate: 0.0005,
+                    max_position_size: 0.1,
+                    stop_loss_pct: 0.05,
+                    take_profit_pct: 0.10
+                };
+                
+                // Validate
+                if (symbols.length === 0) {
+                    throw new Error('Please select at least one symbol');
+                }
+                if (patterns.length === 0) {
+                    throw new Error('Please select at least one pattern');
+                }
+                
+                // Submit backtest
+                const response = await fetch('/api/tickstockpl/backtest/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess(`Backtest submitted successfully! Job ID: ${result.job_id}`);
+                    
+                    // Switch to jobs tab
+                    switchTab('jobs');
+                    setTimeout(loadUserJobs, 1000);
+                    
+                } else {
+                    showError(result.error || 'Failed to submit backtest');
+                }
+                
+            } catch (error) {
+                console.error('Error submitting backtest:', error);
+                showError(error.message || 'Failed to submit backtest');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Backtest';
+            }
+        }
+        
+        async function loadUserJobs() {
+            try {
+                const response = await fetch('/api/tickstockpl/backtest/jobs', {
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError('Failed to load jobs: ' + data.error);
+                    return;
+                }
+                
+                currentJobs = data.jobs;
+                renderJobs(currentJobs);
+                
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+                showError('Failed to load jobs');
+            }
+        }
+        
+        function renderJobs(jobs) {
+            const container = document.getElementById('jobs-container');
+            
+            if (jobs.length === 0) {
+                container.innerHTML = '<p style="color: #7f8c8d; text-align: center;">No backtest jobs found. Create your first backtest!</p>';
+                return;
+            }
+            
+            container.innerHTML = jobs.map(job => {
+                const createdDate = new Date(job.created_at * 1000).toLocaleDateString();
+                const symbolsText = job.config.symbols.slice(0, 3).join(', ') + 
+                    (job.config.symbols.length > 3 ? ` +${job.config.symbols.length - 3} more` : '');
+                const patternsText = job.config.patterns.slice(0, 2).join(', ') + 
+                    (job.config.patterns.length > 2 ? ` +${job.config.patterns.length - 2} more` : '');
+                
+                return `
+                    <div class="job-item ${job.status}">
+                        <div class="job-header">
+                            <div class="job-id">${job.job_id}</div>
+                            <div class="job-status ${job.status}">${job.status}</div>
+                        </div>
+                        <div class="job-details">
+                            <strong>Symbols:</strong> ${symbolsText}<br>
+                            <strong>Patterns:</strong> ${patternsText}<br>
+                            <strong>Date Range:</strong> ${job.config.start_date} to ${job.config.end_date}<br>
+                            <strong>Created:</strong> ${createdDate}
+                        </div>
+                        ${job.status === 'running' ? `
+                            <div class="job-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${job.progress * 100}%"></div>
+                                </div>
+                                <div class="progress-text">
+                                    Progress: ${(job.progress * 100).toFixed(1)}%
+                                    ${job.current_symbol ? `- Processing ${job.current_symbol}` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
+                        <div class="job-actions">
+                            <button class="btn-small btn-view" onclick="viewJobDetails('${job.job_id}')">View Details</button>
+                            ${job.status === 'completed' ? `
+                                <button class="btn-small btn-download" onclick="viewResults('${job.job_id}')">View Results</button>
+                            ` : ''}
+                            ${job.status === 'queued' || job.status === 'running' ? `
+                                <button class="btn-small btn-cancel" onclick="cancelJob('${job.job_id}')">Cancel</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function handleBacktestProgress(data) {
+            // Update job progress in real-time
+            const jobId = data.job_id || data.event_data?.data?.job_id;
+            const progress = data.progress || data.event_data?.data?.progress || 0;
+            
+            if (jobId) {
+                // Update job in currentJobs array
+                const jobIndex = currentJobs.findIndex(job => job.job_id === jobId);
+                if (jobIndex !== -1) {
+                    currentJobs[jobIndex].progress = progress;
+                    currentJobs[jobIndex].status = 'running';
+                    if (data.current_symbol || data.event_data?.data?.current_symbol) {
+                        currentJobs[jobIndex].current_symbol = data.current_symbol || data.event_data.data.current_symbol;
+                    }
+                    
+                    // Re-render jobs
+                    renderJobs(currentJobs);
+                }
+            }
+        }
+        
+        function handleBacktestResult(data) {
+            // Handle completed backtest results
+            const jobId = data.job_id || data.event_data?.data?.job_id;
+            const status = data.status || data.event_data?.data?.status;
+            
+            if (jobId) {
+                // Update job status
+                const jobIndex = currentJobs.findIndex(job => job.job_id === jobId);
+                if (jobIndex !== -1) {
+                    currentJobs[jobIndex].status = status;
+                    currentJobs[jobIndex].progress = 1.0;
+                    currentJobs[jobIndex].completed_at = Date.now() / 1000;
+                    
+                    if (data.event_data?.data?.results) {
+                        currentJobs[jobIndex].results = data.event_data.data.results;
+                    }
+                    
+                    // Re-render jobs
+                    renderJobs(currentJobs);
+                    
+                    // Show notification
+                    if (status === 'completed') {
+                        showSuccess(`Backtest ${jobId} completed successfully!`);
+                    } else {
+                        showError(`Backtest ${jobId} failed or was cancelled.`);
+                    }
+                }
+            }
+        }
+        
+        async function cancelJob(jobId) {
+            if (!confirm('Are you sure you want to cancel this backtest?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/tickstockpl/backtest/job/${jobId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('Job cancelled successfully');
+                    loadUserJobs(); // Reload jobs
+                } else {
+                    showError(result.error || 'Failed to cancel job');
+                }
+                
+            } catch (error) {
+                console.error('Error cancelling job:', error);
+                showError('Failed to cancel job');
+            }
+        }
+        
+        async function viewJobDetails(jobId) {
+            // For now, just show an alert with job details
+            const job = currentJobs.find(j => j.job_id === jobId);
+            if (job) {
+                alert(`Job Details:\n\nJob ID: ${job.job_id}\nStatus: ${job.status}\nSymbols: ${job.config.symbols.join(', ')}\nPatterns: ${job.config.patterns.join(', ')}\nDate Range: ${job.config.start_date} to ${job.config.end_date}\nInitial Capital: $${job.config.initial_capital.toLocaleString()}`);
+            }
+        }
+        
+        function viewResults(jobId) {
+            selectedJobId = jobId;
+            switchTab('results');
+            loadJobResults(jobId);
+        }
+        
+        async function loadJobResults(jobId) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = '<div class="loading">Loading results...</div>';
+            
+            try {
+                const response = await fetch(`/api/tickstockpl/backtest/job/${jobId}`, {
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    container.innerHTML = `<div class="error-message">Failed to load results: ${data.error}</div>`;
+                    return;
+                }
+                
+                const job = data.job;
+                if (!job.results) {
+                    container.innerHTML = '<p style="color: #7f8c8d; text-align: center;">Results not available yet.</p>';
+                    return;
+                }
+                
+                renderResults(job);
+                
+            } catch (error) {
+                console.error('Error loading job results:', error);
+                container.innerHTML = '<div class="error-message">Failed to load results</div>';
+            }
+        }
+        
+        function renderResults(job) {
+            const container = document.getElementById('results-container');
+            const results = job.results;
+            
+            container.innerHTML = `
+                <h3>Results for Job ${job.job_id}</h3>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">${((results.win_rate || 0) * 100).toFixed(1)}%</div>
+                        <div class="metric-label">Win Rate</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${((results.roi || 0) * 100).toFixed(2)}%</div>
+                        <div class="metric-label">ROI</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${(results.sharpe_ratio || 0).toFixed(2)}</div>
+                        <div class="metric-label">Sharpe Ratio</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${((results.max_drawdown || 0) * 100).toFixed(2)}%</div>
+                        <div class="metric-label">Max Drawdown</div>
+                    </div>
+                </div>
+                
+                <div class="job-config">
+                    <h4>Backtest Configuration</h4>
+                    <div class="config-item"><span>Symbols:</span> <span>${job.config.symbols.join(', ')}</span></div>
+                    <div class="config-item"><span>Patterns:</span> <span>${job.config.patterns.join(', ')}</span></div>
+                    <div class="config-item"><span>Date Range:</span> <span>${job.config.start_date} to ${job.config.end_date}</span></div>
+                    <div class="config-item"><span>Initial Capital:</span> <span>$${job.config.initial_capital.toLocaleString()}</span></div>
+                    <div class="config-item"><span>Commission:</span> <span>${(job.config.commission_rate * 100).toFixed(2)}%</span></div>
+                </div>
+            `;
+        }
+        
+        function showError(message) {
+            // Remove existing messages
+            document.querySelectorAll('.error-message, .success-message').forEach(el => el.remove());
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            
+            document.querySelector('.backtest-dashboard').insertBefore(errorDiv, document.querySelector('.dashboard-tabs'));
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+        
+        function showSuccess(message) {
+            // Remove existing messages
+            document.querySelectorAll('.error-message, .success-message').forEach(el => el.remove());
+            
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = message;
+            
+            document.querySelector('.backtest-dashboard').insertBefore(successDiv, document.querySelector('.dashboard-tabs'));
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => successDiv.remove(), 5000);
+        }
+    </script>
+</body>
+</html>

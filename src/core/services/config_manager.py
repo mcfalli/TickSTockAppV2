@@ -40,7 +40,6 @@ class ConfigManager:
     # Default configuration values
     DEFAULTS = {
         'APP_VERSION': '',
-        'SQLALCHEMY_DATABASE_URI': '',
         'DATABASE_URI': 'postgresql://app_readwrite:1DfTGVBsECVtJa@localhost/marketpulse',
         'DATABASE_SYNCH_AGGREGATE_SECONDS': 30,    # Seconds
         'APP_ENVIRONMENT': 'development',
@@ -49,6 +48,19 @@ class ConfigManager:
         'APP_PORT': 5000,
         'MARKET_TIMEZONE': 'US/Eastern',
         'UPDATE_INTERVAL': UPDATE_INTERVAL,
+        
+        # Sprint 10: Redis Configuration for TickStockPL Integration
+        'REDIS_URL': '',
+        'REDIS_HOST': 'localhost',
+        'REDIS_PORT': 6379,
+        'REDIS_DB': 0,
+        
+        # Sprint 10: TimescaleDB Configuration
+        'TICKSTOCK_DB_HOST': 'localhost',
+        'TICKSTOCK_DB_PORT': 5432,
+        'TICKSTOCK_DB_NAME': 'tickstock',
+        'TICKSTOCK_DB_USER': 'postgres',
+        'TICKSTOCK_DB_PASSWORD': '',
         'COLLECTION_INTERVAL': COLLECTION_INTERVAL,
         'EMISSION_INTERVAL': EMISSION_INTERVAL,
         'USE_POLYGON_API': False,
@@ -193,7 +205,6 @@ class ConfigManager:
 
     CONFIG_TYPES = {
         'APP_VERSION': str,
-        'SQLALCHEMY_DATABASE_URI': str,
         'DATABASE_URI': str,
         'DATABASE_SYNCH_AGGREGATE_SECONDS': int,
         'APP_ENVIRONMENT': str,

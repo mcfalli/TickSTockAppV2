@@ -139,22 +139,24 @@ def initialize_socketio(app, cache_control, config):
     
     logger.info("Initializing SocketIO")
     
-    # Get Redis configuration from cache
-    app_settings = cache_control.get_cache('app_settings') or {}
-    redis_url = app_settings.get('REDIS_URL', 'redis://localhost:6379')
+    # Get Redis configuration from environment config (not cache)
+    redis_url = config.get('REDIS_URL')
     
     # Check if Redis should be used
     use_redis = False
-    if redis_url:
+    if redis_url and redis_url.strip():
+        logger.info(f"SocketIO: Attempting to connect to Redis at {redis_url}")
         try:
             import redis
-            test_client = redis.Redis.from_url(redis_url)
+            test_client = redis.Redis.from_url(redis_url, socket_timeout=2, socket_connect_timeout=2)
             test_client.ping()
             use_redis = True
             logger.info(f"Redis is available at {redis_url}, using for SocketIO message queue")
         except Exception as e:
             logger.warning(f"Redis connection failed, falling back to in-memory queue: {e}")
             redis_url = None
+    else:
+        logger.info("SocketIO: No Redis URL configured, using in-memory message queue")
     
     # Create SocketIO instance
     socketio = SocketIO(
