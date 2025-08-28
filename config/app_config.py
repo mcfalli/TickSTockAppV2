@@ -26,7 +26,7 @@ def create_flask_app(env_config, cache_control, config):
     # Create Flask app with absolute paths
     app = Flask(__name__, 
                 static_folder=os.path.join(project_root, 'web/static'),
-                template_folder=os.path.join(project_root, 'web/templates/pages'))
+                template_folder=os.path.join(project_root, 'web/templates'))
     
     # Get cached settings
     app_settings = cache_control.get_cache('app_settings') or {}

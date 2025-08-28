@@ -165,8 +165,8 @@ NAVBAR BUTTONS - CONSISTENT STYLING
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-md); /* Updated padding for consistency */
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: var(--color-navbar-btn-bg, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--color-navbar-btn-border, rgba(255, 255, 255, 0.2));
   border-radius: var(--border-radius-md);
   cursor: pointer;
   transition: all var(--duration-fast) ease;
@@ -178,10 +178,10 @@ NAVBAR BUTTONS - CONSISTENT STYLING
 }
 
 .navbar-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
+  background-color: var(--color-navbar-btn-hover-bg, rgba(255, 255, 255, 0.2));
+  border-color: var(--color-navbar-btn-hover-border, rgba(255, 255, 255, 0.4));
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Adjusted shadow */
+  box-shadow: var(--shadow-navbar-hover, 0 2px 8px rgba(0, 0, 0, 0.15));
 }
 
 .navbar-btn:focus {
@@ -202,6 +202,34 @@ NAVBAR BUTTONS - CONSISTENT STYLING
 .navbar-btn .settings-text {
   font-weight: var(--font-weight-medium);
   letter-spacing: 0.3px;
+}
+
+/* Theme Toggle Button Specific Styling */
+.theme-toggle-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-toggle-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.theme-toggle-btn .settings-icon {
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle-btn:hover .settings-icon {
+  transform: rotate(15deg);
+}
+
+/* Theme transition effects for the whole page */
+.theme-dark {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+:root {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /*
@@ -555,13 +583,13 @@ ANIMATIONS & TRANSITIONS
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+    box-shadow: 0 0 0 0 var(--color-pulse-shadow-start, rgba(76, 175, 80, 0.7));
   }
   70% {
-    box-shadow: 0 0 0 13px rgba(76, 175, 80, 0); 
+    box-shadow: 0 0 0 13px var(--color-pulse-shadow-end, rgba(76, 175, 80, 0)); 
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+    box-shadow: 0 0 0 0 var(--color-pulse-shadow-end, rgba(76, 175, 80, 0));
   }
 }
 

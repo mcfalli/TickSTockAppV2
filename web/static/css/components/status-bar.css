@@ -23,7 +23,8 @@ STATUS BAR CONTAINER
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: var(--color-background-dark);
+  background-color: #3a3a3a !important; /* Fallback */
+  background-color: var(--color-background-dark) !important;
   border-top: 1px solid var(--color-border-primary);
   padding: 0 var(--spacing-lg);
   display: flex;

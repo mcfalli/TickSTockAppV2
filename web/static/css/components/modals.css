@@ -29,7 +29,7 @@ DEPENDENCIES:
 - reset.css (base styling)
 
 VERSION: 1.0.0
-LAST UPDATED: Sprint 2 - Enhanced universe selection interface
+LAST UPDATED: Button Cleanup - Removed universe/filter modals, preserved generic modal framework
 ===============================================================================
 */
 
@@ -75,45 +75,11 @@ LOADING OVERLAY
 
 /*
 ===============================================================================
-UNIVERSE SELECTION MODAL
+REMOVED: UNIVERSE SELECTION MODAL (Post-Button-Cleanup)
 ===============================================================================
+Universe modal styles removed after Button1/Button2 simplification.
+Generic modal styles (.modal-header, .modal-body, etc.) preserved below.
 */
-
-.universe-modal {
-  display: none;
-  position: fixed;
-  z-index: var(--z-index-modal);
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
-}
-
-.universe-modal-content {
-  background-color: var(--color-background-primary);
-  margin: 5% auto;
-  padding: 0;
-  border-radius: var(--border-radius-xl);
-  max-width: 800px;
-  width: 90%;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-xl);
-  animation: modalSlideIn var(--duration-normal) var(--easing-ease-out);
-}
-
-@keyframes modalSlideIn {
-  from {
-    transform: translateY(-50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
 
 /*
 ===============================================================================
@@ -138,7 +104,8 @@ MODAL HEADER
   font-weight: var(--font-weight-bold);
 }
 
-.universe-modal-close {
+/* Generic close button for all modals */
+.close {
   color: var(--color-text-muted);
   font-size: 28px;
   font-weight: var(--font-weight-bold);
@@ -150,8 +117,8 @@ MODAL HEADER
   transition: var(--transition-color);
 }
 
-.universe-modal-close:hover,
-.universe-modal-close:focus {
+.close:hover,
+.close:focus {
   color: var(--color-text-primary);
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -168,175 +135,16 @@ MODAL BODY
   padding: var(--spacing-2xl);
 }
 
-.universe-info {
-  margin-bottom: var(--spacing-xl);
-  color: var(--color-text-secondary);
-  line-height: var(--line-height-relaxed);
-}
+/* Removed: Universe-specific styles (post-button-cleanup) */
 
 /*
 ===============================================================================
-UNIVERSE OPTIONS LAYOUT
+REMOVED: UNIVERSE-SPECIFIC MODAL CONTENT (Post-Button-Cleanup)
 ===============================================================================
+All universe selection modal styles removed during Button1/Button2 simplification.
+This includes: universe options, checkboxes, summary panels, and related controls.
+Generic modal components (.modal-actions, .btn, etc.) preserved below.
 */
-
-.universe-options {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: var(--spacing-2xl);
-  align-items: start;
-}
-
-.universe-section h4 {
-  margin: 0 0 var(--spacing-lg) 0;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-}
-
-/*
-===============================================================================
-UNIVERSE CHECKBOX CONTROLS
-===============================================================================
-*/
-
-.universe-checkboxes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.universe-checkbox-label {
-  display: flex;
-  align-items: flex-start;
-  padding: var(--spacing-lg);
-  border: 2px solid var(--color-border-secondary);
-  border-radius: var(--border-radius-lg);
-  cursor: pointer;
-  transition: var(--transition-normal);
-  background-color: var(--color-background-secondary);
-}
-
-.universe-checkbox-label:hover {
-  border-color: var(--color-primary);
-  background-color: var(--color-success-light);
-  box-shadow: var(--shadow-sm);
-}
-
-.universe-checkbox-label.selected {
-  border-color: var(--color-primary);
-  background-color: var(--color-success-light);
-  box-shadow: var(--shadow-md);
-}
-
-.universe-checkbox-label:focus-within {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.universe-checkbox {
-  margin-right: var(--spacing-md);
-  transform: scale(1.2);
-  cursor: pointer;
-  accent-color: var(--color-primary);
-}
-
-.universe-details {
-  flex: 1;
-}
-
-.universe-name {
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-base);
-  margin-bottom: var(--spacing-xs);
-}
-
-.universe-count {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  margin-left: var(--spacing-sm);
-  font-weight: var(--font-weight-normal);
-}
-
-.universe-description {
-  margin: var(--spacing-sm) 0 0 0;
-  color: var(--color-text-light);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-normal);
-}
-
-/*
-===============================================================================
-UNIVERSE SUMMARY PANEL
-===============================================================================
-*/
-
-.universe-summary {
-  background-color: var(--color-background-secondary);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-xl);
-  border: 1px solid var(--color-border-secondary);
-  height: fit-content;
-  position: sticky;
-  top: var(--spacing-lg);
-}
-
-.selected-summary h4 {
-  margin: 0 0 var(--spacing-lg) 0;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-}
-
-.summary-stats {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-sm) 0;
-  border-bottom: 1px solid var(--color-border-secondary);
-}
-
-.stat-item:last-child {
-  border-bottom: none;
-}
-
-.stat-label {
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-.stat-value {
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-}
-
-.stat-value.good {
-  color: var(--color-success);
-}
-
-.stat-value.warning {
-  color: var(--color-warning);
-}
-
-.stat-value.danger {
-  color: var(--color-error);
-}
-
-.stat-note {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin-left: var(--spacing-sm);
-  font-style: italic;
-}
 
 /*
 ===============================================================================
@@ -453,20 +261,12 @@ RESPONSIVE MODAL ADJUSTMENTS
 
 /* Tablet adjustments */
 @media (max-width: 1024px) {
-  .universe-options {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-xl);
-  }
-  
-  .universe-summary {
-    position: static;
-    order: -1;
-  }
+  /* Removed: Universe-specific responsive styles (post-cleanup) */
 }
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
-  .universe-modal-content {
+  .modal-content {
     width: 95%;
     margin: 2% auto;
     max-height: 95vh;
@@ -484,18 +284,11 @@ RESPONSIVE MODAL ADJUSTMENTS
     padding: var(--spacing-lg) var(--spacing-xl);
   }
   
-  .universe-checkbox-label {
-    padding: var(--spacing-md);
-  }
-  
-  .universe-summary {
-    padding: var(--spacing-lg);
-  }
 }
 
 /* Small mobile adjustments */
 @media (max-width: 480px) {
-  .universe-modal-content {
+  .modal-content {
     width: 98%;
     margin: 1% auto;
   }
@@ -524,21 +317,8 @@ RESPONSIVE MODAL ADJUSTMENTS
     justify-content: center;
   }
   
-  .universe-options {
-    gap: var(--spacing-lg);
-  }
   
-  .universe-checkboxes {
-    gap: var(--spacing-sm);
-  }
-  
-  .universe-checkbox-label {
-    padding: var(--spacing-sm);
-  }
-  
-  .summary-stats {
-    gap: var(--spacing-sm);
-  }
+  /* Removed: Universe-specific small mobile styles (post-cleanup) */
 }
 
 /*
@@ -549,13 +329,11 @@ ACCESSIBILITY ENHANCEMENTS
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
-  .universe-modal-content {
+  .modal-content {
     border: 3px solid var(--color-text-primary);
   }
   
-  .universe-checkbox-label {
-    border-width: 3px;
-  }
+  /* Removed: Universe-specific accessibility styles (post-cleanup) */
   
   .btn {
     border: 2px solid currentColor;
@@ -564,7 +342,7 @@ ACCESSIBILITY ENHANCEMENTS
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-  .universe-modal-content {
+  .modal-content {
     animation: none;
   }
   
@@ -577,17 +355,13 @@ ACCESSIBILITY ENHANCEMENTS
     border-top-color: var(--color-primary);
   }
   
-  .universe-checkbox-label {
-    transition: none;
-  }
-  
   .btn {
     transition: none;
   }
 }
 
 /* Focus management for keyboard users */
-.modal:focus-within .universe-modal-close:focus {
+.modal:focus-within .close:focus {
   background-color: var(--color-background-tertiary);
 }
 

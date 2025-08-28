@@ -228,7 +228,7 @@ def register_basic_routes(app):
     def index():
         try:
             logger.info("ROUTE: Index page requested")
-            return render_template('index.html')
+            return render_template('dashboard/index.html')
         except Exception as e:
             logger.error(f"ROUTE-ERROR: Index route failed: {e}")
             raise

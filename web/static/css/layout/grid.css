@@ -117,68 +117,40 @@ HEADER LAYOUT SECTION
 /*
 ===============================================================================
 MAIN CONTENT LAYOUT
-(These sections are now managed entirely by GridStack)
+(GridStack framework manages layout, placeholder content styling below)
 ===============================================================================
 */
 
-/* .main-content rule removed */
-/* .left-column rule removed */
-/* .gauges-row rules removed */
-/* .gauge-container rules within old .gauges-row section removed */
-/* .highs-lows-row rules removed */
-/* .lows-section and .highs-section rules within old .highs-lows-row section removed */
-/* .right-column rule removed */
-/* .trends-surges rules within old .right-column section removed */
-
-.gauge-container {
-    /* Specific styling if needed, but not layout-controlling properties */
+.placeholder-content {
+    padding: var(--spacing-lg);
+    text-align: center;
+    background-color: var(--color-background-secondary, #f8f9fa);
+    border: 2px dashed var(--color-border-secondary, #dee2e6);
+    border-radius: var(--border-radius-md, 8px);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
-.gauge-container h5 {
-    /* Specific styling if needed */
-}
-
-.lows-section,
-.highs-section {
-    /* Specific styling if needed, but not layout-controlling properties */
-}
-
-.lows-section {
-    /* Specific styling if needed */
-}
-
-.highs-section {
-    /* Specific styling if needed */
-}
-
-.lows-section h3,
-.highs-section h3 {
-    /* Specific styling if needed */
-    font-size: 0.9rem;
+.placeholder-content h3 {
+    font-size: 1.2rem;
     color: var(--color-text-primary, #333);
     font-weight: var(--font-weight-bold, 700);
-    margin: 0 0 12px 0;
-    text-align: left;
+    margin: 0 0 var(--spacing-sm) 0;
 }
 
-.trends-surges {
-    /* Specific styling if needed, but not layout-controlling properties */
+.placeholder-content p {
+    font-size: 1rem;
+    color: var(--color-text-secondary, #6c757d);
+    margin: var(--spacing-xs) 0;
 }
 
-.trends-surges h3 {
-    /* Specific styling if needed */
-}
-
-.trends-surges h3,
-.uptrend-section h3,
-.downtrend-section h3,
-.surging-up-section h3,
-.surging-down-section h3 {
+.placeholder-content em {
+    font-style: italic;
     font-size: 0.9rem;
-    color: var(--color-text-primary, #333);
-    font-weight: var(--font-weight-bold, 700);
-    margin: 0 0 12px 0;
-    text-align: left;
+    color: var(--color-text-muted, #868e96);
 }
 
 /*

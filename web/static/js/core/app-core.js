@@ -1,7 +1,7 @@
 // ==========================================================================
-// TICKSTOCK CORE APPLICATION MODULE - CLEANED & OPTIMIZED
+// TICKSTOCK CORE APPLICATION MODULE - POST WEBCLEAN
 // ==========================================================================
-// VERSION: 3.0.0 - Sprint S54
+// VERSION: 4.0.0 - Post Webclean
 // PURPOSE: Core application logic, socket handling, and UI management
 // ==========================================================================
 
@@ -9,7 +9,6 @@
 const APP_CORE_DEBUG = false;
 const ANALYTICS_DEBUG = false;
 const PERFORMANCE_DEBUG = false;
-//console.log("JS: app-core.js loaded - initializing...");
 
 // ==========================================================================
 // GLOBAL VARIABLES
@@ -24,20 +23,6 @@ let lastMarketStatus = null;
 let disconnectionCount = 0;
 let lastConnectionLossTime = null;
 let isOverlayHidden = false;
-
-// Activity Dashboard
-window.velocityDashboard = null;
-
-// Data Tracking
-let totalHighs = 0;
-let totalLows = 0;
-
-// Event tracking
-const displayedEventTracking = {
-    highEventKeys: new Set(),
-    lowEventKeys: new Set(),
-    surgeEventKeys: new Set()
-};
 
 // ==========================================================================
 // PRODUCTION LOGGING UTILITY
@@ -98,328 +83,41 @@ function getMarketStatusText(status) {
 }
 
 function formatCurrency(price) {
-    if (typeof price !== 'number' || isNaN(price)) return 'N/A';
+    if (typeof price !== 'number' || isNaN(price)) return '$0.00';
     return '$' + price.toFixed(2);
 }
 
-function abbreviateNumber(num) {
-    if (!num || isNaN(num)) return 'N/A';
-    
-    const absNum = Math.abs(num);
-    
-    if (absNum >= 1000000000) {
-        return (num / 1000000000).toFixed(1) + 'B';
-    } else if (absNum >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
-    } else if (absNum >= 1000) {
-        return (num / 1000).toFixed(1) + 'K';
-    } else {
-        return num.toString();
-    }
+function formatPercentage(percentage) {
+    if (typeof percentage !== 'number' || isNaN(percentage)) return '0.00%';
+    return percentage.toFixed(2) + '%';
 }
 
-function showStatusNotification(message) {
+function formatNumber(number) {
+    if (typeof number !== 'number' || isNaN(number)) return '0';
+    return number.toLocaleString();
+}
+
+function showStatusNotification(message, type = 'info') {
     const notification = document.createElement('div');
-    notification.className = 'status-notification';
+    notification.className = `status-notification ${type}`;
     notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: ${type === 'error' ? '#dc3545' : '#28a745'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 4px;
+        z-index: 10000;
+        animation: slideInRight 0.3s ease-out;
+    `;
     
     document.body.appendChild(notification);
-    
     setTimeout(() => {
-        notification.classList.add('show');
-    }, 10);
-    
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 500);
-    }, 5000);
-}
-
-function updateConnectionStatus(connected) {
-    const connectionIndicator = document.getElementById('connection-status');
-    if (!connectionIndicator) return;
-    
-    const connectionText = connectionIndicator.querySelector('.connection-text');
-    
-    if (connected) {
-        connectionIndicator.classList.add('connected');
-        connectionIndicator.classList.remove('disconnected');
-        if (connectionText) connectionText.textContent = 'Connected';
-    } else {
-        connectionIndicator.classList.remove('connected');
-        connectionIndicator.classList.add('disconnected');
-        if (connectionText) connectionText.textContent = 'Disconnected';
-    }
-}
-
-// ==========================================================================
-// SCROLLBAR DETECTION - SIMPLIFIED
-// ==========================================================================
-
-// SPRINT S54: Simple, performant scrollbar detection
-function checkScrollbars() {
-    // Only add class for browsers without scrollbar-gutter support
-    if (!CSS.supports('scrollbar-gutter', 'stable')) {
-        document.querySelectorAll('.events-list').forEach(list => {
-            const hasScrollbar = list.scrollHeight > list.clientHeight;
-            const section = list.closest('section');
-            if (section) {
-                const headerRow = section.querySelector('.events-header-row');
-                if (headerRow) {
-                    if (hasScrollbar) {
-                        headerRow.style.paddingRight = '29px'; // 12px + 17px scrollbar
-                    } else {
-                        headerRow.style.paddingRight = '12px';
-                    }
-                }
-            }
-        });
-    }
-}
-
-// Debounced version for performance
-const debouncedScrollbarCheck = debounce(checkScrollbars, 100);
-
-// ==========================================================================
-// SOCKET.IO CONNECTION & HANDLERS
-// ==========================================================================
-const socket = io('http://localhost:5000', {
-    transports: ['websocket'],
-    reconnection: true,
-    reconnectionAttempts: 10,
-    reconnectionDelay: 1000,
-    timeout: 20000
-});
-
-// Store socket globally for other modules
-window.socket = socket;
-
-socket.on('connect', () => {
-    ProductionLogger.critical("SOCKET", "Connected successfully", { id: socket.id });
-    isConnected = true;
-    updateConnectionStatus(true);
-    updateLoadingOverlay();
-});
-
-socket.on('connect_error', (error) => {
-    ProductionLogger.error("SOCKET", "Connection failed", error.message);
-    isConnected = false;
-    updateConnectionStatus(false);
-    updateLoadingOverlay();
-});
-
-socket.on('disconnect', (reason) => {
-    ProductionLogger.warn("SOCKET", "Disconnected", { reason });
-    isConnected = false;
-    disconnectionCount++;
-    lastConnectionLossTime = Date.now();
-    updateConnectionStatus(false);
-    updateLoadingOverlay();
-});
-
-socket.on('status_update', (data) => {
-    try {
-        const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
-        isConnected = parsedData.connected;
-        apiHealth = parsedData.status;
-        dataSource = parsedData.provider || 'Synthetic';
-        
-        updateConnectionStatus(isConnected);
-        
-        const marketStatus = document.getElementById('market-status');
-        if (marketStatus) {
-            marketStatus.textContent = getMarketStatusText(parsedData.market_status || 'UNKNOWN');
-            marketStatus.className = `status-badge status-${(parsedData.market_status || 'unknown').toLowerCase()}`;
-        }
-        
-        updateLoadingOverlay();
-        
-    } catch (error) {
-        ProductionLogger.error("STATUS", "Error processing status_update", error);
-    }
-});
-
-socket.on('session_reset', (data) => {
-    // Clear tracking
-    displayedEventTracking.highEventKeys.clear();
-    displayedEventTracking.lowEventKeys.clear();
-    displayedEventTracking.surgeEventKeys.clear();
-    
-    // Clear lists
-    ['highs-list', 'lows-list', 'surging-up-list', 'surging-down-list'].forEach(id => {
-        const list = document.getElementById(id);
-        if (list) list.innerHTML = '';
-    });
-    
-    // Update market status
-    const marketStatus = document.getElementById('market-status');
-    if (marketStatus && data.new_session) {
-        marketStatus.textContent = getMarketStatusText(data.new_session);
-        marketStatus.className = `status-badge status-${data.new_session.toLowerCase()}`;
-    }
-    
-    ProductionLogger.critical("SESSION", "Reset to " + getMarketStatusText(data.new_session));
-    showStatusNotification(`Market session changed to ${getMarketStatusText(data.new_session)}`);
-});
-
-// MAIN STOCK DATA HANDLER
-socket.on('stock_data', (data) => {
-    try {
-        // Parse if string
-        if (typeof data === 'string') data = JSON.parse(data);
-        if (!data || typeof data !== 'object') throw new Error('Invalid stock_data payload');
-        
-        // Update timestamp
-        lastUpdateTime = Date.now();
-        
-        // Process velocity dashboard data
-        if (data.activity) {
-            processVelocityData(data);
-        }
-        
-        // Calculate percentages
-        const currentHighs = (data.activity?.total_highs) || 0;
-        const currentLows = (data.activity?.total_lows) || 0;
-        const totalEvents = currentHighs + currentLows;
-        const highPercentage = totalEvents > 0 ? (currentHighs / totalEvents * 100) : 50;
-        const lowPercentage = totalEvents > 0 ? (currentLows / totalEvents * 100) : 50;
-
-        // Update UI components
-        updateUnifiedPercentBarWithData(data);
-        updateHeaderInfo(highPercentage, lowPercentage, currentHighs, currentLows);
-
-        // Process events (functions from app-events.js)
-        if (typeof updateHighLowEvents === 'function') {
-            updateHighLowEvents(data, displayedEventTracking);
-        }
-
-        if (data.trending && typeof updateTrendingStocks === 'function') {
-            updateTrendingStocks(data.trending);
-        }
-        
-        if (data.surging && typeof updateSurgingStocks === 'function') {
-            updateSurgingStocks(data.surging);
-        }
-
-        updateStatusDisplay(data);
-        
-        // Check scrollbars occasionally
-        debouncedScrollbarCheck();
-        
-    } catch (error) {
-        ProductionLogger.error("STOCK_DATA", "Error processing data", error);
-    }
-});
-
-// ==========================================================================
-// UI UPDATE FUNCTIONS
-// ==========================================================================
-
-function updateLoadingOverlay() {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (!loadingOverlay || isOverlayHidden) return;
-    
-    if (isConnected && (apiHealth === 'healthy' || apiHealth === 'connected')) {
-        loadingOverlay.classList.add('hidden');
-        loadingOverlay.style.display = 'none';
-        isOverlayHidden = true;
-        ProductionLogger.critical("UI", "Loading overlay hidden - connection ready");
-    } else {
-        loadingOverlay.classList.remove('hidden');
-        loadingOverlay.style.display = 'flex';
-    }
-}
-
-function updateHeaderInfo(highPercentage, lowPercentage, totalHighs, totalLows) {
-    const highCountEl = document.getElementById('high-percent-text');
-    const lowCountEl = document.getElementById('low-percent-text');
-    
-    if (highCountEl) {
-        highCountEl.textContent = `(${highPercentage.toFixed(1)}%)`;
-    }
-    
-    if (lowCountEl) {
-        lowCountEl.textContent = `(${lowPercentage.toFixed(1)}%)`;
-    }
-}
-
-function updateStatusDisplay(data) {
-    try {
-        const headerStatus = document.querySelector('.header-right .filter-placeholder');
-        if (headerStatus) {
-            const coreCount = data.core_analytics?.current_state?.universe_size || 2800;
-            headerStatus.textContent = `Core: ${coreCount.toLocaleString()} stocks`;
-        }
-    } catch (error) {
-        ProductionLogger.error("UI", "Error updating status display", error);
-    }
-}
-
-function updateUnifiedPercentBarWithData(data) {
-    try {
-        let totalHighs = 0;
-        let totalLows = 0;
-        
-        // Extract from data sources
-        if (data.activity) {
-            totalHighs = data.activity.total_highs || 0;
-            totalLows = data.activity.total_lows || 0;
-        } else if (data.session_accumulation) {
-            totalHighs = data.session_accumulation.session_total_highs || 0;
-            totalLows = data.session_accumulation.session_total_lows || 0;
-        }
-        
-        // Calculate percentages
-        const totalEvents = totalHighs + totalLows;
-        const highPercentage = totalEvents > 0 ? (totalHighs / totalEvents * 100) : 50;
-        const lowPercentage = totalEvents > 0 ? (totalLows / totalEvents * 100) : 50;
-        
-        // Update percentage bar
-        if (typeof updateUnifiedPercentBar === 'function') {
-            updateUnifiedPercentBar(highPercentage, lowPercentage, totalHighs, totalLows);
-        }
-        
-    } catch (error) {
-        ProductionLogger.error("UI", "Error updating unified percent bar", error);
-    }
-}
-
-// ==========================================================================
-// ACTIVITY VELOCITY DASHBOARD
-// ==========================================================================
-
-function initializeVelocityDashboard() {
-    const container = document.getElementById('core-gauge-container');
-    if (container) {
-        window.velocityDashboard = new ActivityVelocityDashboard('core-gauge-container');
-    } else {
-        console.error("Core gauge container not found");
-    }
-}
-
-function processVelocityData(data) {
-    try {
-        if (!data.activity) {
-            console.warn("No activity data in payload");
-            return;
-        }
-        
-        if (window.velocityDashboard) {
-            window.velocityDashboard.updateData(data);
-        }
-        
-        if (APP_CORE_DEBUG) {
-            console.log("Activity Update:", {
-                tickRate: data.activity.activity_ratio?.current_rate || 0,
-                level: data.activity.activity_level,
-                highs: data.activity.total_highs,
-                lows: data.activity.total_lows
-            });
-        }
-        
-    } catch (error) {
-        console.error("Error processing velocity data:", error);
-    }
+        notification.style.animation = 'slideOutRight 0.3s ease-in';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
 // ==========================================================================
@@ -455,48 +153,249 @@ function injectSessionModalStyles() {
         }
         #session-warning-modal button {
             padding: 10px 20px;
-            margin: 0 10px;
+            background: #007bff;
+            color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
         }
-        #stay-logged-in {
-            background: #4caf50;
-            color: #fff;
+        
+        .status-notification {
+            animation: slideInRight 0.3s ease-out;
         }
-        #log-out {
-            background: #f44336;
-            color: #fff;
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
         }
     `;
     document.head.appendChild(style);
 }
 
 // ==========================================================================
-// DOM READY & INITIALIZATION
+// SOCKET.IO CONNECTION & HANDLERS
+// ==========================================================================
+const socket = io('http://localhost:5000', {
+    transports: ['websocket'],
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 2000
+});
+
+// Connection handlers
+socket.on('connect', () => {
+    isConnected = true;
+    disconnectionCount = 0;
+    ProductionLogger.critical("SOCKET", "Connected to server");
+    updateLoadingOverlay();
+});
+
+socket.on('connect_error', (error) => {
+    isConnected = false;
+    ProductionLogger.error("SOCKET", "Connection error", error);
+    updateLoadingOverlay();
+});
+
+socket.on('disconnect', (reason) => {
+    isConnected = false;
+    disconnectionCount++;
+    lastConnectionLossTime = Date.now();
+    ProductionLogger.critical("SOCKET", `Disconnected (${reason}) - Count: ${disconnectionCount}`);
+    updateLoadingOverlay();
+});
+
+// Status updates
+socket.on('status_update', (data) => {
+    if (!data) return;
+    
+    if (data.api_health !== undefined) {
+        apiHealth = data.api_health;
+        updateLoadingOverlay();
+    }
+    
+    if (data.data_source !== undefined) {
+        dataSource = data.data_source;
+    }
+    
+    if (data.market_status !== undefined) {
+        lastMarketStatus = data.market_status;
+        const statusEl = document.getElementById('market-status');
+        if (statusEl) {
+            statusEl.textContent = getMarketStatusText(data.market_status);
+        }
+    }
+    
+    ProductionLogger.info("STATUS", "Update received", data);
+});
+
+// Session reset handler
+socket.on('session_reset', (data) => {
+    if (!data) return;
+    
+    ProductionLogger.critical("SESSION", "Reset to " + getMarketStatusText(data.new_session));
+    showStatusNotification(`Market session changed to ${getMarketStatusText(data.new_session)}`);
+});
+
+// MAIN STOCK DATA HANDLER - Simplified for placeholder
+socket.on('stock_data', (data) => {
+    try {
+        // Parse if string
+        if (typeof data === 'string') data = JSON.parse(data);
+        if (!data || typeof data !== 'object') throw new Error('Invalid stock_data payload');
+        
+        // Update timestamp
+        lastUpdateTime = Date.now();
+        
+        // Basic status update for placeholder
+        updateStatusDisplay(data);
+        
+        ProductionLogger.info("STOCK_DATA", "Data received for placeholder");
+        
+    } catch (error) {
+        ProductionLogger.error("STOCK_DATA", "Error processing data", error);
+    }
+});
+
+// Other socket handlers
+socket.on('user_status_response', function(data) {
+    ProductionLogger.info("SOCKET", "User status response", data);
+    if (data.status && typeof updateUserStatus === 'function') {
+        updateUserStatus(data.status);
+    }
+});
+
+socket.on('pong', function(data) {
+    ProductionLogger.info("SOCKET", "Pong received");
+});
+
+socket.on('test_event', function(data) {
+    ProductionLogger.info("SOCKET", "Test event received", data);
+    if (window.DEBUG_MODE && typeof displayDebugMessage === 'function') {
+        displayDebugMessage('Test Event', data);
+    }
+});
+
+socket.on('error', function(error) {
+    ProductionLogger.error("SOCKET", "WebSocket error", error);
+    if (error.message) {
+        showStatusNotification('Connection Error: ' + error.message, 'error');
+    }
+    if (error.code === 'CONNECTION_LOST') {
+        setTimeout(() => {
+            ProductionLogger.info("SOCKET", "Attempting to reconnect...");
+            socket.connect();
+        }, 5000);
+    }
+});
+
+// ==========================================================================
+// UI UPDATE FUNCTIONS
 // ==========================================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    updateLoadingOverlay();
-    ProductionLogger.critical("APP", "DOM ready - initializing core module");
+function updateLoadingOverlay() {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (!loadingOverlay || isOverlayHidden) return;
     
-    // User menu dropdown
-    const userMenu = document.querySelector('.user-menu');
+    if (isConnected && (apiHealth === 'healthy' || apiHealth === 'connected')) {
+        loadingOverlay.classList.add('hidden');
+        loadingOverlay.style.display = 'none';
+        isOverlayHidden = true;
+        ProductionLogger.critical("UI", "Loading overlay hidden - connection ready");
+    } else {
+        loadingOverlay.classList.remove('hidden');
+        loadingOverlay.style.display = 'flex';
+    }
+}
+
+function updateStatusDisplay(data) {
+    try {
+        const headerStatus = document.querySelector('.header-right .filter-placeholder');
+        if (headerStatus) {
+            const coreCount = data.core_analytics?.current_state?.universe_size || 2800;
+            headerStatus.textContent = `Core: ${coreCount.toLocaleString()} stocks`;
+        }
+        
+        // Update connection indicator
+        const connectionStatus = document.getElementById('connection-status');
+        if (connectionStatus) {
+            const dot = connectionStatus.querySelector('.connection-dot');
+            const text = connectionStatus.querySelector('.connection-text');
+            
+            if (isConnected) {
+                if (dot) dot.style.backgroundColor = '#28a745';
+                if (text) text.textContent = 'Connected';
+            } else {
+                if (dot) dot.style.backgroundColor = '#dc3545';
+                if (text) text.textContent = 'Disconnected';
+            }
+        }
+        
+    } catch (error) {
+        ProductionLogger.error("UI", "Error updating status display", error);
+    }
+}
+
+// ==========================================================================
+// INITIALIZATION
+// ==========================================================================
+
+// Helper functions
+if (typeof updateUserStatus === 'undefined') {
+    window.updateUserStatus = function(status) {
+        ProductionLogger.info("USER", "Status updated", status);
+    };
+}
+
+if (typeof displayDebugMessage === 'undefined') {
+    window.displayDebugMessage = function(title, data) {
+        console.log(`[DEBUG] ${title}:`, data);
+    };
+}
+
+if (typeof showNotification === 'undefined') {
+    window.showNotification = showStatusNotification;
+}
+
+// Main initialization
+document.addEventListener('DOMContentLoaded', function() {
+    ProductionLogger.critical("INIT", "Initializing TickStock App (Post-Webclean)");
+
+    // User menu dropdown functionality
     const userButton = document.querySelector('.user-settings-btn');
-    
-    if (userMenu && userButton) {
+    if (userButton) {
         userButton.addEventListener('click', function(e) {
+            e.preventDefault();
             e.stopPropagation();
-            const isExpanded = this.getAttribute('aria-expanded') === 'true';
-            this.setAttribute('aria-expanded', !isExpanded);
-            userMenu.classList.toggle('active');
+            
+            const dropdown = this.nextElementSibling;
+            const isOpen = dropdown.style.display === 'block';
+            
+            // Close all dropdowns first
+            document.querySelectorAll('.dropdown-content').forEach(d => {
+                d.style.display = 'none';
+            });
+            
+            if (!isOpen) {
+                dropdown.style.display = 'block';
+                this.setAttribute('aria-expanded', 'true');
+            } else {
+                this.setAttribute('aria-expanded', 'false');
+            }
         });
         
+        // Close dropdown when clicking outside
         document.addEventListener('click', function(e) {
-            if (!userMenu.contains(e.target)) {
-                userButton.setAttribute('aria-expanded', 'false');
-                userMenu.classList.remove('active');
+            if (!userButton.contains(e.target)) {
+                const dropdown = userButton.nextElementSibling;
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                    userButton.setAttribute('aria-expanded', 'false');
+                }
             }
         });
         
@@ -507,25 +406,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-   
-    // SPRINT S54: Simple scrollbar check
-    setTimeout(() => {
-        checkScrollbars();
-        
-        // Monitor for changes with simple observer
-        const observer = new MutationObserver(debouncedScrollbarCheck);
-        
-        ['highs-list', 'lows-list', 'uptrend-list', 'downtrend-list', 'surging-up-list', 'surging-down-list'].forEach(id => {
-            const list = document.getElementById(id);
-            if (list) {
-                observer.observe(list, { 
-                    childList: true, 
-                    subtree: false,
-                    attributes: false
-                });
-            }
-        });
-    }, 500);
 
     // Data freshness indicator
     setInterval(() => {
@@ -552,21 +432,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 1000);
 
-    // Initialize velocity dashboard
-    setTimeout(initializeVelocityDashboard, 1000);
-
-    // Window resize handler
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(checkScrollbars, 250);
-    });
-
     // Inject modal styles
     injectSessionModalStyles();
 
     if (APP_CORE_DEBUG) {
-        console.log("app-core.js initialization complete");
+        console.log("app-core.js initialization complete (Post-Webclean)");
     }
 });
 
@@ -574,100 +444,18 @@ document.addEventListener('DOMContentLoaded', () => {
 // DEBUG UTILITIES (Available in console)
 // ==========================================================================
 
-window.debugAlignment = function() {
-    const grids = {
-        'highs-list': 'High',
-        'lows-list': 'Low',
-        'uptrend-list': 'Trend Up',
-        'downtrend-list': 'Trend Down',
-        'surging-up-list': 'Surge Up',
-        'surging-down-list': 'Surge Down'
-    };
+window.debugPlaceholder = function() {
+    console.log('=== PLACEHOLDER DEBUG ===');
+    const placeholder = document.querySelector('[data-gs-id="placeholder"]');
+    if (placeholder) {
+        console.log('✅ Placeholder found');
+        console.log('Content:', placeholder.querySelector('.placeholder-content')?.textContent);
+        console.log('GridStack Item:', !!placeholder.classList.contains('grid-stack-item'));
+    } else {
+        console.log('❌ Placeholder not found');
+    }
     
-    console.log('=== ALIGNMENT CHECK ===');
-    Object.entries(grids).forEach(([id, name]) => {
-        const list = document.getElementById(id);
-        if (!list) return;
-        
-        const firstRow = list.querySelector('.event-main-info');
-        if (!firstRow) {
-            console.log(`${name}: No data`);
-            return;
-        }
-        
-        const section = list.closest('section');
-        const header = section?.querySelector('.events-header-row');
-        if (!header) return;
-        
-        const headerLeft = header.children[0]?.getBoundingClientRect().left;
-        const dataLeft = firstRow.children[0]?.getBoundingClientRect().left;
-        const offset = Math.abs(headerLeft - dataLeft);
-        
-        console.log(`${name}: ${offset < 2 ? '✅ ALIGNED' : `❌ ${offset.toFixed(1)}px off`}`);
-    });
+    console.log('Socket connected:', isConnected);
+    console.log('API Health:', apiHealth);
+    console.log('Last update:', lastUpdateTime ? new Date(lastUpdateTime) : 'None');
 };
-
-// Auto-generated handlers for missing WebSocket events
-socket.on('user_status_response', function(data) {
-    console.log('User status response:', data);
-    // TODO: Implement user status handling
-    if (data.status) {
-        updateUserStatus(data.status);
-    }
-});
-
-socket.on('pong', function(data) {
-    // Heartbeat response - keeps connection alive
-    console.debug('Pong received:', data);
-    lastPongTime = Date.now();
-});
-
-socket.on('test_event', function(data) {
-    console.log('Test event received:', data);
-    // Development/debugging event
-    if (window.DEBUG_MODE) {
-        displayDebugMessage('Test Event', data);
-    }
-});
-
-socket.on('error', function(error) {
-    console.error('WebSocket error:', error);
-    // Display user-friendly error message
-    if (error.message) {
-        showNotification('Connection Error: ' + error.message, 'error');
-    }
-    // Attempt reconnection if needed
-    if (error.code === 'CONNECTION_LOST') {
-        setTimeout(() => {
-            console.log('Attempting to reconnect...');
-            socket.connect();
-        }, 5000);
-    }
-});
-
-// Helper functions if they don't exist
-if (typeof updateUserStatus === 'undefined') {
-    function updateUserStatus(status) {
-        const statusElement = document.getElementById('user-status');
-        if (statusElement) {
-            statusElement.textContent = status;
-            statusElement.className = 'status-' + status.toLowerCase();
-        }
-    }
-}
-
-if (typeof showNotification === 'undefined') {
-    function showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = 'notification notification-' + type;
-        notification.textContent = message;
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 5000);
-    }
-}
-
-if (typeof displayDebugMessage === 'undefined') {
-    function displayDebugMessage(title, data) {
-        console.log(`[DEBUG] ${title}:`, data);
-    }
-}

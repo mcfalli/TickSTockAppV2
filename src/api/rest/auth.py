@@ -77,7 +77,7 @@ def register_auth_routes(app, extensions, cache_control, config):
             # Validate required fields for subscription (all users now premium)
             if not address_line1 or not city or not postal_code or not country or not card_number or not expiry or not cvv:
                 flash("All billing and payment fields are required")
-                return render_template('register.html', form=form)
+                return render_template('auth/register.html', form=form)
 
             success, user = registration_manager.register_user(
                 email=email,
@@ -104,7 +104,7 @@ def register_auth_routes(app, extensions, cache_control, config):
                 flash("Registration successful, check your email for verification")
                 return redirect(url_for('login'))
             # Errors are flashed in register_user
-        return render_template('register.html', form=form)
+        return render_template('auth/register.html', form=form)
 
     @app.route('/verify_email/<token>')
     def verify_email(token):
@@ -237,10 +237,10 @@ def register_auth_routes(app, extensions, cache_control, config):
                 return redirect(url_for('renewal_sms_challenge'))
             elif isinstance(result, dict) and result.get('redirect') == 'show_renewal_modal':
                 # Show login page with renewal modal
-                return render_template('login.html', form=form, show_renewal_modal=True)
+                return render_template('auth/login.html', form=form, show_renewal_modal=True)
             # If result is None or any other value, fall through to render login page with flash messages
             
-        return render_template('login.html', form=form)
+        return render_template('auth/login.html', form=form)
 
     @app.route('/confirm_renewal', methods=['POST'])
     def confirm_renewal():
@@ -316,7 +316,7 @@ def register_auth_routes(app, extensions, cache_control, config):
             if new_password != confirm_password:
                 flash("New passwords do not match")
                 logger.debug(f"Password change failed for {current_user.email}: Passwords do not match")
-                return render_template('change_password.html', form=form)
+                return render_template('auth/change_password.html', form=form)
 
             success = authentication_manager.change_password(
                 current_user, current_password, new_password, captcha_response
@@ -324,7 +324,7 @@ def register_auth_routes(app, extensions, cache_control, config):
             if success:
                 return redirect(url_for('login'))
             # Errors are flashed in AuthenticationManager
-        return render_template('change_password.html', form=form)
+        return render_template('auth/change_password.html', form=form)
 
     @app.route('/initiate_password_reset', methods=['GET', 'POST'])
     def initiate_password_reset():
@@ -336,13 +336,13 @@ def register_auth_routes(app, extensions, cache_control, config):
             
             if not authentication_manager.validate_captcha(captcha_response):
                 flash("Please complete the CAPTCHA")
-                return render_template('initiate_password_reset.html', form=form)
+                return render_template('auth/initiate_password_reset.html', form=form)
             
             success = authentication_manager.initiate_password_reset(email)
             if success:
                 return redirect(url_for('login'))
             # Error messages are flashed in AuthenticationManager
-        return render_template('initiate_password_reset.html', form=form)
+        return render_template('auth/initiate_password_reset.html', form=form)
 
     @app.route('/reset_password/<token>', methods=['GET', 'POST'])
     def reset_password(token):
@@ -366,16 +366,16 @@ def register_auth_routes(app, extensions, cache_control, config):
             
             if new_password != confirm_password:
                 flash("Passwords do not match")
-                return render_template('reset_password.html', form=form, token=token)
+                return render_template('auth/reset_password.html', form=form, token=token)
                 
             if not authentication_manager.validate_captcha(captcha_response):
                 flash("Please complete the CAPTCHA")
-                return render_template('reset_password.html', form=form, token=token)
+                return render_template('auth/reset_password.html', form=form, token=token)
                 
             # Verify SMS code
             if not verify_code(user.id, verification_code, 'password_reset'):
                 flash("Invalid or expired verification code")
-                return render_template('reset_password.html', form=form, token=token)
+                return render_template('auth/reset_password.html', form=form, token=token)
                 
             success = authentication_manager.reset_password(user, new_password, captcha_response)
             if success:
@@ -385,7 +385,7 @@ def register_auth_routes(app, extensions, cache_control, config):
             else:
                 flash("Failed to reset password")
         
-        return render_template('reset_password.html', form=form, token=token)
+        return render_template('auth/reset_password.html', form=form, token=token)
 
     @app.route('/renewal_sms_challenge', methods=['GET', 'POST'])
     def renewal_sms_challenge():
@@ -418,7 +418,7 @@ def register_auth_routes(app, extensions, cache_control, config):
             if now < lockout_time:
                 minutes_remaining = int((lockout_time - now).total_seconds() / 60)
                 flash(f"Too many failed attempts. Please try again in {minutes_remaining} minutes or contact support.")
-                return render_template('verify_phone.html', 
+                return render_template('auth/verify_phone.html', 
                                      form=VerifyPhoneForm(), 
                                      locked=True, 
                                      context="renewal")
@@ -524,7 +524,7 @@ def register_auth_routes(app, extensions, cache_control, config):
                     db.session.commit()
                     
                     flash(f"Too many failed attempts. Access locked for {lockout_minutes} minutes. Please contact support if you need assistance.")
-                    return render_template('verify_phone.html', 
+                    return render_template('auth/verify_phone.html', 
                                          form=form, 
                                          locked=True, 
                                          context="renewal")
@@ -532,7 +532,7 @@ def register_auth_routes(app, extensions, cache_control, config):
                     remaining = max_attempts - attempts
                     flash(f"Invalid verification code. {remaining} attempt(s) remaining.")
         
-        return render_template('verify_phone.html', 
+        return render_template('auth/verify_phone.html', 
                               form=form, 
                               context="renewal",
                               phone_hint=f"***-***-{user.phone[-4:]}" if user.phone else "your phone")
@@ -595,14 +595,14 @@ def register_auth_routes(app, extensions, cache_control, config):
                     is_valid, normalized_phone = validate_phone_number(phone)
                     if not is_valid:
                         flash("Invalid phone number format.")
-                        return render_template('subscription_renewal.html', form=form, user=user, billing_info=billing_info)
+                        return render_template('account/subscription_renewal.html', form=form, user=user, billing_info=billing_info)
                     user.phone = normalized_phone
                 
                 # Basic card validation (additional to form validation)
                 card_digits = ''.join(filter(str.isdigit, card_number))
                 if len(card_digits) < 13 or len(card_digits) > 16:
                     flash("Invalid card number length.")
-                    return render_template('subscription_renewal.html', form=form, user=user, billing_info=billing_info)
+                    return render_template('account/subscription_renewal.html', form=form, user=user, billing_info=billing_info)
                 
                 # Process renewal
                 now = datetime.now(timezone.utc)
@@ -704,4 +704,4 @@ def register_auth_routes(app, extensions, cache_control, config):
                 db.session.rollback()
                 flash("Failed to renew subscription. Please try again.")
         
-        return render_template('subscription_renewal.html', form=form, user=user, billing_info=billing_info)
+        return render_template('account/subscription_renewal.html', form=form, user=user, billing_info=billing_info)

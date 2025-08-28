@@ -11,7 +11,6 @@ from flask_login import login_required, current_user
 from src.infrastructure.database import User, db, Subscription
 from src.core.services.user_settings_service import UserSettingsService
 
-from src.core.services.user_filters_service import UserFiltersService
 from src.presentation.websocket.publisher import WebSocketPublisher
 
 
@@ -128,130 +127,8 @@ def register_api_routes(app, extensions, cache_control, config):
                 "error": str(e)
             }), 500
 
-    # User Filters Endpoints  
-    @app.route('/api/user-filters', methods=['GET'])
-    @login_required
-    def get_user_filters():
-        """Get user filter settings."""
-        try:
-            user_filters_service = UserFiltersService()
-            filters = user_filters_service.get_filters(current_user.id)
-            
-            return jsonify({
-                "success": True,
-                "filter_data": filters,
-                "user_id": current_user.id
-            })
-        except Exception as e:
-            logger.error("Error getting user filters: %s", str(e))
-            return jsonify({
-                "success": False,
-                "error": str(e)
-            }), 500
+    # Removed: User Filters endpoints (post-button cleanup)
 
-    @app.route('/api/user-filters', methods=['POST'])
-    @login_required
-    def save_user_filters():
-        """Save user filter settings."""
-        try:
-            filter_data = request.get_json()
-            if not filter_data:
-                return jsonify({
-                    "success": False,
-                    "error": "No filter data provided"
-                }), 400
 
-            user_filters_service = UserFiltersService()
-            success = user_filters_service.save_filters(current_user.id, filter_data)
-            
-            if success:
-                return jsonify({
-                    "success": True,
-                    "message": "Filters saved successfully", 
-                    "user_id": current_user.id,
-                    "cache_invalidated": True
-                })
-            else:
-                return jsonify({
-                    "success": False,
-                    "error": "Failed to save filters"
-                }), 500
-                
-        except Exception as e:
-            logger.error("Error saving user filters: %s", str(e))
-            return jsonify({
-                "success": False,
-                "error": str(e)
-            }), 500
+    # Removed: Universe Management endpoints (post-button cleanup)
 
-    # Universe Management Endpoints
-    @app.route('/api/user/universe-selections', methods=['GET'])
-    @login_required
-    def get_user_universe_selections():
-        """Get current user's universe selections."""
-        try:
-            # Get user's universe selections from settings
-            settings = user_settings_service.get_user_settings(current_user.id)
-            universe_selections = settings.get('universe_selections', {})
-            
-            return jsonify({
-                "success": True,
-                "selections": universe_selections,
-                "user_id": current_user.id
-            })
-        except Exception as e:
-            logger.error("Error getting universe selections: %s", str(e))
-            return jsonify({
-                "success": False,
-                "error": str(e)
-            }), 500
-
-    @app.route('/api/universes/select', methods=['POST']) 
-    @login_required
-    def select_universe():
-        """Update user's universe selections."""
-        try:
-            data = request.get_json()
-            if not data or 'tracker' not in data or 'universes' not in data:
-                return jsonify({
-                    "success": False,
-                    "error": "Missing required fields: tracker, universes"
-                }), 400
-
-            tracker = data['tracker']
-            universes = data['universes']
-            
-            # Get current settings
-            current_settings = user_settings_service.get_user_settings(current_user.id)
-            
-            # Update universe selections
-            if 'universe_selections' not in current_settings:
-                current_settings['universe_selections'] = {}
-            current_settings['universe_selections'][tracker] = universes
-            
-            # Save updated settings
-            success = user_settings_service.save_user_settings(
-                current_user.id, 
-                current_settings
-            )
-            
-            if success:
-                return jsonify({
-                    "status": "success",
-                    "tracker": tracker,
-                    "universes": universes,
-                    "cache_invalidated": True,
-                    "user_id": current_user.id
-                })
-            else:
-                return jsonify({
-                    "status": "error",
-                    "error": "Failed to save universe selection"
-                }), 500
-                
-        except Exception as e:
-            logger.error("Error selecting universe: %s", str(e))
-            return jsonify({
-                "status": "error",
-                "error": str(e)
-            }), 500

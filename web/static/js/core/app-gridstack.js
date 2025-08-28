@@ -1,11 +1,9 @@
-// frontend/js/app-gridstack.js
+// frontend/js/app-gridstack.js - Post Webclean Version
 class GridStackManager {
     constructor() {
         this.grid = null;
         this.layoutLoaded = false;
         this.isInitializing = false;
-        this.syncManager = null; // Add sync manager
-        this.hasUnsavedChanges = false; // Track unsaved changes
         
         this.defaultOptions = {
             column: 12,
@@ -44,17 +42,13 @@ class GridStackManager {
         // Initialize GridStack
         this.grid = GridStack.init(this.defaultOptions, '#grid-container');
         
-        // Initialize sync manager
-        this.syncManager = new LayoutSyncManager(this);
-        
         // Setup event handlers and controls
         this.setupControls();
         this.setupResponsive();
         
-        // Wait for all components to be ready
+        // Wait for placeholder to be ready
         this.waitForReady().then(() => {
-            // Load from database instead of localStorage
-            this.syncManager.loadLayoutFromDB();
+            this.log('Placeholder container ready');
             this.isInitializing = false;
         });
     }
@@ -63,14 +57,13 @@ class GridStackManager {
         return new Promise((resolve) => {
             const checkReady = () => {
                 const gridReady = this.grid && this.grid.engine;
-                const domReady = document.querySelectorAll('#grid-container .grid-stack-item').length >= 8;
-                const socketReady = window.socket?.connected || !window.socket; // Socket optional
+                const placeholderReady = document.querySelector('#grid-container .grid-stack-item[data-gs-id="placeholder"]');
                 
-                if (gridReady && domReady) {
-                    this.log('All components ready');
+                if (gridReady && placeholderReady) {
+                    this.log('Placeholder component ready');
                     resolve();
                 } else {
-                    this.log('Waiting for components...', { gridReady, domReady, socketReady });
+                    this.log('Waiting for placeholder...', { gridReady, placeholderReady: !!placeholderReady });
                     setTimeout(checkReady, 100);
                 }
             };
@@ -79,21 +72,13 @@ class GridStackManager {
     }
 
     getDefaultLayout() {
-        // if altering this alter this too const domReady = document.querySelectorAll('#grid-container .grid-stack-item').length >= 9;
+        // Single placeholder layout
         return [
-            {id: 'core-gauge', x: 0, y: 0, w: 6, h: 3, minW: 4, minH: 3},
-            {id: 'percentage-bar', x: 0, y: 3, w: 12, h: 1, minH: 1, maxH: 1},
-            {id: 'lows', x: 0, y: 4, w: 6, h: 4, minW: 4, minH: 3},
-            {id: 'highs', x: 6, y: 4, w: 6, h: 4, minW: 4, minH: 3},
-            {id: 'uptrend', x: 0, y: 8, w: 6, h: 3, minW: 4, minH: 3},
-            {id: 'downtrend', x: 6, y: 8, w: 6, h: 3, minW: 4, minH: 3},
-            {id: 'surging-up', x: 0, y: 11, w: 6, h: 3, minW: 4, minH: 3},
-            {id: 'surging-down', x: 6, y: 11, w: 6, h: 3, minW: 4, minH: 3}
+            {id: 'placeholder', x: 0, y: 0, w: 12, h: 6, minW: 4, minH: 3}
         ];
     }
 
     applyLayout(layout) {
-        
         this.grid.batchUpdate();
         
         // Clear existing positions
@@ -127,51 +112,42 @@ class GridStackManager {
         });
     }
 
-    async saveLayout() {
-        
+    saveLayout() {
         if (this.isInitializing) {
             return;
         }
         
         const layout = this.grid.save(false);
         
-        // Ensure all properties are included, including missing 'h' values
-        const normalizedLayout = layout.map(item => ({
-            id: item.id,
-            x: item.x || 0,
-            y: item.y || 0,
-            w: item.w || 1,
-            h: item.h || 1,  // Default to 1 if undefined
-            minW: item.minW,
-            minH: item.minH,
-            maxW: item.maxW,
-            maxH: item.maxH
-        }));
-        
-        // Check if syncManager exists and has the method
-        if (!this.syncManager) {
-            return;
-        }
-        
-        // Save to database - use the correct method name: saveLayout
+        // Simple localStorage save for placeholder layout
         try {
-            const success = await this.syncManager.saveLayout(normalizedLayout);
-            
-            if (success) {
-                this.hasUnsavedChanges = false;  // Reset the flag
-                this.showSaveConfirmation();
-                // Force update button state
-                setTimeout(() => {
-                    this.updateEditButtonState();
-                }, 100);
-            } else {
-                this.showError('Failed to save layout');
-            }
+            localStorage.setItem('gridstack-layout', JSON.stringify(layout));
+            this.showSaveConfirmation();
+            this.log('Layout saved to localStorage');
         } catch (error) {
-            // Show error to user
             this.showError('Failed to save layout');
+            this.log('Save failed:', error);
         }
     }
+
+    loadLayout() {
+        try {
+            const saved = localStorage.getItem('gridstack-layout');
+            if (saved) {
+                const layout = JSON.parse(saved);
+                this.applyLayout(layout);
+                this.log('Layout loaded from localStorage');
+            } else {
+                // Apply default layout
+                this.applyLayout(this.getDefaultLayout());
+                this.log('Applied default layout');
+            }
+        } catch (error) {
+            this.log('Load failed, using default:', error);
+            this.applyLayout(this.getDefaultLayout());
+        }
+    }
+
     showError(message) {
         const toast = document.createElement('div');
         toast.className = 'layout-save-toast error';
@@ -191,6 +167,7 @@ class GridStackManager {
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
     }
+
     showSaveConfirmation() {
         const toast = document.createElement('div');
         toast.className = 'layout-save-toast';
@@ -227,10 +204,10 @@ class GridStackManager {
     }
 
     setupControls() {
-        // Track changes but DON'T auto-save
+        // Track changes
         this.grid.on('change', (event, items) => {
             if (!this.isInitializing && !this.grid.opts.disableDrag) {
-                this.hasUnsavedChanges = true;
+                this.log('Layout changed');
                 this.updateEditButtonState();
             }
         });
@@ -258,15 +235,13 @@ class GridStackManager {
             // Enable edit mode
             this.grid.enable();
             document.querySelector('.grid-stack').classList.add('grid-edit-mode');
+            this.log('Edit mode enabled');
         } else {
-            // Disable edit mode and save to database
+            // Disable edit mode and save
             this.grid.disable();
             document.querySelector('.grid-stack').classList.remove('grid-edit-mode');
-            
-            // Only save if there are changes
-            if (this.hasUnsavedChanges) {
-                this.saveLayout();
-            } 
+            this.saveLayout();
+            this.log('Edit mode disabled, layout saved');
         }
         
         this.updateEditButtonState();
@@ -282,59 +257,45 @@ class GridStackManager {
         const btnText = editBtn.querySelector('.btn-text');
         const btnIcon = editBtn.querySelector('.btn-icon');
         
-        
         if (isLocked) {
             editBtn.classList.remove('active');
-            editBtn.classList.remove('has-changes');  // Make sure to remove this class
             if (btnText) btnText.textContent = 'Edit Layout';
             if (btnIcon) btnIcon.textContent = '🔓';
         } else {
             editBtn.classList.add('active');
-            if (btnText) btnText.textContent = this.hasUnsavedChanges ? 'Save Layout*' : 'Save Layout';
+            if (btnText) btnText.textContent = 'Save Layout';
             if (btnIcon) btnIcon.textContent = '💾';
-            
-            // Add visual indicator for unsaved changes
-            if (this.hasUnsavedChanges) {
-                editBtn.classList.add('has-changes');
-            } else {
-                editBtn.classList.remove('has-changes');
+        }
+    }
+
+    resetLayout() {
+        if (window.Swal) {
+            Swal.fire({
+                title: 'Reset Layout',
+                text: 'Are you sure you want to reset to the default layout?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, reset',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.performReset();
+                }
+            });
+        } else {
+            // Fallback if SweetAlert is not available
+            if (confirm('Are you sure you want to reset to the default layout?')) {
+                this.performReset();
             }
         }
-        
     }
-    resetLayout() {
-        Swal.fire({
-            title: 'Reset Layout',
-            text: 'Are you sure you want to reset to the default layout?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, reset',
-            cancelButtonText: 'Cancel',
-            customClass: {
-                popup: 'tickstock-swal-popup',
-                confirmButton: 'tickstock-btn-primary',
-                cancelButton: 'tickstock-btn-secondary'
-            }
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                // Apply default layout
-                this.applyLayout(this.getDefaultLayout());
-                
-                // Save default layout to database
-                await this.syncManager.saveLayout(this.getDefaultLayout());
-                
-                this.hasUnsavedChanges = false;
-                this.updateEditButtonState();
-                
-                // Notify server if connected
-                if (window.socket?.connected) {
-                    window.socket.emit('user_action', {
-                        action: 'reset_layout',
-                        timestamp: Date.now()
-                    });
-                }
-            }
-        });
+
+    performReset() {
+        // Apply default layout
+        this.applyLayout(this.getDefaultLayout());
+        this.saveLayout();
+        this.updateEditButtonState();
+        this.log('Layout reset to default');
     }
 
     setupResponsive() {
@@ -366,9 +327,14 @@ class GridStackManager {
         return this.grid.save(false);
     }
 
-    // Public method to check if layout has unsaved changes
-    hasUnsavedLayout() {
-        return this.hasUnsavedChanges;
+    // Add a widget programmatically (for future development)
+    addWidget(element, options) {
+        return this.grid.addWidget(element, options);
+    }
+
+    // Remove a widget programmatically
+    removeWidget(element) {
+        this.grid.removeWidget(element);
     }
 }
 

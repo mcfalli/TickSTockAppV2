@@ -36,12 +36,12 @@ def register_main_routes(app, extensions, cache_control, config):
     @app.route('/terms')
     def terms_and_conditions():
         """Display terms and conditions page."""
-        return render_template('terms_and_conditions.html')
+        return render_template('legal/terms_and_conditions.html')
 
     @app.route('/privacy')
     def privacy_notice():
         """Display privacy notice page."""
-        return render_template('privacy_notice.html')
+        return render_template('legal/privacy_notice.html')
 
     @app.route('/account', methods=['GET', 'POST'])
     @login_required
@@ -57,7 +57,7 @@ def register_main_routes(app, extensions, cache_control, config):
             # Check if email already exists
             if User.query.filter(User.email == new_email, User.id != current_user.id).first():
                 flash("Email already registered by another user")
-                return render_template('account.html', 
+                return render_template('account/account.html', 
                                      update_email_form=update_email_form, 
                                      update_phone_form=update_phone_form, 
                                      user=current_user)
@@ -91,7 +91,7 @@ def register_main_routes(app, extensions, cache_control, config):
             
             if not is_valid:
                 flash("Invalid phone number format.")
-                return render_template('account.html', 
+                return render_template('account/account.html', 
                                      update_email_form=update_email_form, 
                                      update_phone_form=update_phone_form, 
                                      user=current_user)
@@ -99,7 +99,7 @@ def register_main_routes(app, extensions, cache_control, config):
             # Check if phone already exists
             if User.query.filter(User.phone == normalized_phone, User.id != current_user.id).first():
                 flash("Phone number already registered by another user")
-                return render_template('account.html', 
+                return render_template('account/account.html', 
                                      update_email_form=update_email_form, 
                                      update_phone_form=update_phone_form, 
                                      user=current_user)
@@ -121,7 +121,7 @@ def register_main_routes(app, extensions, cache_control, config):
             else:
                 flash("Failed to initiate phone update. Please try again.")
         
-        return render_template('account.html', 
+        return render_template('account/account.html', 
                               update_email_form=update_email_form, 
                               update_phone_form=update_phone_form, 
                               user=current_user)
@@ -171,7 +171,7 @@ def register_main_routes(app, extensions, cache_control, config):
                 flash("Invalid verification code. Please try again.")
         
         # Pass required context variables
-        return render_template('verify_phone.html', 
+        return render_template('auth/verify_phone.html', 
                               form=form, 
                               context="phone_update",  # Set context
                               locked=False,            # Default to not locked
@@ -223,32 +223,32 @@ def register_main_routes(app, extensions, cache_control, config):
                     # Validate card information
                     if not card_number or len(card_number) < 13:
                         flash("Please enter a valid card number.")
-                        return render_template('subscription.html', subscription=subscription, billing_info=billing_info)
+                        return render_template('account/subscription.html', subscription=subscription, billing_info=billing_info)
                     
                     if not expiry or len(expiry) != 5 or '/' not in expiry:
                         flash("Please enter a valid expiry date (MM/YY).")
-                        return render_template('subscription.html', subscription=subscription, billing_info=billing_info)
+                        return render_template('account/subscription.html', subscription=subscription, billing_info=billing_info)
                     
                     if not cvv or len(cvv) < 3:
                         flash("Please enter a valid CVV.")
-                        return render_template('subscription.html', subscription=subscription, billing_info=billing_info)
+                        return render_template('account/subscription.html', subscription=subscription, billing_info=billing_info)
                     
                     # Validate billing address
                     if not address_line1:
                         flash("Address Line 1 is required.")
-                        return render_template('subscription.html', subscription=subscription, billing_info=billing_info)
+                        return render_template('account/subscription.html', subscription=subscription, billing_info=billing_info)
                     
                     if not city:
                         flash("City is required.")
-                        return render_template('subscription.html', subscription=subscription, billing_info=billing_info)
+                        return render_template('account/subscription.html', subscription=subscription, billing_info=billing_info)
                     
                     if not postal_code:
                         flash("Postal/ZIP code is required.")
-                        return render_template('subscription.html', subscription=subscription, billing_info=billing_info)
+                        return render_template('account/subscription.html', subscription=subscription, billing_info=billing_info)
                     
                     if not country:
                         flash("Country is required.")
-                        return render_template('subscription.html', subscription=subscription, billing_info=billing_info)
+                        return render_template('account/subscription.html', subscription=subscription, billing_info=billing_info)
                     
                     # Update billing info
                     if billing_info:
@@ -284,13 +284,13 @@ def register_main_routes(app, extensions, cache_control, config):
                         logger.warning(f"No billing information found for user {current_user.id}")
                         flash("No billing information found to update.")
                     
-                    return render_template('subscription.html', subscription=subscription, billing_info=billing_info)
+                    return render_template('account/subscription.html', subscription=subscription, billing_info=billing_info)
                     
                 except Exception as e:
                     logger.error(f"Error updating payment method and billing address: {e}")
                     db.session.rollback()
                     flash("Failed to update payment method and billing address. Please try again.")
-                    return render_template('subscription.html', subscription=subscription, billing_info=billing_info)
+                    return render_template('account/subscription.html', subscription=subscription, billing_info=billing_info)
             
             elif action == 'resubscribe':
                 # Reactivate subscription (simplified for this sprint)
@@ -380,7 +380,7 @@ def register_main_routes(app, extensions, cache_control, config):
                 logger.warning(f"Unknown action received: {action}")
                 flash("Invalid action.")
         
-        return render_template('subscription.html', 
+        return render_template('account/subscription.html', 
                               subscription=subscription, 
                               billing_info=billing_info)
 
@@ -390,21 +390,21 @@ def register_main_routes(app, extensions, cache_control, config):
     @login_required
     def health_dashboard():
         """Display TickStockPL integration health dashboard."""
-        return render_template('health_dashboard.html')
+        return render_template('dashboard/health_dashboard.html')
     
     # SPRINT 10 PHASE 3: Backtesting Dashboard
     @app.route('/backtest-dashboard')
     @login_required
     def backtest_dashboard():
         """Display TickStockPL backtesting dashboard."""
-        return render_template('backtest_dashboard.html')
+        return render_template('dashboard/backtest_dashboard.html')
     
     # SPRINT 10 PHASE 4: Pattern Alerts Dashboard
     @app.route('/pattern-alerts')
     @login_required
     def pattern_alerts():
         """Display TickStockPL pattern alerts management dashboard."""
-        return render_template('pattern_alerts.html')
+        return render_template('dashboard/pattern_alerts.html')
     
     #TRACE TRACING
     @app.route('/trace/ScoobyDoo123')
@@ -414,5 +414,5 @@ def register_main_routes(app, extensions, cache_control, config):
         # Check if user has permission (you might want to restrict this to admins)
         # For now, any logged-in user can access
         
-        return render_template('trace.html', config=config)
+        return render_template('system/trace.html', config=config)
 

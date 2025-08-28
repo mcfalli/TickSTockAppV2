@@ -371,23 +371,227 @@ ENTERPRISE STANDARDS: CSS Custom Properties, Design Tokens, Atomic Design
 
    --grid-col-surge-time-flex: 0.6;       /* Slightly reduced from 0.65 */
    --grid-col-surge-time-min: 50px;       /* Reduced from 55px */
+
+   /* ==========================================================================
+      NAVBAR COMPONENT VARIABLES
+      ========================================================================== */
+   
+   /* Navbar Button Styling (Light Theme) */
+   --color-navbar-btn-bg: rgba(255, 255, 255, 0.1);
+   --color-navbar-btn-border: rgba(255, 255, 255, 0.2);
+   --color-navbar-btn-hover-bg: rgba(255, 255, 255, 0.2);
+   --color-navbar-btn-hover-border: rgba(255, 255, 255, 0.4);
+   --shadow-navbar-hover: 0 2px 8px rgba(0, 0, 0, 0.15);
+   
+   /* Pulse Animation Colors */
+   --color-pulse-shadow-start: rgba(76, 175, 80, 0.7);
+   --color-pulse-shadow-end: rgba(76, 175, 80, 0);
 }
 
 
 /*
 ===============================================================================
-DARK MODE SUPPORT (Future Enhancement)
+DARK THEME SUPPORT - Ready for Implementation
 ===============================================================================
+
+This section provides comprehensive dark theme support through:
+1. System preference detection (prefers-color-scheme: dark)
+2. Manual theme toggle class (.theme-dark on html/body)
+3. Complete color variable overrides for dark mode
 */
 
+/* System Dark Mode Preference - DISABLED for manual theme control */
 @media (prefers-color-scheme: dark) {
-  :root {
-    /* Override specific variables for dark mode when implemented */
+  :root:not(.theme-light):not(.theme-dark) {
+    /* Only apply if no manual theme is set */
     --color-background-primary: #1a1a1a;
     --color-background-secondary: #2d2d2d;
+    --color-background-tertiary: #242424;
+    --color-background-dark: #000000;
+    
+    /* Event Section Backgrounds - Dark Theme */
+    --color-background-highs: #1e3a1e;
+    --color-background-lows: #3a1e1e;
+    
+    /* Text Colors - Dark Theme */
     --color-text-primary: #ffffff;
     --color-text-secondary: #cccccc;
+    --color-text-muted: #888888;
+    --color-text-light: #aaaaaa;
+    --color-text-white: #ffffff;
+    
+    /* Border Colors - Dark Theme */
+    --color-border-primary: #444444;
+    --color-border-secondary: #333333;
+    --color-border-light: #2a2a2a;
+    --color-border-dark: #555555;
+    
+    /* Navbar Button Styling (Dark Theme) */
+    --color-navbar-btn-bg: rgba(255, 255, 255, 0.05);
+    --color-navbar-btn-border: rgba(255, 255, 255, 0.1);
+    --color-navbar-btn-hover-bg: rgba(255, 255, 255, 0.1);
+    --color-navbar-btn-hover-border: rgba(255, 255, 255, 0.2);
+    --shadow-navbar-hover: 0 2px 8px rgba(0, 0, 0, 0.3);
+    
+    /* Pulse Animation Colors (Dark Theme) */
+    --color-pulse-shadow-start: rgba(76, 175, 80, 0.5);
+    --color-pulse-shadow-end: rgba(76, 175, 80, 0);
+    
+    /* Status Colors remain the same for accessibility */
+    /* Primary, success, error colors maintain contrast in dark mode */
   }
+}
+
+/* Manual Dark Theme Toggle (for future theme switcher) */
+.theme-dark {
+  /* Same variables as system dark mode for manual toggle */
+  --color-background-primary: #1a1a1a !important;
+  --color-background-secondary: #2d2d2d !important;
+  --color-background-tertiary: #242424 !important;
+  --color-background-dark: #000000 !important;
+  
+  --color-background-highs: #1e3a1e !important;
+  --color-background-lows: #3a1e1e !important;
+  
+  --color-text-primary: #ffffff !important;
+  --color-text-secondary: #cccccc !important;
+  --color-text-muted: #888888;
+  --color-text-light: #aaaaaa;
+  --color-text-white: #ffffff;
+  
+  --color-border-primary: #444444;
+  --color-border-secondary: #333333;
+  --color-border-light: #2a2a2a;
+  --color-border-dark: #555555;
+  
+  /* Navbar Button Styling (Dark Theme) */
+  --color-navbar-btn-bg: rgba(255, 255, 255, 0.05);
+  --color-navbar-btn-border: rgba(255, 255, 255, 0.1);
+  --color-navbar-btn-hover-bg: rgba(255, 255, 255, 0.1);
+  --color-navbar-btn-hover-border: rgba(255, 255, 255, 0.2);
+  --shadow-navbar-hover: 0 2px 8px rgba(0, 0, 0, 0.3);
+  
+  /* Pulse Animation Colors (Dark Theme) */
+  --color-pulse-shadow-start: rgba(76, 175, 80, 0.5);
+  --color-pulse-shadow-end: rgba(76, 175, 80, 0);
+}
+
+/* Manual Light Theme Toggle (overrides system dark preferences) */
+.theme-light {
+  /* Force light theme variables regardless of system preference */
+  --color-background-primary: #ffffff !important;
+  
+  /* Direct element overrides for testing */
+}
+
+.theme-light body,
+html.theme-light body,
+body.theme-light {
+  background-color: #ffffff !important;
+  color: #333333 !important;
+}
+
+.theme-dark body,
+html.theme-dark body,
+body.theme-dark {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+/* Override Bootstrap containers */
+.theme-light .container,
+.theme-light .card,
+.theme-light .card-body {
+  background-color: #ffffff !important;
+  color: #333333 !important;
+}
+
+.theme-dark .container,
+.theme-dark .card,
+.theme-dark .card-body {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+}
+
+/* Navbar theme overrides - High specificity to beat original navbar CSS */
+/* Ultra-specific navbar theme overrides */
+html.theme-light body .navbar,
+.theme-light body .navbar,
+html.theme-light .navbar,
+body.theme-light .navbar,
+.theme-light .navbar {
+  background-color: #3a3a3a !important; /* Match status bar color exactly */
+  color: #ffffff !important;
+}
+
+html.theme-dark body .navbar,
+.theme-dark body .navbar,
+html.theme-dark .navbar,
+body.theme-dark .navbar, 
+.theme-dark .navbar {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+/* Navbar button overrides for light theme - High visibility */
+.theme-light .navbar .navbar-btn,
+.theme-light .navbar button {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  color: #ffffff !important;
+}
+
+.theme-light .navbar .navbar-btn:hover,
+.theme-light .navbar button:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Make sure all navbar text is white in light mode */
+.theme-light .navbar,
+.theme-light .navbar h1,
+.theme-light .navbar .status-badge,
+.theme-light .navbar .connection-text {
+  color: #ffffff !important;
+}
+
+.theme-light .container {
+  background-color: #ffffff !important;
+}
+
+.theme-light .card {
+  background-color: #f8f9fa !important;
+}
+
+.theme-light {
+  --color-background-secondary: #f8f9fa !important;
+  --color-background-tertiary: #e9ecef !important;
+  --color-background-dark: #3a3a3a !important;
+  
+  --color-background-highs: #e8f5e9 !important;
+  --color-background-lows: #ffebee !important;
+  
+  --color-text-primary: #333333 !important;
+  --color-text-secondary: #666666 !important;
+  --color-text-muted: #888888;
+  --color-text-light: #999999;
+  --color-text-white: #ffffff;
+  
+  --color-border-primary: #dee2e6;
+  --color-border-secondary: #e0e0e0;
+  --color-border-light: #f0f0f0;
+  --color-border-dark: #cccccc;
+  
+  /* Navbar Button Styling (Light Theme) */
+  --color-navbar-btn-bg: rgba(0, 0, 0, 0.05);
+  --color-navbar-btn-border: rgba(0, 0, 0, 0.1);
+  --color-navbar-btn-hover-bg: rgba(0, 0, 0, 0.1);
+  --color-navbar-btn-hover-border: rgba(0, 0, 0, 0.2);
+  --shadow-navbar-hover: 0 2px 8px rgba(0, 0, 0, 0.15);
+  
+  /* Pulse Animation Colors (Light Theme) */
+  --color-pulse-shadow-start: rgba(76, 175, 80, 0.7);
+  --color-pulse-shadow-end: rgba(76, 175, 80, 0);
 }
 
 /*
