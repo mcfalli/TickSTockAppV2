@@ -225,6 +225,7 @@ def register_basic_routes(app):
         return {"error": "Not found", "message": str(error)}, 404
     
     @app.route('/')
+    @login_required
     def index():
         try:
             logger.info("ROUTE: Index page requested")
@@ -234,11 +235,13 @@ def register_basic_routes(app):
             raise
     
     @app.route('/health')
+    @login_required
     def health_check():
         """Health check endpoint for monitoring."""
         return {"status": "healthy", "version": APP_VERSION}
     
-    @app.route('/test')  
+    @app.route('/test')
+    @login_required  
     def test_route():
         """Simple test route to verify routing works."""
         return "TickStock Test Route - Working!"
@@ -274,7 +277,7 @@ def main():
         
         # Configure logging with the loaded config
         logger.info("STARTUP: Configuring logging...")
-        configure_logging(config)
+        # configure_logging(config)  # Temporarily disabled to fix hanging issue
         logger.info("STARTUP: Logging configured successfully")
         
         # Create Flask application

@@ -57,10 +57,10 @@ class ConfigManager:
         
         # Sprint 10: TimescaleDB Configuration
         'TICKSTOCK_DB_HOST': 'localhost',
-        'TICKSTOCK_DB_PORT': 5432,
+        'TICKSTOCK_DB_PORT': 5433,
         'TICKSTOCK_DB_NAME': 'tickstock',
-        'TICKSTOCK_DB_USER': 'postgres',
-        'TICKSTOCK_DB_PASSWORD': '',
+        'TICKSTOCK_DB_USER': 'app_readwrite',
+        'TICKSTOCK_DB_PASSWORD': 'LJI48rUEkUpe6e',
         'COLLECTION_INTERVAL': COLLECTION_INTERVAL,
         'EMISSION_INTERVAL': EMISSION_INTERVAL,
         'USE_POLYGON_API': False,
@@ -86,7 +86,7 @@ class ConfigManager:
         'LOG_CONSOLE_VERBOSE': False,
         'LOG_CONSOLE_DEBUG': False,
         'LOG_CONSOLE_CONNECTION_VERBOSE': True,
-        'LOG_FILE_ENABLED': True,
+        'LOG_FILE_ENABLED': False,  # Temporarily disabled to fix startup hanging
         'LOG_FILE_PRODUCTION_MODE': False,
 
         # (Removed legacy tracing configuration - no longer needed after event detection cleanup)

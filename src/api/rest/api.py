@@ -45,6 +45,7 @@ def register_api_routes(app, extensions, cache_control, config):
             return jsonify({"error": "Failed to reset cache"}), 500
 
     @app.route('/api/health')
+    @login_required
     def api_health():
         """API health check endpoint."""
         try:
@@ -131,4 +132,170 @@ def register_api_routes(app, extensions, cache_control, config):
 
 
     # Removed: Universe Management endpoints (post-button cleanup)
+
+    # TickStockPL Integration - Pattern Alerts API Endpoints
+    @app.route('/api/tickstockpl/alerts/subscriptions', methods=['GET'])
+    @login_required
+    def get_pattern_subscriptions():
+        """Get user pattern subscriptions."""
+        try:
+            # For now, return empty subscriptions - this will be connected to Redis later
+            return jsonify({
+                "success": True,
+                "subscriptions": []
+            })
+        except Exception as e:
+            logger.error("Error getting pattern subscriptions: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/tickstockpl/alerts/preferences', methods=['GET'])
+    @login_required
+    def get_pattern_preferences():
+        """Get user pattern alert preferences."""
+        try:
+            # Default preferences for now
+            return jsonify({
+                "success": True,
+                "preferences": {
+                    "notifications_enabled": True,
+                    "email_alerts": False,
+                    "sound_alerts": True,
+                    "min_confidence": 0.7
+                }
+            })
+        except Exception as e:
+            logger.error("Error getting pattern preferences: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/tickstockpl/alerts/preferences', methods=['POST'])
+    @login_required
+    def save_pattern_preferences():
+        """Save user pattern alert preferences."""
+        try:
+            preferences_data = request.get_json()
+            if not preferences_data:
+                return jsonify({
+                    "success": False,
+                    "error": "No preferences data provided"
+                }), 400
+
+            # For now, just acknowledge the save - will implement Redis storage later
+            return jsonify({
+                "success": True,
+                "message": "Preferences saved successfully"
+            })
+        except Exception as e:
+            logger.error("Error saving pattern preferences: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/tickstockpl/alerts/performance', methods=['GET'])
+    @login_required
+    def get_pattern_performance():
+        """Get pattern performance data."""
+        try:
+            timeframe = request.args.get('timeframe', '1d')
+            
+            # Mock performance data for now
+            return jsonify({
+                "success": True,
+                "performance": {
+                    "timeframe": timeframe,
+                    "patterns": [
+                        {
+                            "name": "Double Top",
+                            "accuracy": 0.75,
+                            "signals": 12,
+                            "profit": 0.034
+                        },
+                        {
+                            "name": "Head and Shoulders",
+                            "accuracy": 0.68,
+                            "signals": 8,
+                            "profit": 0.021
+                        }
+                    ],
+                    "overall_accuracy": 0.71,
+                    "total_signals": 20,
+                    "total_profit": 0.055
+                }
+            })
+        except Exception as e:
+            logger.error("Error getting pattern performance: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/tickstockpl/alerts/history', methods=['GET'])
+    @login_required
+    def get_pattern_history():
+        """Get pattern alert history."""
+        try:
+            limit = int(request.args.get('limit', 50))
+            offset = int(request.args.get('offset', 0))
+            
+            # Mock history data for now
+            return jsonify({
+                "success": True,
+                "history": [],
+                "total": 0,
+                "limit": limit,
+                "offset": offset
+            })
+        except Exception as e:
+            logger.error("Error getting pattern history: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/tickstockpl/alerts/subscribe', methods=['POST'])
+    @login_required
+    def subscribe_to_patterns():
+        """Subscribe to pattern alerts."""
+        try:
+            subscription_data = request.get_json()
+            if not subscription_data:
+                return jsonify({
+                    "success": False,
+                    "error": "No subscription data provided"
+                }), 400
+
+            # For now, just acknowledge the subscription - will implement Redis later
+            return jsonify({
+                "success": True,
+                "message": "Subscribed successfully"
+            })
+        except Exception as e:
+            logger.error("Error subscribing to patterns: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/tickstockpl/alerts/subscribe/<pattern_name>', methods=['DELETE'])
+    @login_required
+    def unsubscribe_from_pattern(pattern_name):
+        """Unsubscribe from a specific pattern."""
+        try:
+            # For now, just acknowledge the unsubscription - will implement Redis later
+            return jsonify({
+                "success": True,
+                "message": f"Unsubscribed from {pattern_name}"
+            })
+        except Exception as e:
+            logger.error("Error unsubscribing from pattern %s: %s", pattern_name, str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
 

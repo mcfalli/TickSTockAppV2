@@ -32,15 +32,21 @@ class TickStockDatabase:
         
     def _build_connection_url(self) -> str:
         """Build database connection URL for shared 'tickstock' database."""
-        # Use environment variables with fallbacks
+        # First try to use DATABASE_URI from environment (matches .env file)
+        database_uri = os.getenv('DATABASE_URI')
+        if database_uri:
+            logger.info(f"TICKSTOCK-DB: Using DATABASE_URI from environment")
+            return database_uri
+            
+        # Fallback to individual environment variables
         db_host = os.getenv('TICKSTOCK_DB_HOST', 'localhost')
-        db_port = os.getenv('TICKSTOCK_DB_PORT', '5432')
+        db_port = os.getenv('TICKSTOCK_DB_PORT', '5433')
         db_name = 'tickstock'  # Fixed database name for shared TickStockPL database
-        db_user = os.getenv('TICKSTOCK_DB_USER', 'postgres')
-        db_password = os.getenv('TICKSTOCK_DB_PASSWORD', '')
+        db_user = os.getenv('TICKSTOCK_DB_USER', 'app_readwrite')
+        db_password = os.getenv('TICKSTOCK_DB_PASSWORD', 'LJI48rUEkUpe6e')
         
         connection_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-        logger.info(f"TICKSTOCK-DB: Connecting to shared database '{db_name}' at {db_host}:{db_port}")
+        logger.info(f"TICKSTOCK-DB: Using individual env vars - connecting to '{db_name}' at {db_host}:{db_port}")
         return connection_url
     
     def _initialize_engine(self):
