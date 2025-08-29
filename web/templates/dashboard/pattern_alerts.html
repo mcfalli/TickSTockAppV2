@@ -235,6 +235,7 @@
                             </div>
                             <div class="card-body">
                                 <form id="preferences-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="mb-3">
@@ -434,6 +435,7 @@
                 </div>
                 <div class="modal-body">
                     <form id="add-subscription-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="mb-3">
                             <label for="pattern-name" class="form-label">Pattern Name</label>
                             <select class="form-select" id="pattern-name" required>

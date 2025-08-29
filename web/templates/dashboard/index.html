@@ -225,21 +225,6 @@
                 loadingOverlay.remove(); // Remove it completely for Sprint 10
             }
             
-            // Show success message for Sprint 10 completion
-            setTimeout(function() {
-                const errorMessage = document.getElementById('error-message');
-                if (errorMessage) {
-                    errorMessage.innerHTML = `
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <strong>Sprint 10 Complete!</strong> TickStockAppV2 is now integrated with TickStockPL. 
-                            Use the dashboard buttons above to access new features.
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    `;
-                    errorMessage.style.display = 'block';
-                }
-            }, 500);
         });
         
         // Override the updateLoadingOverlay function from app-core.js

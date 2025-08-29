@@ -277,7 +277,7 @@ def main():
         
         # Configure logging with the loaded config
         logger.info("STARTUP: Configuring logging...")
-        # configure_logging(config)  # Temporarily disabled to fix hanging issue
+        configure_logging(config)
         logger.info("STARTUP: Logging configured successfully")
         
         # Create Flask application

@@ -25,7 +25,8 @@ class EmailManager:
     def _get_template_env(self):
         """Lazily initialize and return the Jinja2 Environment."""
         if self._template_env is None:
-            template_path = Path(current_app.root_path) / 'email_template'
+            # Use templates directory adjacent to this email service file
+            template_path = Path(__file__).parent / 'templates'
             logger.debug("Loading templates from: %s", template_path)
             self._template_env = Environment(
                 loader=FileSystemLoader(template_path)

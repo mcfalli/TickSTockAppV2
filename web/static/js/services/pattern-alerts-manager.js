@@ -130,6 +130,15 @@ class PatternAlertsManager {
         }
     }
     
+    getCSRFToken() {
+        // Try to get CSRF token from any form on the page
+        const csrfInput = document.querySelector('input[name="csrf_token"]');
+        if (!csrfInput) {
+            throw new Error('CSRF token not found. Please refresh the page.');
+        }
+        return csrfInput.value;
+    }
+    
     async loadSubscriptions() {
         try {
             const response = await fetch('/api/tickstockpl/alerts/subscriptions');
@@ -656,6 +665,9 @@ class PatternAlertsManager {
             return;
         }
         
+        // Get CSRF token
+        const csrfToken = this.getCSRFToken();
+        
         const subscriptionData = {
             pattern_name: patternName,
             confidence: parseInt(minConfidence),
@@ -666,7 +678,10 @@ class PatternAlertsManager {
         try {
             const response = await fetch('/api/tickstockpl/alerts/subscribe', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
                 body: JSON.stringify(subscriptionData)
             });
             
@@ -699,9 +714,13 @@ class PatternAlertsManager {
         const newActive = !subscription.active;
         
         try {
+            const csrfToken = this.getCSRFToken();
             const response = await fetch(`/api/tickstockpl/alerts/subscribe/${patternName}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
                 body: JSON.stringify({ active: newActive })
             });
             
@@ -725,8 +744,12 @@ class PatternAlertsManager {
         }
         
         try {
+            const csrfToken = this.getCSRFToken();
             const response = await fetch(`/api/tickstockpl/alerts/subscribe/${patternName}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
             });
             
             if (!response.ok) throw new Error('Failed to remove subscription');
@@ -756,9 +779,13 @@ class PatternAlertsManager {
         };
         
         try {
+            const csrfToken = this.getCSRFToken();
             const response = await fetch('/api/tickstockpl/alerts/preferences', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
                 body: JSON.stringify({ preferences })
             });
             

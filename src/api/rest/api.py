@@ -173,7 +173,7 @@ def register_api_routes(app, extensions, cache_control, config):
                 "error": str(e)
             }), 500
 
-    @app.route('/api/tickstockpl/alerts/preferences', methods=['POST'])
+    @app.route('/api/tickstockpl/alerts/preferences', methods=['POST', 'PUT'])
     @login_required
     def save_pattern_preferences():
         """Save user pattern alert preferences."""
@@ -204,29 +204,10 @@ def register_api_routes(app, extensions, cache_control, config):
         try:
             timeframe = request.args.get('timeframe', '1d')
             
-            # Mock performance data for now
+            # Mock performance data for now - JavaScript expects 'performance' array
             return jsonify({
                 "success": True,
-                "performance": {
-                    "timeframe": timeframe,
-                    "patterns": [
-                        {
-                            "name": "Double Top",
-                            "accuracy": 0.75,
-                            "signals": 12,
-                            "profit": 0.034
-                        },
-                        {
-                            "name": "Head and Shoulders",
-                            "accuracy": 0.68,
-                            "signals": 8,
-                            "profit": 0.021
-                        }
-                    ],
-                    "overall_accuracy": 0.71,
-                    "total_signals": 20,
-                    "total_profit": 0.055
-                }
+                "performance": []  # Empty for now, will be populated with TickStockPL integration
             })
         except Exception as e:
             logger.error("Error getting pattern performance: %s", str(e))
@@ -246,7 +227,7 @@ def register_api_routes(app, extensions, cache_control, config):
             # Mock history data for now
             return jsonify({
                 "success": True,
-                "history": [],
+                "alerts": [],  # JavaScript expects 'alerts', not 'history'
                 "total": 0,
                 "limit": limit,
                 "offset": offset
@@ -282,6 +263,30 @@ def register_api_routes(app, extensions, cache_control, config):
                 "error": str(e)
             }), 500
 
+    @app.route('/api/tickstockpl/alerts/subscribe/<pattern_name>', methods=['PUT'])
+    @login_required
+    def update_pattern_subscription(pattern_name):
+        """Update a pattern subscription (toggle active state)."""
+        try:
+            update_data = request.get_json()
+            if not update_data:
+                return jsonify({
+                    "success": False,
+                    "error": "No update data provided"
+                }), 400
+
+            # For now, just acknowledge the update - will implement Redis later
+            return jsonify({
+                "success": True,
+                "message": f"Pattern {pattern_name} updated successfully"
+            })
+        except Exception as e:
+            logger.error("Error updating pattern subscription %s: %s", pattern_name, str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
     @app.route('/api/tickstockpl/alerts/subscribe/<pattern_name>', methods=['DELETE'])
     @login_required
     def unsubscribe_from_pattern(pattern_name):
@@ -294,6 +299,105 @@ def register_api_routes(app, extensions, cache_control, config):
             })
         except Exception as e:
             logger.error("Error unsubscribing from pattern %s: %s", pattern_name, str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    # TickStockPL Integration - Backtest API Endpoints
+    @app.route('/api/tickstockpl/backtest/config', methods=['GET'])
+    @login_required
+    def get_backtest_config():
+        """Get backtest configuration options."""
+        try:
+            # Mock configuration data for now
+            return jsonify({
+                "success": True,
+                "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "NFLX"],
+                "patterns": ["bullish_engulfing", "bearish_engulfing", "hammer", "doji", "morning_star", "evening_star"]
+            })
+        except Exception as e:
+            logger.error("Error getting backtest config: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/tickstockpl/backtest/submit', methods=['POST'])
+    @login_required
+    def submit_backtest():
+        """Submit a new backtest job."""
+        try:
+            backtest_data = request.get_json()
+            if not backtest_data:
+                return jsonify({
+                    "success": False,
+                    "error": "No backtest data provided"
+                }), 400
+
+            # For now, just acknowledge the submission - will implement TickStockPL integration later
+            return jsonify({
+                "success": True,
+                "message": "Backtest submitted successfully",
+                "job_id": "mock_job_123"
+            })
+        except Exception as e:
+            logger.error("Error submitting backtest: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/tickstockpl/backtest/jobs', methods=['GET'])
+    @login_required
+    def get_backtest_jobs():
+        """Get user's backtest jobs."""
+        try:
+            # Mock job data for now
+            return jsonify({
+                "success": True,
+                "jobs": []  # Empty for now, will be populated with TickStockPL integration
+            })
+        except Exception as e:
+            logger.error("Error getting backtest jobs: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/tickstockpl/backtest/job/<job_id>', methods=['GET'])
+    @login_required
+    def get_backtest_job(job_id):
+        """Get specific backtest job details."""
+        try:
+            # Mock job data for now
+            return jsonify({
+                "success": True,
+                "job": {
+                    "job_id": job_id,
+                    "status": "completed",
+                    "results": None  # No results for mock data
+                }
+            })
+        except Exception as e:
+            logger.error("Error getting backtest job %s: %s", job_id, str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/tickstockpl/backtest/job/<job_id>/cancel', methods=['POST'])
+    @login_required
+    def cancel_backtest_job(job_id):
+        """Cancel a running backtest job."""
+        try:
+            # For now, just acknowledge the cancellation - will implement TickStockPL integration later
+            return jsonify({
+                "success": True,
+                "message": f"Backtest job {job_id} cancelled"
+            })
+        except Exception as e:
+            logger.error("Error cancelling backtest job %s: %s", job_id, str(e))
             return jsonify({
                 "success": False,
                 "error": str(e)
