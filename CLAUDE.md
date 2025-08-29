@@ -274,6 +274,21 @@ TickStock.ai uses specialized agents for domain-specific tasks. These agents hav
 - All agents enforce performance targets (<100ms WebSocket, <50ms DB queries)
 - All agents maintain Redis pub-sub loose coupling patterns
 
+## Recent Major Updates
+
+### Enhanced Symbols Table & Historical Loader (Sprint 11)
+**Date**: 2025-08-29  
+**Changes**: 
+- **Symbols table enhanced** with 12 new columns from Polygon.io API (market cap, FIGI identifiers, SEC CIK, etc.)
+- **Historical loader auto-creates symbols** - no more foreign key constraint errors
+- **Symbol metadata refresh** - existing symbols updated with latest data from API
+- **Web interface fixed** - admin historical data dashboard now uses updated loader
+- **Database scripts** available in `scripts/database/` for table updates
+
+**Migration Required**: Run `scripts/database/symbols_table_enhancement.sql` to add new columns
+
+**Breaking Change**: `get_symbols_for_dropdown()` now returns rich objects instead of strings
+
 ## Important Operating Guidelines
 
 ### Critical Rules

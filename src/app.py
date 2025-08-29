@@ -285,6 +285,15 @@ def main():
         app = create_flask_app(startup_result['env_config'], cache_control, config)
         extensions = initialize_flask_extensions(app)
         
+        # IMMEDIATE LOGIN MANAGER CONFIGURATION - Force it here
+        login_manager = extensions.get('login_manager')
+        if login_manager:
+            login_manager.login_view = 'login'
+            login_manager.login_message = 'Please log in to access this page.'
+            logger.info("STARTUP: LOGIN-MANAGER configured immediately after extensions")
+        else:
+            logger.error("STARTUP: LOGIN-MANAGER not found in extensions!")
+        
         # Initialize Redis
         logger.info("STARTUP: Initializing Redis...")
         redis_success = initialize_redis(config)
@@ -339,10 +348,17 @@ def main():
             from src.api.rest.main import register_main_routes
             from src.api.rest.api import register_api_routes
             from src.api.rest.tickstockpl_api import register_tickstockpl_routes
+            from src.api.rest.admin_historical_data import register_admin_historical_routes
             
             logger.info("STARTUP: Registering auth routes...")
-            register_auth_routes(app, extensions, cache_control, config)
-            logger.info("STARTUP: Auth routes registered successfully")
+            try:
+                register_auth_routes(app, extensions, cache_control, config)
+                logger.info("STARTUP: Auth routes registered successfully")
+            except Exception as auth_error:
+                logger.error(f"STARTUP: Auth routes registration failed: {auth_error}")
+                import traceback
+                logger.error(f"STARTUP: Auth routes traceback:\n{traceback.format_exc()}")
+                raise
             
             logger.info("STARTUP: Registering main routes...")
             register_main_routes(app, extensions, cache_control, config)
@@ -356,11 +372,33 @@ def main():
             register_tickstockpl_routes(app, extensions, cache_control, config)
             logger.info("STARTUP: TickStockPL API routes registered successfully")
             
+            logger.info("STARTUP: Registering admin historical data routes...")
+            register_admin_historical_routes(app)
+            logger.info("STARTUP: Admin historical data routes registered successfully")
+            
+            logger.info("STARTUP: Registering admin user management routes...")
+            from src.api.rest.admin_users import admin_users_bp
+            app.register_blueprint(admin_users_bp)
+            logger.info("STARTUP: Admin user management routes registered successfully")
+            
         except ImportError as e:
             logger.warning(f"STARTUP: Some API routes failed to load: {e}")
         except Exception as e:
             logger.error(f"STARTUP: API route registration failed: {e}")
             raise
+        
+        # CONFIGURE LOGIN MANAGER UNAUTHORIZED HANDLER AFTER ROUTES ARE REGISTERED
+        login_manager = extensions.get('login_manager')
+        if login_manager:
+            @login_manager.unauthorized_handler
+            def unauthorized_handler():
+                from flask import redirect, flash
+                logger.info("LOGIN-MANAGER: Unauthorized access, redirecting to login")
+                flash('Please log in to access this page.', 'info')
+                return redirect('/login')  # Use direct path instead of url_for
+            logger.info("STARTUP: LOGIN-MANAGER unauthorized handler configured after route registration")
+        else:
+            logger.error("STARTUP: LOGIN-MANAGER not found when configuring unauthorized handler!")
         
         # Initialize TickStockPL integration services (Phase 2)
         logger.info("STARTUP: Initializing TickStockPL integration services...")

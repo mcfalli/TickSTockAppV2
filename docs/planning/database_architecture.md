@@ -7,12 +7,24 @@ PostgreSQL with TimescaleDB extension powers time-series efficiency for OHLCV da
 Below is the detailed schema from initial design discussions, tailored for TickStockPL’s pattern scanning and real-time/historical data blending.
 
 ### Schema
-- **symbols**: Metadata for traded instruments.
+- **symbols**: Enhanced metadata for traded instruments with Polygon.io API data.
   ```sql
   CREATE TABLE IF NOT EXISTS symbols (
       symbol VARCHAR(20) PRIMARY KEY,
       name VARCHAR(100),
       exchange VARCHAR(20),
+      market VARCHAR(20),                    -- stocks, options, crypto, forex
+      locale VARCHAR(10),                    -- us, global
+      currency_name VARCHAR(10),             -- USD, EUR, etc.
+      currency_symbol VARCHAR(5),            -- $, €, etc.
+      type VARCHAR(20),                      -- CS = Common Stock, ADRC = ADR, etc.
+      active BOOLEAN DEFAULT true,           -- is symbol actively traded
+      cik VARCHAR(20),                       -- SEC CIK identifier  
+      composite_figi VARCHAR(50),            -- Financial Instrument Global Identifier
+      share_class_figi VARCHAR(50),          -- Share class FIGI
+      last_updated_utc TIMESTAMP WITH TIME ZONE, -- precise timestamp from API
+      market_cap BIGINT,                     -- market capitalization if available
+      weighted_shares_outstanding BIGINT,    -- shares outstanding
       last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
   ```

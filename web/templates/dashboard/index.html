@@ -75,7 +75,11 @@
                         <a href="{{ url_for('change_password') }}">Change Password</a>
                         <a href="{{ url_for('backtest_dashboard') }}">📊 Backtesting</a>
                         <a href="{{ url_for('pattern_alerts') }}">🔔 Pattern Alerts</a>
-                        <a href="{{ url_for('health_dashboard') }}">🏥 Health Dashboard</a>
+                        {% if current_user.is_admin() %}
+                        <a href="{{ url_for('admin_users.health_dashboard') }}">🏥 Health Dashboard (Admin)</a>
+                        <a href="{{ url_for('admin_users.users_dashboard') }}">👥 User Management</a>
+                        <a href="{{ url_for('admin_historical_dashboard') }}">📊 Historical Data Admin</a>
+                        {% endif %}
                         <a href="mailto:support@tickstock.com">support@tickstock.com</a>
                         <a href="{{ url_for('logout') }}">Logout</a>
                     </div>

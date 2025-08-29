@@ -116,27 +116,88 @@ class TickStockDatabase:
             if conn:
                 conn.close()
     
-    def get_symbols_for_dropdown(self) -> List[str]:
-        """Get all symbols for UI dropdown population."""
+    def get_symbols_for_dropdown(self) -> List[Dict[str, Any]]:
+        """Get all active symbols with metadata for UI dropdown population."""
         try:
             with self.get_connection() as conn:
                 result = conn.execute(text("""
-                    SELECT DISTINCT symbol 
+                    SELECT 
+                        symbol, 
+                        name, 
+                        exchange, 
+                        market,
+                        type,
+                        active
                     FROM symbols 
+                    WHERE active = true
                     ORDER BY symbol ASC
                 """))
-                symbols = [row[0] for row in result]
-                logger.debug(f"TICKSTOCK-DB: Retrieved {len(symbols)} symbols for dropdown")
+                
+                symbols = []
+                for row in result:
+                    symbols.append({
+                        'symbol': row[0],
+                        'name': row[1] or '',
+                        'exchange': row[2] or '',
+                        'market': row[3] or 'stocks',
+                        'type': row[4] or 'CS',
+                        'active': row[5]
+                    })
+                
+                logger.debug(f"TICKSTOCK-DB: Retrieved {len(symbols)} active symbols for dropdown")
                 return symbols
                 
         except Exception as e:
             logger.error(f"TICKSTOCK-DB: Failed to get symbols: {e}")
             return []
     
+    def get_symbol_details(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """Get detailed information for a specific symbol."""
+        try:
+            with self.get_connection() as conn:
+                result = conn.execute(text("""
+                    SELECT 
+                        symbol, name, exchange, market, locale, currency_name,
+                        currency_symbol, type, active, cik, composite_figi,
+                        share_class_figi, market_cap, weighted_shares_outstanding,
+                        last_updated_utc, last_updated
+                    FROM symbols 
+                    WHERE symbol = :symbol
+                """), {"symbol": symbol})
+                
+                row = result.fetchone()
+                if row:
+                    return {
+                        'symbol': row[0],
+                        'name': row[1],
+                        'exchange': row[2],
+                        'market': row[3],
+                        'locale': row[4],
+                        'currency_name': row[5],
+                        'currency_symbol': row[6],
+                        'type': row[7],
+                        'active': row[8],
+                        'cik': row[9],
+                        'composite_figi': row[10],
+                        'share_class_figi': row[11],
+                        'market_cap': row[12],
+                        'weighted_shares_outstanding': row[13],
+                        'last_updated_utc': row[14].isoformat() if row[14] else None,
+                        'last_updated': row[15].isoformat() if row[15] else None
+                    }
+                else:
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"TICKSTOCK-DB: Failed to get symbol details for {symbol}: {e}")
+            return None
+    
     def get_basic_dashboard_stats(self) -> Dict[str, Any]:
         """Get basic statistics for dashboard display."""
         stats = {
             'symbols_count': 0,
+            'active_symbols_count': 0,
+            'symbols_by_market': {},
             'events_count': 0,
             'latest_event_time': None,
             'database_status': 'connected'
@@ -147,6 +208,21 @@ class TickStockDatabase:
                 # Count symbols
                 result = conn.execute(text("SELECT COUNT(*) FROM symbols"))
                 stats['symbols_count'] = result.scalar() or 0
+                
+                # Count active symbols
+                result = conn.execute(text("SELECT COUNT(*) FROM symbols WHERE active = true"))
+                stats['active_symbols_count'] = result.scalar() or 0
+                
+                # Count symbols by market
+                result = conn.execute(text("""
+                    SELECT market, COUNT(*) 
+                    FROM symbols 
+                    WHERE active = true 
+                    GROUP BY market 
+                    ORDER BY COUNT(*) DESC
+                """))
+                market_counts = {row[0] or 'unknown': row[1] for row in result}
+                stats['symbols_by_market'] = market_counts
                 
                 # Count events (if table exists)
                 try:

@@ -26,11 +26,23 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO app_readwrit
 ## Step 2: Create TickStockPL Schema
 
 ```sql
--- 1. Symbols metadata table
+-- 1. Symbols metadata table (Enhanced with Polygon.io API data)
 CREATE TABLE IF NOT EXISTS symbols (
     symbol VARCHAR(20) PRIMARY KEY,
     name VARCHAR(100),
     exchange VARCHAR(20),
+    market VARCHAR(20),                    -- stocks, options, crypto, forex
+    locale VARCHAR(10),                    -- us, global
+    currency_name VARCHAR(10),             -- USD, EUR, etc.
+    currency_symbol VARCHAR(5),            -- $, €, etc.
+    type VARCHAR(20),                      -- CS = Common Stock, ADRC = ADR, etc.
+    active BOOLEAN DEFAULT true,           -- is symbol actively traded
+    cik VARCHAR(20),                       -- SEC CIK identifier  
+    composite_figi VARCHAR(50),            -- Financial Instrument Global Identifier
+    share_class_figi VARCHAR(50),          -- Share class FIGI
+    last_updated_utc TIMESTAMP WITH TIME ZONE, -- precise timestamp from API
+    market_cap BIGINT,                     -- market capitalization if available
+    weighted_shares_outstanding BIGINT,    -- shares outstanding
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

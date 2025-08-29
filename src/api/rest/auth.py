@@ -32,6 +32,7 @@ def register_auth_routes(app, extensions, cache_control, config):
     
     # Get instances from extensions
     mail = extensions['mail']
+    login_manager = extensions.get('login_manager')
     
     # Initialize authentication managers
     registration_manager = RegistrationManager(app.config['SECRET_KEY'], mail)
@@ -705,3 +706,6 @@ def register_auth_routes(app, extensions, cache_control, config):
                 flash("Failed to renew subscription. Please try again.")
         
         return render_template('account/subscription_renewal.html', form=form, user=user, billing_info=billing_info)
+    
+    # Login manager configuration is now handled in main app.py
+    logger.info("AUTH-ROUTES: All authentication routes registered successfully")

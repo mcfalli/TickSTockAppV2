@@ -41,6 +41,7 @@ class User(db.Model, UserMixin):
     terms_accepted = db.Column(db.Boolean, default=False, nullable=False)
     terms_accepted_at = db.Column(db.DateTime(timezone=True), nullable=True)
     terms_version = db.Column(db.String(20), default='1.0')
+    role = db.Column(db.String(20), default='user', nullable=False)
 
     def set_password(self, password):
         """Set and commit a new password hash for the user."""
@@ -83,6 +84,18 @@ class User(db.Model, UserMixin):
         """Stub for 2FA verification."""
         logger.debug(f"2FA verification stub called for user: {self.email}, code: {code}")
         pass
+    
+    def is_admin(self):
+        """Check if user has admin role (admin or super)."""
+        return self.role in ['admin', 'super']
+    
+    def is_super(self):
+        """Check if user has super role (full access)."""
+        return self.role == 'super'
+    
+    def has_role(self, role_name):
+        """Check if user has specific role."""
+        return self.role == role_name
 
 class UserSettings(db.Model):
     __tablename__ = 'user_settings'

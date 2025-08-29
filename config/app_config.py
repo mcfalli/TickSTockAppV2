@@ -112,8 +112,8 @@ def initialize_flask_extensions(app):
     
     # Configure login manager (existing code stays the same)
     login_manager = LoginManager(app)
-    login_manager.login_view = 'login'
-    login_manager.login_message = None
+    # Don't set login_view yet - will be set after routes are registered
+    login_manager.login_message = 'Please log in to access this page.'
     
     @login_manager.user_loader
     def load_user(user_id):

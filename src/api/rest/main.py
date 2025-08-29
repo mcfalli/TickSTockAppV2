@@ -385,12 +385,7 @@ def register_main_routes(app, extensions, cache_control, config):
                               billing_info=billing_info)
 
 
-    # SPRINT 10 PHASE 1: Health Dashboard
-    @app.route('/health-dashboard')
-    @login_required
-    def health_dashboard():
-        """Display TickStockPL integration health dashboard."""
-        return render_template('dashboard/health_dashboard.html')
+    # Health dashboard moved to admin area (/admin/health)
     
     # SPRINT 10 PHASE 3: Backtesting Dashboard
     @app.route('/backtest-dashboard')
