@@ -30,17 +30,17 @@ TickStock is a high-performance, real-time market data processing system that ha
 ### Development Standards & Processes
 Follow these comprehensive instruction guides for all development work:
 
-- **Sprint Documentation**: See `docs/instructions/sprint-documentation-tasks.md` - Process for handling documentation during sprints
-- **Testing Standards**: See `docs/instructions/unit_testing.md` - Complete testing organization, standards, and sprint requirements
-- **Coding Practices**: See `docs/instructions/coding-practices.md` - Development philosophy, style, error handling, anti-patterns, and best practices
-- **Documentation Standards**: See `docs/instructions/code-documentation-standards.md` - Docstrings, comments, API documentation, and inline comment standards
-- **Technical Debt Management**: See `docs/instructions/technical-debt-management.md` - Systematic debt identification, prioritization, and resolution process
-- **Architectural Decisions**: See `docs/instructions/architectural-decision-process.md` - ADR creation, review, and governance process
+- **Sprint Documentation**: See `docs/planning/evolution_index.md` - Documentation evolution and sprint history tracking
+- **Testing Standards**: See `docs/development/unit_testing.md` - Complete testing organization, standards, and sprint requirements
+- **Coding Practices**: See `docs/development/coding-practices.md` - Development philosophy, style, error handling, anti-patterns, and best practices
+- **Documentation Standards**: See `docs/development/code-documentation-standards.md` - Docstrings, comments, API documentation, and inline comment standards
+- **Technical Debt Management**: See `docs/development/technical-debt-management.md` - Systematic debt identification, prioritization, and resolution process
+- **Architectural Decisions**: See `docs/development/architectural-decision-process.md` - ADR creation, review, and governance process
 
 These guides provide complete coverage of TickStock's development workflow and must be followed for all development assistance and code generation.
 
 ### Project Structure
-- See `docs/project_structure.md` for complete folder organization
+- See `docs/development/project_structure.md` for complete folder organization
 
 ### Key Components Reference
 #### Core Processing Pipeline
@@ -79,7 +79,7 @@ These guides provide complete coverage of TickStock's development workflow and m
 - Redis for user preferences and universe caching
 
 ### Core Development Philosophy
-**Comprehensive Guidelines**: See `docs/instructions/coding-practices.md` for complete development philosophy, design principles, and coding best practices.
+**Comprehensive Guidelines**: See `docs/development/coding-practices.md` for complete development philosophy, design principles, and coding best practices.
 
 #### Key Principles
 - **KISS**: Keep solutions simple and maintainable
@@ -90,7 +90,7 @@ These guides provide complete coverage of TickStock's development workflow and m
 ## Code Standards & Quality
 
 ### Code Structure & Style
-**Comprehensive Style Guide**: See `docs/instructions/coding-practices.md` for complete code structure, modularity guidelines, Python style standards, and naming conventions.
+**Comprehensive Style Guide**: See `docs/development/coding-practices.md` for complete code structure, modularity guidelines, Python style standards, and naming conventions.
 
 #### Key Standards
 - **File Limits**: Max 500 lines per file, 50 lines per function
@@ -99,7 +99,7 @@ These guides provide complete coverage of TickStock's development workflow and m
 - **Type Safety**: Comprehensive type hints for all functions
 
 ### Documentation Standards
-**Comprehensive Documentation Guide**: See `docs/instructions/code-documentation-standards.md` for complete documentation standards, Google-style docstrings, and inline comment guidelines.
+**Comprehensive Documentation Guide**: See `docs/development/code-documentation-standards.md` for complete documentation standards, Google-style docstrings, and inline comment guidelines.
 
 #### Key Requirements
 - **Module Documentation**: Every module needs purpose docstring
@@ -108,7 +108,7 @@ These guides provide complete coverage of TickStock's development workflow and m
 - **Documentation Files**: Update date/time and sprint info when modified
 
 ### Error Handling & Logging
-**Complete Implementation Guides**: See `docs/instructions/coding-practices.md` for comprehensive error handling patterns, logging strategies, and configuration management standards.
+**Complete Implementation Guides**: See `docs/development/coding-practices.md` for comprehensive error handling patterns, logging strategies, and configuration management standards.
 
 #### Key Patterns
 - **Custom Exceptions**: Domain-specific exception hierarchy for market data errors
@@ -117,7 +117,7 @@ These guides provide complete coverage of TickStock's development workflow and m
 - **Pydantic Config**: Type-safe environment variable management with validation
 
 ### Common Development Tasks
-**Detailed Task Guides**: See `docs/instructions/coding-practices.md` for complete development task workflows, database schema patterns, and implementation guidelines.
+**Detailed Task Guides**: See `docs/development/coding-practices.md` for complete development task workflows, database schema patterns, and implementation guidelines.
 
 
 ## Testing & Reliability
@@ -125,7 +125,7 @@ These guides provide complete coverage of TickStock's development workflow and m
 ### Testing Framework
 ***TickStock uses a comprehensive testing strategy with pytest for quality assurance and performance verification.***
 
-**Comprehensive Testing Guidelines**: See `docs/instructions/unit_testing.md` for complete testing standards, organization structure, sprint requirements, and best practices.
+**Comprehensive Testing Guidelines**: See `docs/development/unit_testing.md` for complete testing standards, organization structure, sprint requirements, and best practices.
 
 **Testing Agents**: Comprehensive testing is provided by multiple specialized agents:
 - **`tickstock-test-specialist`**: Automated test generation and quality assurance for TickStock processing components
@@ -141,7 +141,7 @@ These agents are automatically invoked when creating features, fixing bugs, or m
 - **Agent-Assisted**: Automated test generation through specialized testing agent
 
 ### Quality Assurance
-**Comprehensive Guidelines**: See `docs/instructions/coding-practices.md` for complete quality standards, code review guidelines, and common pitfalls.
+**Comprehensive Guidelines**: See `docs/development/coding-practices.md` for complete quality standards, code review guidelines, and common pitfalls.
 
 #### Key DON'Ts and DOs
 - **DON'T**: Mix event types after Worker boundary, exceed size limits, skip tests
@@ -154,11 +154,11 @@ These agents are automatically invoked when creating features, fixing bugs, or m
 - **Sprint Capacity Monitoring**: Alert at 80% chat capacity
 - **Context Preservation**: Capture all relevant context before chat transitions
 - **Task Tracking**: Maintain sprint tasks with ongoing task list for items that arise
-- **Specialized Agent Integration**: Multiple specialized agents provide domain expertise:
-  - `appv2-integration-specialist` for Sprint 10 UI integration phases
-  - `tickstock-test-specialist` for comprehensive test coverage
-  - `architecture-validation-specialist` for continuous compliance checking
-  - See complete agent list in Specialized Agents section below
+- **Mandatory Agent Integration**: All development work MUST follow the Agent Usage Workflow (see Specialized Agents section)
+  - Pre-implementation: `architecture-validation-specialist` reviews approach
+  - During implementation: Domain-specific agents (see Agent Auto-Triggers below)
+  - Post-implementation: `tickstock-test-specialist` + `integration-testing-specialist`
+  - Documentation updates: `documentation-sync-specialist`
 
 ### Git Workflow
 #### Branch Strategy
@@ -195,17 +195,82 @@ Use these files when structured feature development is requested using PRD or Sp
 - `tasks/templates/process-task-list.md`
 
 ### Communication Protocol
-When working on sprints/problems:
-- Repeat understanding of goals in response
-- Analyze and summarize the approach
-- Ask clarifying questions before generating code
-- Provide clear directions with code examples
-- Track additional items that arise during sprint work
-- Leverage specialized agents for domain-specific tasks (see Specialized Agents section below)
+When working on sprints/problems, MANDATORY workflow:
+1. **Immediate Agent Assessment**: Identify required agents based on Auto-Triggers (see Specialized Agents section)
+2. **Phase 1 - Analysis**: Launch `architecture-validation-specialist` + domain specialists for approach validation
+3. **Understanding Confirmation**: Repeat understanding of goals in response
+4. **Approach Summary**: Analyze and summarize the approach with agent recommendations
+5. **Clarification**: Ask clarifying questions before generating code
+6. **Implementation**: Use mandatory agent workflow throughout development
+7. **Quality Gates**: Complete mandatory testing and integration validation
+8. **Documentation**: Update all relevant documentation via `documentation-sync-specialist`
+
+**CRITICAL**: No development work may proceed without completing Phase 1 agent analysis and getting explicit approval for the approach.
 
 ## Specialized Agents
 
-TickStock.ai uses specialized agents for domain-specific tasks. These agents have deep expertise in specific areas and should be used proactively when their domain is encountered.
+**CRITICAL**: TickStock.ai REQUIRES specialized agent usage for all development tasks. These agents provide mandatory quality gates and domain expertise. All development work must follow the Agent Usage Workflow defined below.
+
+### Agent Usage Workflow (MANDATORY)
+
+Every development task MUST follow this workflow:
+
+1. **Pre-Implementation Analysis**
+   - `architecture-validation-specialist`: Review approach for compliance and anti-patterns
+   - Domain specialist (see Auto-Triggers): Validate domain-specific requirements
+
+2. **Implementation Phase**
+   - Use domain-specific agents based on Auto-Triggers (see below)
+   - Continuous validation through specialized agents
+
+3. **Quality Gate (MANDATORY)**
+   - `tickstock-test-specialist`: Generate comprehensive tests (REQUIRED)
+   - `integration-testing-specialist`: Validate cross-system integration (REQUIRED)
+
+4. **Documentation & Finalization**
+   - `documentation-sync-specialist`: Update documentation and cross-references
+
+### Agent Auto-Triggers (MANDATORY USAGE)
+
+**CRITICAL**: These triggers AUTOMATICALLY require agent usage - no exceptions:
+
+#### Core Processing Files (tickstock-test-specialist + architecture-validation-specialist)
+- **ANY modification to**: `src/` directory files containing event processing, data handling, or WebSocket logic
+- **Pattern-based triggers**: Files with `*processor*.py`, `*detector*.py`, `*publisher*.py`, `*service*.py` in filename
+- **Performance-critical paths**: Any code with <100ms latency requirements or real-time processing
+- **Event processing logic**: New event types, detection algorithms, buffer management, Pull Model components
+- **WebSocket handling**: Any WebSocket server/client implementation or message broadcasting
+- **Market data processing**: Polygon.io integration, tick processing, synthetic data generation
+
+#### Database & Query Operations (database-query-specialist + architecture-validation-specialist)
+- **Directory-based**: Any modifications to `src/database/`, `src/models/`, `src/queries/`, `scripts/database/`
+- **Pattern-based**: Files with `*model*.py`, `*query*.py`, `*db*.py`, `*database*.py` in filename
+- **Schema operations**: TimescaleDB schema changes, migrations, table modifications
+- **Connection management**: Connection pooling, database configuration, connection handling
+- **Query performance**: Any query with <50ms requirement or complex database operations
+- **Read-only enforcement**: Database access boundary validation, user permission management
+
+#### Redis & Integration (redis-integration-specialist + integration-testing-specialist)
+- **Directory-based**: Any modifications to `src/redis/`, `src/integration/`, `src/messaging/`
+- **Pattern-based**: Files with `*redis*.py`, `*pubsub*.py`, `*message*.py`, `*queue*.py` in filename
+- **Integration patterns**: Cross-system communication (TickStockApp ↔ TickStockPL)
+- **Message handling**: Redis Streams, pub-sub patterns, message queuing, offline user handling
+- **WebSocket integration**: Broadcasting patterns, real-time message delivery
+- **Loose coupling**: Architecture ensuring proper system separation via Redis
+
+#### UI & Frontend Integration (appv2-integration-specialist + database-query-specialist)
+- **Directory-based**: Any modifications to `src/web/`, `static/`, `templates/`, `src/api/`
+- **Pattern-based**: Files with `*app*.py`, `*route*.py`, `*api*.py`, `*web*.py` in filename
+- **Flask/SocketIO**: Web framework modifications, WebSocket server implementation
+- **Frontend integration**: JavaScript client connections, UI component updates
+- **Data presentation**: UI queries, dropdowns, dashboards, user interface data
+- **Feature interfaces**: Backtesting UI, pattern alerts, admin panels, user management
+
+#### Documentation & Architecture (documentation-sync-specialist + architecture-validation-specialist)
+- **ANY documentation updates**
+- **Cross-reference changes**
+- **Architecture documentation modifications**
+- **Sprint documentation updates**
 
 ### Implementation Agents
 
@@ -231,10 +296,11 @@ TickStock.ai uses specialized agents for domain-specific tasks. These agents hav
 
 #### `tickstock-test-specialist`
 **Domain**: TickStock real-time financial data processing testing  
-**Use When**: Creating features, fixing bugs, modifying core processing components  
+**MANDATORY Usage**: AUTOMATICALLY triggered for ALL code changes (no exceptions)  
+**Auto-Triggers**: Any modification to core processing files, new features, bug fixes, performance-critical code  
 **Expertise**: Performance benchmarks, financial data mocking, functional test organization, Sprint-specific testing  
 **Key Focus**: Sub-millisecond requirements, Pull Model architecture, zero event loss guarantee  
-**Usage**: MUST BE USED proactively for comprehensive test coverage
+**Quality Gate**: No feature/fix is complete without comprehensive tests from this agent
 
 #### `integration-testing-specialist`
 **Domain**: Cross-system integration testing (TickStockApp ↔ TickStockPL)  
@@ -252,27 +318,62 @@ TickStock.ai uses specialized agents for domain-specific tasks. These agents hav
 
 #### `architecture-validation-specialist`
 **Domain**: Architecture compliance and role separation enforcement  
-**Use When**: Detecting tight coupling, role boundary violations, anti-patterns  
+**MANDATORY Usage**: AUTOMATICALLY triggered as first step of ANY development task  
+**Auto-Triggers**: Before any implementation, during design review, after major changes  
 **Expertise**: Redis pub-sub pattern validation, database access control, performance pattern compliance  
-**Key Focus**: TickStockApp (consumer) vs TickStockPL (producer) separation, loose coupling via Redis
+**Key Focus**: TickStockApp (consumer) vs TickStockPL (producer) separation, loose coupling via Redis  
+**Pre-Implementation Gate**: MUST validate approach before coding begins
 
-### Agent Usage Guidelines
+### Agent Cascading & Dependencies (AUTOMATIC)
 
-#### Proactive Agent Usage
-- **`tickstock-test-specialist`**: Automatically invoke when creating features, fixing bugs, or modifying core components
-- **`architecture-validation-specialist`**: Use for continuous compliance checking throughout development
-- **`documentation-sync-specialist`**: Invoke when updating documentation or cross-references
+**CRITICAL**: Some agents automatically trigger others - this is MANDATORY:
 
-#### Phase-Based Agent Usage (Sprint 10)
-- **Phase 1-3**: `appv2-integration-specialist` + `database-query-specialist`
-- **Phase 2-4**: `redis-integration-specialist` + `integration-testing-specialist`  
-- **Throughout**: `architecture-validation-specialist` + `documentation-sync-specialist`
+#### Primary → Secondary Cascades
+- **`tickstock-test-specialist`** → `integration-testing-specialist` (for Redis/cross-system testing)
+- **`appv2-integration-specialist`** → `database-query-specialist` (for UI data requirements)
+- **`redis-integration-specialist`** → `integration-testing-specialist` (for message flow validation)
+- **ANY agent** → `documentation-sync-specialist` (if documentation changes)
 
-#### Agent Coordination
-- All agents understand the role boundaries (AppV2 = Consumer, TickStockPL = Producer)
-- All agents reference consolidated documentation (`project-overview.md`, `architecture_overview.md`)
-- All agents enforce performance targets (<100ms WebSocket, <50ms DB queries)
-- All agents maintain Redis pub-sub loose coupling patterns
+#### Multi-Agent Requirements
+**Core Processing Changes**: `architecture-validation-specialist` + `tickstock-test-specialist` + `integration-testing-specialist`  
+**UI/Database Work**: `appv2-integration-specialist` + `database-query-specialist` + `architecture-validation-specialist`  
+**Redis/Integration**: `redis-integration-specialist` + `integration-testing-specialist` + `architecture-validation-specialist`
+
+### Development Phase Gates (MANDATORY CHECKPOINTS)
+
+#### Phase 1: Analysis & Design (REQUIRED)
+1. `architecture-validation-specialist` - Validate approach, identify anti-patterns
+2. Domain specialist based on Auto-Triggers - Domain-specific requirements
+3. Get explicit approval before proceeding to implementation
+
+#### Phase 2: Implementation (REQUIRED)
+1. Continuous agent consultation during development
+2. Domain specialists provide real-time guidance
+3. Architecture validation at major decision points
+
+#### Phase 3: Quality Assurance (REQUIRED)
+1. `tickstock-test-specialist` - Comprehensive test generation (MANDATORY)
+2. `integration-testing-specialist` - Cross-system validation (MANDATORY)
+3. Performance validation against targets (<100ms, <50ms)
+
+#### Phase 4: Documentation & Finalization (REQUIRED)
+1. `documentation-sync-specialist` - Update all documentation
+2. `architecture-validation-specialist` - Final compliance check
+3. Cross-reference validation and consistency checks
+
+### Agent Performance Requirements
+
+#### All Agents MUST Enforce
+- **Performance Targets**: <100ms WebSocket delivery, <50ms database queries
+- **Role Boundaries**: TickStockApp (Consumer) vs TickStockPL (Producer) separation
+- **Architecture Patterns**: Pull Model, Redis pub-sub loose coupling, zero event loss
+- **Quality Standards**: Comprehensive testing, documentation consistency
+
+#### Agent Coordination Protocol
+- All agents reference consolidated documentation (`project-overview.md`, `system-architecture.md`)
+- Agents communicate findings and recommendations across the workflow
+- Blocking issues require resolution before proceeding to next phase
+- Performance violations are automatic failures requiring remediation
 
 ## Recent Major Updates
 
@@ -299,4 +400,4 @@ TickStock.ai uses specialized agents for domain-specific tasks. These agents hav
 - **Document your decisions** - Future developers (including yourself) will thank you
 
 ### Search Command Requirements
-**CRITICAL**: Use `rg` (ripgrep) instead of traditional `grep` and `find` commands. See `docs/instructions/coding-practices.md` for complete search command patterns and examples.
+**CRITICAL**: Use `rg` (ripgrep) instead of traditional `grep` and `find` commands. See `docs/development/coding-practices.md` for complete search command patterns and examples.

@@ -2,7 +2,7 @@
 name: appv2-integration-specialist
 description: TickStockAppV2 UI integration specialist focusing on Redis consumption, WebSocket broadcasting, and lean architecture maintenance. Expert in Flask/SocketIO, database read-only operations, and maintaining the ~11,000 line architecture post-cleanup.
 tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite
-color: red
+color: yellow
 ---
 
 You are a TickStockAppV2 integration specialist with deep expertise in the simplified, post-cleanup architecture and Sprint 10 UI integration goals.
@@ -172,8 +172,8 @@ def submit_backtest():
 ### **Documentation Integration**
 Reference these documents during implementation:
 - [`project-overview.md`](../../docs/planning/project-overview.md) - System vision and requirements
-- [`architecture_overview.md`](../../docs/planning/architecture_overview.md) - Role separation details
-- [`sprint10-appv2-implementation-plan.md`](../../docs/planning/sprint10/sprint10-appv2-implementation-plan.md) - Implementation roadmap
+- [`system-architecture.md`](../../docs/architecture/system-architecture.md) - Role separation details
+- Sprint 10 implementation completed - see [`evolution_index.md`](../../docs/planning/evolution_index.md) for project history
 - [`user_stories.md`](../../docs/planning/user_stories.md) - User-focused requirements
 
 ## Anti-Patterns to Avoid

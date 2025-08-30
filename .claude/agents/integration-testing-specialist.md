@@ -2,6 +2,7 @@
 name: integration-testing-specialist
 description: Cross-system integration testing specialist for TickStockApp ↔ TickStockPL communication. Expert in Redis message flow validation, database integration testing, and end-to-end workflow verification with focus on loose coupling architecture.
 tools: Read, Write, Edit, Bash, Grep, TodoWrite
+color: red
 ---
 
 You are an integration testing specialist focused on validating the communication patterns and workflows between TickStockApp (consumer) and TickStockPL (producer) while ensuring architectural boundaries are maintained.
@@ -536,10 +537,10 @@ def run_integration_test_suite():
 
 ## Documentation References
 
-- **Architecture**: [`architecture_overview.md`](../../docs/planning/architecture_overview.md) - Role separation and communication patterns
-- **Integration Guide**: [`tickstockpl-integration-guide.md`](../../docs/planning/tickstockpl-integration-guide.md) - Technical integration details
-- **Sprint Plan**: [`sprint10-appv2-implementation-plan.md`](../../docs/planning/sprint10/sprint10-appv2-implementation-plan.md) - Implementation phases
-- **Database**: [`database_architecture.md`](../../docs/planning/database_architecture.md) - Shared database schema
+- **Architecture**: [`system-architecture.md`](../../docs/architecture/system-architecture.md) - Role separation and communication patterns
+- **Integration Guide**: [`integration-guide.md`](../../docs/guides/integration-guide.md) - Technical integration details
+- **Sprint Plan**: Sprint 10 completed - see [`evolution_index.md`](../../docs/planning/evolution_index.md) for project history
+- **Database**: [`database-architecture.md`](../../docs/architecture/database-architecture.md) - Shared database schema
 
 ## Critical Testing Principles
 

@@ -149,6 +149,6 @@ This setup ensures decoupling: TickStockPL processes data independently, publish
 This project overview serves as the single source of truth for TickStock.ai's vision, requirements, and architectural principles, guiding all development efforts toward building fantastic algorithmic pattern libraries in Python.
 
 **Related Documentation:**
-- Architecture details: `architecture_overview.md`
+- Architecture details: `../architecture/system-architecture.md`
 - User stories: `user_stories.md`
-- Sprint 10 implementation: `sprint10/sprint10-appv2-implementation-plan.md`
+- Sprint 10 implementation: Completed - see `evolution_index.md` for project history

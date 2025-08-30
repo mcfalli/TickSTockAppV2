@@ -1424,7 +1424,7 @@ def main():
     )
     parser.add_argument(
         "--output-file",
-        default=os.path.join(default_root_dir, "docs", "new", "project_structure_docs.md"),
+        default=os.path.join(default_root_dir, "docs/development", "new", "project_structure_docs.md"),
         help="Output Markdown file path"
     )
     parser.add_argument(

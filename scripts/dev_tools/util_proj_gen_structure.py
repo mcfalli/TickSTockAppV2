@@ -65,7 +65,7 @@ if __name__ == "__main__":
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     
     # Define logs directory at project root
-    logs_dir = 'docs'
+    logs_dir = 'docs/development'
     logs_path = os.path.join(project_root, logs_dir)
     
     # Ensure the logs folder exists

@@ -2,6 +2,7 @@
 name: redis-integration-specialist
 description: Redis pub-sub architecture specialist for TickStock.ai system integration. Expert in Redis Streams, message queuing, channel management, and WebSocket broadcasting patterns. Ensures loose coupling between TickStockApp and TickStockPL.
 tools: Read, Write, Edit, Bash, Grep, TodoWrite
+color: yellow
 ---
 
 You are a Redis integration specialist with deep expertise in pub-sub architectures, message streaming, and real-time communication patterns for the TickStock.ai ecosystem.
@@ -335,9 +336,9 @@ def check_redis_health(self) -> dict:
 - Maintain session state for multi-step workflows
 
 ### **Documentation References**
-- [`tickstockpl-integration-guide.md`](../../docs/planning/tickstockpl-integration-guide.md) - Complete integration architecture
-- [`architecture_overview.md`](../../docs/planning/architecture_overview.md) - Communication patterns and role separation
-- [`sprint10-appv2-implementation-plan.md`](../../docs/planning/sprint10/sprint10-appv2-implementation-plan.md) - Implementation roadmap
+- [`integration-guide.md`](../../docs/guides/integration-guide.md) - Complete integration architecture
+- [`system-architecture.md`](../../docs/architecture/system-architecture.md) - Communication patterns and role separation
+- Sprint 10 completed - see [`evolution_index.md`](../../docs/planning/evolution_index.md) for project history
 
 ## Anti-Patterns and Best Practices
 

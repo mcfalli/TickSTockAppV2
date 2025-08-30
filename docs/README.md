@@ -11,50 +11,58 @@ Welcome to the TickStock documentation for the simplified architecture. After a 
 ## Quick Start
 
 - **🎯 Project Overview**: [`planning/project-overview.md`](planning/project-overview.md) - Vision, requirements, system architecture
-- **🏗️ Architecture Details**: [`planning/architecture_overview.md`](planning/architecture_overview.md) - Role separation and communication  
-- **🚀 Sprint 10 Complete**: [`planning/sprint10/sprint10-completed-summary.md`](planning/sprint10/sprint10-completed-summary.md) - **Complete TickStockPL integration achieved**
-- **📊 Technical Details**: [`technical_overview.md`](technical_overview.md)
+- **🏗️ Architecture Details**: [`architecture/system-architecture.md`](architecture/system-architecture.md) - Role separation and communication  
+- **🚀 Integration Guide**: [`guides/integration-guide.md`](guides/integration-guide.md) - **Complete TickStockPL integration guide**
+- **⚙️ Development Setup**: [`development/coding-practices.md`](development/coding-practices.md) - Development standards and practices
 
 ## Documentation Structure
 
 ### Essential Documentation
 
-#### Architecture & Design  
-- [`planning/project-overview.md`](planning/project-overview.md) - **Complete project overview with vision and requirements**
-- [`planning/architecture_overview.md`](planning/architecture_overview.md) - **Architecture details with role separation**
-- [`technical_overview.md`](technical_overview.md) - Technical specifications and performance
-- [`architecture/`](architecture/) - Architectural decisions and REST endpoints
+#### Project Planning & Vision
+- [`planning/`](planning/) - **Project vision, requirements, and user stories**
+  - [`planning/project-overview.md`](planning/project-overview.md) - Complete project overview with vision and requirements
+  - [`planning/user_stories.md`](planning/user_stories.md) - Development requirements in user story format
+  - [`planning/user_stories_2.md`](planning/user_stories_2.md) - Next phase user stories
 
-#### Integration & Features
-- [`planning/tickstockpl-integration-guide.md`](planning/tickstockpl-integration-guide.md) - **TickStockPL integration guide**
-- [`features/`](features/) - Feature documentation (simplified)
-  - [`features/README.md`](features/README.md) - Feature overview
-  - [`features/data-integration.md`](features/data-integration.md) - Data source integration
-  - [`features/redis-integration.md`](features/redis-integration.md) - Redis pub-sub details
-  - [`features/user-authentication.md`](features/user-authentication.md) - User management
+#### System Architecture & Design  
+- [`architecture/`](architecture/) - **Technical architecture specifications**
+  - [`architecture/system-architecture.md`](architecture/system-architecture.md) - Complete system architecture with role separation
+  - [`architecture/database-architecture.md`](architecture/database-architecture.md) - Database design and optimization
+  - [`architecture/pattern-library-architecture.md`](architecture/pattern-library-architecture.md) - Pattern detection framework
+  - [`architecture/websockets-integration.md`](architecture/websockets-integration.md) - Real-time communication architecture
+  - [`architecture/data-integration.md`](architecture/data-integration.md) - Data source integration architecture
+  - [`architecture/redis-integration.md`](architecture/redis-integration.md) - Redis pub-sub architecture details
+  - [`architecture/user-authentication.md`](architecture/user-authentication.md) - User authentication architecture
+  - [`architecture/project-overview.md`](architecture/project-overview.md) - Complete project overview
+  - [`architecture/simplified-technical-overview.md`](architecture/simplified-technical-overview.md) - Technical system overview
 
-#### Data Sources & Configuration
-- [`data_source/README.md`](data_source/README.md) - Data source configuration
-- [`data_source/settings-configuration.md`](data_source/settings-configuration.md) - Settings management
+#### Operational Guides
+- [`guides/`](guides/) - **Setup, integration, and operational procedures**
+  - [`guides/startup-guide.md`](guides/startup-guide.md) - TickStockAppV2 startup instructions
+  - [`guides/integration-guide.md`](guides/integration-guide.md) - TickStockPL integration guide
+  - [`guides/historical-data-loading.md`](guides/historical-data-loading.md) - Historical data procedures
+  - [`guides/administration-system.md`](guides/administration-system.md) - System administration guide
+  - [`guides/data-source-configuration.md`](guides/data-source-configuration.md) - Data source configuration
+  - [`guides/settings-configuration.md`](guides/settings-configuration.md) - Settings management
+  - [`guides/maintenance/`](guides/maintenance/) - System maintenance procedures
 
 #### Development Guidelines
-- [`instructions/`](instructions/) - Development instructions
-  - [`instructions/coding-practices.md`](instructions/coding-practices.md) - Development standards
-  - [`instructions/code-documentation-standards.md`](instructions/code-documentation-standards.md) - Documentation standards
-  - [`instructions/unit_testing.md`](instructions/unit_testing.md) - Testing guidelines
-  - [`instructions/technical-debt-management.md`](instructions/technical-debt-management.md) - **Updated for simplified system**
-  - [`instructions/architectural-decision-process.md`](instructions/architectural-decision-process.md) - ADR process
+- [`development/`](development/) - **Development standards, practices, and guidelines**
+  - [`development/coding-practices.md`](development/coding-practices.md) - Development standards and philosophy
+  - [`development/code-documentation-standards.md`](development/code-documentation-standards.md) - Documentation standards
+  - [`development/unit_testing.md`](development/unit_testing.md) - Testing guidelines and organization
+  - [`development/technical-debt-management.md`](development/technical-debt-management.md) - Technical debt process
+  - [`development/architectural-decision-process.md`](development/architectural-decision-process.md) - ADR process
+  - [`development/grid-stack.md`](development/grid-stack.md) - UI development with Grid-Stack
+  - [`development/project_structure.md`](development/project_structure.md) - Project folder organization
 
-### Evolution & History
-- [`evolution/`](evolution/) - Project evolution and cleanup history
-  - [`evolution/phase-6-11-completion-summary.md`](evolution/phase-6-11-completion-summary.md) - **Complete cleanup summary**
-  - [`evolution/phase-10-validation-summary.md`](evolution/phase-10-validation-summary.md) - Validation results
-  - Other phase-specific documentation
+### Project History
+- [`planning/evolution_index.md`](planning/evolution_index.md) - Documentation evolution and project history tracking
 
 ### Supporting Documentation
-- [`UI/`](UI/) - User interface documentation
-- [`agents/`](agents/) - AI agent specifications
-- [`maintenance/`](maintenance/) - System maintenance procedures
+- [`agents/`](agents/) - AI agent specifications for development workflow
+- [`guides/maintenance/`](guides/maintenance/) - System maintenance procedures
 
 ## System Summary
 
@@ -87,15 +95,15 @@ Welcome to the TickStock documentation for the simplified architecture. After a 
 
 ### For TickStockPL Integration
 1. Read: [`planning/project-overview.md`](planning/project-overview.md) - Understand the complete system vision
-2. Study: [`planning/architecture_overview.md`](planning/architecture_overview.md) - Learn role separation and communication
-3. Follow: [`planning/tickstockpl-integration-guide.md`](planning/tickstockpl-integration-guide.md) - Complete integration steps
+2. Study: [`architecture/system-architecture.md`](architecture/system-architecture.md) - Learn role separation and communication
+3. Follow: [`guides/integration-guide.md`](guides/integration-guide.md) - Complete integration steps
 4. Implement: Set up Redis connection and subscribe to `tickstock.all_ticks`
 
 ### For Development
 1. Start: [`planning/project-overview.md`](planning/project-overview.md) - Project vision and requirements
-2. Review: [`planning/architecture_overview.md`](planning/architecture_overview.md) - System architecture and boundaries  
-3. Check: [`instructions/coding-practices.md`](instructions/coding-practices.md) - Development standards
-4. Understand: [`features/data-integration.md`](features/data-integration.md) - Data flow implementation
+2. Review: [`architecture/system-architecture.md`](architecture/system-architecture.md) - System architecture and boundaries  
+3. Check: [`development/coding-practices.md`](development/coding-practices.md) - Development standards
+4. Understand: [`architecture/data-integration.md`](architecture/data-integration.md) - Data flow implementation
 
 ### For System Administration
 1. Monitor: Use `/health` and `/stats` endpoints
