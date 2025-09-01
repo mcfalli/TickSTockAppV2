@@ -209,6 +209,86 @@ def register_socketio_handlers(socketio, market_service):
         except Exception as e:
             logger.error(f"SUBSCRIPTION-ERROR: {e}")
             emit('error', {'message': 'Subscription failed'})
+    
+    # Sprint 12 Phase 2: TickStockPL Integration WebSocket Handlers
+    @socketio.on('subscribe_tickstockpl_watchlist')
+    def handle_subscribe_watchlist(data):
+        """Handle watchlist subscription for TickStockPL updates."""
+        try:
+            symbols = data.get('symbols', [])
+            user_id = data.get('user_id') or getattr(current_user, 'id', 'anonymous')
+            subscription_types = data.get('subscription_types', ['price_update', 'pattern_alert'])
+            
+            # Add user to TickStockPL subscription via market data subscriber
+            if hasattr(market_service, 'market_data_subscriber'):
+                market_service.market_data_subscriber.subscribe_user_to_symbols(
+                    user_id, symbols, subscription_types
+                )
+                emit('tickstockpl_subscription_confirmed', {
+                    'symbols': symbols,
+                    'types': subscription_types
+                })
+                logger.info(f"TICKSTOCKPL-SUBSCRIPTION: {user_id} subscribed to {len(symbols)} symbols")
+            else:
+                logger.warning("TICKSTOCKPL-SUBSCRIPTION: Market data subscriber not available")
+                emit('error', {'message': 'TickStockPL integration not available'})
+            
+        except Exception as e:
+            logger.error(f"TICKSTOCKPL-SUBSCRIPTION-ERROR: {e}")
+            emit('error', {'message': 'TickStockPL subscription failed'})
+    
+    @socketio.on('unsubscribe_tickstockpl_symbol')
+    def handle_unsubscribe_symbol(data):
+        """Handle unsubscription from specific symbol."""
+        try:
+            symbol = data.get('symbol')
+            user_id = data.get('user_id') or getattr(current_user, 'id', 'anonymous')
+            
+            if hasattr(market_service, 'market_data_subscriber'):
+                market_service.market_data_subscriber.unsubscribe_user_from_symbol(
+                    user_id, symbol
+                )
+                emit('tickstockpl_unsubscription_confirmed', {'symbol': symbol})
+                logger.info(f"TICKSTOCKPL-UNSUBSCRIPTION: {user_id} unsubscribed from {symbol}")
+                
+        except Exception as e:
+            logger.error(f"TICKSTOCKPL-UNSUBSCRIPTION-ERROR: {e}")
+            emit('error', {'message': 'TickStockPL unsubscription failed'})
+    
+    @socketio.on('request_tickstockpl_chart_data')
+    def handle_chart_data_request(data):
+        """Handle chart data requests via WebSocket."""
+        try:
+            symbol = data.get('symbol')
+            timeframe = data.get('timeframe', '1d')
+            user_id = data.get('user_id') or getattr(current_user, 'id', 'anonymous')
+            
+            if hasattr(market_service, 'market_data_subscriber'):
+                # Request historical data from TickStockPL
+                chart_data = market_service.market_data_subscriber.get_historical_data(
+                    symbol, timeframe
+                )
+                
+                if chart_data:
+                    emit('tickstockpl_chart_data_response', {
+                        'symbol': symbol,
+                        'timeframe': timeframe,
+                        'chart_data': chart_data
+                    })
+                    logger.info(f"TICKSTOCKPL-CHART: Sent {len(chart_data)} bars for {symbol}")
+                else:
+                    emit('tickstockpl_chart_data_response', {
+                        'symbol': symbol,
+                        'timeframe': timeframe,
+                        'chart_data': [],
+                        'message': 'No data available'
+                    })
+            else:
+                emit('error', {'message': 'Chart data service not available'})
+                
+        except Exception as e:
+            logger.error(f"TICKSTOCKPL-CHART-REQUEST-ERROR: {e}")
+            emit('error', {'message': 'Chart data request failed'})
 
 def register_basic_routes(app):
     """Register essential application routes."""

@@ -1,7 +1,7 @@
 # TickStock.ai Planning Documentation
 
-**Last Updated**: 2025-08-30  
-**Status**: Post-Reorganization - Focused Planning Content
+**Last Updated**: 2025-08-31  
+**Status**: Post-Reorganization + Sprint 14 Implementation Planning
 
 ---
 
@@ -21,6 +21,14 @@ This folder contains the core planning documentation for TickStock.ai, focusing 
 ### Pattern Library Planning
 - **[`pattern_library_overview.md`](pattern_library_overview.md)** - Pattern library goals, categories, and integration overview
 - **[`patterns_library_patterns.md`](patterns_library_patterns.md)** - Detailed pattern specifications for TickStockPL implementation
+
+### Sprint Implementation Plans
+- **[`sprint14/`](sprint14/)** - **Active Sprint**: Data Load and Maintenance automation across 4 implementation phases
+  - **[`data-load-maintenance-user-stories.md`](sprint14/data-load-maintenance-user-stories.md)** - Foundation user stories for historical data loading, development optimization, and daily maintenance
+  - **[`sprint14-phase1-implementation-plan.md`](sprint14/sprint14-phase1-implementation-plan.md)** - Phase 1: Foundation Enhancement (ETF Integration, Subset Loading, EOD Updates)
+  - **[`sprint14-phase2-implementation-plan.md`](sprint14/sprint14-phase2-implementation-plan.md)** - Phase 2: Automation & Monitoring (IPO Detection, Equity Types, Data Quality)
+  - **[`sprint14-phase3-implementation-plan.md`](sprint14/sprint14-phase3-implementation-plan.md)** - Phase 3: Advanced Features (Universe Expansion, Test Scenarios, Cache Sync)
+  - **[`sprint14-phase4-implementation-plan.md`](sprint14/sprint14-phase4-implementation-plan.md)** - Phase 4: Production Optimization (Enterprise Scheduling, Dev Refresh, Market Calendar)
 
 ### Documentation Evolution
 - **[`evolution_index.md`](evolution_index.md)** - Complete documentation catalog with purpose explanations
@@ -67,10 +75,12 @@ The documentation has been reorganized for better navigation and maintenance:
 2. **[`../guides/`](../guides/)** - Operational and setup guides
 3. **[`pattern_library_overview.md`](pattern_library_overview.md)** - Pattern library planning
 
-### For Current Development
-1. **[`user_stories_2.md`](user_stories_2.md)** - Next phase requirements
-2. **[`patterns_library_patterns.md`](patterns_library_patterns.md)** - Pattern specifications
-3. **[`evolution_index.md`](evolution_index.md)** - Documentation tracking
+### For Current Development (Sprint 14)
+1. **[`sprint14/data-load-maintenance-user-stories.md`](sprint14/data-load-maintenance-user-stories.md)** - Current sprint user stories
+2. **[`sprint14/sprint14-phase1-implementation-plan.md`](sprint14/sprint14-phase1-implementation-plan.md)** - Active phase implementation plan
+3. **[`user_stories_2.md`](user_stories_2.md)** - Future phase requirements
+4. **[`patterns_library_patterns.md`](patterns_library_patterns.md)** - Pattern specifications
+5. **[`evolution_index.md`](evolution_index.md)** - Documentation tracking
 
 ---
 
@@ -90,6 +100,12 @@ The documentation has been reorganized for better navigation and maintenance:
 - **Planning Focus**: Kept true planning content (vision, requirements, user stories)
 - **Cross-References**: Updated all links to reflect new organization
 - **Single Sources**: Maintained single sources of truth with clear navigation
+
+### What Added (2025-08-31)
+- **Sprint 14 Implementation**: Complete 4-phase implementation plan for data load and maintenance automation
+- **Agent Workflow Requirements**: Mandatory agent usage documented across all phases
+- **Cross-References**: Related Documentation sections added to all Sprint 14 documents
+- **Navigation Updates**: Planning README updated with Sprint 14 structure and navigation
 
 ### What Remained in Planning
 - **Project Vision**: Complete system overview and requirements

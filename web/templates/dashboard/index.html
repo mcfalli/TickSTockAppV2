@@ -9,6 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.min.js"></script>
     <!-- Chart.js Integration -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.0.1/dist/gridstack.min.css">
     <script src="https://cdn.jsdelivr.net/npm/gridstack@10.0.1/dist/gridstack-all.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -128,7 +129,6 @@
                         <div class="col-12 text-center">
                             <small class="text-muted">
                                 <i class="fas fa-info-circle me-1"></i>
-                                Sprint 10 Integration Complete - TickStockPL Backend Consumer UI
                             </small>
                         </div>
                     </div>
@@ -138,13 +138,195 @@
 
         <!-- MAIN CONTENT SECTION - WEBCLEAN PLACEHOLDER -->
         <main class="grid-stack" id="grid-container">
-            <!-- Single dummy grid-stack-item for future development -->
-            <div class="grid-stack-item" data-gs-width="12" data-gs-height="6" data-gs-id="placeholder">
+            <!-- Sprint 12: Main Dashboard with Tabbed Interface -->
+            <div class="grid-stack-item" data-gs-width="12" data-gs-height="8" data-gs-id="main-dashboard">
                 <div class="grid-stack-item-content">
-                    <div class="placeholder-content">
-                        <h3>Content Area</h3>
-                        <p>Ready for new layout implementation</p>
-                        <p><em>GridStack framework active - drag/resize enabled</em></p>
+                    <div class="dashboard-tabs-container h-100">
+                        <!-- Bootstrap Tab Navigation -->
+                        <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#dashboard-pane" type="button" role="tab" 
+                                        aria-controls="dashboard-pane" aria-selected="true">
+                                    <i class="fas fa-chart-line me-1"></i>Dashboard
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="charts-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#charts-pane" type="button" role="tab" 
+                                        aria-controls="charts-pane" aria-selected="false">
+                                    <i class="fas fa-chart-bar me-1"></i>Charts
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="alerts-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#alerts-pane" type="button" role="tab" 
+                                        aria-controls="alerts-pane" aria-selected="false">
+                                    <i class="fas fa-bell me-1"></i>Alerts
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab Content Panes -->
+                        <div class="tab-content h-100" id="dashboardTabContent">
+                            <!-- Dashboard Tab -->
+                            <div class="tab-pane fade show active h-100" id="dashboard-pane" role="tabpanel" 
+                                 aria-labelledby="dashboard-tab" tabindex="0">
+                                <div class="dashboard-content p-3 h-100">
+                                    <div class="row h-100">
+                                        <!-- Watchlist Panel -->
+                                        <div class="col-md-4">
+                                            <div class="card h-100">
+                                                <div class="card-header d-flex justify-content-between align-items-center">
+                                                    <h6 class="card-title mb-0">
+                                                        <i class="fas fa-list me-2"></i>Watchlist
+                                                    </h6>
+                                                    <button class="btn btn-sm btn-outline-primary" id="add-symbol-btn">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="card-body p-0">
+                                                    <div class="watchlist-container" id="watchlist-container">
+                                                        <div class="text-center p-3 text-muted">
+                                                            <i class="fas fa-chart-line fa-2x mb-2"></i>
+                                                            <p class="mb-0">Add symbols to start tracking</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Market Summary Panel -->
+                                        <div class="col-md-8">
+                                            <div class="card h-100">
+                                                <div class="card-header">
+                                                    <h6 class="card-title mb-0">
+                                                        <i class="fas fa-tachometer-alt me-2"></i>Market Summary
+                                                    </h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="market-summary" id="market-summary">
+                                                        <div class="row text-center">
+                                                            <div class="col-md-3">
+                                                                <div class="summary-metric">
+                                                                    <div class="metric-value" id="total-symbols">--</div>
+                                                                    <div class="metric-label">Total Symbols</div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <div class="summary-metric">
+                                                                    <div class="metric-value text-success" id="symbols-up">--</div>
+                                                                    <div class="metric-label">Up Today</div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <div class="summary-metric">
+                                                                    <div class="metric-value text-danger" id="symbols-down">--</div>
+                                                                    <div class="metric-label">Down Today</div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <div class="summary-metric">
+                                                                    <div class="metric-value" id="last-update">--</div>
+                                                                    <div class="metric-label">Last Update</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Charts Tab -->
+                            <div class="tab-pane fade h-100" id="charts-pane" role="tabpanel" 
+                                 aria-labelledby="charts-tab" tabindex="0">
+                                <div class="charts-content p-3 h-100">
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <select class="form-select" id="chart-symbol-select">
+                                                <option value="">Select a symbol...</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="btn-group" role="group">
+                                                <input type="radio" class="btn-check" name="chart-timeframe" 
+                                                       id="timeframe-1d" value="1d" checked>
+                                                <label class="btn btn-outline-primary" for="timeframe-1d">1D</label>
+                                                
+                                                <input type="radio" class="btn-check" name="chart-timeframe" 
+                                                       id="timeframe-1w" value="1w">
+                                                <label class="btn btn-outline-primary" for="timeframe-1w">1W</label>
+                                                
+                                                <input type="radio" class="btn-check" name="chart-timeframe" 
+                                                       id="timeframe-1m" value="1m">
+                                                <label class="btn btn-outline-primary" for="timeframe-1m">1M</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <!-- Technical Indicators Dropdown -->
+                                            <div class="dropdown">
+                                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                                                        id="indicatorsDropdown" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-chart-area me-1"></i>Indicators
+                                                </button>
+                                                <ul class="dropdown-menu" id="indicators-menu">
+                                                    <li><h6 class="dropdown-header">Trend</h6></li>
+                                                    <li><a class="dropdown-item" href="#" data-indicator="sma" data-period="20">SMA (20)</a></li>
+                                                    <li><a class="dropdown-item" href="#" data-indicator="ema" data-period="20">EMA (20)</a></li>
+                                                    <li><a class="dropdown-item" href="#" data-indicator="bollinger" data-period="20">Bollinger Bands</a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li><h6 class="dropdown-header">Momentum</h6></li>
+                                                    <li><a class="dropdown-item" href="#" data-indicator="rsi" data-period="14">RSI (14)</a></li>
+                                                    <li><a class="dropdown-item" href="#" data-indicator="macd">MACD</a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li><h6 class="dropdown-header">Volume</h6></li>
+                                                    <li><a class="dropdown-item" href="#" data-indicator="volume_ma" data-period="20">Volume MA</a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li><a class="dropdown-item text-danger" href="#" id="clear-indicators">
+                                                        <i class="fas fa-times me-1"></i>Clear All
+                                                    </a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Active Indicators Display -->
+                                    <div class="row mb-2" id="active-indicators-row" style="display: none;">
+                                        <div class="col-12">
+                                            <div class="active-indicators">
+                                                <small class="text-muted">Active indicators:</small>
+                                                <div id="active-indicators-list" class="d-inline-block ms-2"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="chart-container">
+                                        <canvas id="price-chart" style="height: 400px;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Alerts Tab -->
+                            <div class="tab-pane fade h-100" id="alerts-pane" role="tabpanel" 
+                                 aria-labelledby="alerts-tab" tabindex="0">
+                                <div class="alerts-content p-3 h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0">Recent Alerts</h6>
+                                        <button class="btn btn-sm btn-outline-primary" id="clear-alerts-btn">
+                                            Clear All
+                                        </button>
+                                    </div>
+                                    <div class="alerts-list" id="alerts-list">
+                                        <div class="text-center p-3 text-muted">
+                                            <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                                            <p class="mb-0">No recent alerts</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -248,6 +430,14 @@
     <script src="{{ url_for('static', filename='js/core/app-core.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/app-events.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/app-gridstack.js') }}"></script>
+    
+    <!-- Sprint 12: Dashboard and Chart Management -->
+    <script src="{{ url_for('static', filename='js/core/chart-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/dashboard-manager.js') }}"></script>
+    
+    <!-- Sprint 12 Phase 2: Real-time TickStockPL Integration -->
+    <script src="{{ url_for('static', filename='js/core/technical-indicators.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/dashboard-websocket-handler.js') }}"></script>
     
     <!-- Simple Button Modals -->
     <script>

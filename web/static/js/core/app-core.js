@@ -294,6 +294,55 @@ socket.on('error', function(error) {
 });
 
 // ==========================================================================
+// SPRINT 12: DASHBOARD WEBSOCKET HANDLERS
+// ==========================================================================
+
+// Handle watchlist price updates
+socket.on('watchlist_price_update', function(data) {
+    if (window.dashboardManager && data.symbol && data.price !== undefined) {
+        window.dashboardManager.updatePrice(data.symbol, {
+            price: data.price,
+            change: data.change || 0,
+            changePercent: data.change_percent || 0,
+            volume: data.volume || 0,
+            timestamp: data.timestamp || Date.now()
+        });
+    }
+});
+
+// Handle market alerts
+socket.on('market_alert', function(data) {
+    if (window.dashboardManager && data.alert) {
+        window.dashboardManager.addAlert({
+            id: data.alert.id || Date.now(),
+            type: data.alert.type || 'general',
+            title: data.alert.title || 'Market Alert',
+            description: data.alert.description || '',
+            timestamp: data.alert.timestamp || Date.now()
+        });
+        
+        // Show notification
+        if (data.alert.show_notification !== false) {
+            showStatusNotification(data.alert.title, 'info');
+        }
+    }
+});
+
+// Handle chart data updates
+socket.on('chart_data_update', function(data) {
+    if (window.chartManager && data.symbol && data.ohlcv) {
+        window.chartManager.updateRealTimePrice(data.symbol, {
+            price: data.ohlcv.close,
+            open: data.ohlcv.open,
+            high: data.ohlcv.high,
+            low: data.ohlcv.low,
+            volume: data.ohlcv.volume,
+            timestamp: data.timestamp || Date.now()
+        });
+    }
+});
+
+// ==========================================================================
 // UI UPDATE FUNCTIONS
 // ==========================================================================
 

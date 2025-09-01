@@ -8,14 +8,68 @@ from datetime import datetime, timezone
 from flask import current_app, jsonify, request, session
 from flask_login import login_required, current_user
 
-from src.infrastructure.database import User, db, Subscription
+from src.infrastructure.database import User, db, Subscription, UserSettings
 from src.core.services.user_settings_service import UserSettingsService
+from src.infrastructure.database.tickstock_db import TickStockDatabase
 
 from src.presentation.websocket.publisher import WebSocketPublisher
 
 
 logger = logging.getLogger(__name__)
 api_logger = logging.getLogger(__name__)
+
+def generate_realistic_mock_data(symbol, timeframe, num_bars=50):
+    """Generate realistic mock OHLCV data for fallback scenarios."""
+    from datetime import datetime, timedelta
+    import random
+    
+    chart_data = []
+    
+    # Realistic base prices for different symbols
+    base_prices = {
+        'AAPL': 150.0, 'GOOGL': 2500.0, 'MSFT': 300.0, 'TSLA': 200.0,
+        'AMZN': 3000.0, 'NVDA': 400.0, 'META': 250.0, 'NFLX': 400.0
+    }
+    base_price = base_prices.get(symbol, 100.0)
+    current_time = datetime.utcnow()
+    
+    for i in range(num_bars):
+        # More realistic price movement with volatility clustering
+        volatility = random.uniform(0.5, 2.0) if random.random() < 0.3 else random.uniform(0.1, 0.8)
+        price_change = random.gauss(0, volatility)
+        
+        open_price = max(0.01, base_price + price_change)
+        high_price = open_price + abs(random.gauss(0, 0.5)) 
+        low_price = max(0.01, open_price - abs(random.gauss(0, 0.5)))
+        close_price = random.uniform(low_price, high_price)
+        
+        # Volume with realistic patterns
+        base_volume = 500000 if base_price < 50 else 200000
+        volume_multiplier = random.uniform(0.3, 3.0)
+        volume = int(base_volume * volume_multiplier)
+        
+        # Time calculation based on timeframe
+        if timeframe == '1d':
+            timestamp = current_time - timedelta(days=num_bars-i)
+        elif timeframe == '1w':
+            timestamp = current_time - timedelta(weeks=num_bars-i)  
+        elif timeframe == '1m':
+            timestamp = current_time - timedelta(days=(num_bars-i)*30)
+        else:
+            timestamp = current_time - timedelta(hours=num_bars-i)
+        
+        chart_data.append({
+            "timestamp": timestamp.isoformat() + "Z",
+            "open": round(open_price, 2),
+            "high": round(high_price, 2),
+            "low": round(low_price, 2),
+            "close": round(close_price, 2),
+            "volume": volume
+        })
+        
+        base_price = close_price  # Use close as next base price
+    
+    return chart_data
 
 
 def register_api_routes(app, extensions, cache_control, config):
@@ -26,6 +80,9 @@ def register_api_routes(app, extensions, cache_control, config):
     
     # Initialize the user settings service
     user_settings_service = UserSettingsService(cache_control)
+    
+    # Initialize TickStock database connection for read-only queries
+    tickstock_db = TickStockDatabase(config)
         
     @app.route('/api/cache', methods=['GET'])
     def get_cache_contents():
@@ -104,10 +161,11 @@ def register_api_routes(app, extensions, cache_control, config):
                     "error": "No settings data provided"
                 }), 400
 
-            success = user_settings_service.save_user_settings(
-                current_user.id, 
-                settings_data
-            )
+            success = True
+            for key, value in settings_data.items():
+                if not user_settings_service.set_user_setting(current_user.id, key, value):
+                    success = False
+                    break
             
             if success:
                 return jsonify({
@@ -132,6 +190,257 @@ def register_api_routes(app, extensions, cache_control, config):
 
 
     # Removed: Universe Management endpoints (post-button cleanup)
+
+    # Sprint 12 Dashboard API Endpoints
+    @app.route('/api/symbols/search', methods=['GET'])
+    @login_required
+    def api_symbols_search():
+        """Get available symbols for dropdown/search with optional query filtering."""
+        try:
+            # Get optional search query parameter
+            query = request.args.get('query', '').strip().upper()
+            
+            # Get all symbols from TickStock database
+            symbols = tickstock_db.get_symbols_for_dropdown()
+            
+            # Filter by query if provided
+            if query:
+                filtered_symbols = []
+                for symbol in symbols:
+                    if (query in symbol['symbol'] or 
+                        query in symbol.get('name', '').upper()):
+                        filtered_symbols.append({
+                            'symbol': symbol['symbol'],
+                            'name': symbol['name']
+                        })
+                symbols = filtered_symbols
+            else:
+                # Return simplified format for dropdown
+                symbols = [{
+                    'symbol': s['symbol'],
+                    'name': s['name']
+                } for s in symbols]
+            
+            # Limit results to reasonable number for UI performance
+            symbols = symbols[:100]
+            
+            return jsonify({
+                "success": True,
+                "symbols": symbols
+            })
+            
+        except Exception as e:
+            logger.error("Error searching symbols: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/watchlist', methods=['GET'])
+    @login_required
+    def api_get_watchlist():
+        """Get user's watchlist symbols with current prices."""
+        try:
+            # Get watchlist from user settings
+            settings = user_settings_service.get_user_settings(current_user.id)
+            watchlist_symbols = settings.get('watchlist', [])
+            
+            # If watchlist is empty, return empty list
+            if not watchlist_symbols:
+                return jsonify({
+                    "success": True,
+                    "symbols": []
+                })
+            
+            # Get symbol details for watchlist items
+            watchlist_data = []
+            for symbol_code in watchlist_symbols:
+                # Get basic symbol info from TickStock DB
+                symbol_details = tickstock_db.get_symbol_details(symbol_code)
+                if symbol_details:
+                    watchlist_data.append({
+                        'symbol': symbol_details['symbol'],
+                        'name': symbol_details['name'] or '',
+                        'last_price': 0.00  # Mock price for now - will integrate with TickStockPL later
+                    })
+                else:
+                    # Symbol not found in database, still include it
+                    watchlist_data.append({
+                        'symbol': symbol_code,
+                        'name': 'Unknown',
+                        'last_price': 0.00
+                    })
+            
+            return jsonify({
+                "success": True,
+                "symbols": watchlist_data
+            })
+            
+        except Exception as e:
+            logger.error("Error getting watchlist: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/watchlist/add', methods=['POST'])
+    @login_required
+    def api_add_to_watchlist():
+        """Add symbol to user's watchlist."""
+        try:
+            data = request.get_json()
+            if not data or 'symbol' not in data:
+                return jsonify({
+                    "success": False,
+                    "error": "Symbol is required"
+                }), 400
+                
+            symbol = data['symbol'].strip().upper()
+            
+            # Validate symbol exists in database
+            symbol_details = tickstock_db.get_symbol_details(symbol)
+            if not symbol_details:
+                return jsonify({
+                    "success": False,
+                    "error": f"Symbol {symbol} not found"
+                }), 404
+            
+            # Get current watchlist
+            settings = user_settings_service.get_user_settings(current_user.id)
+            watchlist = settings.get('watchlist', [])
+            
+            # Add symbol if not already present
+            if symbol not in watchlist:
+                watchlist.append(symbol)
+                
+                # Update watchlist setting
+                success = user_settings_service.set_user_setting(
+                    current_user.id, 
+                    'watchlist',
+                    watchlist
+                )
+                
+                if success:
+                    return jsonify({
+                        "success": True,
+                        "message": f"Added {symbol} to watchlist"
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": "Failed to save watchlist"
+                    }), 500
+            else:
+                return jsonify({
+                    "success": True,
+                    "message": f"{symbol} is already in watchlist"
+                })
+                
+        except Exception as e:
+            logger.error("Error adding to watchlist: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/watchlist/remove', methods=['POST'])
+    @login_required
+    def api_remove_from_watchlist():
+        """Remove symbol from user's watchlist."""
+        try:
+            data = request.get_json()
+            if not data or 'symbol' not in data:
+                return jsonify({
+                    "success": False,
+                    "error": "Symbol is required"
+                }), 400
+                
+            symbol = data['symbol'].strip().upper()
+            
+            # Get current watchlist
+            settings = user_settings_service.get_user_settings(current_user.id)
+            watchlist = settings.get('watchlist', [])
+            
+            # Remove symbol if present
+            if symbol in watchlist:
+                watchlist.remove(symbol)
+                
+                # Update watchlist setting
+                success = user_settings_service.set_user_setting(
+                    current_user.id, 
+                    'watchlist',
+                    watchlist
+                )
+                
+                if success:
+                    return jsonify({
+                        "success": True,
+                        "message": f"Removed {symbol} from watchlist"
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": "Failed to save watchlist"
+                    }), 500
+            else:
+                return jsonify({
+                    "success": True,
+                    "message": f"{symbol} was not in watchlist"
+                })
+                
+        except Exception as e:
+            logger.error("Error removing from watchlist: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+
+    @app.route('/api/chart-data/<symbol>', methods=['GET'])
+    @login_required
+    def api_get_chart_data(symbol):
+        """Get OHLCV chart data for a specific symbol."""
+        try:
+            # Get optional timeframe parameter
+            timeframe = request.args.get('timeframe', '1d')
+            
+            # Validate symbol exists
+            symbol = symbol.upper()
+            symbol_details = tickstock_db.get_symbol_details(symbol)
+            if not symbol_details:
+                return jsonify({
+                    "success": False,
+                    "error": f"Symbol {symbol} not found"
+                }), 404
+            
+            # Phase 2: For now, use enhanced mock data (TickStockPL integration ready)
+            # TODO: Replace with real TickStockPL integration when service is available
+            try:
+                # Check if TickStockPL service is available
+                # For now, always use enhanced mock data
+                chart_data = generate_realistic_mock_data(symbol, timeframe)
+                logger.info("Using enhanced mock data for %s (%s): %d bars", 
+                          symbol, timeframe, len(chart_data))
+                    
+            except Exception as error:
+                logger.error("Error generating chart data for %s: %s", symbol, error)
+                return jsonify({
+                    "success": False,
+                    "error": f"Failed to generate chart data for {symbol}"
+                }), 500
+            
+            return jsonify({
+                "success": True,
+                "chart_data": chart_data,
+                "symbol": symbol,
+                "timeframe": timeframe
+            })
+            
+        except Exception as e:
+            logger.error("Error getting chart data for %s: %s", symbol, str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
 
     # TickStockPL Integration - Pattern Alerts API Endpoints
     @app.route('/api/tickstockpl/alerts/subscriptions', methods=['GET'])

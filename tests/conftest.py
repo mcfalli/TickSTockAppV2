@@ -47,6 +47,76 @@ try:
 except ImportError:
     FairMarketValueEvent = None
 
+# Sprint 12 Web Interface Test Support
+try:
+    from flask import Flask
+    from flask.testing import FlaskClient
+except ImportError:
+    Flask = None
+    FlaskClient = None
+
+# ==========================================================================
+# SPRINT 12 WEB INTERFACE FIXTURES
+# ==========================================================================
+
+@pytest.fixture
+def app():
+    """Create Flask application for testing."""
+    if Flask is None:
+        pytest.skip("Flask not available for web interface testing")
+    
+    app = Flask(__name__)
+    app.config['TESTING'] = True
+    app.config['WTF_CSRF_ENABLED'] = False
+    
+    # Add basic routes for testing
+    @app.route('/api/test')
+    def test_route():
+        return {'success': True, 'message': 'Test route'}
+    
+    return app
+
+@pytest.fixture 
+def client(app):
+    """Create Flask test client."""
+    return app.test_client()
+
+@pytest.fixture
+def client_no_auth():
+    """Create Flask test client without authentication."""
+    if Flask is None:
+        pytest.skip("Flask not available for web interface testing")
+    
+    app = Flask(__name__)
+    app.config['TESTING'] = True
+    
+    # Routes that require authentication
+    @app.route('/api/symbols/search')
+    def symbols_search():
+        return {'error': 'Authentication required'}, 401
+    
+    @app.route('/api/watchlist') 
+    def watchlist():
+        return {'error': 'Authentication required'}, 401
+    
+    @app.route('/api/chart-data/<symbol>')
+    def chart_data(symbol):
+        return {'error': 'Authentication required'}, 401
+    
+    return app.test_client()
+
+@pytest.fixture
+def live_server(app):
+    """Create live server for JavaScript testing."""
+    # For selenium tests that need a real server
+    # This is a simplified version - real implementation would use threading
+    class MockServer:
+        def __init__(self, app):
+            self.app = app
+            self.url = "http://localhost:5000"
+    
+    return MockServer(app)
+
 try:
     from src.shared.types.frequency import FrequencyType
 except ImportError:

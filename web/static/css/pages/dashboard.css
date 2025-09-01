@@ -1,21 +1,264 @@
 /*
 ===============================================================================
-TICKSTOCK GAUGE COMPONENT STYLES
+TICKSTOCK DASHBOARD STYLES
 ===============================================================================
 
 PURPOSE:
-This file contains styling for gauge displays after dashboard removal in S37.
+This file contains styling for dashboard components and tabbed interface.
 
 COMPONENTS INCLUDED:
-- Gauge container layouts
+- Sprint 12: Bootstrap tabbed interface styling
+- Dashboard tab with watchlist and market summary
+- Charts tab with Chart.js integration
+- Alerts tab functionality
+- Gauge container layouts (legacy)
 - Single universe gauge preparations
 - Gauge info displays
 - Phase 5 preparation styles (hidden vertical bars)
 
-VERSION: 2.0.0 - POST S37 CLEANUP
-LAST UPDATED: Sprint S37 - Dashboard removal
+VERSION: 3.0.0 - SPRINT 12 TABBED INTERFACE
+LAST UPDATED: Sprint 12 - Tabbed interface implementation
 ===============================================================================
 */
+
+/*
+===============================================================================
+SPRINT 12: DASHBOARD TABS INTERFACE
+===============================================================================
+*/
+
+/* Dashboard tabs container */
+.dashboard-tabs-container {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Tab navigation styling */
+#dashboardTabs {
+    border-bottom: 2px solid var(--border-color, #dee2e6);
+    margin-bottom: 0;
+}
+
+#dashboardTabs .nav-link {
+    color: var(--text-color, #495057);
+    border: none;
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+#dashboardTabs .nav-link:hover {
+    background-color: var(--hover-bg, rgba(0, 123, 255, 0.1));
+    color: var(--primary-color, #007bff);
+}
+
+#dashboardTabs .nav-link.active {
+    background-color: var(--primary-color, #007bff);
+    color: white;
+    border-bottom: 3px solid var(--primary-dark, #0056b3);
+}
+
+/* Tab content styling */
+.tab-content {
+    flex: 1;
+    overflow: hidden;
+}
+
+.tab-pane {
+    height: calc(100% - 20px);
+}
+
+/* Dashboard tab specific styles */
+.dashboard-content {
+    height: 100%;
+}
+
+.summary-metric {
+    padding: 1rem;
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: var(--text-muted, #6c757d);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Watchlist styling */
+.watchlist-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.watchlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    transition: background-color 0.2s ease;
+}
+
+.watchlist-item:hover {
+    background-color: var(--hover-bg, rgba(0, 123, 255, 0.05));
+}
+
+.symbol-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.symbol-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.symbol-company {
+    font-size: 0.75rem;
+    color: var(--text-muted, #6c757d);
+}
+
+.price-info {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+}
+
+.current-price {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.price-change {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.price-change.positive {
+    color: #28a745;
+}
+
+.price-change.negative {
+    color: #dc3545;
+}
+
+/* Charts tab styling */
+.chart-container {
+    position: relative;
+    height: calc(100% - 80px);
+    min-height: 400px;
+}
+
+#price-chart {
+    max-height: 100%;
+    width: 100% !important;
+}
+
+/* Chart controls */
+.chart-controls {
+    margin-bottom: 1rem;
+}
+
+/* Alerts tab styling */
+.alerts-list {
+    max-height: calc(100% - 60px);
+    overflow-y: auto;
+}
+
+.alert-item {
+    display: flex;
+    align-items: start;
+    padding: 0.75rem;
+    border-left: 4px solid var(--primary-color, #007bff);
+    background-color: var(--light-bg, #f8f9fa);
+    margin-bottom: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.alert-icon {
+    margin-right: 0.75rem;
+    margin-top: 0.1rem;
+    color: var(--primary-color, #007bff);
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.alert-description {
+    font-size: 0.8rem;
+    color: var(--text-muted, #6c757d);
+    margin-bottom: 0.25rem;
+}
+
+.alert-time {
+    font-size: 0.75rem;
+    color: var(--text-muted, #6c757d);
+}
+
+/* Theme support for dashboard tabs */
+[data-theme="dark"] .dashboard-tabs-container {
+    --text-color: #e9ecef;
+    --text-muted: #adb5bd;
+    --primary-color: #0d6efd;
+    --primary-dark: #0a58ca;
+    --border-color: #495057;
+    --hover-bg: rgba(13, 110, 253, 0.1);
+    --light-bg: #343a40;
+}
+
+[data-theme="dark"] #dashboardTabs .nav-link {
+    color: #e9ecef;
+}
+
+[data-theme="dark"] .watchlist-item,
+[data-theme="dark"] .alert-item {
+    border-color: #495057;
+}
+
+[data-theme="dark"] .alert-item {
+    background-color: #343a40;
+}
+
+/* Responsive dashboard layout */
+@media (max-width: 768px) {
+    .dashboard-content .row {
+        flex-direction: column;
+    }
+    
+    .dashboard-content .col-md-4,
+    .dashboard-content .col-md-8 {
+        flex: none;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    .metric-value {
+        font-size: 1.25rem;
+    }
+    
+    .summary-metric {
+        padding: 0.75rem;
+    }
+    
+    #dashboardTabs .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+}
 
 /*
 ===============================================================================

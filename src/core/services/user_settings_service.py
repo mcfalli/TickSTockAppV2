@@ -486,3 +486,137 @@ class UserSettingsService:
         except Exception as e:
             logger.error(f"Failed to get user settings for user {user_id}: {e}")
             return {}
+
+    def get_all_user_watchlists(self) -> Dict[str, List[str]]:
+        """
+        Get all user watchlists for caching in MarketDataSubscriber.
+        
+        Returns:
+            Dict[user_id, symbols]: Map of user_id to list of watchlist symbols
+        """
+        try:
+            context_manager = self._ensure_app_context()
+            if context_manager:
+                with context_manager:
+                    return self._get_all_user_watchlists_with_context()
+            else:
+                return self._get_all_user_watchlists_with_context()
+                
+        except Exception as e:
+            logger.error(f"Error getting all user watchlists: {e}", exc_info=True)
+            return {}
+    
+    def _get_all_user_watchlists_with_context(self) -> Dict[str, List[str]]:
+        """Internal method to get all user watchlists - requires app context."""
+        try:
+            # Query all watchlist settings
+            watchlist_settings = UserSettings.query.filter_by(key='watchlist').all()
+            
+            result = {}
+            for setting in watchlist_settings:
+                if setting.value:
+                    try:
+                        # Parse watchlist JSON
+                        if isinstance(setting.value, list):
+                            # Already a list
+                            symbols = setting.value
+                        elif isinstance(setting.value, str):
+                            # Parse JSON string
+                            symbols = json.loads(setting.value)
+                        else:
+                            # Try direct access
+                            symbols = setting.value
+                        
+                        # Validate symbols list
+                        if isinstance(symbols, list) and all(isinstance(s, str) for s in symbols):
+                            if symbols:  # Only cache non-empty watchlists
+                                result[str(setting.user_id)] = symbols
+                        else:
+                            logger.warning(f"Invalid watchlist format for user {setting.user_id}: {type(symbols)}")
+                            
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"Failed to parse watchlist for user {setting.user_id}: {e}")
+                        continue
+            
+            logger.debug(f"Retrieved watchlists for {len(result)} users")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in _get_all_user_watchlists_with_context: {e}", exc_info=True)
+            return {}
+    
+    def get_user_watchlist(self, user_id: int) -> List[str]:
+        """
+        Get user's watchlist symbols.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            List of symbol strings
+        """
+        try:
+            watchlist_data = self.get_user_setting(user_id, 'watchlist', [])
+            
+            # Ensure it's a list of strings
+            if isinstance(watchlist_data, list):
+                return [str(symbol) for symbol in watchlist_data if symbol]
+            else:
+                logger.warning(f"Invalid watchlist format for user {user_id}: {type(watchlist_data)}")
+                return []
+                
+        except Exception as e:
+            logger.error(f"Error getting watchlist for user {user_id}: {e}")
+            return []
+    
+    def add_to_watchlist(self, user_id: int, symbol: str) -> bool:
+        """
+        Add symbol to user's watchlist.
+        
+        Args:
+            user_id: User ID
+            symbol: Symbol to add
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            current_watchlist = self.get_user_watchlist(user_id)
+            
+            # Add symbol if not already present
+            symbol = symbol.upper()
+            if symbol not in current_watchlist:
+                current_watchlist.append(symbol)
+                return self.set_user_setting(user_id, 'watchlist', current_watchlist)
+            
+            return True  # Already in watchlist
+            
+        except Exception as e:
+            logger.error(f"Error adding {symbol} to watchlist for user {user_id}: {e}")
+            return False
+    
+    def remove_from_watchlist(self, user_id: int, symbol: str) -> bool:
+        """
+        Remove symbol from user's watchlist.
+        
+        Args:
+            user_id: User ID
+            symbol: Symbol to remove
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            current_watchlist = self.get_user_watchlist(user_id)
+            
+            # Remove symbol if present
+            symbol = symbol.upper()
+            if symbol in current_watchlist:
+                current_watchlist.remove(symbol)
+                return self.set_user_setting(user_id, 'watchlist', current_watchlist)
+            
+            return True  # Not in watchlist
+            
+        except Exception as e:
+            logger.error(f"Error removing {symbol} from watchlist for user {user_id}: {e}")
+            return False

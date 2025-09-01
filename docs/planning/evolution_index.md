@@ -1,7 +1,7 @@
 # TickStock.ai Documentation Evolution Index
 
-**Last Updated**: 2025-08-27  
-**Status**: Post-Consolidation Architecture Documentation
+**Last Updated**: 2025-08-31  
+**Status**: Post-Consolidation Architecture Documentation + Sprint 14 Implementation
 
 This index lists the core Markdown files defining TickStock.ai's current system architecture after major documentation consolidation. Each file captures a critical aspect of the system, guiding development and ensuring alignment.
 
@@ -27,6 +27,13 @@ This index lists the core Markdown files defining TickStock.ai's current system 
 
 - **Sprint 10**: Completed implementation phase including TickStockAppV2 UI integration and TickStockPL backend completion
 
+- **Sprint 14**: Active implementation phase for data load and maintenance automation across 4 phases
+  - **sprint14/data-load-maintenance-user-stories.md**: Foundation user stories for historical data loading, development environment optimization, and daily maintenance automation
+  - **sprint14/sprint14-phase1-implementation-plan.md**: Foundation Enhancement - ETF Integration, Subset Loading, EOD Updates
+  - **sprint14/sprint14-phase2-implementation-plan.md**: Automation & Monitoring - IPO Detection, Equity Types, Data Quality
+  - **sprint14/sprint14-phase3-implementation-plan.md**: Advanced Features - Universe Expansion, Test Scenarios, Cache Sync
+  - **sprint14/sprint14-phase4-implementation-plan.md**: Production Optimization - Enterprise Scheduling, Dev Refresh, Market Calendar
+
 - **user_stories.md**: Requirements captured in user story format for development guidance. Purpose: Provides user-focused requirements for feature development.
 
 - **get_historical_data.md**: Technical details for seeding database with historical OHLCV data via API integration. Purpose: Guides initial data loading for backtesting capabilities.
@@ -42,5 +49,11 @@ This index lists the core Markdown files defining TickStock.ai's current system 
 - Archived redundant architecture documents
 - Updated cross-references throughout documentation
 - Established clear information architecture with single sources of truth
+
+**Sprint 14 Implementation Documentation (2025-08-31)**:
+- Created comprehensive 4-phase implementation plan for data load and maintenance automation
+- Established mandatory agent workflow requirements across all phases
+- Integrated ETF support, development environment optimization, and production automation
+- Added cross-references and terminology consistency across all Sprint 14 documents
 
 These files represent the current state of TickStock.ai documentation, stored in `docs/planning` for version control and reference. The consolidated structure eliminates redundancy while maintaining comprehensive coverage of all system aspects.
