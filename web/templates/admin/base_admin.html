@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" class="{% if session.get('theme') == 'dark' %}theme-dark{% else %}theme-light{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TickStock Admin{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Main CSS with theme support -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    
+    <!-- Admin-specific CSS with theme variables -->
+    <style>
+        /* Admin theme-aware styles */
+        body {
+            background-color: var(--color-background-primary);
+            color: var(--color-text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .admin-navbar {
+            background-color: var(--color-background-secondary);
+            border-bottom: 1px solid var(--color-border-light);
+            padding: 15px 0;
+            margin-bottom: 30px;
+        }
+        
+        .admin-navbar .navbar-brand {
+            color: var(--color-text-primary);
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        
+        .admin-navbar .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .admin-navbar .btn {
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        
+        .admin-navbar .btn:hover {
+            background-color: var(--color-primary-hover);
+        }
+        
+        .admin-navbar .btn.active {
+            background-color: var(--color-primary-hover);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        /* Card styling with theme support */
+        .card {
+            background-color: var(--color-background-primary);
+            border: 1px solid var(--color-border-light);
+            color: var(--color-text-primary);
+        }
+        
+        .card-header {
+            background-color: var(--color-background-secondary);
+            border-bottom: 1px solid var(--color-border-light);
+        }
+        
+        /* Table styling with theme support */
+        .table {
+            color: var(--color-text-primary);
+        }
+        
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: var(--color-background-secondary);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: var(--color-background-hover);
+        }
+        
+        /* Form controls with theme support */
+        .form-control, .form-select {
+            background-color: var(--color-background-primary);
+            border: 1px solid var(--color-border-light);
+            color: var(--color-text-primary);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background-color: var(--color-background-primary);
+            border-color: var(--color-primary);
+            color: var(--color-text-primary);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
+        /* Dark theme specific overrides */
+        .theme-dark .card {
+            background-color: #2a2a2a;
+            border-color: #444;
+        }
+        
+        .theme-dark .card-header {
+            background-color: #333;
+            border-color: #444;
+        }
+        
+        .theme-dark .form-control,
+        .theme-dark .form-select {
+            background-color: #2a2a2a;
+            border-color: #444;
+            color: #f0f0f0;
+        }
+        
+        .theme-dark .table {
+            color: #f0f0f0;
+        }
+        
+        .theme-dark .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+        
+        .theme-dark .table-hover tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.075);
+        }
+        
+        /* Theme toggle button */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: var(--color-background-secondary);
+            border: 1px solid var(--color-border-light);
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .theme-toggle:hover {
+            background-color: var(--color-background-hover);
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% if session.get('theme') == 'dark' %}theme-dark{% else %}theme-light{% endif %}">
+    <!-- Admin Navigation Bar -->
+    <div class="admin-navbar">
+        <div class="admin-container">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="/admin" class="navbar-brand">
+                    <i class="fas fa-shield-alt me-2"></i>TickStock Admin
+                </a>
+                <div class="nav-buttons">
+                    <a href="{{ url_for('admin_historical_dashboard') }}" 
+                       class="btn {% if request.endpoint == 'admin_historical_dashboard' %}active{% endif %}">
+                        <i class="fas fa-chart-line me-1"></i> Historical Data
+                    </a>
+                    <a href="{{ url_for('admin_users.users_dashboard') }}" 
+                       class="btn {% if request.endpoint == 'admin_users.users_dashboard' %}active{% endif %}">
+                        <i class="fas fa-users me-1"></i> User Management
+                    </a>
+                    <a href="{{ url_for('admin_users.health_dashboard') }}" 
+                       class="btn {% if request.endpoint == 'admin_users.health_dashboard' %}active{% endif %}">
+                        <i class="fas fa-heartbeat me-1"></i> Health Monitor
+                    </a>
+                    <a href="/" class="btn">
+                        <i class="fas fa-arrow-left me-1"></i> Back to App
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+    
+    <!-- Main Content -->
+    <div class="admin-container">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Theme Toggle Script -->
+    <script>
+        // Theme management
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const html = document.documentElement;
+            const body = document.body;
+            
+            // Get current theme from localStorage or default to light
+            let currentTheme = localStorage.getItem('tickstock-theme') || 'light';
+            
+            // Apply initial theme
+            applyTheme(currentTheme);
+            
+            // Theme toggle handler
+            themeToggle.addEventListener('click', function() {
+                currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                applyTheme(currentTheme);
+                localStorage.setItem('tickstock-theme', currentTheme);
+            });
+            
+            function applyTheme(theme) {
+                // Remove both theme classes
+                html.classList.remove('theme-dark', 'theme-light');
+                body.classList.remove('theme-dark', 'theme-light');
+                
+                // Add the appropriate theme class
+                if (theme === 'dark') {
+                    html.classList.add('theme-dark');
+                    body.classList.add('theme-dark');
+                    themeIcon.classList.remove('fa-moon');
+                    themeIcon.classList.add('fa-sun');
+                    themeToggle.title = 'Switch to light theme';
+                } else {
+                    html.classList.add('theme-light');
+                    body.classList.add('theme-light');
+                    themeIcon.classList.remove('fa-sun');
+                    themeIcon.classList.add('fa-moon');
+                    themeToggle.title = 'Switch to dark theme';
+                }
+            }
+        })();
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

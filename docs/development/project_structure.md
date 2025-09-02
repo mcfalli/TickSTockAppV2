@@ -1,4 +1,9 @@
 TickStockAppV2/
+automation/
+    services/
+        __init__.py
+        ipo_monitor.py
+        data_quality_monitor.py
 config/
     __init__.py
     app_config.py
@@ -74,6 +79,11 @@ src/
     data/
         __init__.py
         historical_loader.py
+        eod_processor.py
+        eod_processor_backup.py
+        etf_universe_manager.py
+        test_scenario_generator.py
+        cache_entries_synchronizer.py
     infrastructure/
         README.md
         __init__.py
@@ -124,6 +134,7 @@ src/
                 welcome_email.html
     jobs/
         historical_data_scheduler.py
+        enterprise_production_scheduler.py
     presentation/
         __init__.py
         converters/
@@ -157,6 +168,12 @@ src/
             general.py
             market_utils.py
             validation.py
+    services/
+        __init__.py
+        market_schedule_manager.py
+    development/
+        __init__.py
+        rapid_development_refresh.py
     utils/
         auth_decorators.py
 tests/
@@ -221,6 +238,17 @@ tests/
         database/
             __init__.py
             test_tickstock_db_refactor.py
+    sprint14/
+        __init__.py
+        test_eod_processor_unit.py
+        test_cache_entries_synchronizer_unit.py
+        test_test_scenario_generator_unit.py
+    integration/
+        sprint14/
+            __init__.py
+            test_eod_processor_integration.py
+            test_cache_entries_synchronizer_integration.py
+            test_test_scenario_generator_integration.py
     unit/
         __init__.py
         test_utilities.py

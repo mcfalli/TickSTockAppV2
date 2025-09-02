@@ -364,3 +364,46 @@ def register_admin_historical_routes(app):
         except Exception as e:
             flash(f'Cleanup error: {str(e)}', 'error')
             return redirect(url_for('admin_historical_dashboard'))
+    
+    @app.route('/admin/historical-data/rebuild-cache', methods=['POST'])
+    @login_required
+    @admin_required
+    def admin_rebuild_cache():
+        """Rebuild cache entries from current symbols table"""
+        try:
+            # Import cache synchronizer
+            import sys
+            from pathlib import Path
+            sys.path.append(str(Path(__file__).parent.parent.parent))
+            from src.core.services.cache_entries_synchronizer import CacheEntriesSynchronizer
+            
+            # Get options
+            preserve_existing = request.form.get('preserve_existing') == '1'
+            
+            # Create and run synchronizer
+            synchronizer = CacheEntriesSynchronizer()
+            start_time = datetime.now()
+            
+            # Run cache rebuild (delete_existing = not preserve_existing)
+            stats = synchronizer.rebuild_stock_cache_entries(delete_existing=not preserve_existing)
+            
+            duration = datetime.now() - start_time
+            
+            # Build success message
+            success_msg = f"""Cache rebuild completed in {duration.total_seconds():.1f}s:
+• Deleted entries: {stats['deleted_entries']}
+• Market cap categories: {stats['market_cap_entries']}
+• Sector leaders: {stats['sector_leader_entries']}
+• Market leaders: {stats['market_leader_entries']}
+• Themes: {stats['theme_entries']}
+• Industries: {stats['industry_entries']}
+• ETF categories: {stats['etf_entries']}
+• Complete universes: {stats['complete_entries']}
+• Stats summaries: {stats['stats_entries']}"""
+            
+            flash(success_msg, 'success')
+            
+        except Exception as e:
+            flash(f'Cache rebuild failed: {str(e)}', 'error')
+            
+        return redirect(url_for('admin_historical_dashboard'))

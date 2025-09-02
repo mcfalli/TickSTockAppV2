@@ -46,6 +46,27 @@
             
             <!-- Settings buttons container -->
             <div class="navbar-settings">
+                <!-- Admin Menu Dropdown (Only for admin/super users) -->
+                {% if current_user.is_authenticated and current_user.is_admin() %}
+                <div class="admin-menu">
+                    <button class="navbar-btn admin-menu-btn" aria-expanded="false" aria-haspopup="true" id="adminMenuBtn">
+                        <span class="settings-icon">👨‍💼</span>
+                        <span class="settings-text">Admin</span>
+                    </button>
+                    <div class="dropdown-content admin-dropdown-content" id="adminDropdownContent">
+                        <a href="{{ url_for('admin_historical_dashboard') }}">
+                            <i class="fas fa-chart-line me-1"></i> Historical Data
+                        </a>
+                        <a href="{{ url_for('admin_users.users_dashboard') }}">
+                            <i class="fas fa-users me-1"></i> User Management
+                        </a>
+                        <a href="{{ url_for('admin_users.health_dashboard') }}">
+                            <i class="fas fa-heartbeat me-1"></i> Health Monitor
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                
                 <!-- Button1 (Placeholder) -->
                 <button class="navbar-btn button1-btn" id="button1Btn" title="Button1 - Future Feature">
                     <span class="settings-icon">⚡</span>
@@ -76,11 +97,6 @@
                         <a href="{{ url_for('change_password') }}">Change Password</a>
                         <a href="{{ url_for('backtest_dashboard') }}">📊 Backtesting</a>
                         <a href="{{ url_for('pattern_alerts') }}">🔔 Pattern Alerts</a>
-                        {% if current_user.is_admin() %}
-                        <a href="{{ url_for('admin_users.health_dashboard') }}">🏥 Health Dashboard (Admin)</a>
-                        <a href="{{ url_for('admin_users.users_dashboard') }}">👥 User Management</a>
-                        <a href="{{ url_for('admin_historical_dashboard') }}">📊 Historical Data Admin</a>
-                        {% endif %}
                         <a href="mailto:support@tickstock.com">support@tickstock.com</a>
                         <a href="{{ url_for('logout') }}">Logout</a>
                     </div>
@@ -441,6 +457,55 @@
     
     <!-- Simple Button Modals -->
     <script>
+        // Admin Menu Dropdown Toggle
+        {% if current_user.is_authenticated and current_user.is_admin() %}
+        document.addEventListener('DOMContentLoaded', function() {
+            const adminMenuBtn = document.getElementById('adminMenuBtn');
+            const adminDropdownContent = document.getElementById('adminDropdownContent');
+            
+            if (adminMenuBtn && adminDropdownContent) {
+                // Toggle dropdown on button click
+                adminMenuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isExpanded = adminMenuBtn.getAttribute('aria-expanded') === 'true';
+                    
+                    // Close all other dropdowns first
+                    document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                        dropdown.style.display = 'none';
+                    });
+                    document.querySelectorAll('[aria-expanded="true"]').forEach(btn => {
+                        btn.setAttribute('aria-expanded', 'false');
+                    });
+                    
+                    // Toggle this dropdown
+                    if (!isExpanded) {
+                        adminDropdownContent.style.display = 'block';
+                        adminMenuBtn.setAttribute('aria-expanded', 'true');
+                    } else {
+                        adminDropdownContent.style.display = 'none';
+                        adminMenuBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!adminMenuBtn.contains(e.target) && !adminDropdownContent.contains(e.target)) {
+                        adminDropdownContent.style.display = 'none';
+                        adminMenuBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                
+                // Close dropdown when pressing Escape
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && adminMenuBtn.getAttribute('aria-expanded') === 'true') {
+                        adminDropdownContent.style.display = 'none';
+                        adminMenuBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+        });
+        {% endif %}
+        
         // Button1 Modal
         document.getElementById('button1Btn').addEventListener('click', function() {
             document.getElementById('button1Modal').style.display = 'block';

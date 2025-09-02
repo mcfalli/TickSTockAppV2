@@ -2,7 +2,7 @@
 
 **Purpose**: Comprehensive testing standards and organization for TickStock market data system  
 **Audience**: Development teams, sprint implementation, quality assurance  
-**Last Updated**: 2025-08-21  
+**Last Updated**: 2025-09-01  
 
 ## Testing Philosophy
 
@@ -48,6 +48,11 @@ tests/
 │   │   ├── test_data_types.py
 │   │   ├── test_tick_channel.py
 │   │   └── test_multi_channel_integration.py
+│   ├── sprint_14/               # Data infrastructure automation
+│   │   ├── test_eod_processor.py
+│   │   ├── test_etf_universe_manager.py
+│   │   ├── test_test_scenario_generator.py
+│   │   └── test_cache_entries_synchronizer.py
 │   └── providers/               # Data provider tests
 │       ├── test_polygon_provider.py
 │       └── test_synthetic_provider.py
@@ -62,6 +67,28 @@ tests/
 │   ├── aggregation/             # Data aggregation tests
 │   └── analytics/               # Market analytics tests
 │
+├── automation_services/          # Automation & Monitoring Services  
+│   ├── sprint_14/               # Sprint 14 automation services
+│   │   ├── test_ipo_monitor.py
+│   │   ├── test_data_quality_monitor.py
+│   │   └── test_equity_types_integration.py
+│   └── monitoring/              # General monitoring services
+│
+├── jobs/                        # Job Management & Scheduling
+│   ├── sprint_14/               # Sprint 14 enterprise scheduling
+│   │   └── test_enterprise_production_scheduler.py
+│   └── scheduling/              # General job scheduling tests
+│
+├── development/                 # Development Tools & Utilities
+│   ├── sprint_14/               # Sprint 14 development tools
+│   │   └── test_rapid_development_refresh.py
+│   └── tools/                   # General development utilities
+│
+├── services/                    # Business Services
+│   ├── sprint_14/               # Sprint 14 service enhancements
+│   │   └── test_market_schedule_manager.py
+│   └── market_data/             # Market data services
+│
 ├── infrastructure/               # Infrastructure & External Systems
 │   ├── database/                # Database integration tests
 │   ├── caching/                 # Redis/caching tests
@@ -73,6 +100,7 @@ tests/
 │   └── sessions/                # Session management tests
 │
 └── system_integration/           # End-to-End System Tests
+    ├── sprint_14/               # Sprint 14 cross-system integration
     ├── performance/             # System performance tests
     ├── regression/              # System regression tests
     └── end_to_end/             # Complete workflow tests
@@ -140,10 +168,19 @@ pytest tests/market_data/ -v                # All market data tests
 
 ### Sprint-Specific Testing
 ```bash
+# Legacy sprints
 pytest tests/event_processing/sprint_107/ -v    # Sprint 107 event processing
 pytest tests/data_processing/sprint_105/ -v     # Sprint 105 channels
 pytest tests/data_processing/sprint_106/ -v     # Sprint 106 data types
 pytest tests/system_integration/sprint_108/ -v  # Sprint 108 integration
+
+# Sprint 14 - Data Infrastructure Automation
+pytest tests/data_processing/sprint_14/ -v      # Sprint 14 data processing
+pytest tests/automation_services/sprint_14/ -v  # Sprint 14 automation services
+pytest tests/jobs/sprint_14/ -v                 # Sprint 14 job scheduling
+pytest tests/development/sprint_14/ -v          # Sprint 14 development tools
+pytest tests/services/sprint_14/ -v             # Sprint 14 business services
+pytest tests/system_integration/sprint_14/ -v   # Sprint 14 integration tests
 ```
 
 ### Component-Specific Testing

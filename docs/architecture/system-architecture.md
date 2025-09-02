@@ -40,6 +40,17 @@
 - **Historical Analysis**: Pattern performance tracking, strategy validation
 - **Job Processing**: Executes backtest jobs triggered by TickStockApp
 
+### Automation Services (Background Processing) - Support Role
+**Core Philosophy**: Independent background services for data maintenance and monitoring
+
+**What Automation Services DO**:
+- **IPO Monitoring**: Daily detection of new listings with 90-day historical backfill
+- **Data Quality Monitoring**: Price anomaly detection (>20% moves), volume analysis
+- **EOD Processing**: End-of-day data processing with market timing awareness
+- **Cache Synchronization**: Daily universe updates and market cap recalculation
+- **Enterprise Scheduling**: Production-scale historical data loading coordination
+- **Market Calendar Management**: Multi-exchange holiday and schedule awareness
+
 **What TickStockPL DOES NOT DO**:
 - ❌ **User Interface**: No UI components or WebSocket client management
 - ❌ **Authentication**: No user management or session handling
@@ -59,11 +70,19 @@
 - `tickstock.events.backtesting.progress` - Backtest progress updates
 - `tickstock.events.backtesting.results` - Completed backtest results
 
+**Automation Services → System** (Notifications):
+- `eod_processing_complete` - End-of-day processing completion notifications
+- `ipo_detected` - New IPO discovery alerts  
+- `data_quality_alert` - Data anomaly and quality issue notifications
+- `cache_sync_complete` - Universe synchronization completion status
+
 ### Database Architecture (Single "tickstock" Database)
 **Shared TimescaleDB Database**: `tickstock`
-- **Tables**: `symbols`, `ohlcv_daily`, `ohlcv_1min`, `ticks` (hypertables), `events`
+- **Tables**: `symbols`, `ohlcv_daily`, `ohlcv_1min`, `ticks` (hypertables), `events`, `cache_entries`
+- **Enhanced Schema**: 16 new ETF-specific columns, JSONB processing rules, equity types
 - **TickStockPL Role**: Full read/write access, schema management, data loading
 - **TickStockApp Role**: Read-only access for UI queries only
+- **Automation Services Role**: Background data maintenance, schema updates, quality monitoring
 
 ### Data Flow Architecture
 ```
@@ -79,9 +98,15 @@
                         ↓
             [User: Alerts, Dashboards, Results]
 
+[Automation Services: Background Processing]
+    ↓ (IPO Monitor, Data Quality, EOD Processing)
+    ↓ (Cache Sync, Enterprise Scheduling, Market Calendar)
+[Redis Pub-Sub: Automation Notifications]
+
 [Shared Database "tickstock": TimescaleDB]
     ↕ (TickStockPL: Read/Write)
     ↕ (TickStockApp: Read-Only)
+    ↕ (Automation Services: Maintenance & Monitoring)
 ```
 
 ## Key Architectural Principles
@@ -89,6 +114,7 @@
 ### 1. Separation of Concerns
 - **TickStockApp**: User experience and interface management
 - **TickStockPL**: Data processing and analytical algorithms
+- **Automation Services**: Background data maintenance and monitoring
 - **Redis**: Loose coupling communication layer
 - **Database**: Shared persistence layer with role-based access
 

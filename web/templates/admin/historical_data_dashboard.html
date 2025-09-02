@@ -231,9 +231,35 @@
                     <div class="form-group" id="universe_group">
                         <label>Universe</label>
                         <select name="universe_key">
-                            <option value="top_50">Top 50 Stocks</option>
-                            <option value="sp500">S&P 500</option>
-                            <option value="nasdaq100">NASDAQ 100</option>
+                            <optgroup label="Market Leaders">
+                                <option value="top_10_stocks">Top 10 Stocks</option>
+                                <option value="top_50">Top 50 Stocks</option>
+                                <option value="top_100">Top 100 Stocks</option>
+                                <option value="top_250">Top 250 Stocks</option>
+                                <option value="top_500">Top 500 Stocks</option>
+                                <option value="top_1000">Top 1000 Stocks</option>
+                            </optgroup>
+                            <optgroup label="Market Cap Categories">
+                                <option value="mega_cap">Mega Cap (>$200B)</option>
+                                <option value="large_cap">Large Cap ($10B-$200B)</option>
+                            </optgroup>
+                            <optgroup label="Sectors (Top 10 Each)">
+                                <option value="top_10_technology">Technology Leaders</option>
+                                <option value="top_10_financial_services">Financial Services Leaders</option>
+                                <option value="top_10_healthcare">Healthcare Leaders</option>
+                                <option value="top_10_consumer_discretionary">Consumer Discretionary</option>
+                                <option value="top_10_industrials">Industrials Leaders</option>
+                            </optgroup>
+                            <optgroup label="Themes">
+                                <option value="ai">AI Stocks</option>
+                                <option value="cloud">Cloud Computing</option>
+                                <option value="ev">Electric Vehicles</option>
+                                <option value="fintech">FinTech</option>
+                                <option value="semi">Semiconductors</option>
+                            </optgroup>
+                            <optgroup label="Complete Universe">
+                                <option value="all_stocks" style="color: #ff6b6b; font-weight: bold;">🚀 ALL STOCKS (Full Universe)</option>
+                            </optgroup>
                         </select>
                     </div>
                     
@@ -357,6 +383,26 @@
                 <button onclick="exportDataReport()" class="btn btn-secondary">Export Report</button>
             </div>
         </div>
+        
+        <!-- Cache Management -->
+        <div class="job-controls">
+            <h3>Cache Organization</h3>
+            <p>Rebuild cache entries to organize stocks and ETFs into logical groups (market cap, sectors, themes, etc.)</p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="preserve_existing" name="preserve_existing" value="1">
+                        Preserve existing entries (append mode)
+                    </label>
+                    <small style="color: #666; display: block; margin-top: 4px;">
+                        When unchecked, will delete and rebuild all stock/ETF cache entries (preserves app_settings)
+                    </small>
+                </div>
+                <div class="form-group">
+                    <button onclick="rebuildCacheEntries()" class="btn btn-primary">Update and Organize Cache</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -433,6 +479,29 @@ Enter 1 or 2:`);
         function exportDataReport() {
             // Generate and download data report
             window.open('/admin/historical-data/data-summary', '_blank');
+        }
+        
+        function rebuildCacheEntries() {
+            const preserveExisting = document.getElementById('preserve_existing').checked;
+            const mode = preserveExisting ? 'append to' : 'replace all';
+            
+            if (confirm(`This will ${mode} stock/ETF cache entries. Continue?`)) {
+                // Show progress indicator
+                const button = event.target;
+                button.disabled = true;
+                button.textContent = 'Rebuilding Cache...';
+                
+                // Create and submit form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/historical-data/rebuild-cache';
+                form.innerHTML = `
+                    <input type="hidden" name="preserve_existing" value="${preserveExisting ? '1' : '0'}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
         
         // Auto-refresh active jobs every 10 seconds

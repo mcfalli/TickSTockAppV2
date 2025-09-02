@@ -124,7 +124,11 @@ class PolygonHistoricalLoader:
             return data
             
         except requests.exceptions.RequestException as e:
-            logger.error(f"HISTORICAL-LOADER: API request failed: {e}")
+            # Check if this is an expected 404 for ETF financials
+            if "404" in str(e) and "/financials" in url:
+                logger.debug(f"HISTORICAL-LOADER: ETF financials endpoint returned 404 (expected)")
+            else:
+                logger.error(f"HISTORICAL-LOADER: API request failed: {e}")
             raise
             
     def fetch_symbol_metadata(self, symbol: str) -> Optional[Dict[str, Any]]:
@@ -161,8 +165,33 @@ class PolygonHistoricalLoader:
                     'market_cap': ticker_data.get('market_cap'),
                     'weighted_shares_outstanding': ticker_data.get('weighted_shares_outstanding'),
                     'exchange': ticker_data.get('primary_exchange', ''),
-                    'last_updated_utc': ticker_data.get('last_updated_utc')
+                    'last_updated_utc': ticker_data.get('last_updated_utc'),
+                    'sic_code': ticker_data.get('sic_code'),
+                    'sic_description': ticker_data.get('sic_description'),
+                    'total_employees': ticker_data.get('total_employees'),
+                    'list_date': ticker_data.get('list_date')
                 }
+                
+                # If this is an ETF, extract ETF-specific metadata
+                if ticker_data.get('type') == 'ETF' or self._is_etf_symbol(symbol):
+                    logger.info(f"HISTORICAL-LOADER: Detected ETF {symbol}, extracting ETF metadata...")
+                    etf_metadata = self._extract_etf_metadata(ticker_data)
+                    metadata.update(etf_metadata)
+                    
+                    # Try to fetch additional ETF details
+                    try:
+                        etf_details = self.fetch_etf_details(symbol)
+                        if etf_details:
+                            # Only update with non-None values from ETF details
+                            for key, value in etf_details.items():
+                                if value is not None:
+                                    metadata[key] = value
+                    except Exception as e:
+                        # ETF financials are often unavailable - this is expected
+                        if "404" in str(e) or "Not Found" in str(e):
+                            logger.debug(f"HISTORICAL-LOADER: ETF financials not available for {symbol} (expected)")
+                        else:
+                            logger.warning(f"HISTORICAL-LOADER: Could not fetch additional ETF details for {symbol}: {e}")
                 
                 logger.debug(f"HISTORICAL-LOADER: Fetched metadata for {symbol}: {metadata['name']}")
                 return metadata
@@ -173,6 +202,206 @@ class PolygonHistoricalLoader:
         except Exception as e:
             logger.error(f"HISTORICAL-LOADER: Failed to fetch metadata for {symbol}: {e}")
             return None
+    
+    def _extract_etf_metadata(self, ticker_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract ETF-specific metadata from Polygon.io response.
+        
+        Args:
+            ticker_data: Raw ticker data from Polygon.io API
+            
+        Returns:
+            Dictionary with ETF-specific fields
+        """
+        etf_fields = {
+            'etf_type': ticker_data.get('type', 'ETF'),
+            'fmv_supported': True,  # Enable FMV for all ETFs
+            'primary_exchange': ticker_data.get('primary_exchange', ''),
+            'inception_date': ticker_data.get('list_date'),  # ETF inception date
+            'dividend_frequency': 'quarterly',  # Default assumption
+            'creation_unit_size': 50000,  # Default ETF creation unit
+            'expense_ratio': None,  # Will be populated if available
+            'aum_millions': None  # Will be calculated from market_cap if available
+        }
+        
+        # Map common ETF issuers from name patterns
+        name = ticker_data.get('name', '').upper()
+        if 'SPDR' in name or 'STATE STREET' in name:
+            etf_fields['issuer'] = 'State Street'
+        elif 'ISHARES' in name or 'BLACKROCK' in name:
+            etf_fields['issuer'] = 'BlackRock'
+        elif 'VANGUARD' in name:
+            etf_fields['issuer'] = 'Vanguard'
+        elif 'INVESCO' in name:
+            etf_fields['issuer'] = 'Invesco'
+        elif 'FIDELITY' in name:
+            etf_fields['issuer'] = 'Fidelity'
+        else:
+            etf_fields['issuer'] = 'Other'
+        
+        # Determine correlation reference based on common patterns
+        symbol = ticker_data.get('ticker', '')
+        if symbol in ['SPY', 'VOO', 'IVV'] or 'S&P 500' in name:
+            etf_fields['correlation_reference'] = 'SPY'
+            etf_fields['underlying_index'] = 'S&P 500'
+        elif symbol in ['QQQ', 'TQQQ'] or 'NASDAQ' in name:
+            etf_fields['correlation_reference'] = 'QQQ'
+            etf_fields['underlying_index'] = 'NASDAQ-100'
+        elif symbol in ['IWM', 'IWN', 'IWO'] or 'RUSSELL 2000' in name:
+            etf_fields['correlation_reference'] = 'IWM'
+            etf_fields['underlying_index'] = 'Russell 2000'
+        elif symbol in ['VTI', 'ITOT'] or 'TOTAL STOCK' in name:
+            etf_fields['correlation_reference'] = 'VTI'
+            etf_fields['underlying_index'] = 'CRSP US Total Market'
+        else:
+            etf_fields['correlation_reference'] = 'SPY'  # Default to S&P 500
+        
+        # Calculate AUM from market cap if available
+        market_cap = ticker_data.get('market_cap')
+        if market_cap:
+            # For ETFs, market cap is often close to AUM
+            etf_fields['aum_millions'] = market_cap / 1000000  # Convert to millions
+        
+        logger.debug(f"HISTORICAL-LOADER: ETF metadata extracted for {symbol}: issuer={etf_fields['issuer']}, ref={etf_fields['correlation_reference']}")
+        return etf_fields
+    
+    def _is_etf_symbol(self, symbol: str) -> bool:
+        """
+        Determine if a symbol is likely an ETF based on common patterns.
+        
+        Args:
+            symbol: Stock ticker symbol
+            
+        Returns:
+            True if symbol appears to be an ETF
+        """
+        # Common ETF symbol patterns and known ETF tickers
+        etf_patterns = [
+            'SPY', 'QQQ', 'IWM', 'VTI', 'VOO', 'IVV', 'EEM', 'VEA', 'VWO',
+            'XLK', 'XLF', 'XLV', 'XLE', 'XLI', 'XLY', 'XLP', 'XLB', 'XLU', 'XLRE',
+            'VUG', 'VTV', 'VYM', 'IVW', 'IVE', 'SCHG', 'SCHV', 'BND', 'AGG',
+            'GLD', 'SLV', 'TLT', 'IEF', 'SHY', 'LQD', 'HYG', 'VGT', 'FTEC'
+        ]
+        
+        return symbol in etf_patterns
+    
+    def fetch_etf_details(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetch detailed ETF information from Polygon.io.
+        This supplements the basic ticker metadata with ETF-specific details.
+        
+        Args:
+            symbol: ETF ticker (e.g., 'SPY')
+            
+        Returns:
+            Dictionary with detailed ETF information or None
+        """
+        # Try to get ETF details from financials endpoint
+        endpoint = f"/vX/reference/tickers/{symbol}/financials"
+        
+        try:
+            response = self._make_api_request(endpoint)
+            
+            if response.get('status') == 'OK' and response.get('results'):
+                # Extract relevant financial data for ETFs
+                results = response['results']
+                if results:
+                    latest = results[0]  # Most recent financial data
+                    financials = latest.get('financials', {})
+                    balance_sheet = financials.get('balance_sheet', {})
+                    
+                    etf_details = {
+                        'net_assets': balance_sheet.get('net_assets', {}).get('value'),
+                        'total_assets': balance_sheet.get('assets', {}).get('value')
+                    }
+                    
+                    logger.debug(f"HISTORICAL-LOADER: Fetched ETF details for {symbol}")
+                    return etf_details
+            
+            logger.debug(f"HISTORICAL-LOADER: No detailed ETF data available for {symbol}")
+            return {}
+            
+        except Exception as e:
+            # ETF financials endpoint typically returns 404 - this is expected
+            if "404" in str(e) or "Not Found" in str(e):
+                logger.debug(f"HISTORICAL-LOADER: ETF financials not available for {symbol} (expected for ETFs)")
+            else:
+                logger.warning(f"HISTORICAL-LOADER: Failed to fetch ETF details for {symbol}: {e}")
+            return {}
+    
+    def get_sector_industry_from_sic(self, sic_code: Optional[str]) -> Tuple[str, str]:
+        """
+        Map SIC code to sector and industry using database configuration.
+        This replaces the hardcoded mapping from maint_get_stocks.py with database-driven approach.
+        
+        Args:
+            sic_code: SIC code from Polygon API
+            
+        Returns:
+            tuple: (sector, industry) strings
+        """
+        if not sic_code:
+            return "Unknown", "Unknown"
+        
+        try:
+            # First try exact SIC code mapping from cache_entries
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT value
+                    FROM cache_entries 
+                    WHERE type = 'cache_config' 
+                      AND name = 'sic_mapping' 
+                      AND key = %s
+                """, (str(sic_code),))
+                
+                result = cursor.fetchone()
+                if result:
+                    # Handle both string and dict values from database
+                    if isinstance(result[0], str):
+                        mapping_data = json.loads(result[0])
+                    else:
+                        mapping_data = result[0]
+                    return mapping_data["sector"], mapping_data["industry"]
+                
+                # If no exact match, try range-based fallback
+                sic_int = int(sic_code)
+                
+                # Get all range configurations
+                cursor.execute("""
+                    SELECT key, value
+                    FROM cache_entries 
+                    WHERE type = 'cache_config' 
+                      AND name = 'sic_ranges'
+                """)
+                
+                range_results = cursor.fetchall()
+                
+                for range_key, range_value in range_results:
+                    # Handle both string and dict values from database
+                    if isinstance(range_value, str):
+                        range_data = json.loads(range_value)
+                    else:
+                        range_data = range_value
+                    for range_rule in range_data.get("ranges", []):
+                        if range_rule["start"] <= sic_int <= range_rule["end"]:
+                            return range_rule["sector"], range_rule["industry"]
+                            
+        except (ValueError, TypeError, json.JSONDecodeError) as e:
+            logger.warning(f"HISTORICAL-LOADER: Error resolving SIC {sic_code}: {e}")
+        
+        return "Unknown", "Unknown"
+
+    def extract_country_from_address(self, address_data: Optional[Dict[str, Any]]) -> str:
+        """Extract country from address data, defaulting to US for US-based companies."""
+        if not address_data:
+            return "US"  # Default assumption for US market
+        
+        # Most US companies don't include country in address
+        state = address_data.get("state")
+        if state and len(state) == 2:  # US state codes are 2 characters
+            return "US"
+        
+        return address_data.get("country", "US")
     
     def ensure_symbol_exists(self, symbol: str) -> bool:
         """
@@ -192,11 +421,61 @@ class PolygonHistoricalLoader:
             logger.info(f"HISTORICAL-LOADER: Fetching/updating symbol metadata for {symbol}")
             metadata = self.fetch_symbol_metadata(symbol)
             
-            if not metadata:
-                # Create basic record if metadata fetch fails
+            # Enhanced metadata processing with SIC resolution
+            if metadata:
+                # Extract sector/industry from SIC code
+                sic_code = metadata.get("sic_code")
+                sector, industry = self.get_sector_industry_from_sic(sic_code)
+                
+                # Extract country from address
+                address_data = metadata.get("address", {})
+                country = self.extract_country_from_address(address_data)
+                
+                # Parse list_date if available
+                list_date = None
+                if metadata.get("list_date"):
+                    try:
+                        list_date = datetime.strptime(metadata.get("list_date"), "%Y-%m-%d").date()
+                    except ValueError:
+                        logger.warning(f"HISTORICAL-LOADER: Invalid list_date format for {symbol}: {metadata.get('list_date')}")
+                
+                # Add new fields to metadata
+                metadata.update({
+                    'sic_code': sic_code,
+                    'sic_description': metadata.get('sic_description'),
+                    'sector': sector,
+                    'industry': industry,
+                    'country': country,
+                    'total_employees': metadata.get('total_employees'),
+                    'list_date': list_date
+                })
+                
+                # Ensure all ETF fields are present with None defaults for non-ETF symbols
+                if not (metadata.get('type') == 'ETF' or self._is_etf_symbol(symbol)):
+                    etf_defaults = {
+                        'etf_type': None,
+                        'aum_millions': None,
+                        'expense_ratio': None,
+                        'fmv_supported': None,
+                        'inception_date': None,
+                        'issuer': '',
+                        'correlation_reference': '',
+                        'underlying_index': '',
+                        'creation_unit_size': None,
+                        'dividend_frequency': '',
+                        'primary_exchange': metadata.get('primary_exchange', '')
+                    }
+                    # Only add fields that aren't already present
+                    for key, value in etf_defaults.items():
+                        if key not in metadata:
+                            metadata[key] = value
+                
+                logger.info(f"HISTORICAL-LOADER: Enhanced {symbol} with sector: {sector}, industry: {industry}")
+            else:
+                # Default metadata includes new fields
                 metadata = {
                     'symbol': symbol,
-                    'name': '',
+                    'name': f'Unknown Company ({symbol})',
                     'market': 'stocks',
                     'locale': 'us',
                     'currency_name': 'USD',
@@ -208,10 +487,28 @@ class PolygonHistoricalLoader:
                     'share_class_figi': None,
                     'market_cap': None,
                     'weighted_shares_outstanding': None,
+                    'etf_type': None,
+                    'aum_millions': None,
+                    'expense_ratio': None,
+                    'fmv_supported': None,
+                    'inception_date': None,
+                    'issuer': '',
+                    'correlation_reference': '',
+                    'underlying_index': '',
+                    'creation_unit_size': None,
+                    'dividend_frequency': '',
                     'exchange': '',
-                    'last_updated_utc': datetime.utcnow()
+                    'primary_exchange': '',
+                    'last_updated_utc': datetime.utcnow(),
+                    'sic_code': None,
+                    'sic_description': None,
+                    'sector': 'Unknown',
+                    'industry': 'Unknown',
+                    'country': 'US',
+                    'total_employees': None,
+                    'list_date': None
                 }
-                logger.warning(f"HISTORICAL-LOADER: Using default metadata for {symbol}")
+                logger.warning(f"HISTORICAL-LOADER: Using enhanced default metadata for {symbol}")
             
             # Upsert symbol record (insert or update)
             with self.conn.cursor() as cursor:
@@ -220,13 +517,23 @@ class PolygonHistoricalLoader:
                     symbol, name, exchange, market, locale, currency_name, 
                     currency_symbol, type, active, cik, composite_figi, 
                     share_class_figi, market_cap, weighted_shares_outstanding, 
-                    last_updated_utc, last_updated
+                    last_updated_utc, last_updated,
+                    etf_type, aum_millions, expense_ratio, fmv_supported, 
+                    inception_date, primary_exchange, issuer, correlation_reference, 
+                    underlying_index, creation_unit_size, dividend_frequency,
+                    sic_code, sic_description, sector, industry, country, 
+                    total_employees, list_date, sic_updated_at
                 ) VALUES (
                     %(symbol)s, %(name)s, %(exchange)s, %(market)s, %(locale)s, 
                     %(currency_name)s, %(currency_symbol)s, %(type)s, %(active)s, 
                     %(cik)s, %(composite_figi)s, %(share_class_figi)s, 
                     %(market_cap)s, %(weighted_shares_outstanding)s, 
-                    %(last_updated_utc)s, CURRENT_TIMESTAMP
+                    %(last_updated_utc)s, CURRENT_TIMESTAMP,
+                    %(etf_type)s, %(aum_millions)s, %(expense_ratio)s, %(fmv_supported)s,
+                    %(inception_date)s, %(primary_exchange)s, %(issuer)s, %(correlation_reference)s,
+                    %(underlying_index)s, %(creation_unit_size)s, %(dividend_frequency)s,
+                    %(sic_code)s, %(sic_description)s, %(sector)s, %(industry)s, %(country)s,
+                    %(total_employees)s, %(list_date)s, CURRENT_TIMESTAMP
                 ) ON CONFLICT (symbol) DO UPDATE SET
                     name = EXCLUDED.name,
                     exchange = EXCLUDED.exchange,
@@ -242,7 +549,26 @@ class PolygonHistoricalLoader:
                     market_cap = EXCLUDED.market_cap,
                     weighted_shares_outstanding = EXCLUDED.weighted_shares_outstanding,
                     last_updated_utc = EXCLUDED.last_updated_utc,
-                    last_updated = CURRENT_TIMESTAMP
+                    last_updated = CURRENT_TIMESTAMP,
+                    etf_type = EXCLUDED.etf_type,
+                    aum_millions = EXCLUDED.aum_millions,
+                    expense_ratio = EXCLUDED.expense_ratio,
+                    fmv_supported = EXCLUDED.fmv_supported,
+                    inception_date = EXCLUDED.inception_date,
+                    primary_exchange = EXCLUDED.primary_exchange,
+                    issuer = EXCLUDED.issuer,
+                    correlation_reference = EXCLUDED.correlation_reference,
+                    underlying_index = EXCLUDED.underlying_index,
+                    creation_unit_size = EXCLUDED.creation_unit_size,
+                    dividend_frequency = EXCLUDED.dividend_frequency,
+                    sic_code = EXCLUDED.sic_code,
+                    sic_description = EXCLUDED.sic_description,
+                    sector = EXCLUDED.sector,
+                    industry = EXCLUDED.industry,
+                    country = EXCLUDED.country,
+                    total_employees = EXCLUDED.total_employees,
+                    list_date = EXCLUDED.list_date,
+                    sic_updated_at = CURRENT_TIMESTAMP
                 """
                 
                 cursor.execute(insert_sql, metadata)
@@ -462,26 +788,91 @@ class PolygonHistoricalLoader:
         Load symbols from cache_entries table.
         
         Args:
-            universe_key: Cache key (e.g., 'top_50')
+            universe_key: Cache key (e.g., 'top_50', 'mega_cap', 'all_stocks')
             
         Returns:
             List of ticker symbols
         """
         self._connect_db()
         
-        query = """
-        SELECT value FROM cache_entries 
-        WHERE type = 'stock_universe' AND key = %s
-        """
+        # Build query based on universe type
+        if universe_key.startswith('top_10_') and universe_key != 'top_10_stocks':
+            # Sector leaders format (top_10_technology, top_10_healthcare, etc.)
+            query = """
+            SELECT value FROM cache_entries 
+            WHERE type = 'stock_universe' 
+              AND name = 'sector_leaders'
+              AND key = %s
+            """
+        elif universe_key in ['mega_cap', 'large_cap', 'mid_cap', 'small_cap', 'micro_cap']:
+            # Market cap categories
+            query = """
+            SELECT value FROM cache_entries 
+            WHERE type = 'stock_universe' 
+              AND name = 'market_cap'
+              AND key = %s
+            """
+        elif universe_key in ['ai', 'cloud', 'ev', 'fintech', 'semi', 'quantum', 'space']:
+            # Theme categories
+            query = """
+            SELECT value FROM cache_entries 
+            WHERE type = 'stock_universe' 
+              AND name = 'themes'
+              AND key = %s
+            """
+        elif universe_key == 'all_stocks':
+            # Complete universe (simple ticker array)
+            query = """
+            SELECT value FROM cache_entries 
+            WHERE type = 'stock_universe' 
+              AND name = 'complete'
+              AND key = 'all_stocks'
+            """
+        else:
+            # Default: market leaders format
+            query = """
+            SELECT value FROM cache_entries 
+            WHERE type = 'stock_universe' 
+              AND (
+                (name = 'market_leaders' AND key = %s) OR
+                (name = 'complete' AND key = %s)
+              )
+            LIMIT 1
+            """
         
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(query, (universe_key,))
+                # Execute query based on parameter count
+                if universe_key == 'all_stocks':
+                    cursor.execute(query)  # No parameters for all_stocks
+                elif 'LIMIT 1' in query:
+                    # Query needs two parameters (for market_leaders fallback)
+                    cursor.execute(query, (universe_key, universe_key))
+                else:
+                    # Single parameter queries
+                    cursor.execute(query, (universe_key,))
+                    
                 result = cursor.fetchone()
                 
                 if result and result['value']:
-                    stocks = result['value'].get('stocks', [])
-                    symbols = [stock['ticker'] for stock in stocks]
+                    # Handle different value formats
+                    value = result['value']
+                    
+                    # Check if it's already a list (themes, all_stocks)
+                    if isinstance(value, list):
+                        symbols = value
+                    # Check if it has 'stocks' key (market leaders, sectors, market cap)
+                    elif isinstance(value, dict) and 'stocks' in value:
+                        stocks = value.get('stocks', [])
+                        symbols = [stock['ticker'] for stock in stocks]
+                    # Check if it has 'etfs' key (ETF universes)
+                    elif isinstance(value, dict) and 'etfs' in value:
+                        etfs = value.get('etfs', [])
+                        symbols = [etf['ticker'] for etf in etfs]
+                    else:
+                        logger.warning(f"HISTORICAL-LOADER: Unknown value format for {universe_key}")
+                        return []
+                    
                     logger.info(f"HISTORICAL-LOADER: Loaded {len(symbols)} symbols from {universe_key}")
                     return symbols
                 else:
@@ -492,20 +883,131 @@ class PolygonHistoricalLoader:
             logger.error(f"HISTORICAL-LOADER: Failed to load symbols: {e}")
             return []
     
-    def load_historical_data(self, symbols: List[str], years: int = 1, 
-                           timespan: str = 'day', multiplier: int = 1):
+    def create_etf_universes(self):
+        """
+        Create initial ETF universe entries in cache_entries table.
+        This sets up the ETF themes mentioned in Sprint 14.
+        """
+        self._connect_db()
+        
+        # Popular ETFs for different themes
+        etf_universes = {
+            'etf_growth': {
+                'name': 'Growth ETFs',
+                'description': 'Popular growth-focused ETFs',
+                'etfs': [
+                    {'ticker': 'VUG', 'name': 'Vanguard Growth ETF'},
+                    {'ticker': 'IVW', 'name': 'iShares Core S&P U.S. Growth ETF'},
+                    {'ticker': 'SCHG', 'name': 'Schwab U.S. Large-Cap Growth ETF'},
+                    {'ticker': 'QQQ', 'name': 'Invesco QQQ Trust ETF'},
+                    {'ticker': 'VGT', 'name': 'Vanguard Information Technology ETF'},
+                    {'ticker': 'XLK', 'name': 'Technology Select Sector SPDR Fund'},
+                    {'ticker': 'ARKK', 'name': 'ARK Innovation ETF'},
+                    {'ticker': 'TQQQ', 'name': 'ProShares UltraPro QQQ'},
+                    {'ticker': 'IGV', 'name': 'iShares Expanded Tech-Software Sector ETF'},
+                    {'ticker': 'FTEC', 'name': 'Fidelity MSCI Information Technology Index ETF'}
+                ]
+            },
+            'etf_sectors': {
+                'name': 'Sector ETFs', 
+                'description': 'Major sector-focused ETFs',
+                'etfs': [
+                    {'ticker': 'XLF', 'name': 'Financial Select Sector SPDR Fund'},
+                    {'ticker': 'XLE', 'name': 'Energy Select Sector SPDR Fund'},
+                    {'ticker': 'XLV', 'name': 'Health Care Select Sector SPDR Fund'},
+                    {'ticker': 'XLI', 'name': 'Industrial Select Sector SPDR Fund'},
+                    {'ticker': 'XLU', 'name': 'Utilities Select Sector SPDR Fund'},
+                    {'ticker': 'XLB', 'name': 'Materials Select Sector SPDR Fund'},
+                    {'ticker': 'XLRE', 'name': 'Real Estate Select Sector SPDR Fund'},
+                    {'ticker': 'XLP', 'name': 'Consumer Staples Select Sector SPDR Fund'},
+                    {'ticker': 'XLY', 'name': 'Consumer Discretionary Select Sector SPDR Fund'},
+                    {'ticker': 'XLC', 'name': 'Communication Services Select Sector SPDR Fund'}
+                ]
+            },
+            'etf_value': {
+                'name': 'Value ETFs',
+                'description': 'Value-focused ETFs',
+                'etfs': [
+                    {'ticker': 'VTV', 'name': 'Vanguard Value ETF'},
+                    {'ticker': 'IVE', 'name': 'iShares Core S&P U.S. Value ETF'},
+                    {'ticker': 'SCHV', 'name': 'Schwab U.S. Large-Cap Value ETF'},
+                    {'ticker': 'VYM', 'name': 'Vanguard High Dividend Yield ETF'},
+                    {'ticker': 'DVY', 'name': 'iShares Select Dividend ETF'},
+                    {'ticker': 'SPHD', 'name': 'Invesco S&P 500 High Dividend Low Volatility ETF'},
+                    {'ticker': 'IWD', 'name': 'iShares Russell 1000 Value ETF'},
+                    {'ticker': 'VOOV', 'name': 'Vanguard S&P 500 Value ETF'},
+                    {'ticker': 'DGRW', 'name': 'WisdomTree US Quality Dividend Growth Fund'},
+                    {'ticker': 'USMV', 'name': 'iShares MSCI USA Min Vol Factor ETF'}
+                ]
+            },
+            'etf_broad_market': {
+                'name': 'Broad Market ETFs',
+                'description': 'Major broad market ETFs',
+                'etfs': [
+                    {'ticker': 'SPY', 'name': 'SPDR S&P 500 ETF Trust'},
+                    {'ticker': 'VOO', 'name': 'Vanguard S&P 500 ETF'},
+                    {'ticker': 'IVV', 'name': 'iShares Core S&P 500 ETF'},
+                    {'ticker': 'VTI', 'name': 'Vanguard Total Stock Market ETF'},
+                    {'ticker': 'ITOT', 'name': 'iShares Core S&P Total U.S. Stock Market ETF'},
+                    {'ticker': 'IWM', 'name': 'iShares Russell 2000 ETF'},
+                    {'ticker': 'IWN', 'name': 'iShares Russell 2000 Value ETF'},
+                    {'ticker': 'IWO', 'name': 'iShares Russell 2000 Growth ETF'},
+                    {'ticker': 'DIA', 'name': 'SPDR Dow Jones Industrial Average ETF Trust'},
+                    {'ticker': 'MDY', 'name': 'SPDR S&P MidCap 400 ETF Trust'}
+                ]
+            }
+        }
+        
+        try:
+            with self.conn.cursor() as cursor:
+                for universe_key, universe_data in etf_universes.items():
+                    insert_sql = """
+                    INSERT INTO cache_entries (type, name, key, value, environment, created_at, updated_at)
+                    VALUES ('etf_universe', %s, %s, %s, 'DEFAULT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    ON CONFLICT (type, name, key, environment) DO UPDATE SET
+                        value = EXCLUDED.value,
+                        updated_at = CURRENT_TIMESTAMP
+                    """
+                    
+                    cursor.execute(insert_sql, (universe_data['name'], universe_key, json.dumps(universe_data)))
+                    logger.info(f"HISTORICAL-LOADER: Created/updated ETF universe {universe_key} with {len(universe_data['etfs'])} ETFs")
+                
+                self.conn.commit()
+                logger.info("HISTORICAL-LOADER: ETF universe creation completed")
+                
+        except Exception as e:
+            logger.error(f"HISTORICAL-LOADER: Failed to create ETF universes: {e}")
+            if self.conn:
+                self.conn.rollback()
+            raise
+    
+    def load_historical_data(self, symbols: List[str], years: int = 1, months: int = None,
+                           timespan: str = 'day', multiplier: int = 1, dev_mode: bool = False):
         """
         Load historical data for multiple symbols.
+        Enhanced with ETF support and development mode optimizations.
         
         Args:
-            symbols: List of ticker symbols
+            symbols: List of ticker symbols (stocks and ETFs)
             years: Number of years of historical data to load
+            months: Number of months to load (overrides years, for dev subsets)
             timespan: 'day' or 'minute'
             multiplier: Time multiplier
+            dev_mode: Enable development optimizations
         """
-        # Calculate date range
+        # Calculate date range - support months for development subsets
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=int(years * 365))
+        if months:
+            start_date = end_date - timedelta(days=int(months * 30))
+            logger.info(f"HISTORICAL-LOADER: Loading {months} months of data (development mode)")
+        else:
+            start_date = end_date - timedelta(days=int(years * 365))
+            logger.info(f"HISTORICAL-LOADER: Loading {years} years of data")
+        
+        # Development mode optimizations
+        if dev_mode:
+            self.rate_limit_delay = 6  # Faster for dev (10 calls/minute)
+            logger.info("HISTORICAL-LOADER: Development mode enabled - reduced rate limiting")
         
         start_str = start_date.strftime('%Y-%m-%d')
         end_str = end_date.strftime('%Y-%m-%d')
@@ -628,8 +1130,10 @@ def main():
         loader.load_historical_data(
             symbols=symbols,
             years=args.years,
+            months=args.months,
             timespan=args.timespan,
-            multiplier=args.multiplier
+            multiplier=args.multiplier,
+            dev_mode=args.dev_mode
         )
         
         # Show final summary
