@@ -7,6 +7,23 @@
 
 ## 📋 Sprint Completion Summary
 
+### Sprint 15: Front-End UI Admin Menu ✅
+**Status**: COMPLETED  
+**Dates**: September 2, 2025  
+**Key Accomplishments**:
+- **Admin Dropdown Menu**: Role-based menu visible only for admin/super users
+- **Theme Support**: Full light/dark theme implementation for admin pages
+- **Base Admin Template**: Reusable template with consistent styling
+- **Security**: Server-side role validation with client-side visibility control
+
+**Deliverables**:
+- Enhanced `web/templates/dashboard/index.html` with admin dropdown
+- New `web/templates/admin/base_admin.html` template
+- CSS styling in `web/static/css/components/user-menu.css`
+- Comprehensive test suite in `tests/sprint15/test_admin_menu.py`
+
+---
+
 ### Sprint 14: Data Load & Maintenance Automation ✅
 **Status**: COMPLETED (4 phases)  
 **Dates**: August 31 - September 2, 2025  
@@ -92,6 +109,7 @@ Each sprint folder contains:
 - Test results
 
 ### Navigation
+- **Sprint 15**: `sprint_history/sprint15/` - Admin menu UI
 - **Sprint 14**: `sprint_history/sprint14/` - Data automation (4 phases)
 - **Sprint 13**: `sprint_history/sprint13/` - User stories
 - **Sprint 12**: `sprint_history/sprint12/` - Frontend implementation
@@ -123,6 +141,8 @@ Sprint 12: Frontend Implementation (UI/UX)
 Sprint 13: User Stories (Requirements)
     ↓
 Sprint 14: Data Automation (Infrastructure)
+    ↓
+Sprint 15: Admin Menu UI (Navigation)
     ↓
 Next: Pattern Detection & Advanced Analytics
 ```
