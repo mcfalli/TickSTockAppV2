@@ -272,6 +272,17 @@ Every development task MUST follow this workflow:
 - **Architecture documentation modifications**
 - **Sprint documentation updates**
 
+#### Security-Sensitive Operations (code-security-specialist + architecture-validation-specialist)
+- **Authentication & Authorization**: User session management, WebSocket authentication, API token validation
+- **Input Handling**: Frontend forms, WebSocket message processing, API endpoint parameters, URL parameters
+- **Data Protection**: Database credential management, API key handling, sensitive data exposure prevention
+- **WebSocket Security**: Real-time connection security, message validation, origin checking, user authorization
+- **API Security**: Polygon.io integration, REST endpoint security, rate limiting, secure HTTP practices
+- **Frontend Security**: XSS prevention, CSRF protection, DOM manipulation, client-side validation
+- **Redis Security**: TickStockPL integration security, pub-sub authentication, message encryption
+- **Configuration Security**: Environment variables, Flask security settings, database connection security
+- **Dependency Security**: Python package updates, JavaScript library changes, security patch integration
+
 ### Implementation Agents
 
 #### `appv2-integration-specialist`
@@ -308,6 +319,14 @@ Every development task MUST follow this workflow:
 **Expertise**: Message delivery performance, system resilience, loose coupling validation  
 **Key Focus**: <100ms message delivery, role boundary enforcement, system health validation
 
+#### `code-security-specialist`
+**Domain**: Security analysis for TickStockAppV2 real-time market data system  
+**MANDATORY Usage**: AUTOMATICALLY triggered for ALL security-sensitive code changes  
+**Auto-Triggers**: WebSocket implementations, API endpoints, authentication logic, database queries, Redis integration, frontend user input handling, credential management  
+**Expertise**: Financial system security, WebSocket security, API protection, frontend XSS/CSRF prevention, secret detection, dependency vulnerability scanning  
+**Key Focus**: Performance-aware security (<100ms maintained), financial data protection, zero secret exposure, secure real-time communication  
+**Quality Gate**: No security-sensitive feature/fix is complete without comprehensive security analysis
+
 ### Architecture & Documentation Agents
 
 #### `documentation-sync-specialist`
@@ -332,12 +351,14 @@ Every development task MUST follow this workflow:
 - **`tickstock-test-specialist`** → `integration-testing-specialist` (for Redis/cross-system testing)
 - **`appv2-integration-specialist`** → `database-query-specialist` (for UI data requirements)
 - **`redis-integration-specialist`** → `integration-testing-specialist` (for message flow validation)
+- **`code-security-specialist`** → `tickstock-test-specialist` (for security test integration)
 - **ANY agent** → `documentation-sync-specialist` (if documentation changes)
 
 #### Multi-Agent Requirements
-**Core Processing Changes**: `architecture-validation-specialist` + `tickstock-test-specialist` + `integration-testing-specialist`  
-**UI/Database Work**: `appv2-integration-specialist` + `database-query-specialist` + `architecture-validation-specialist`  
-**Redis/Integration**: `redis-integration-specialist` + `integration-testing-specialist` + `architecture-validation-specialist`
+**Core Processing Changes**: `architecture-validation-specialist` + `tickstock-test-specialist` + `integration-testing-specialist` + `code-security-specialist`  
+**UI/Database Work**: `appv2-integration-specialist` + `database-query-specialist` + `architecture-validation-specialist` + `code-security-specialist`  
+**Redis/Integration**: `redis-integration-specialist` + `integration-testing-specialist` + `architecture-validation-specialist` + `code-security-specialist`  
+**Security-Sensitive Changes**: `code-security-specialist` + `architecture-validation-specialist` + `tickstock-test-specialist`
 
 ### Development Phase Gates (MANDATORY CHECKPOINTS)
 
@@ -354,7 +375,8 @@ Every development task MUST follow this workflow:
 #### Phase 3: Quality Assurance (REQUIRED)
 1. `tickstock-test-specialist` - Comprehensive test generation (MANDATORY)
 2. `integration-testing-specialist` - Cross-system validation (MANDATORY)
-3. Performance validation against targets (<100ms, <50ms)
+3. `code-security-specialist` - Security analysis for security-sensitive changes (MANDATORY)
+4. Performance validation against targets (<100ms, <50ms)
 
 #### Phase 4: Documentation & Finalization (REQUIRED)
 1. `documentation-sync-specialist` - Update all documentation
@@ -367,7 +389,8 @@ Every development task MUST follow this workflow:
 - **Performance Targets**: <100ms WebSocket delivery, <50ms database queries
 - **Role Boundaries**: TickStockApp (Consumer) vs TickStockPL (Producer) separation
 - **Architecture Patterns**: Pull Model, Redis pub-sub loose coupling, zero event loss
-- **Quality Standards**: Comprehensive testing, documentation consistency
+- **Security Standards**: Zero secret exposure, WebSocket authentication, secure real-time communication
+- **Quality Standards**: Comprehensive testing, security analysis, documentation consistency
 
 #### Agent Coordination Protocol
 - All agents reference consolidated documentation (`project-overview.md`, `system-architecture.md`)

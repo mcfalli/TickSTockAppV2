@@ -14,6 +14,7 @@
 
 - [`sprint14-execution-testing-guide.md`](sprint14-execution-testing-guide.md) - Complete execution and testing guide for Sprint 14 data infrastructure automation
 - [`advanced-features-implementation-guide.md`](advanced-features-implementation-guide.md) - Advanced feature development patterns and best practices
+- [`sprint16-agent-usage-guide.md`](sprint16-agent-usage-guide.md) - Sprint 16 grid modernization agent workflow and implementation patterns
 
 ## UI Development
 
@@ -29,6 +30,7 @@
 
 **Working on Sprint implementations?**
 - Follow [`sprint14-execution-testing-guide.md`](sprint14-execution-testing-guide.md) for comprehensive deployment procedures
+- Use [`sprint16-agent-usage-guide.md`](sprint16-agent-usage-guide.md) for grid modernization patterns
 - Use [`advanced-features-implementation-guide.md`](advanced-features-implementation-guide.md) for advanced feature patterns
 
 **Working on technical debt?**

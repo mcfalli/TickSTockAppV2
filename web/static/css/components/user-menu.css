@@ -458,7 +458,8 @@ ADMIN MENU DROPDOWN - SPRINT 15
 }
 
 /* Show admin dropdown when active */
-.admin-dropdown-content[style*="display: block"] {
+.admin-dropdown-content.show {
+  display: block !important;
   opacity: 1;
   transform: translateY(0);
 }

@@ -1,19 +1,29 @@
 // frontend/js/app-gridstack.js - Post Webclean Version
+// Sprint 16: Enhanced with 2x4 layout support for 6 containers
 class GridStackManager {
     constructor() {
         this.grid = null;
         this.layoutLoaded = false;
         this.isInitializing = false;
         
+        // Calculate optimal cell height based on viewport
+        const viewportHeight = window.innerHeight;
+        const navbarHeight = 60; // Approximate navbar height
+        const statusBarHeight = 40; // Status bar height
+        const containerPadding = 20; // Container padding
+        const availableHeight = viewportHeight - navbarHeight - statusBarHeight - containerPadding;
+        const optimalCellHeight = Math.floor(availableHeight / 10); // 10 rows total for flexibility
+        
         this.defaultOptions = {
             column: 12,
-            cellHeight: 70,
-            margin: 10,
+            cellHeight: optimalCellHeight || 60, // Dynamic cell height based on viewport
+            margin: 5, // Reduced margin for better space utilization
             float: true,
             animate: true,
             disableResize: false,
             disableDrag: true, // Start locked by default
-            resizable: { handles: 'se' }
+            resizable: { handles: 'se' },
+            minRow: 10 // Ensure minimum 10 rows for proper layout
         };
         
         // Debug mode can be enabled via console: window.gridManager.debug = true
@@ -46,9 +56,11 @@ class GridStackManager {
         this.setupControls();
         this.setupResponsive();
         
-        // Wait for placeholder to be ready
+        // Wait for containers to be ready
         this.waitForReady().then(() => {
-            this.log('Placeholder container ready');
+            this.log('Grid containers ready');
+            // Load saved layout or apply default layout
+            this.loadLayout();
             this.isInitializing = false;
         });
     }
@@ -57,13 +69,28 @@ class GridStackManager {
         return new Promise((resolve) => {
             const checkReady = () => {
                 const gridReady = this.grid && this.grid.engine;
+                
+                // Check for key containers that should be present
+                const requiredContainers = ['watchlist', 'market-summary', 'charts', 'alerts', 'market-movers', 'placeholder'];
+                const presentContainers = requiredContainers.filter(id => 
+                    document.querySelector(`#grid-container .grid-stack-item[data-gs-id="${id}"]`)
+                );
+                
+                // Allow initialization if grid is ready and at least placeholder exists
                 const placeholderReady = document.querySelector('#grid-container .grid-stack-item[data-gs-id="placeholder"]');
                 
                 if (gridReady && placeholderReady) {
-                    this.log('Placeholder component ready');
+                    this.log('Grid components ready', { 
+                        present: presentContainers.length, 
+                        total: requiredContainers.length 
+                    });
                     resolve();
                 } else {
-                    this.log('Waiting for placeholder...', { gridReady, placeholderReady: !!placeholderReady });
+                    this.log('Waiting for grid containers...', { 
+                        gridReady, 
+                        placeholderReady: !!placeholderReady,
+                        presentContainers: presentContainers.length
+                    });
                     setTimeout(checkReady, 100);
                 }
             };
@@ -72,9 +99,56 @@ class GridStackManager {
     }
 
     getDefaultLayout() {
-        // Single placeholder layout
+        // Sprint 16: 2 columns x 4 rows layout to fill available space
+        // Total height of 10 units to properly fill viewport
         return [
-            {id: 'placeholder', x: 0, y: 0, w: 12, h: 6, minW: 4, minH: 3}
+            // Row 1: watchlist (left) | market-summary (right)
+            {
+                id: 'watchlist', 
+                x: 0, y: 0, 
+                w: 6, h: 2.5, 
+                minW: 4, minH: 2, 
+                maxW: 8, maxH: 4
+            },
+            {
+                id: 'market-summary', 
+                x: 6, y: 0, 
+                w: 6, h: 2.5, 
+                minW: 4, minH: 2, 
+                maxW: 8, maxH: 4
+            },
+            
+            // Row 2: charts (left, wider) | alerts (right)
+            {
+                id: 'charts', 
+                x: 0, y: 2.5, 
+                w: 8, h: 2.5, 
+                minW: 6, minH: 2, 
+                maxW: 10, maxH: 4
+            },
+            {
+                id: 'alerts', 
+                x: 8, y: 2.5, 
+                w: 4, h: 2.5, 
+                minW: 3, minH: 2, 
+                maxW: 6, maxH: 4
+            },
+            
+            // Row 3-4: market-movers (left) | placeholder (right)
+            {
+                id: 'market-movers', 
+                x: 0, y: 5, 
+                w: 6, h: 5, 
+                minW: 4, minH: 3, 
+                maxW: 8, maxH: 6
+            },
+            {
+                id: 'placeholder', 
+                x: 6, y: 5, 
+                w: 6, h: 5, 
+                minW: 4, minH: 3, 
+                maxW: 8, maxH: 6
+            }
         ];
     }
 
@@ -303,23 +377,58 @@ class GridStackManager {
             const editBtn = document.getElementById('grid-edit-btn');
             
             if (window.innerWidth <= 768) {
+                // Mobile: Stack containers vertically by adjusting layout
                 this.grid.disable();
                 this.grid.opts.disableResize = true;
                 if (editBtn) {
                     editBtn.style.display = 'none';
                 }
+                
+                // Apply mobile-optimized layout if in mobile view
+                this.applyMobileLayout();
             } else {
+                // Desktop: Enable full grid functionality
                 if (editBtn) {
                     editBtn.style.display = '';
                 }
                 if (!document.querySelector('.grid-stack').classList.contains('grid-edit-mode')) {
                     this.grid.disable();
                 }
+                
+                // Restore desktop layout if switching from mobile
+                this.restoreDesktopLayout();
             }
         };
         
         window.addEventListener('resize', checkMobile);
         checkMobile();
+    }
+    
+    applyMobileLayout() {
+        // Mobile layout: Stack all containers vertically with full width
+        const mobileLayout = [
+            {id: 'watchlist', x: 0, y: 0, w: 12, h: 3, minW: 12, minH: 2},
+            {id: 'market-summary', x: 0, y: 3, w: 12, h: 3, minW: 12, minH: 2},
+            {id: 'charts', x: 0, y: 6, w: 12, h: 4, minW: 12, minH: 3},
+            {id: 'alerts', x: 0, y: 10, w: 12, h: 3, minW: 12, minH: 2},
+            {id: 'market-movers', x: 0, y: 13, w: 12, h: 3, minW: 12, minH: 2},
+            {id: 'placeholder', x: 0, y: 16, w: 12, h: 3, minW: 12, minH: 2}
+        ];
+        
+        if (this.grid && !this.isInitializing) {
+            this.applyLayout(mobileLayout);
+        }
+    }
+    
+    restoreDesktopLayout() {
+        // Only restore if currently in a mobile layout (all containers at width 12)
+        const currentLayout = this.getCurrentLayout();
+        const isMobileLayout = currentLayout.every(item => item.w === 12);
+        
+        if (this.grid && !this.isInitializing && isMobileLayout) {
+            // Try to load saved layout, fallback to default
+            this.loadLayout();
+        }
     }
 
     // Public method to get current layout

@@ -712,3 +712,159 @@ def register_api_routes(app, extensions, cache_control, config):
                 "error": str(e)
             }), 500
 
+    # Market Movers API Endpoint - TickStockApp Consumer Pattern
+    @app.route('/api/market-movers', methods=['GET'])
+    @login_required
+    def api_get_market_movers():
+        """
+        Get market movers data following TickStockApp consumer pattern.
+        
+        Consumer Pattern Implementation:
+        1. Check cache for existing market movers data
+        2. If cache miss or stale data, return cached data but trigger TickStockPL refresh job via Redis
+        3. TickStockPL will process and publish updated data back via Redis events
+        4. Real-time updates delivered to frontend via WebSocket
+        
+        Performance Target: <50ms query response time
+        """
+        try:
+            start_time = datetime.now(timezone.utc)
+            
+            # Phase 1: Mock implementation with consumer-ready structure
+            # TODO Sprint 10 Phase 2: Replace with Redis cache lookup and TickStockPL job triggering
+            
+            # Generate realistic mock market movers data
+            mock_market_movers = generate_market_movers_mock_data()
+            
+            # Track performance
+            processing_time_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+            if processing_time_ms > 50:
+                logger.warning("Market movers query exceeded target: %.2fms", processing_time_ms)
+            
+            logger.debug("Market movers API: %d gainers, %d losers - %.2fms", 
+                        len(mock_market_movers.get('gainers', [])),
+                        len(mock_market_movers.get('losers', [])),
+                        processing_time_ms)
+            
+            return jsonify({
+                "success": True,
+                "data": mock_market_movers,
+                "cache_status": "mock",  # Will be "hit", "miss", or "stale" in Phase 2
+                "last_updated": datetime.now(timezone.utc).isoformat() + "Z",
+                "processing_time_ms": round(processing_time_ms, 2),
+                "data_source": "mock"  # Will be "cache" or "realtime" in Phase 2
+            })
+            
+        except Exception as e:
+            logger.error("Error getting market movers: %s", str(e))
+            return jsonify({
+                "success": False,
+                "error": str(e),
+                "data": {"gainers": [], "losers": []},  # Empty data for graceful degradation
+                "cache_status": "error"
+            }), 500
+
+def generate_market_movers_mock_data():
+    """
+    Generate realistic mock market movers data.
+    
+    Returns market movers in the format expected by frontend:
+    - Top 10 gainers and losers
+    - Realistic price movements and volume data
+    - Consistent with existing symbols in database
+    """
+    import random
+    from datetime import datetime, timezone
+    
+    # Common stock symbols with realistic base prices
+    symbols_data = [
+        {"symbol": "AAPL", "name": "Apple Inc.", "base_price": 150.00},
+        {"symbol": "GOOGL", "name": "Alphabet Inc.", "base_price": 2500.00},
+        {"symbol": "MSFT", "name": "Microsoft Corporation", "base_price": 300.00},
+        {"symbol": "TSLA", "name": "Tesla Inc.", "base_price": 200.00},
+        {"symbol": "AMZN", "name": "Amazon.com Inc.", "base_price": 3000.00},
+        {"symbol": "NVDA", "name": "NVIDIA Corporation", "base_price": 400.00},
+        {"symbol": "META", "name": "Meta Platforms Inc.", "base_price": 250.00},
+        {"symbol": "NFLX", "name": "Netflix Inc.", "base_price": 400.00},
+        {"symbol": "AMD", "name": "Advanced Micro Devices", "base_price": 80.00},
+        {"symbol": "INTC", "name": "Intel Corporation", "base_price": 45.00},
+        {"symbol": "CRM", "name": "Salesforce Inc.", "base_price": 180.00},
+        {"symbol": "ADBE", "name": "Adobe Inc.", "base_price": 350.00},
+        {"symbol": "PYPL", "name": "PayPal Holdings Inc.", "base_price": 90.00},
+        {"symbol": "UBER", "name": "Uber Technologies Inc.", "base_price": 55.00},
+        {"symbol": "SPOT", "name": "Spotify Technology SA", "base_price": 120.00},
+        {"symbol": "ZM", "name": "Zoom Video Communications", "base_price": 75.00},
+        {"symbol": "SQ", "name": "Block Inc.", "base_price": 65.00},
+        {"symbol": "ROKU", "name": "Roku Inc.", "base_price": 40.00},
+        {"symbol": "TWTR", "name": "Twitter Inc.", "base_price": 35.00},
+        {"symbol": "SNAP", "name": "Snap Inc.", "base_price": 25.00}
+    ]
+    
+    # Shuffle for randomness
+    random.shuffle(symbols_data)
+    
+    # Generate gainers (positive changes)
+    gainers = []
+    for i in range(10):
+        symbol_data = symbols_data[i]
+        base_price = symbol_data["base_price"]
+        
+        # Generate positive change (1% to 15%)
+        change_percent = random.uniform(1.0, 15.0)
+        price_change = base_price * (change_percent / 100)
+        current_price = base_price + price_change
+        
+        # Generate realistic volume
+        volume = random.randint(100000, 5000000)
+        
+        gainers.append({
+            "symbol": symbol_data["symbol"],
+            "name": symbol_data["name"],
+            "price": round(current_price, 2),
+            "change": round(price_change, 2),
+            "change_percent": round(change_percent, 2),
+            "volume": volume,
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z"
+        })
+    
+    # Generate losers (negative changes)
+    losers = []
+    for i in range(10, 20):  # Next 10 symbols
+        symbol_data = symbols_data[i]
+        base_price = symbol_data["base_price"]
+        
+        # Generate negative change (-1% to -12%)
+        change_percent = random.uniform(-12.0, -1.0)
+        price_change = base_price * (change_percent / 100)
+        current_price = base_price + price_change
+        
+        # Generate realistic volume (often higher for losers)
+        volume = random.randint(150000, 6000000)
+        
+        losers.append({
+            "symbol": symbol_data["symbol"],
+            "name": symbol_data["name"],
+            "price": round(current_price, 2),
+            "change": round(price_change, 2),
+            "change_percent": round(change_percent, 2),
+            "volume": volume,
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z"
+        })
+    
+    # Sort gainers by change_percent descending, losers by change_percent ascending
+    gainers.sort(key=lambda x: x["change_percent"], reverse=True)
+    losers.sort(key=lambda x: x["change_percent"])
+    
+    return {
+        "gainers": gainers,
+        "losers": losers,
+        "market_summary": {
+            "total_gainers": len(gainers),
+            "total_losers": len(losers),
+            "avg_gain_percent": round(sum(g["change_percent"] for g in gainers) / len(gainers), 2),
+            "avg_loss_percent": round(sum(l["change_percent"] for l in losers) / len(losers), 2),
+            "total_volume": sum(s["volume"] for s in gainers + losers),
+            "last_updated": datetime.now(timezone.utc).isoformat() + "Z"
+        }
+    }
+

@@ -4,22 +4,42 @@ TICKSTOCK DASHBOARD STYLES
 ===============================================================================
 
 PURPOSE:
-This file contains styling for dashboard components and tabbed interface.
+This file contains styling for dashboard components and grid interface.
 
 COMPONENTS INCLUDED:
-- Sprint 12: Bootstrap tabbed interface styling
-- Dashboard tab with watchlist and market summary
-- Charts tab with Chart.js integration
-- Alerts tab functionality
-- Gauge container layouts (legacy)
-- Single universe gauge preparations
-- Gauge info displays
-- Phase 5 preparation styles (hidden vertical bars)
+- Sprint 16: Grid-based dashboard layout
+- Watchlist and market summary containers
+- Charts container with Chart.js integration
+- Alerts container functionality
+- Market Movers widget
+- Grid layout optimization
+- Responsive design support
 
-VERSION: 3.0.0 - SPRINT 12 TABBED INTERFACE
-LAST UPDATED: Sprint 12 - Tabbed interface implementation
+VERSION: 4.0.0 - SPRINT 16 GRID LAYOUT
+LAST UPDATED: Sprint 16 - Grid modernization
 ===============================================================================
 */
+
+/*
+===============================================================================
+SPRINT 16: GRID LAYOUT OPTIMIZATION
+===============================================================================
+*/
+
+/* Ensure grid container fills available space */
+.grid-stack {
+    min-height: calc(100vh - 120px); /* Account for navbar and status bar */
+    margin: 0 auto;
+    padding: 10px 0;
+}
+
+.grid-stack-item-content {
+    overflow: auto;
+    height: 100%;
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 0.375rem;
+}
 
 /*
 ===============================================================================
@@ -58,17 +78,7 @@ SPRINT 12: DASHBOARD TABS INTERFACE
     border-bottom: 3px solid var(--primary-dark, #0056b3);
 }
 
-/* Tab content styling */
-.tab-content {
-    flex: 1;
-    overflow: hidden;
-}
-
-.tab-pane {
-    height: calc(100% - 20px);
-}
-
-/* Dashboard tab specific styles */
+/* Dashboard specific styles */
 .dashboard-content {
     height: 100%;
 }
@@ -430,5 +440,261 @@ PRINT STYLES
 
     .vertical-bar-container {
         display: none !important;
+    }
+}
+
+/*
+===============================================================================
+MARKET MOVERS WIDGET STYLES - SPRINT 10
+===============================================================================
+*/
+
+/* Market Movers Container */
+#market-movers-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Loading State */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    height: 100%;
+}
+
+.loading-state .spinner-border {
+    color: var(--primary-color, #007bff);
+}
+
+/* Error State */
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    height: 100%;
+}
+
+.error-state .fas.fa-exclamation-triangle {
+    color: var(--warning-color, #ffc107);
+}
+
+/* Market Movers List */
+.market-movers-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Market Movers Tabs */
+.market-movers-tabs .nav-pills .nav-link {
+    background: transparent;
+    border: 1px solid var(--border-color, #dee2e6);
+    color: var(--text-color, #495057);
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.market-movers-tabs .nav-pills .nav-link:hover {
+    background: var(--hover-bg, #f8f9fa);
+    transform: translateY(-1px);
+}
+
+.market-movers-tabs .nav-pills .nav-link.active {
+    background: var(--primary-color, #007bff);
+    border-color: var(--primary-color, #007bff);
+    color: white;
+}
+
+/* Movers List Styling */
+.movers-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.mover-item {
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    border-radius: 4px;
+    margin: 0.25rem 0;
+}
+
+.mover-item:hover {
+    background: var(--hover-bg, #f8f9fa);
+    transform: translateX(2px);
+}
+
+.mover-item:last-child {
+    border-bottom: none !important;
+}
+
+/* Mover Symbol Styling */
+.mover-symbol {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+    min-width: 50px;
+}
+
+.mover-name {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    margin-top: 1px;
+}
+
+/* Price Information */
+.mover-price .current-price {
+    font-family: 'Monaco', 'Consolas', monospace;
+    white-space: nowrap;
+}
+
+.mover-price .price-change {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+/* Change Indicators */
+.mover-change {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-weight: 600;
+}
+
+/* Color Classes for Gains/Losses */
+.text-success {
+    color: var(--success-color, #28a745) !important;
+}
+
+.text-danger {
+    color: var(--danger-color, #dc3545) !important;
+}
+
+/* Market Movers Footer */
+.market-movers-footer {
+    border-top: 1px solid var(--border-color, #dee2e6);
+    padding-top: 0.5rem;
+    margin-top: auto;
+    text-align: center;
+}
+
+.market-movers-footer .text-muted {
+    font-size: 0.75rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .mover-item {
+        font-size: 0.875rem;
+    }
+    
+    .mover-symbol {
+        min-width: 40px;
+        font-size: 0.8rem;
+    }
+    
+    .mover-name {
+        font-size: 0.7rem;
+    }
+    
+    .current-price {
+        font-size: 0.85rem;
+    }
+    
+    .price-change {
+        font-size: 0.7rem;
+    }
+}
+
+/* Dark Theme Support */
+.theme-dark #market-movers-content {
+    color: var(--dark-text-color, #e9ecef);
+}
+
+.theme-dark .market-movers-tabs .nav-pills .nav-link {
+    background: var(--dark-bg-secondary, #495057);
+    border-color: var(--dark-border-color, #6c757d);
+    color: var(--dark-text-color, #e9ecef);
+}
+
+.theme-dark .market-movers-tabs .nav-pills .nav-link:hover {
+    background: var(--dark-hover-bg, #6c757d);
+}
+
+.theme-dark .mover-item:hover {
+    background: var(--dark-hover-bg, rgba(255, 255, 255, 0.1));
+}
+
+.theme-dark .market-movers-footer {
+    border-top-color: var(--dark-border-color, #6c757d);
+}
+
+/* Animation for real-time updates */
+@keyframes pulse-update {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.mover-item.updated {
+    animation: pulse-update 0.6s ease-in-out;
+}
+
+/* Loading spinner for content */
+.loading-state {
+    padding: 1rem;
+    height: auto;
+}
+
+/* Performance optimizations */
+.movers-list {
+    will-change: scroll-position;
+}
+
+.mover-item {
+    contain: layout style paint;
+}
+
+/*
+===============================================================================
+MARKET MOVERS ACCESSIBILITY
+===============================================================================
+*/
+
+/* Screen reader support */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focus indicators */
+.market-movers-tabs .nav-link:focus {
+    outline: 2px solid var(--focus-color, #007bff);
+    outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .mover-item {
+        border: 1px solid;
+    }
+    
+    .text-success {
+        color: #00ff00 !important;
+    }
+    
+    .text-danger {
+        color: #ff0000 !important;
     }
 }
