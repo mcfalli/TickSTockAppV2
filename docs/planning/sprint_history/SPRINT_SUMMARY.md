@@ -165,6 +165,8 @@ Sprint 14: Data Automation (Infrastructure)
     ↓
 Sprint 15: Admin Menu UI (Navigation)
     ↓
+Sprint 16: Dashboard Grid Modernization (UX/Performance)
+    ↓
 Next: Pattern Detection & Advanced Analytics
 ```
 
