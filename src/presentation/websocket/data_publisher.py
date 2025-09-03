@@ -123,7 +123,7 @@ class DataPublisher:
         # Prevent buffer overflow
         if len(self.event_buffer) > self.max_buffer_size:
             self.event_buffer.pop(0)
-            logger.debug("DATA-PUBLISHER: Buffer overflow, removed oldest event")
+            # Buffer overflow is normal operation - no logging needed
     
     def _publish_to_redis(self, tick_data: TickData):
         """Publish tick data to Redis for TickStockPL consumption."""

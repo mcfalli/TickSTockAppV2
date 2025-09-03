@@ -215,7 +215,7 @@ class WebSocketBroadcaster:
                     target_sessions.append(session_id)
             
             if not target_sessions:
-                logger.debug(f"WEBSOCKET-BROADCASTER: No users subscribed to pattern {pattern_name}")
+                # No subscribed users - early return
                 return
             
             # Prepare WebSocket message
@@ -258,7 +258,7 @@ class WebSocketBroadcaster:
             self.socketio.emit('backtest_progress', websocket_message, broadcast=True)
             self.stats['messages_sent'] += len(self.connected_users)
             
-            logger.debug(f"WEBSOCKET-BROADCASTER: Backtest progress broadcasted - Job {job_id}: {progress:.1%}")
+            # Backtest progress broadcast completed
             
         except Exception as e:
             logger.error(f"WEBSOCKET-BROADCASTER: Backtest progress broadcast error: {e}")
@@ -299,7 +299,7 @@ class WebSocketBroadcaster:
             self.socketio.emit('system_health', websocket_message, broadcast=True)
             self.stats['messages_sent'] += len(self.connected_users)
             
-            logger.debug("WEBSOCKET-BROADCASTER: System health update broadcasted")
+            # System health update broadcast completed
             
         except Exception as e:
             logger.error(f"WEBSOCKET-BROADCASTER: System health broadcast error: {e}")
@@ -354,7 +354,7 @@ class WebSocketBroadcaster:
             
             self.stats['messages_queued'] += 1
             
-            logger.debug(f"WEBSOCKET-BROADCASTER: Message queued for offline user {user_id}")
+            # Message queued for offline user
             
         except Exception as e:
             logger.error(f"WEBSOCKET-BROADCASTER: Error queueing message: {e}")

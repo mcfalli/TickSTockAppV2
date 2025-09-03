@@ -128,7 +128,7 @@ class DatabaseSyncService:
             }
         
         if not sync_data:
-            logger.debug("DIAG-DATABASE: No data provided for database sync")
+            # No data to sync - early return
             return {
                 'success': True,
                 'records_synced': 0,
@@ -159,11 +159,8 @@ class DatabaseSyncService:
             # Clear previous errors
             self.last_sync_errors = []
             
-            logger.debug(f"DIAG-DATABASE: Starting database sync for {len(sync_data)} tickers")
-            
-            # Track what we're about to process
+            # Database sync is normal operation - minimal logging
             sample_tickers = list(sync_data.keys())[:3]
-            logger.debug(f"DIAG-DATABASE: Sample tickers to sync: {sample_tickers}")
             
             # Process each ticker's data
             for ticker, data in sync_data.items():
@@ -187,12 +184,12 @@ class DatabaseSyncService:
             
             # ENHANCED: Check if we actually have objects to commit
             pending_objects = len(db.session.new) + len(db.session.dirty)
-            logger.debug(f"DIAG-DATABASE: Objects pending commit: {pending_objects} (new: {len(db.session.new)}, dirty: {len(db.session.dirty)})")
+            # Track pending objects for diagnostics
             
             # Commit all changes in one transaction
             if success_count > 0:
                 try:
-                    logger.debug(f"DIAG-DATABASE: Attempting to commit {success_count} successful records")
+                    # Committing records - normal operation
                     db.session.commit()
                     sync_time_ms = (time.time() - sync_start_time) * 1000
                     
@@ -207,7 +204,7 @@ class DatabaseSyncService:
                             if verification:
                                 verification_count += 1
                     
-                    logger.debug(f"DIAG-DATABASE: DATABASE_SYNC_SUCCESS: {success_count} records synced in {sync_time_ms:.1f}ms Verification: {verification_count}/{len(sample_tickers)} sample records found in database")
+                    # Database sync completed successfully
                     
                     # Update performance statistics
                     self._update_sync_stats(success_count, error_count, sync_time_ms)
@@ -317,13 +314,13 @@ class DatabaseSyncService:
                 )
                 db.session.add(record)
                 action = 'created'
-                logger.debug(f"DIAG-DATABASE: Created new accumulation record for {ticker}")
+                # New accumulation record created
             else:
                 # Update existing record
                 record.high_count = data['high_count']
                 record.low_count = data['low_count']
                 action = 'updated'
-                logger.debug(f"DIAG-DATABASE: Updated existing accumulation record for {ticker}")
+                # Existing accumulation record updated
             
             # Update timestamp (use timezone-aware datetime)
             record.last_updated = datetime.now(timezone.utc)

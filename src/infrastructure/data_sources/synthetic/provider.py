@@ -124,9 +124,7 @@ class SimulatedDataProvider(DataProvider):
         
         self.ticks_generated += 1
         
-        # Log every 10 ticks
-        if self.ticks_generated % 10 == 0:
-            logger.debug(f"SIM-DATA-PROVIDER: Generated tick #{self.ticks_generated}: {ticker} @ ${current_price}")
+        # Tick generation is normal operation - no logging needed for each tick
         
         return tick
     

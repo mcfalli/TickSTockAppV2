@@ -144,7 +144,7 @@ class TickStockDatabase:
                         'active': row[5]
                     })
                 
-                logger.debug(f"TICKSTOCK-DB: Retrieved {len(symbols)} active symbols for dropdown")
+                # Symbol retrieval is normal operation - no debug logging needed
                 return symbols
                 
         except Exception as e:
@@ -244,7 +244,7 @@ class TickStockDatabase:
                     stats['events_count'] = 0
                     stats['latest_event_time'] = None
                 
-                logger.debug(f"TICKSTOCK-DB: Dashboard stats retrieved: {stats}")
+                # Dashboard stats retrieval is normal operation
                 return stats
                 
         except Exception as e:
@@ -278,7 +278,7 @@ class TickStockDatabase:
                         'details': row[4] or {}
                     })
                 
-                logger.debug(f"TICKSTOCK-DB: Retrieved {len(alerts)} alerts for user {user_id}")
+                # Alert retrieval is normal operation
                 return alerts
                 
         except Exception as e:
@@ -324,7 +324,7 @@ class TickStockDatabase:
                         'min_confidence': float(row[4]) if row[4] else 0.0
                     })
                 
-                logger.debug(f"TICKSTOCK-DB: Retrieved performance for {len(performance_data)} patterns")
+                # Pattern performance retrieval is normal operation
                 return performance_data
                 
         except Exception as e:
