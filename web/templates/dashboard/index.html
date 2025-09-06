@@ -149,8 +149,14 @@
         <!-- MAIN CONTENT SECTION - Simple single area -->
         <main class="content-area">
             <div id="main-content" class="card" style="min-height: calc(100vh - 200px); margin-top: 20px;">
-                <div class="card-body d-flex align-items-center justify-content-center">
-                    <h1 class="display-4">CONTENT1</h1>
+                <div class="card-body" id="pattern-discovery-content">
+                    <!-- Pattern Discovery Dashboard will be rendered here by pattern-discovery.js -->
+                    <div class="d-flex align-items-center justify-content-center py-5">
+                        <div class="spinner-border text-primary me-3" role="status">
+                            <span class="visually-hidden">Loading Pattern Discovery...</span>
+                        </div>
+                        <div class="text-muted">Initializing Pattern Discovery Dashboard...</div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -171,7 +177,7 @@
         <div class="status-bar-right">
             <div class="status-bar-item">
                 <span class="status-label">Status:</span>
-                <span id="status-text">Ready</span>
+                <span id="status-text">Pattern Discovery Active</span>
             </div>
         </div>
     </div>
@@ -210,15 +216,37 @@
         </div>
     </div>
     
-    <!-- Set simplified mode flag BEFORE loading other scripts -->
+    <!-- Pattern Discovery Mode - Enable WebSocket for real-time pattern updates -->
     <script>
-        // Set a flag to indicate simplified mode - prevents WebSocket initialization
-        window.SIMPLIFIED_MODE = true;
+        // Pattern Discovery requires real-time WebSocket connectivity
+        window.SIMPLIFIED_MODE = false;
+        window.PATTERN_DISCOVERY_MODE = true;
     </script>
     
     <!-- JavaScript Loading - Simplified -->
     <script src="{{ url_for('static', filename='js/core/app-core.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/app-events.js') }}"></script>
+    
+    <!-- Pattern Discovery Service - Sprint 20 Phase 2 -->
+    <script src="{{ url_for('static', filename='js/services/pattern-discovery.js') }}"></script>
+    
+    <!-- Watchlist Management Service - Sprint 21 Week 1 -->
+    <script src="{{ url_for('static', filename='js/services/watchlist-manager.js') }}"></script>
+    
+    <!-- Filter Presets Service - Sprint 21 Week 1 -->
+    <script src="{{ url_for('static', filename='js/services/filter-presets.js') }}"></script>
+    
+    <!-- Pattern Export Service - Sprint 21 Week 1 -->
+    <script src="{{ url_for('static', filename='js/services/pattern-export.js') }}"></script>
+    
+    <!-- Pattern Analytics Service - Sprint 21 Week 2 -->
+    <script src="{{ url_for('static', filename='js/services/pattern-analytics.js') }}"></script>
+    
+    <!-- Pattern Visualization Service - Sprint 21 Week 2 Deliverable 3 -->
+    <script src="{{ url_for('static', filename='js/services/pattern-visualization.js') }}"></script>
+    
+    <!-- Market Statistics Service - Sprint 21 Week 2 Deliverable 4 -->
+    <script src="{{ url_for('static', filename='js/services/market-statistics.js') }}"></script>
     
     <!-- Initialize status indicators for simplified page -->
     <script>

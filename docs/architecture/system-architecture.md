@@ -15,6 +15,9 @@
 - **User Management**: Authentication, registration, session handling
 - **UI & Dashboard**: Real-time WebSocket updates, pattern alert notifications
 - **Event Consumption**: Subscribes to TickStockPL events via Redis pub-sub
+- **Pattern Discovery APIs**: REST endpoints consuming Redis-cached pattern data (`/api/patterns/*`)
+- **User Universe APIs**: Symbol management and watchlist APIs (`/api/symbols`, `/api/users/*`)
+- **Redis Pattern Caching**: Multi-layer caching of TickStockPL pattern events for <50ms API responses
 - **Job Triggering**: Submits backtest/analysis jobs to TickStockPL via Redis
 - **Result Display**: Visualizes TickStockPL-computed metrics and results
 - **Basic Data Ingestion**: Receives raw market data, forwards to Redis for TickStockPL
