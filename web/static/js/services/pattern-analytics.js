@@ -566,30 +566,46 @@ class PatternAnalyticsService {
                 fetch(this.endpoints.marketStats)
             ]);
 
-            // Check for HTML responses (login redirects)
-            const responses = [analyticsRes, distributionRes, historyRes, statsRes];
-            for (let response of responses) {
-                if (response.ok) {
-                    const text = await response.text();
-                    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-                        throw new Error('Authentication required');
-                    }
-                    // Reset for JSON parsing
-                    response.text = () => Promise.resolve(text);
-                }
-            }
-
-            if (analyticsRes.ok && distributionRes.ok && historyRes.ok && statsRes.ok) {
-                this.analyticsData.set('performance', await analyticsRes.json());
-                this.analyticsData.set('distribution', await distributionRes.json());
-                this.historicalData = await historyRes.json();
-                this.marketStatistics = await statsRes.json();
-            } else {
+            // Check if all responses are ok
+            if (!analyticsRes.ok || !distributionRes.ok || !historyRes.ok || !statsRes.ok) {
                 throw new Error('API responses not ok');
             }
+
+            // Check for HTML responses (login redirects) and parse JSON
+            const [analyticsData, distributionData, historyData, statsData] = await Promise.all([
+                this.parseResponseSafely(analyticsRes),
+                this.parseResponseSafely(distributionRes),
+                this.parseResponseSafely(historyRes),
+                this.parseResponseSafely(statsRes)
+            ]);
+
+            this.analyticsData.set('performance', analyticsData);
+            this.analyticsData.set('distribution', distributionData);
+            this.historicalData = historyData;
+            this.marketStatistics = statsData;
         } catch (error) {
             console.warn('Analytics API unavailable, using mock data:', error.message);
             this.loadMockData();
+        }
+    }
+
+    /**
+     * Safely parse response, checking for HTML redirects
+     * @param {Response} response - Fetch response object
+     * @returns {Promise<Object>} Parsed JSON data
+     */
+    async parseResponseSafely(response) {
+        const text = await response.text();
+        
+        // Check if response is HTML (login redirect)
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+            throw new Error('Authentication required - HTML response received');
+        }
+        
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error('Invalid JSON response');
         }
     }
 
@@ -770,6 +786,25 @@ class PatternAnalyticsService {
                                 <i class="fas fa-globe me-1"></i>Market
                             </button>
                         </li>
+                        <!-- Sprint 23: Advanced Analytics Tabs -->
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="correlations-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#correlations" type="button" role="tab">
+                                <i class="fas fa-project-diagram me-1"></i>Correlations
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="temporal-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#temporal" type="button" role="tab">
+                                <i class="fas fa-clock me-1"></i>Temporal
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="compare-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#compare" type="button" role="tab">
+                                <i class="fas fa-balance-scale me-1"></i>Compare
+                            </button>
+                        </li>
                     </ul>
                 </div>
                 <div class="card-body p-0">
@@ -788,6 +823,37 @@ class PatternAnalyticsService {
                         </div>
                         <div class="tab-pane fade" id="market" role="tabpanel">
                             ${this.renderMarketTab()}
+                        </div>
+                        <!-- Sprint 23: Advanced Analytics Tab Content -->
+                        <div class="tab-pane fade" id="correlations" role="tabpanel">
+                            <div id="sprint23-correlations-content" class="p-4">
+                                <div class="d-flex align-items-center justify-content-center py-5">
+                                    <div class="spinner-border text-success me-3" role="status">
+                                        <span class="visually-hidden">Loading Correlations...</span>
+                                    </div>
+                                    <div class="text-muted">Initializing Pattern Correlations Dashboard...</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="temporal" role="tabpanel">
+                            <div id="sprint23-temporal-content" class="p-4">
+                                <div class="d-flex align-items-center justify-content-center py-5">
+                                    <div class="spinner-border text-warning me-3" role="status">
+                                        <span class="visually-hidden">Loading Temporal Analysis...</span>
+                                    </div>
+                                    <div class="text-muted">Initializing Temporal Analysis Dashboard...</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="compare" role="tabpanel">
+                            <div id="sprint23-compare-content" class="p-4">
+                                <div class="d-flex align-items-center justify-content-center py-5">
+                                    <div class="spinner-border text-info me-3" role="status">
+                                        <span class="visually-hidden">Loading Pattern Comparison...</span>
+                                    </div>
+                                    <div class="text-muted">Initializing Pattern Comparison Dashboard...</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1058,6 +1124,16 @@ class PatternAnalyticsService {
                     break;
                 case '#market':
                     this.initializeMarketStatistics();
+                    break;
+                // Sprint 23: Advanced Analytics Tabs
+                case '#correlations':
+                    this.initializeSprint23Correlations();
+                    break;
+                case '#temporal':
+                    this.initializeSprint23Temporal();
+                    break;
+                case '#compare':
+                    this.initializeSprint23Compare();
                     break;
             }
         }, 50);
@@ -1792,6 +1868,72 @@ class PatternAnalyticsService {
             }
         } else {
             this.loadMockData();
+        }
+    }
+
+    /**
+     * Sprint 23: Initialize Correlations Tab
+     */
+    async initializeSprint23Correlations() {
+        try {
+            const container = document.getElementById('sprint23-correlations-content');
+            if (!container || container.querySelector('.spinner-border')) {
+                // Initialize correlations service if not already done
+                if (!window.correlationsService && typeof PatternCorrelationsService !== 'undefined') {
+                    window.correlationsService = new PatternCorrelationsService();
+                }
+                
+                if (window.correlationsService) {
+                    await window.correlationsService.initialize('sprint23-correlations-content');
+                    console.log('Sprint 23 Correlations tab initialized');
+                }
+            }
+        } catch (error) {
+            console.error('Error initializing Sprint 23 Correlations:', error);
+        }
+    }
+
+    /**
+     * Sprint 23: Initialize Temporal Analysis Tab
+     */
+    async initializeSprint23Temporal() {
+        try {
+            const container = document.getElementById('sprint23-temporal-content');
+            if (!container || container.querySelector('.spinner-border')) {
+                // Initialize temporal service if not already done
+                if (!window.temporalService && typeof PatternTemporalService !== 'undefined') {
+                    window.temporalService = new PatternTemporalService();
+                }
+                
+                if (window.temporalService) {
+                    await window.temporalService.initialize('sprint23-temporal-content');
+                    console.log('Sprint 23 Temporal Analysis tab initialized');
+                }
+            }
+        } catch (error) {
+            console.error('Error initializing Sprint 23 Temporal:', error);
+        }
+    }
+
+    /**
+     * Sprint 23: Initialize Pattern Comparison Tab
+     */
+    async initializeSprint23Compare() {
+        try {
+            const container = document.getElementById('sprint23-compare-content');
+            if (!container || container.querySelector('.spinner-border')) {
+                // Initialize comparison service if not already done
+                if (!window.comparisonService && typeof PatternComparisonService !== 'undefined') {
+                    window.comparisonService = new PatternComparisonService();
+                }
+                
+                if (window.comparisonService) {
+                    await window.comparisonService.initialize('sprint23-compare-content');
+                    console.log('Sprint 23 Pattern Comparison tab initialized');
+                }
+            }
+        } catch (error) {
+            console.error('Error initializing Sprint 23 Compare:', error);
         }
     }
 

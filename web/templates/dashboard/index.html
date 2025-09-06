@@ -149,13 +149,82 @@
         <!-- MAIN CONTENT SECTION - Simple single area -->
         <main class="content-area">
             <div id="main-content" class="card" style="min-height: calc(100vh - 200px); margin-top: 20px;">
-                <div class="card-body" id="pattern-discovery-content">
-                    <!-- Pattern Discovery Dashboard will be rendered here by pattern-discovery.js -->
-                    <div class="d-flex align-items-center justify-content-center py-5">
-                        <div class="spinner-border text-primary me-3" role="status">
-                            <span class="visually-hidden">Loading Pattern Discovery...</span>
+                <!-- Sprint 23: Advanced Analytics Dashboard with Tabbed Navigation -->
+                <div class="card-body">
+                    <!-- Navigation Tabs -->
+                    <ul class="nav nav-tabs mb-4" id="dashboard-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="patterns-tab" data-bs-toggle="tab" data-bs-target="#patterns-content" type="button" role="tab">
+                                <i class="fas fa-search me-2"></i>Pattern Discovery
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="correlations-tab" data-bs-toggle="tab" data-bs-target="#correlations-content" type="button" role="tab">
+                                <i class="fas fa-project-diagram me-2"></i>Correlations
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="temporal-tab" data-bs-toggle="tab" data-bs-target="#temporal-content" type="button" role="tab">
+                                <i class="fas fa-clock me-2"></i>Temporal
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="compare-tab" data-bs-toggle="tab" data-bs-target="#compare-content" type="button" role="tab">
+                                <i class="fas fa-balance-scale me-2"></i>Compare
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="dashboard-tab-content">
+                        <!-- Pattern Discovery Tab (Existing) -->
+                        <div class="tab-pane fade show active" id="patterns-content" role="tabpanel">
+                            <div id="pattern-discovery-content">
+                                <!-- Pattern Discovery Dashboard will be rendered here by pattern-discovery.js -->
+                                <div class="d-flex align-items-center justify-content-center py-5">
+                                    <div class="spinner-border text-primary me-3" role="status">
+                                        <span class="visually-hidden">Loading Pattern Discovery...</span>
+                                    </div>
+                                    <div class="text-muted">Initializing Pattern Discovery Dashboard...</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="text-muted">Initializing Pattern Discovery Dashboard...</div>
+                        
+                        <!-- Sprint 23: Correlations Tab -->
+                        <div class="tab-pane fade" id="correlations-content" role="tabpanel">
+                            <div id="correlations-dashboard">
+                                <div class="d-flex align-items-center justify-content-center py-5">
+                                    <div class="spinner-border text-success me-3" role="status">
+                                        <span class="visually-hidden">Loading Correlations...</span>
+                                    </div>
+                                    <div class="text-muted">Initializing Pattern Correlations Dashboard...</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sprint 23: Temporal Analysis Tab -->
+                        <div class="tab-pane fade" id="temporal-content" role="tabpanel">
+                            <div id="temporal-dashboard">
+                                <div class="d-flex align-items-center justify-content-center py-5">
+                                    <div class="spinner-border text-warning me-3" role="status">
+                                        <span class="visually-hidden">Loading Temporal Analysis...</span>
+                                    </div>
+                                    <div class="text-muted">Initializing Temporal Analysis Dashboard...</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sprint 23: Pattern Comparison Tab -->
+                        <div class="tab-pane fade" id="compare-content" role="tabpanel">
+                            <div id="compare-dashboard">
+                                <div class="d-flex align-items-center justify-content-center py-5">
+                                    <div class="spinner-border text-info me-3" role="status">
+                                        <span class="visually-hidden">Loading Pattern Comparison...</span>
+                                    </div>
+                                    <div class="text-muted">Initializing Pattern Comparison Dashboard...</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -248,6 +317,11 @@
     <!-- Market Statistics Service - Sprint 21 Week 2 Deliverable 4 -->
     <script src="{{ url_for('static', filename='js/services/market-statistics.js') }}"></script>
     
+    <!-- Sprint 23: Advanced Analytics Services -->
+    <script src="{{ url_for('static', filename='js/services/pattern-correlations.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/services/pattern-temporal.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/services/pattern-comparison.js') }}"></script>
+    
     <!-- Initialize status indicators for simplified page -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -265,7 +339,140 @@
                 marketStatus.textContent = 'Ready';
                 marketStatus.style.backgroundColor = '#28a745';
             }
+            
+            // Sprint 23: Initialize Advanced Analytics Services
+            window.initializeAdvancedAnalytics();
         });
+    </script>
+    
+    <!-- Sprint 23: Advanced Analytics Dashboard Initialization -->
+    <script>
+        // Global advanced analytics services
+        window.correlationsService = null;
+        window.temporalService = null;
+        window.comparisonService = null;
+        
+        /**
+         * Initialize Sprint 23 Advanced Analytics Services
+         */
+        window.initializeAdvancedAnalytics = function() {
+            try {
+                console.log('Initializing Sprint 23 Advanced Analytics Services...');
+                
+                // Initialize Pattern Correlations Service
+                if (typeof PatternCorrelationsService !== 'undefined') {
+                    window.correlationsService = new PatternCorrelationsService();
+                    console.log('Pattern Correlations Service initialized');
+                } else {
+                    console.warn('PatternCorrelationsService not found');
+                }
+                
+                // Initialize Pattern Temporal Service
+                if (typeof PatternTemporalService !== 'undefined') {
+                    window.temporalService = new PatternTemporalService();
+                    console.log('Pattern Temporal Service initialized');
+                } else {
+                    console.warn('PatternTemporalService not found');
+                }
+                
+                // Initialize Pattern Comparison Service
+                if (typeof PatternComparisonService !== 'undefined') {
+                    window.comparisonService = new PatternComparisonService();
+                    console.log('Pattern Comparison Service initialized');
+                } else {
+                    console.warn('PatternComparisonService not found');
+                }
+                
+                // Initialize tab event handlers
+                initializeTabEventHandlers();
+                
+            } catch (error) {
+                console.error('Error initializing advanced analytics services:', error);
+            }
+        };
+        
+        /**
+         * Initialize tab switching event handlers for Sprint 23 dashboard
+         */
+        function initializeTabEventHandlers() {
+            const tabs = document.querySelectorAll('#dashboard-tabs button[data-bs-toggle="tab"]');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('shown.bs.tab', async function(event) {
+                    const targetId = event.target.getAttribute('data-bs-target');
+                    console.log('Tab switched to:', targetId);
+                    
+                    switch (targetId) {
+                        case '#patterns-content':
+                            // Pattern Discovery is already initialized
+                            break;
+                            
+                        case '#correlations-content':
+                            if (window.correlationsService) {
+                                await initializeCorrelationsTab();
+                            }
+                            break;
+                            
+                        case '#temporal-content':
+                            if (window.temporalService) {
+                                await initializeTemporalTab();
+                            }
+                            break;
+                            
+                        case '#compare-content':
+                            if (window.comparisonService) {
+                                await initializeComparisonTab();
+                            }
+                            break;
+                    }
+                });
+            });
+        }
+        
+        /**
+         * Initialize correlations tab content
+         */
+        async function initializeCorrelationsTab() {
+            try {
+                const correlationsContainer = document.getElementById('correlations-dashboard');
+                if (correlationsContainer && window.correlationsService) {
+                    await window.correlationsService.initialize('correlations-dashboard');
+                    console.log('Correlations tab initialized');
+                }
+            } catch (error) {
+                console.error('Error initializing correlations tab:', error);
+            }
+        }
+        
+        /**
+         * Initialize temporal analysis tab content
+         */
+        async function initializeTemporalTab() {
+            try {
+                const temporalContainer = document.getElementById('temporal-dashboard');
+                if (temporalContainer && window.temporalService) {
+                    await window.temporalService.initialize('temporal-dashboard');
+                    console.log('Temporal analysis tab initialized');
+                }
+            } catch (error) {
+                console.error('Error initializing temporal tab:', error);
+            }
+        }
+        
+        /**
+         * Initialize pattern comparison tab content
+         */
+        async function initializeComparisonTab() {
+            try {
+                const comparisonContainer = document.getElementById('compare-dashboard');
+                if (comparisonContainer && window.comparisonService) {
+                    await window.comparisonService.initialize('compare-dashboard');
+                    console.log('Pattern comparison tab initialized');
+                }
+            } catch (error) {
+                console.error('Error initializing comparison tab:', error);
+            }
+        }
     </script>
     
     <!-- Bootstrap Bundle with Popper -->
