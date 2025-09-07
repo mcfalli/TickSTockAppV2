@@ -3,6 +3,15 @@ Track items for our next set of user stories and or tasks
 
 ## Topics
 
+-Database backed up and sprint database migration process
+-CHARTS - select a stock, pop a chart with patterns and highlights
+-Clean Up - js console
+-Mock Data
+-Hard coded values
+-UI Organization
+-Security
+
+
 1. jasvascript console logs.  There are a lot of js messages written to the console that need cleaned up
 2. What in our application is mocked up data and hardcoded stocks!  
 2a. We need all mocked up data calls to be replaced with real data.  

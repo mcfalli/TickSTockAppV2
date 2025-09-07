@@ -5,10 +5,8 @@
 // PURPOSE: Core application logic, socket handling, and UI management
 // ==========================================================================
 
-// File-level debug flags
-const APP_CORE_DEBUG = false;
-const ANALYTICS_DEBUG = false;
-const PERFORMANCE_DEBUG = false;
+// Global debug flag for development
+const DEBUG = false;
 
 // ==========================================================================
 // GLOBAL VARIABLES
@@ -29,7 +27,7 @@ let isOverlayHidden = false;
 // ==========================================================================
 const ProductionLogger = {
     info: (component, message, data = null) => {
-        if (APP_CORE_DEBUG) {
+        if (DEBUG) {
             const logData = data ? (typeof data === 'object' ? { 
                 summary: Object.keys(data).length > 5 ? `${Object.keys(data).length} properties` : data 
             } : data) : '';
@@ -46,7 +44,7 @@ const ProductionLogger = {
     },
     
     performance: (component, operation, duration) => {
-        if (PERFORMANCE_DEBUG && duration > 10) {
+        if (DEBUG && duration > 10) {
             console.log(`[PERF] ${component}.${operation}: ${duration}ms`);
         }
     },
@@ -484,7 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inject modal styles
     injectSessionModalStyles();
 
-    if (APP_CORE_DEBUG) {
+    if (DEBUG) {
         console.log("app-core.js initialization complete (Post-Webclean)");
     }
 });

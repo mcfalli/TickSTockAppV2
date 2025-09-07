@@ -9,6 +9,9 @@
  * - System health updates
  */
 
+// Debug flag for development
+const TICKSTOCKPL_DEBUG = false;
+
 class TickStockPLIntegration {
     constructor(socket) {
         this.socket = socket;
@@ -26,7 +29,7 @@ class TickStockPLIntegration {
     }
     
     init() {
-        console.log('🔌 Initializing TickStockPL integration...');
+        if (TICKSTOCKPL_DEBUG) console.log('🔌 Initializing TickStockPL integration...');
         this.setupSocketEventHandlers();
         this.setupHeartbeat();
     }
@@ -34,14 +37,14 @@ class TickStockPLIntegration {
     setupSocketEventHandlers() {
         // Connection management
         this.socket.on('connection_confirmed', (data) => {
-            console.log('✅ TickStockPL connection confirmed:', data);
+            if (TICKSTOCKPL_DEBUG) console.log('✅ TickStockPL connection confirmed:', data);
             this.isConnected = true;
             this.stats.connectionTime = new Date(data.server_time * 1000);
             this.updateConnectionStatus('connected');
         });
         
         this.socket.on('disconnect', () => {
-            console.log('❌ TickStockPL connection lost');
+            if (TICKSTOCKPL_DEBUG) console.log('❌ TickStockPL connection lost');
             this.isConnected = false;
             this.updateConnectionStatus('disconnected');
         });
@@ -67,13 +70,13 @@ class TickStockPLIntegration {
         
         // Subscription confirmations
         this.socket.on('subscription_confirmed', (data) => {
-            console.log('🎯 Pattern subscriptions confirmed:', data);
+            if (TICKSTOCKPL_DEBUG) console.log('🎯 Pattern subscriptions confirmed:', data);
             this.updateSubscriptionDisplay(data.patterns);
         });
         
         // Queued messages for returning users
         this.socket.on('queued_message', (data) => {
-            console.log('📬 Received queued message:', data);
+            if (TICKSTOCKPL_DEBUG) console.log('📬 Received queued message:', data);
             this.handleQueuedMessage(data);
         });
         
@@ -100,7 +103,7 @@ class TickStockPLIntegration {
     
     handlePatternAlert(data) {
         try {
-            console.log('📈 Pattern alert received:', data);
+            if (TICKSTOCKPL_DEBUG) console.log('📈 Pattern alert received:', data);
             this.stats.eventsReceived++;
             this.stats.patternsReceived++;
             
@@ -130,7 +133,7 @@ class TickStockPLIntegration {
     
     handleBacktestProgress(data) {
         try {
-            console.log('⏳ Backtest progress:', data);
+            if (TICKSTOCKPL_DEBUG) console.log('⏳ Backtest progress:', data);
             this.stats.eventsReceived++;
             this.stats.backtestUpdates++;
             
@@ -156,7 +159,7 @@ class TickStockPLIntegration {
     
     handleBacktestResult(data) {
         try {
-            console.log('🎯 Backtest result:', data);
+            if (TICKSTOCKPL_DEBUG) console.log('🎯 Backtest result:', data);
             this.stats.eventsReceived++;
             
             const eventData = data.event_data || data.event;
@@ -184,7 +187,7 @@ class TickStockPLIntegration {
     
     handleSystemHealth(data) {
         try {
-            console.log('🏥 System health update:', data);
+            if (TICKSTOCKPL_DEBUG) console.log('🏥 System health update:', data);
             this.stats.eventsReceived++;
             
             // Update health indicators in UI
@@ -200,7 +203,7 @@ class TickStockPLIntegration {
     
     handleQueuedMessage(data) {
         try {
-            console.log('📬 Processing queued message:', data);
+            if (TICKSTOCKPL_DEBUG) console.log('📬 Processing queued message:', data);
             
             // Process based on message type
             if (data.type === 'pattern_alert') {
@@ -222,7 +225,7 @@ class TickStockPLIntegration {
             return;
         }
         
-        console.log('🎯 Subscribing to patterns:', patterns);
+        if (TICKSTOCKPL_DEBUG) console.log('🎯 Subscribing to patterns:', patterns);
         this.socket.emit('subscribe_patterns', { patterns: patterns });
         
         // Update local subscriptions
@@ -283,7 +286,7 @@ class TickStockPLIntegration {
                 });
             } else {
                 // Fallback to in-app notification
-                console.log(`${icon} ${message}`);
+                if (TICKSTOCKPL_DEBUG) console.log(`${icon} ${message}`);
             }
             
         } catch (error) {
@@ -315,7 +318,7 @@ class TickStockPLIntegration {
     updatePatternDisplay(data) {
         // Placeholder for pattern display updates
         // This would integrate with existing market data display
-        console.log('📊 Updating pattern display:', data);
+        if (TICKSTOCKPL_DEBUG) console.log('📊 Updating pattern display:', data);
     }
     
     updateBacktestProgress(jobId, progress, status) {
@@ -387,7 +390,7 @@ class TickStockPLIntegration {
     requestNotificationPermission() {
         if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission().then(permission => {
-                console.log('🔔 Notification permission:', permission);
+                if (TICKSTOCKPL_DEBUG) console.log('🔔 Notification permission:', permission);
             });
         }
     }

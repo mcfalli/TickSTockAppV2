@@ -18,6 +18,9 @@
  * Sprint: 23
  */
 
+// Debug flag for development
+const TEMPORAL_DEBUG = false;
+
 class PatternTemporalService {
     constructor() {
         this.apiBaseUrl = '/api/analytics/temporal';
@@ -378,7 +381,7 @@ class PatternTemporalService {
             this.updateTemporalInsights();
             this.updateSummaryCards();
             
-            console.log('Temporal data loaded successfully', this.currentData);
+            if (TEMPORAL_DEBUG) console.log('Temporal data loaded successfully', this.currentData);
 
         } catch (error) {
             console.error('Error loading temporal data:', error);

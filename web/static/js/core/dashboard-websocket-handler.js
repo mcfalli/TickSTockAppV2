@@ -5,6 +5,9 @@
 // PURPOSE: Handle real-time WebSocket events for dashboard components
 // ==========================================================================
 
+// Debug flag for development
+const DASHBOARD_WEBSOCKET_DEBUG = false;
+
 class DashboardWebSocketHandler {
     constructor(dashboardManager, chartManager) {
         this.dashboardManager = dashboardManager;
@@ -30,7 +33,7 @@ class DashboardWebSocketHandler {
 
         this.setupEventHandlers();
         this.subscribeToWatchlist();
-        console.log('[DashboardWebSocketHandler] Initialized with real-time handlers');
+        if (DASHBOARD_WEBSOCKET_DEBUG) console.log('[DashboardWebSocketHandler] Initialized with real-time handlers');
     }
 
     setupEventHandlers() {
@@ -293,7 +296,7 @@ class DashboardWebSocketHandler {
                 subscription_types: ['price_update', 'ohlcv_update', 'pattern_alert']
             });
 
-            console.log(`[DashboardWebSocketHandler] Subscribed to ${watchlistSymbols.length} watchlist symbols`);
+            if (DASHBOARD_WEBSOCKET_DEBUG) console.log(`[DashboardWebSocketHandler] Subscribed to ${watchlistSymbols.length} watchlist symbols`);
         }
     }
 
@@ -307,7 +310,7 @@ class DashboardWebSocketHandler {
             user_id: window.userContext.userId
         });
 
-        console.log(`[DashboardWebSocketHandler] Unsubscribed from ${symbol}`);
+        if (DASHBOARD_WEBSOCKET_DEBUG) console.log(`[DashboardWebSocketHandler] Unsubscribed from ${symbol}`);
     }
 
     processBufferedMessages() {
@@ -315,7 +318,7 @@ class DashboardWebSocketHandler {
             return;
         }
 
-        console.log(`[DashboardWebSocketHandler] Processing ${this.messageBuffer.length} buffered messages`);
+        if (DASHBOARD_WEBSOCKET_DEBUG) console.log(`[DashboardWebSocketHandler] Processing ${this.messageBuffer.length} buffered messages`);
         
         const messages = [...this.messageBuffer];
         this.messageBuffer = [];
@@ -333,7 +336,7 @@ class DashboardWebSocketHandler {
                         this.handlePatternAlert(message.data);
                         break;
                     default:
-                        console.warn('[DashboardWebSocketHandler] Unknown buffered message type:', message.type);
+                        if (DASHBOARD_WEBSOCKET_DEBUG) console.warn('[DashboardWebSocketHandler] Unknown buffered message type:', message.type);
                 }
             } catch (error) {
                 console.error('[DashboardWebSocketHandler] Error processing buffered message:', error);
@@ -381,7 +384,7 @@ class DashboardWebSocketHandler {
             user_id: window.userContext.userId
         });
 
-        console.log(`[DashboardWebSocketHandler] Requested chart data for ${symbol} (${timeframe})`);
+        if (DASHBOARD_WEBSOCKET_DEBUG) console.log(`[DashboardWebSocketHandler] Requested chart data for ${symbol} (${timeframe})`);
     }
 
     // Cleanup and destroy
@@ -397,7 +400,7 @@ class DashboardWebSocketHandler {
         
         this.messageBuffer = [];
         this.lastUpdateTimes.clear();
-        console.log('[DashboardWebSocketHandler] Destroyed and cleaned up');
+        if (DASHBOARD_WEBSOCKET_DEBUG) console.log('[DashboardWebSocketHandler] Destroyed and cleaned up');
     }
 }
 
@@ -415,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
             window.dashboardWebSocketHandler = dashboardWebSocketHandler;
             
-            console.log('[DashboardWebSocketHandler] Real-time integration active');
+            if (DASHBOARD_WEBSOCKET_DEBUG) console.log('[DashboardWebSocketHandler] Real-time integration active');
         } else {
             console.warn('[DashboardWebSocketHandler] Dashboard/Chart managers not ready, retrying...');
             setTimeout(() => {

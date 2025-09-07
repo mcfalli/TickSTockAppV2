@@ -157,6 +157,16 @@ class PatternDiscoveryService {
                                 </h5>
                             </div>
                             <div class="card-body">
+                                <!-- Watchlist Panel Container -->
+                                <div id="watchlist-panel" class="mb-3">
+                                    <!-- Watchlist management will be rendered here -->
+                                </div>
+                                
+                                <!-- Filter Presets Panel Container -->
+                                <div id="filter-presets-panel" class="mb-3">
+                                    <!-- Filter presets will be rendered here -->
+                                </div>
+                                
                                 <div id="pattern-filters">
                                     <!-- Filters will be rendered here -->
                                 </div>
@@ -212,11 +222,26 @@ class PatternDiscoveryService {
                         </div>
                     </div>
                 </div>
+                
+                <!-- Hidden pattern analytics panel for service initialization -->
+                <div id="pattern-analytics-panel" style="display: none;">
+                    <!-- PatternAnalyticsService will render here but remain hidden -->
+                </div>
             </div>
         `;
         
         this.renderFilters();
         this.setupEventHandlers();
+        
+        // Initialize Watchlist and Filter Preset Services
+        setTimeout(() => {
+            if (window.WatchlistManager && !window.watchlistManager) {
+                window.watchlistManager = new WatchlistManager();
+            }
+            if (window.FilterPresetsService && !window.filterPresets) {
+                window.filterPresets = new FilterPresetsService();
+            }
+        }, 200);
     }
     
     renderFilters() {

@@ -7,6 +7,9 @@
  * Integration: Enhances existing Pattern Discovery functionality
  */
 
+// Debug flag for development
+const VISUALIZATION_DEBUG = false;
+
 class PatternVisualizationService {
     constructor() {
         this.isInitialized = false;
@@ -36,7 +39,7 @@ class PatternVisualizationService {
             this.setupInteractiveElements();
             this.setupEventHandlers();
             this.isInitialized = true;
-            console.log('PatternVisualizationService initialized successfully');
+            if (VISUALIZATION_DEBUG) console.log('PatternVisualizationService initialized successfully');
         } catch (error) {
             console.error('Failed to initialize PatternVisualizationService:', error);
         }
@@ -66,7 +69,7 @@ class PatternVisualizationService {
                 
                 // Listen for pattern updates and table changes
                 document.addEventListener('patternsUpdated', (event) => {
-                    console.log('Patterns updated event received');
+                    if (VISUALIZATION_DEBUG) console.log('Patterns updated event received');
                     if (event.detail && event.detail.patterns) {
                         this.enhancePatternRows(event.detail.patterns);
                     }
@@ -103,7 +106,7 @@ class PatternVisualizationService {
             });
             
             if (tableWasRefreshed) {
-                console.log('Table refresh detected, re-enhancing...');
+                if (VISUALIZATION_DEBUG) console.log('Table refresh detected, re-enhancing...');
                 
                 // Re-enhance the table headers (in case they were reset)
                 this.enhancePatternTable(table);
@@ -147,10 +150,10 @@ class PatternVisualizationService {
      * Enhance patterns that are already loaded in the table
      */
     enhanceExistingPatterns() {
-        console.log('enhanceExistingPatterns called');
+        if (VISUALIZATION_DEBUG) console.log('enhanceExistingPatterns called');
         
         const tbody = document.querySelector('#pattern-table tbody');
-        console.log('Pattern table tbody:', tbody);
+        if (VISUALIZATION_DEBUG) console.log('Pattern table tbody:', tbody);
         
         if (!tbody) {
             console.error('No tbody found in pattern table');
@@ -158,26 +161,27 @@ class PatternVisualizationService {
         }
         
         const rows = tbody.querySelectorAll('tr[data-symbol]');
-        console.log(`Found ${rows.length} rows with data-symbol attribute`);
+        if (VISUALIZATION_DEBUG) console.log(`Found ${rows.length} rows with data-symbol attribute`);
         
         if (rows.length === 0) {
             // Try without data-symbol attribute
             const allRows = tbody.querySelectorAll('tr');
-            console.log(`Found ${allRows.length} total rows in tbody`);
-            
-            if (allRows.length > 0) {
-                console.log('First row HTML:', allRows[0].outerHTML);
+            if (VISUALIZATION_DEBUG) {
+                console.log(`Found ${allRows.length} total rows in tbody`);
+                if (allRows.length > 0) {
+                    console.log('First row HTML:', allRows[0].outerHTML);
+                }
             }
             
             console.error('No rows with data-symbol found');
             return;
         }
         
-        console.log(`Found ${rows.length} existing patterns to enhance`);
+        if (VISUALIZATION_DEBUG) console.log(`Found ${rows.length} existing patterns to enhance`);
         
         // Extract pattern data from existing rows
         const patterns = Array.from(rows).map((row, index) => {
-            console.log(`Processing row ${index}:`, row);
+            if (VISUALIZATION_DEBUG) console.log(`Processing row ${index}:`, row);
             
             const symbol = row.getAttribute('data-symbol');
             const patternElement = row.querySelector('.badge');
@@ -191,11 +195,11 @@ class PatternVisualizationService {
                 confidence: confidence
             };
             
-            console.log(`Extracted pattern ${index}:`, extractedPattern);
+            if (VISUALIZATION_DEBUG) console.log(`Extracted pattern ${index}:`, extractedPattern);
             return extractedPattern;
         });
         
-        console.log('All extracted patterns:', patterns);
+        if (VISUALIZATION_DEBUG) console.log('All extracted patterns:', patterns);
         
         // Enhance the patterns
         this.enhancePatternRows(patterns);
@@ -249,11 +253,11 @@ class PatternVisualizationService {
      */
     async enhancePatternRows(patterns) {
         if (!patterns || patterns.length === 0) {
-            console.log('No patterns to enhance');
+            if (VISUALIZATION_DEBUG) console.log('No patterns to enhance');
             return;
         }
         
-        console.log(`Enhancing ${patterns.length} patterns:`, patterns);
+        if (VISUALIZATION_DEBUG) console.log(`Enhancing ${patterns.length} patterns:`, patterns);
         
         const tbody = document.querySelector('#pattern-table tbody');
         if (!tbody) {
@@ -262,20 +266,20 @@ class PatternVisualizationService {
         }
         
         // Get enhanced data for all patterns
-        console.log('Getting enhanced data for patterns...');
+        if (VISUALIZATION_DEBUG) console.log('Getting enhanced data for patterns...');
         const enhancedData = await this.getEnhancedPatternData(patterns);
-        console.log('Enhanced data received:', enhancedData);
+        if (VISUALIZATION_DEBUG) console.log('Enhanced data received:', enhancedData);
         
         // Update each row with enhanced visualization
         const rows = tbody.querySelectorAll('tr[data-symbol]');
-        console.log(`Found ${rows.length} rows in table`);
+        if (VISUALIZATION_DEBUG) console.log(`Found ${rows.length} rows in table`);
         
         rows.forEach((row, index) => {
             if (patterns[index] && enhancedData[index]) {
-                console.log(`Processing row ${index} for ${patterns[index].symbol}`);
+                if (VISUALIZATION_DEBUG) console.log(`Processing row ${index} for ${patterns[index].symbol}`);
                 this.enhancePatternRow(row, patterns[index], enhancedData[index]);
             } else {
-                console.warn(`Missing data for row ${index}:`, {
+                if (VISUALIZATION_DEBUG) console.warn(`Missing data for row ${index}:`, {
                     pattern: patterns[index],
                     enhancement: enhancedData[index]
                 });
@@ -293,7 +297,7 @@ class PatternVisualizationService {
             );
             return enhancedData;
         } catch (error) {
-            console.warn('Using mock enhancement data:', error);
+            if (VISUALIZATION_DEBUG) console.warn('Using mock enhancement data:', error);
             return patterns.map(pattern => this.generateMockEnhancement(pattern));
         }
     }
@@ -375,11 +379,11 @@ class PatternVisualizationService {
     enhancePatternRow(row, pattern, enhancement) {
         // Check if already enhanced
         if (row.querySelector('.trend-cell')) {
-            console.log(`Row ${pattern.symbol} already enhanced, skipping`);
+            if (VISUALIZATION_DEBUG) console.log(`Row ${pattern.symbol} already enhanced, skipping`);
             return;
         }
         
-        console.log(`Enhancing row for ${pattern.symbol}`, enhancement);
+        if (VISUALIZATION_DEBUG) console.log(`Enhancing row for ${pattern.symbol}`, enhancement);
         
         // Create enhanced cells
         const trendCell = this.createTrendCell(enhancement);
@@ -388,7 +392,7 @@ class PatternVisualizationService {
         
         // Find the correct insertion point - should be before the "Detected" column (8th column, 0-based index 7)
         const allCells = row.querySelectorAll('td');
-        console.log(`Row has ${allCells.length} cells before enhancement`);
+        if (VISUALIZATION_DEBUG) console.log(`Row has ${allCells.length} cells before enhancement`);
         
         // Insert in correct order: Trend, Context, Performance (before Detected column)
         const detectedCell = allCells[7]; // Volume is index 6, Detected is index 7
@@ -398,7 +402,7 @@ class PatternVisualizationService {
             row.insertBefore(performanceCell, detectedCell);
             row.insertBefore(contextCell, detectedCell);  
             row.insertBefore(trendCell, detectedCell);
-            console.log(`Enhanced cells added for ${pattern.symbol} before Detected column`);
+            if (VISUALIZATION_DEBUG) console.log(`Enhanced cells added for ${pattern.symbol} before Detected column`);
         } else {
             // Fallback: append before last cell (Actions)
             const actionsCell = row.querySelector('td:last-child');
@@ -406,7 +410,7 @@ class PatternVisualizationService {
                 row.insertBefore(performanceCell, actionsCell);
                 row.insertBefore(contextCell, actionsCell);
                 row.insertBefore(trendCell, actionsCell);
-                console.log(`Enhanced cells added (fallback) for ${pattern.symbol}`);
+                if (VISUALIZATION_DEBUG) console.log(`Enhanced cells added (fallback) for ${pattern.symbol}`);
             }
         }
         

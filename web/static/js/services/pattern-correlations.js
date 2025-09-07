@@ -10,6 +10,9 @@
  * Sprint: 23
  */
 
+// Debug flag for development
+const CORRELATIONS_DEBUG = false;
+
 class PatternCorrelationsService {
     constructor() {
         this.initialized = false;
@@ -22,7 +25,7 @@ class PatternCorrelationsService {
     async initialize(containerId = null) {
         if (this.initialized) return;
         
-        console.log('🔗 Initializing Pattern Correlations Dashboard...');
+        if (CORRELATIONS_DEBUG) console.log('🔗 Initializing Pattern Correlations Dashboard...');
         
         try {
             // If containerId is provided, render to that container instead
@@ -38,12 +41,12 @@ class PatternCorrelationsService {
             // Use mock data by default for faster loading
             this.renderMockData();
             this.initialized = true;
-            console.log('✅ Pattern Correlations Dashboard initialized with mock data');
+            if (CORRELATIONS_DEBUG) console.log('✅ Pattern Correlations Dashboard initialized with mock data');
             
             // Try to load real data in background
             setTimeout(() => {
                 this.loadCorrelationData().catch(error => {
-                    console.log('Using mock data - API not available');
+                    if (CORRELATIONS_DEBUG) console.log('Using mock data - API not available');
                 });
             }, 1000);
             
@@ -603,7 +606,7 @@ class PatternCorrelationsService {
     }
 
     async refreshData() {
-        console.log('🔄 Refreshing correlation data...');
+        if (CORRELATIONS_DEBUG) console.log('🔄 Refreshing correlation data...');
         await this.loadCorrelationData();
     }
 

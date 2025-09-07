@@ -18,6 +18,9 @@
  * Sprint: 23
  */
 
+// Debug flag for development
+const COMPARISON_DEBUG = false;
+
 class PatternComparisonService {
     constructor() {
         this.apiBaseUrl = '/api/analytics/comparison';
@@ -330,7 +333,7 @@ class PatternComparisonService {
         // Use mock data immediately for faster loading
         this.availablePatterns = this.getMockPatternList();
         this.populatePatternSelects();
-        console.log('📊 Using mock pattern data for immediate display');
+        if (COMPARISON_DEBUG) console.log('📊 Using mock pattern data for immediate display');
 
         // Try to load real data in background
         setTimeout(() => {
@@ -344,11 +347,11 @@ class PatternComparisonService {
                 .then(patterns => {
                     this.availablePatterns = patterns;
                     this.populatePatternSelects();
-                    console.log('✅ Available patterns updated from API');
+                    if (COMPARISON_DEBUG) console.log('✅ Available patterns updated from API');
                 })
                 .catch(() => {
                     // Silently continue with mock data
-                    console.log('📊 Continuing with mock pattern data - API not available');
+                    if (COMPARISON_DEBUG) console.log('📊 Continuing with mock pattern data - API not available');
                 });
         }, 1000);
     }
@@ -437,7 +440,7 @@ class PatternComparisonService {
 
             // Use mock data immediately for instant display
             this.currentComparison = this.getMockComparisonData(patternA, patternB);
-            console.log('📊 Using mock comparison data for immediate display');
+            if (COMPARISON_DEBUG) console.log('📊 Using mock comparison data for immediate display');
 
             // Display comparison results
             this.displayComparisonResults();
@@ -455,11 +458,11 @@ class PatternComparisonService {
                     .then(comparisonData => {
                         this.currentComparison = comparisonData;
                         this.displayComparisonResults();
-                        console.log('✅ Pattern comparison data updated from API');
+                        if (COMPARISON_DEBUG) console.log('✅ Pattern comparison data updated from API');
                     })
                     .catch(() => {
                         // Silently continue with mock data
-                        console.log('📊 Continuing with mock comparison data - API not available');
+                        if (COMPARISON_DEBUG) console.log('📊 Continuing with mock comparison data - API not available');
                     });
             }, 1000);
 
