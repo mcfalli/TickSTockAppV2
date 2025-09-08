@@ -15,6 +15,10 @@
 - [`data-source-configuration.md`](data-source-configuration.md) - Data source configuration guide
 - [`settings-configuration.md`](settings-configuration.md) - Settings management
 
+## User Interface Guides
+
+- [`web_pattern_discovery_dashboard.md`](web_pattern_discovery_dashboard.md) - Complete Pattern Discovery Dashboard user guide
+
 ## System Administration
 
 - [`administration-system.md`](administration-system.md) - Complete system administration guide
@@ -26,6 +30,7 @@
 1. Start with [`startup-guide.md`](startup-guide.md) for basic setup
 2. Follow [`integration-guide.md`](integration-guide.md) for TickStockPL integration
 3. Use [`historical-data-loading.md`](historical-data-loading.md) to load initial data
+4. Review [`web_pattern_discovery_dashboard.md`](web_pattern_discovery_dashboard.md) for using the Pattern Discovery interface
 
 **System Operators?**
 - Review [`administration-system.md`](administration-system.md) for admin procedures
