@@ -1,0 +1,839 @@
+/* ==========================================================================
+   SIDEBAR NAVIGATION - Sprint 24
+   ========================================================================== 
+   
+   Left sidebar navigation to replace horizontal tabs
+   Based on menu_changes.md specifications
+   
+   Features:
+   - Fixed-height sidebar (250px wide, collapsible to 60px)
+   - Theme-aware (TickStock light/dark colors)
+   - Filter column for Pattern Discovery
+   - Smooth transitions and animations
+*/
+
+/* ==========================================================================
+   MAIN SIDEBAR CONTAINER
+   ========================================================================== */
+
+.app-sidebar {
+    position: fixed !important;
+    top: 60px !important; /* Below custom navbar */
+    left: 0 !important;
+    width: 250px !important;
+    height: calc(100vh - 60px) !important;
+    background-color: #ffffff !important;
+    border-right: 1px solid #dee2e6 !important;
+    transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    z-index: 1000 !important;
+    overflow: hidden;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1) !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.app-sidebar.narrow {
+    width: 60px !important;
+}
+
+/* ==========================================================================
+   SIDEBAR HEADER (TOGGLE BUTTON)
+   ========================================================================== */
+
+.sidebar-header {
+    padding: 15px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f8f9fa;
+    min-height: 60px;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.sidebar-toggle {
+    background: none;
+    border: none;
+    color: #495057;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 10;
+    min-width: 48px;
+    min-height: 48px;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-toggle:hover {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
+    transform: scale(1.05);
+}
+
+.sidebar-title {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.875rem;
+    margin: 0;
+    transition: opacity 0.3s ease;
+}
+
+.app-sidebar.narrow .sidebar-title {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.app-sidebar.narrow .sidebar-header {
+    padding: 10px 5px;
+    justify-content: center;
+    position: relative;
+    overflow: visible;
+}
+
+.app-sidebar.narrow .sidebar-toggle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid #dee2e6 !important;
+    z-index: 1001; /* Above sidebar content */
+}
+
+/* ==========================================================================
+   NAVIGATION MENU
+   ========================================================================== */
+
+/* Tooltip styles for collapsed sidebar */
+.sidebar-nav-link {
+    position: relative;
+}
+
+/* Ultra-specific tooltip rule - maximum specificity */
+ul#sidebar-nav li.sidebar-nav-item a.sidebar-nav-link:hover::before,
+.sidebar-nav#sidebar-nav .sidebar-nav-item .sidebar-nav-link:hover::before {
+    content: attr(data-tooltip) !important;
+    position: absolute !important;
+    left: calc(100% + 15px) !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: red !important;
+    color: white !important;
+    padding: 10px 15px !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    z-index: 999999 !important;
+    pointer-events: none !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+    border: 2px solid yellow !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    animation: none !important;
+    width: auto !important;
+    height: auto !important;
+    clip: auto !important;
+    overflow: visible !important;
+}
+
+/* Tooltip arrow - positioned next to tooltip */
+.app-sidebar.narrow .sidebar-nav-item .sidebar-nav-link:hover::after {
+    content: '' !important;
+    position: absolute !important;
+    left: calc(100% + 8px) !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 0 !important;
+    height: 0 !important;
+    border: 7px solid transparent !important;
+    border-right-color: #333 !important;
+    z-index: 999998 !important;
+    pointer-events: none !important;
+}
+
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: calc(100% - 70px); /* Account for header */
+    /* Hide scrollbar when not needed */
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.sidebar-nav-item {
+    position: relative;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.sidebar-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-weight: 500;
+    min-height: 54px; /* Consistent height for narrow mode */
+}
+
+.sidebar-nav-link:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.sidebar-nav-item.active .sidebar-nav-link {
+    background-color: #e7f3ff;
+    color: #0d6efd;
+    border-right: 3px solid #0d6efd;
+}
+
+.sidebar-nav-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    text-align: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.sidebar-nav-text {
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.app-sidebar.narrow .sidebar-nav-text {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.app-sidebar.narrow .sidebar-nav-link {
+    padding: 15px;
+    justify-content: center;
+}
+
+.app-sidebar.narrow .sidebar-nav-icon {
+    margin-right: 0;
+}
+
+/* Filter indicator for Pattern Discovery - use a child element approach to avoid pseudo-element conflicts */
+.sidebar-nav-item[data-section="pattern-discovery"] .sidebar-nav-link {
+    position: relative;
+}
+
+.sidebar-nav-item[data-section="pattern-discovery"] .sidebar-nav-link::after {
+    content: '';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background-color: #28a745;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1002;
+}
+
+.sidebar-nav-item[data-section="pattern-discovery"].has-filters .sidebar-nav-link::after {
+    opacity: 1;
+}
+
+/* Pattern Discovery filter indicator - hide in narrow mode to allow tooltips */
+.app-sidebar.narrow .sidebar-nav-item[data-section="pattern-discovery"] .sidebar-nav-link::after {
+    display: none !important;
+}
+
+/* Pattern Discovery tooltip arrow override in narrow mode */
+.app-sidebar.narrow .sidebar-nav-item[data-section="pattern-discovery"] .sidebar-nav-link:hover::after {
+    display: block !important;
+    content: '' !important;
+    position: absolute !important;
+    left: calc(100% + 8px) !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 0 !important;
+    height: 0 !important;
+    border: 7px solid transparent !important;
+    border-right-color: #333 !important;
+    background-color: transparent !important;
+    border-radius: 0 !important;
+    z-index: 999998 !important;
+    pointer-events: none !important;
+}
+
+/* ==========================================================================
+   FILTER COLUMN (PATTERN DISCOVERY)
+   ========================================================================== */
+
+.filter-column {
+    position: absolute;
+    left: 250px;
+    top: 0;
+    width: 300px;
+    height: 100%;
+    background-color: #ffffff;
+    border-right: 1px solid #dee2e6;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    z-index: 999;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
+}
+
+.filter-column.active {
+    transform: translateX(0);
+}
+
+.app-sidebar.narrow + .filter-column {
+    left: 60px;
+}
+
+.filter-column-header {
+    padding: 20px;
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filter-column-title {
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+    font-size: 1rem;
+}
+
+.filter-close-btn {
+    background: none;
+    border: none;
+    color: #6c757d;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.filter-close-btn:hover {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.filter-column-content {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 160px);
+}
+
+.filter-column-footer {
+    padding: 20px;
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    position: sticky;
+    bottom: 0;
+}
+
+/* ==========================================================================
+   COLLAPSIBLE FILTER SECTIONS
+   ========================================================================== */
+
+.filter-section {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background-color: #ffffff;
+}
+
+.filter-section-header {
+    padding: 12px 16px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.filter-section-header:hover {
+    background-color: #e9ecef;
+}
+
+.filter-section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+}
+
+.collapse-caret {
+    font-size: 0.8rem;
+    color: #6c757d;
+    transition: transform 0.3s ease;
+}
+
+.filter-section-content {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.filter-section-content.collapse:not(.show) {
+    display: none;
+}
+
+.filter-section-content.collapse.show {
+    display: block;
+}
+
+/* Compact spacing for filter controls */
+.filter-section .form-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #495057;
+}
+
+.filter-section .form-control,
+.filter-section .form-select {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+}
+
+.filter-section .form-check {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+}
+
+.filter-section .btn {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+}
+
+/* Loading state for filter sections */
+.filter-section-content .spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Filter section dividers */
+.filter-section + .filter-section {
+    margin-top: 0;
+}
+
+.filter-section:not(:last-child) {
+    margin-bottom: 12px;
+}
+
+/* Compact list styling for watchlists and presets */
+.watchlist-compact-list, .presets-compact-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.watchlist-compact-item, .preset-compact-item {
+    margin-bottom: 4px;
+}
+
+.hover-bg-light:hover {
+    background-color: #f8f9fa !important;
+}
+
+.watchlist-compact-item.active .hover-bg-light,
+.preset-compact-item.active .hover-bg-light {
+    background-color: var(--bs-primary) !important;
+    color: white !important;
+}
+
+.watchlist-compact-item.active .text-muted,
+.preset-compact-item.active .text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Dropdown menu in compact lists */
+.watchlist-compact-list .dropdown-menu,
+.presets-compact-list .dropdown-menu {
+    font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   HIDE OLD SYSTEMS WHEN SIDEBAR IS ACTIVE
+   ========================================================================== */
+
+/* Hide the old retractable filter system when sidebar navigation is present */
+body.sidebar-navigation-active .retractable-filter-container,
+body.sidebar-navigation-active .pattern-discovery-dashboard .filter-controls {
+    display: none !important;
+}
+
+/* Force main content to use sidebar layout when sidebar is present */
+body.sidebar-navigation-active .main-layout-container {
+    padding-left: 250px !important;
+    padding-top: 60px !important;
+}
+
+/* Hide any conflicting elements */
+body.sidebar-navigation-active .container-fluid > div:not(.app-sidebar):not(.filter-column):not(.main-content-area):not(.sidebar-overlay) {
+    display: none !important;
+}
+
+/* ==========================================================================
+   NAVBAR FIXES
+   ========================================================================== */
+
+/* Ensure the navbar stays fixed at the top */
+.navbar.fixed-top {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1030 !important;
+}
+
+/* Ensure navbar buttons are clickable and properly styled */
+.navbar .btn,
+.navbar .nav-link,
+.navbar .dropdown-toggle {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* Fix navbar collapse on mobile */
+.navbar-collapse {
+    flex-basis: 100%;
+    flex-grow: 1;
+    align-items: center;
+}
+
+/* Ensure proper spacing for navbar items */
+.navbar-nav {
+    flex-direction: row;
+    align-items: center;
+}
+
+.navbar-nav .nav-item {
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+}
+
+/* Improve status badge spacing */
+.navbar-nav .nav-link .badge {
+    margin-right: 0.4rem;
+    margin-left: 0.2rem;
+}
+
+/* Fix theme toggle button styling */
+#theme-toggle {
+    background-color: transparent !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    color: rgba(255,255,255,0.75) !important;
+}
+
+#theme-toggle:hover {
+    background-color: rgba(255,255,255,0.1) !important;
+    border-color: rgba(255,255,255,0.5) !important;
+    color: white !important;
+}
+
+/* ==========================================================================
+   MAIN LAYOUT CONTAINER
+   ========================================================================== */
+
+.main-layout-container {
+    position: relative;
+    padding: 0;
+    margin: 0;
+    min-height: 100vh;
+    padding-top: 60px; /* Account for custom navbar */
+}
+
+/* ==========================================================================
+   MAIN CONTENT ADJUSTMENT
+   ========================================================================== */
+
+.main-content-area {
+    margin-left: 250px;
+    transition: margin-left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    min-height: calc(100vh - 60px);
+    padding: 20px;
+}
+
+.app-sidebar.narrow ~ .main-content-area {
+    margin-left: 60px;
+}
+
+.filter-column.active ~ .main-content-area {
+    margin-left: 550px;
+}
+
+.app-sidebar.narrow ~ .filter-column.active ~ .main-content-area {
+    margin-left: 360px;
+}
+
+/* ==========================================================================
+   DARK THEME SUPPORT
+   ========================================================================== */
+
+html.theme-dark .app-sidebar,
+body.theme-dark .app-sidebar {
+    background-color: #1a1a1a !important;
+    border-right-color: #495057 !important;
+}
+
+html.theme-dark .sidebar-header,
+body.theme-dark .sidebar-header {
+    background-color: #2d2d2d !important;
+    border-bottom-color: #495057 !important;
+}
+
+html.theme-dark .sidebar-toggle,
+html.theme-dark .sidebar-title,
+body.theme-dark .sidebar-toggle,
+body.theme-dark .sidebar-title {
+    color: #adb5bd !important;
+}
+
+html.theme-dark .sidebar-toggle:hover,
+body.theme-dark .sidebar-toggle:hover {
+    background-color: #495057 !important;
+    color: #e9ecef !important;
+}
+
+html.theme-dark .sidebar-nav-item,
+body.theme-dark .sidebar-nav-item {
+    border-bottom-color: #495057 !important;
+}
+
+html.theme-dark .sidebar-nav-link,
+body.theme-dark .sidebar-nav-link {
+    color: #adb5bd !important;
+}
+
+html.theme-dark .sidebar-nav-link:hover,
+body.theme-dark .sidebar-nav-link:hover {
+    background-color: #2d2d2d !important;
+    color: #ffc107 !important;
+}
+
+html.theme-dark .sidebar-nav-item.active .sidebar-nav-link,
+body.theme-dark .sidebar-nav-item.active .sidebar-nav-link {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+    color: #ffc107 !important;
+    border-right-color: #ffc107 !important;
+}
+
+html.theme-dark .filter-column,
+body.theme-dark .filter-column {
+    background-color: #1a1a1a !important;
+    border-right-color: #495057 !important;
+}
+
+html.theme-dark .filter-column-header,
+html.theme-dark .filter-column-footer,
+body.theme-dark .filter-column-header,
+body.theme-dark .filter-column-footer {
+    background-color: #2d2d2d !important;
+    border-color: #495057 !important;
+}
+
+html.theme-dark .filter-column-title,
+html.theme-dark .filter-close-btn,
+body.theme-dark .filter-column-title,
+body.theme-dark .filter-close-btn {
+    color: #adb5bd !important;
+}
+
+html.theme-dark .filter-close-btn:hover,
+body.theme-dark .filter-close-btn:hover {
+    background-color: #495057 !important;
+    color: #e9ecef !important;
+}
+
+/* Dark theme for collapsible filter sections */
+html.theme-dark .filter-section,
+body.theme-dark .filter-section {
+    border-color: #495057 !important;
+    background-color: #1a1a1a !important;
+}
+
+html.theme-dark .filter-section-header,
+body.theme-dark .filter-section-header {
+    background-color: #2d2d2d !important;
+    border-color: #495057 !important;
+}
+
+html.theme-dark .filter-section-header:hover,
+body.theme-dark .filter-section-header:hover {
+    background-color: #3d3d3d !important;
+}
+
+html.theme-dark .filter-section-title,
+body.theme-dark .filter-section-title {
+    color: #adb5bd !important;
+}
+
+html.theme-dark .collapse-caret,
+body.theme-dark .collapse-caret {
+    color: #6c757d !important;
+}
+
+html.theme-dark .filter-section .form-label,
+body.theme-dark .filter-section .form-label {
+    color: #adb5bd !important;
+}
+
+html.theme-dark .filter-section .form-control,
+html.theme-dark .filter-section .form-select,
+body.theme-dark .filter-section .form-control,
+body.theme-dark .filter-section .form-select {
+    background-color: #2d2d2d !important;
+    border-color: #495057 !important;
+    color: #e9ecef !important;
+}
+
+html.theme-dark .filter-section .form-check-label,
+body.theme-dark .filter-section .form-check-label {
+    color: #adb5bd !important;
+}
+
+/* Dark theme for compact lists */
+html.theme-dark .hover-bg-light:hover,
+body.theme-dark .hover-bg-light:hover {
+    background-color: #3d3d3d !important;
+}
+
+html.theme-dark .watchlist-compact-item.active .hover-bg-light,
+html.theme-dark .preset-compact-item.active .hover-bg-light,
+body.theme-dark .watchlist-compact-item.active .hover-bg-light,
+body.theme-dark .preset-compact-item.active .hover-bg-light {
+    background-color: var(--bs-primary) !important;
+    color: white !important;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+/* Mobile - Hide sidebar, show overlay */
+@media (max-width: 767.98px) {
+    .app-sidebar {
+        transform: translateX(-100%);
+        width: 280px;
+        z-index: 1050;
+    }
+    
+    .app-sidebar.mobile-open {
+        transform: translateX(0);
+    }
+    
+    .main-content-area {
+        margin-left: 0;
+    }
+    
+    .filter-column {
+        display: none;
+    }
+    
+    /* Mobile overlay */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* Tablet - Auto-collapse sidebar */
+@media (max-width: 991.98px) {
+    .app-sidebar {
+        width: 60px;
+    }
+    
+    .main-content-area {
+        margin-left: 60px;
+    }
+    
+    .filter-column {
+        left: 60px;
+    }
+}
+
+/* ==========================================================================
+   LOADING STATES
+   ========================================================================== */
+
+/* DISABLED LOADING STATE - This was blocking tooltips */
+.sidebar-nav-item.loading .sidebar-nav-link::before {
+    display: none !important;
+}
+
+@keyframes loading {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Clean styling without debug code */
+
+/* ==========================================================================
+   UTILITIES
+   ========================================================================== */
+
+.sidebar-nav-badge {
+    background-color: #dc3545;
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: auto;
+    min-width: 18px;
+    text-align: center;
+}
+
+.app-sidebar.narrow .sidebar-nav-badge {
+    display: none;
+}

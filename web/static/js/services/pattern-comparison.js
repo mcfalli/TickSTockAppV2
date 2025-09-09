@@ -796,6 +796,20 @@ class PatternComparisonService {
     }
 
     /**
+     * Render dashboard - called by sidebar navigation
+     */
+    renderDashboard() {
+        const dashboardHTML = this.createComparisonInterface();
+        
+        // Run default comparison with mock data for immediate display
+        setTimeout(() => {
+            this.runDefaultComparison();
+        }, 100);
+        
+        return dashboardHTML;
+    }
+
+    /**
      * Clean up resources
      */
     destroy() {
@@ -859,6 +873,15 @@ class PatternComparisonService {
             risk_assessment: 'Lower drawdown in Pattern A suggests better risk management during volatile periods.'
         };
     }
+}
+
+// Global initialization for browser
+if (typeof window !== 'undefined') {
+    // Initialize the service when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+        window.patternComparison = new PatternComparisonService();
+        console.log('Pattern Comparison Service initialized globally');
+    });
 }
 
 // Export for module systems

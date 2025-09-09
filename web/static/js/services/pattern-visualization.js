@@ -39,7 +39,6 @@ class PatternVisualizationService {
             this.setupInteractiveElements();
             this.setupEventHandlers();
             this.isInitialized = true;
-            if (VISUALIZATION_DEBUG) console.log('PatternVisualizationService initialized successfully');
         } catch (error) {
             console.error('Failed to initialize PatternVisualizationService:', error);
         }
@@ -69,7 +68,6 @@ class PatternVisualizationService {
                 
                 // Listen for pattern updates and table changes
                 document.addEventListener('patternsUpdated', (event) => {
-                    if (VISUALIZATION_DEBUG) console.log('Patterns updated event received');
                     if (event.detail && event.detail.patterns) {
                         this.enhancePatternRows(event.detail.patterns);
                     }
@@ -106,7 +104,6 @@ class PatternVisualizationService {
             });
             
             if (tableWasRefreshed) {
-                if (VISUALIZATION_DEBUG) console.log('Table refresh detected, re-enhancing...');
                 
                 // Re-enhance the table headers (in case they were reset)
                 this.enhancePatternTable(table);
@@ -150,10 +147,8 @@ class PatternVisualizationService {
      * Enhance patterns that are already loaded in the table
      */
     enhanceExistingPatterns() {
-        if (VISUALIZATION_DEBUG) console.log('enhanceExistingPatterns called');
         
         const tbody = document.querySelector('#pattern-table tbody');
-        if (VISUALIZATION_DEBUG) console.log('Pattern table tbody:', tbody);
         
         if (!tbody) {
             console.error('No tbody found in pattern table');
@@ -161,27 +156,18 @@ class PatternVisualizationService {
         }
         
         const rows = tbody.querySelectorAll('tr[data-symbol]');
-        if (VISUALIZATION_DEBUG) console.log(`Found ${rows.length} rows with data-symbol attribute`);
         
         if (rows.length === 0) {
             // Try without data-symbol attribute
             const allRows = tbody.querySelectorAll('tr');
-            if (VISUALIZATION_DEBUG) {
-                console.log(`Found ${allRows.length} total rows in tbody`);
-                if (allRows.length > 0) {
-                    console.log('First row HTML:', allRows[0].outerHTML);
-                }
-            }
             
             console.error('No rows with data-symbol found');
             return;
         }
         
-        if (VISUALIZATION_DEBUG) console.log(`Found ${rows.length} existing patterns to enhance`);
         
         // Extract pattern data from existing rows
         const patterns = Array.from(rows).map((row, index) => {
-            if (VISUALIZATION_DEBUG) console.log(`Processing row ${index}:`, row);
             
             const symbol = row.getAttribute('data-symbol');
             const patternElement = row.querySelector('.badge');
@@ -195,11 +181,9 @@ class PatternVisualizationService {
                 confidence: confidence
             };
             
-            if (VISUALIZATION_DEBUG) console.log(`Extracted pattern ${index}:`, extractedPattern);
             return extractedPattern;
         });
         
-        if (VISUALIZATION_DEBUG) console.log('All extracted patterns:', patterns);
         
         // Enhance the patterns
         this.enhancePatternRows(patterns);
@@ -253,11 +237,9 @@ class PatternVisualizationService {
      */
     async enhancePatternRows(patterns) {
         if (!patterns || patterns.length === 0) {
-            if (VISUALIZATION_DEBUG) console.log('No patterns to enhance');
             return;
         }
         
-        if (VISUALIZATION_DEBUG) console.log(`Enhancing ${patterns.length} patterns:`, patterns);
         
         const tbody = document.querySelector('#pattern-table tbody');
         if (!tbody) {
@@ -266,23 +248,15 @@ class PatternVisualizationService {
         }
         
         // Get enhanced data for all patterns
-        if (VISUALIZATION_DEBUG) console.log('Getting enhanced data for patterns...');
         const enhancedData = await this.getEnhancedPatternData(patterns);
-        if (VISUALIZATION_DEBUG) console.log('Enhanced data received:', enhancedData);
         
         // Update each row with enhanced visualization
         const rows = tbody.querySelectorAll('tr[data-symbol]');
-        if (VISUALIZATION_DEBUG) console.log(`Found ${rows.length} rows in table`);
         
         rows.forEach((row, index) => {
             if (patterns[index] && enhancedData[index]) {
-                if (VISUALIZATION_DEBUG) console.log(`Processing row ${index} for ${patterns[index].symbol}`);
                 this.enhancePatternRow(row, patterns[index], enhancedData[index]);
             } else {
-                if (VISUALIZATION_DEBUG) console.warn(`Missing data for row ${index}:`, {
-                    pattern: patterns[index],
-                    enhancement: enhancedData[index]
-                });
             }
         });
     }
@@ -297,7 +271,6 @@ class PatternVisualizationService {
             );
             return enhancedData;
         } catch (error) {
-            if (VISUALIZATION_DEBUG) console.warn('Using mock enhancement data:', error);
             return patterns.map(pattern => this.generateMockEnhancement(pattern));
         }
     }
@@ -306,6 +279,13 @@ class PatternVisualizationService {
      * Get enhancement data for single pattern
      */
     async getPatternEnhancement(pattern) {
+        // Check if we should skip API calls (development mode detection)
+        if (this.shouldUseMockData()) {
+            if (VISUALIZATION_DEBUG) {
+            }
+            return this.generateMockEnhancement(pattern);
+        }
+        
         try {
             const headers = { 'Content-Type': 'application/json' };
             
@@ -329,9 +309,25 @@ class PatternVisualizationService {
             if (!response.ok) throw new Error('Enhancement API failed');
             return await response.json();
         } catch (error) {
-            console.warn('Enhanced pattern API failed, using mock data:', error);
+            // Only log if this wasn't expected (production environment)
+            if (!this.shouldUseMockData()) {
+                console.warn('Enhanced pattern API failed, using mock data:', error);
+            }
             return this.generateMockEnhancement(pattern);
         }
+    }
+    
+    /**
+     * Determine if we should use mock data instead of making API calls
+     */
+    shouldUseMockData() {
+        // Skip API calls if we're in development mode or missing authentication
+        return (
+            // Development detection: localhost or no CSRF token
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1' ||
+            !window.csrfToken && !document.querySelector('meta[name="csrf-token"]')
+        );
     }
 
     /**
@@ -379,39 +375,28 @@ class PatternVisualizationService {
     enhancePatternRow(row, pattern, enhancement) {
         // Check if already enhanced
         if (row.querySelector('.trend-cell')) {
-            if (VISUALIZATION_DEBUG) console.log(`Row ${pattern.symbol} already enhanced, skipping`);
             return;
         }
         
-        if (VISUALIZATION_DEBUG) console.log(`Enhancing row for ${pattern.symbol}`, enhancement);
         
-        // Create enhanced cells
-        const trendCell = this.createTrendCell(enhancement);
-        const contextCell = this.createContextCell(enhancement);
-        const performanceCell = this.createPerformanceCell(enhancement);
+        // Find and replace the existing placeholder cells
+        const trendColumnCell = row.querySelector('.trend-column');
+        const contextColumnCell = row.querySelector('.context-column');
+        const performanceColumnCell = row.querySelector('.performance-column');
         
-        // Find the correct insertion point - should be before the "Detected" column (8th column, 0-based index 7)
-        const allCells = row.querySelectorAll('td');
-        if (VISUALIZATION_DEBUG) console.log(`Row has ${allCells.length} cells before enhancement`);
+        if (trendColumnCell) {
+            this.replaceCellContent(trendColumnCell, this.createTrendContent(enhancement));
+            trendColumnCell.className = 'trend-cell text-center';
+        }
         
-        // Insert in correct order: Trend, Context, Performance (before Detected column)
-        const detectedCell = allCells[7]; // Volume is index 6, Detected is index 7
+        if (contextColumnCell) {
+            this.replaceCellContent(contextColumnCell, this.createContextContent(enhancement));
+            contextColumnCell.className = 'context-cell text-center';
+        }
         
-        if (detectedCell) {
-            // Insert in reverse order so they appear correctly
-            row.insertBefore(performanceCell, detectedCell);
-            row.insertBefore(contextCell, detectedCell);  
-            row.insertBefore(trendCell, detectedCell);
-            if (VISUALIZATION_DEBUG) console.log(`Enhanced cells added for ${pattern.symbol} before Detected column`);
-        } else {
-            // Fallback: append before last cell (Actions)
-            const actionsCell = row.querySelector('td:last-child');
-            if (actionsCell) {
-                row.insertBefore(performanceCell, actionsCell);
-                row.insertBefore(contextCell, actionsCell);
-                row.insertBefore(trendCell, actionsCell);
-                if (VISUALIZATION_DEBUG) console.log(`Enhanced cells added (fallback) for ${pattern.symbol}`);
-            }
+        if (performanceColumnCell) {
+            this.replaceCellContent(performanceColumnCell, this.createPerformanceContent(enhancement));
+            performanceColumnCell.className = 'performance-cell text-center';
         }
         
         // Enhance symbol cell with additional context
@@ -425,20 +410,25 @@ class PatternVisualizationService {
         
         // Store enhancement data
         this.enhancedPatterns.set(pattern.symbol, enhancement);
+        
+    }
+    
+    /**
+     * Replace cell content (helper method)
+     */
+    replaceCellContent(cell, newContent) {
+        cell.innerHTML = newContent;
     }
 
     /**
-     * Create trend indicator cell
+     * Create trend indicator content
      */
-    createTrendCell(enhancement) {
-        const cell = document.createElement('td');
-        cell.className = 'trend-cell text-center';
-        
+    createTrendContent(enhancement) {
         const trendIcon = enhancement.trend_direction === 'up' ? 'fa-arrow-up text-success' :
                          enhancement.trend_direction === 'down' ? 'fa-arrow-down text-danger' :
                          'fa-arrow-right text-warning';
         
-        cell.innerHTML = `
+        return `
             <div class="trend-indicator">
                 <i class="fas ${trendIcon} me-1"></i>
                 <span class="trend-strength">${enhancement.trend_strength}%</span>
@@ -447,42 +437,32 @@ class PatternVisualizationService {
                 Vol: ${enhancement.volume_change > 0 ? '+' : ''}${enhancement.volume_change}%
             </small>
         `;
-        
-        return cell;
     }
 
     /**
-     * Create context information cell
+     * Create context information content
      */
-    createContextCell(enhancement) {
-        const cell = document.createElement('td');
-        cell.className = 'context-cell text-center';
-        
+    createContextContent(enhancement) {
         const conditionBadge = enhancement.market_condition === 'bullish' ? 'bg-success' :
                               enhancement.market_condition === 'bearish' ? 'bg-danger' : 'bg-warning';
         
-        cell.innerHTML = `
+        return `
             <span class="badge ${conditionBadge} mb-1">${enhancement.market_condition}</span>
             <div class="small">
                 <div>Sector: ${enhancement.sector_performance > 0 ? '+' : ''}${enhancement.sector_performance}%</div>
                 <div>RSI: ${enhancement.relative_strength}</div>
             </div>
         `;
-        
-        return cell;
     }
 
     /**
-     * Create performance indicator cell
+     * Create performance indicator content
      */
-    createPerformanceCell(enhancement) {
-        const cell = document.createElement('td');
-        cell.className = 'performance-cell text-center';
-        
+    createPerformanceContent(enhancement) {
         const qualityClass = enhancement.pattern_quality === 'High' ? 'text-success' :
                             enhancement.pattern_quality === 'Medium' ? 'text-warning' : 'text-danger';
         
-        cell.innerHTML = `
+        return `
             <div class="success-rate mb-1">
                 <strong class="${qualityClass}">${enhancement.success_rate_1d}%</strong>
                 <small class="text-muted">/1d</small>
@@ -492,8 +472,6 @@ class PatternVisualizationService {
                 <div class="${qualityClass}">${enhancement.pattern_quality} Quality</div>
             </div>
         `;
-        
-        return cell;
     }
 
     /**

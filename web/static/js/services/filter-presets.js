@@ -484,36 +484,66 @@ class FilterPresetsService {
      * Render presets panel in the UI
      */
     renderPresetsPanel() {
-        const container = document.getElementById('filter-presets-panel');
+        // First try the new collapsible structure
+        let container = document.querySelector('#presets-content .p-3');
         if (!container) {
-            this.createPresetsPanel();
-            return;
+            // Fallback to old structure
+            container = document.getElementById('filter-presets-panel');
+            if (!container) {
+                this.createPresetsPanel();
+                return;
+            }
         }
 
         const presetsArray = this.getAllPresets();
         const activePreset = this.activePreset ? this.presets.get(this.activePreset) : null;
 
-        container.innerHTML = `
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">
-                        <i class="fas fa-filter me-2"></i>Filter Presets
-                        ${activePreset ? `<span class="badge bg-primary ms-2">${activePreset.name}</span>` : ''}
-                    </h6>
+        // Check if we're in the new collapsible structure
+        const isCollapsibleStructure = !!document.querySelector('#presets-content .p-3');
+
+        if (isCollapsibleStructure) {
+            // New collapsible structure - render compact content
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center">
+                        ${activePreset ? `<span class="badge bg-success me-2">${activePreset.name}</span>` : 
+                                         `<span class="text-muted small">No preset selected</span>`}
+                    </div>
                     <div>
-                        ${this.activePreset ? `<button class="btn btn-sm btn-outline-secondary me-2" id="clear-preset-btn">
-                            <i class="fas fa-times"></i> Clear
+                        ${this.activePreset ? `<button class="btn btn-sm btn-outline-secondary me-1" id="clear-preset-btn" title="Clear preset">
+                            <i class="fas fa-times"></i>
                         </button>` : ''}
-                        <button class="btn btn-sm btn-outline-primary" id="create-preset-btn">
+                        <button class="btn btn-sm btn-success" id="create-preset-btn" title="Create preset">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
-                <div class="card-body p-0">
-                    ${presetsArray.length === 0 ? this.renderEmptyState() : this.renderPresetsList(presetsArray, activePreset)}
+                ${presetsArray.length === 0 ? this.renderEmptyState() : this.renderCompactPresetsList(presetsArray, activePreset)}
+            `;
+        } else {
+            // Old structure - render full card
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-filter me-2"></i>Filter Presets
+                            ${activePreset ? `<span class="badge bg-primary ms-2">${activePreset.name}</span>` : ''}
+                        </h6>
+                        <div>
+                            ${this.activePreset ? `<button class="btn btn-sm btn-outline-secondary me-2" id="clear-preset-btn">
+                                <i class="fas fa-times"></i> Clear
+                            </button>` : ''}
+                            <button class="btn btn-sm btn-outline-primary" id="create-preset-btn">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        ${presetsArray.length === 0 ? this.renderEmptyState() : this.renderPresetsList(presetsArray, activePreset)}
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
 
         this.setupPanelEventHandlers();
     }
@@ -562,6 +592,50 @@ class FilterPresetsService {
                 <i class="fas fa-filter fa-2x mb-2"></i>
                 <p class="mb-0">No filter presets created yet</p>
                 <small>Click + to create your first preset</small>
+            </div>
+        `;
+    }
+
+    /**
+     * Render compact presets list for collapsible structure
+     */
+    renderCompactPresetsList(presets, activePreset) {
+        if (presets.length === 0) {
+            return this.renderEmptyState();
+        }
+
+        return `
+            <div class="presets-compact-list">
+                ${presets.map(preset => `
+                    <div class="preset-compact-item ${preset.id === activePreset?.id ? 'active' : ''}" 
+                         data-preset-id="${preset.id}">
+                        <div class="d-flex justify-content-between align-items-center py-2 px-2 rounded ${preset.id === activePreset?.id ? 'bg-success text-white' : 'hover-bg-light'}"
+                             style="cursor: pointer;" 
+                             title="${preset.name}${preset.description ? ': ' + preset.description : ''}">
+                            <div class="flex-grow-1" onclick="window.filterPresets.applyPreset('${preset.id}')">
+                                <div class="fw-semibold">${preset.name}</div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                ${preset.id === activePreset?.id ? 
+                                    '<i class="fas fa-check-circle me-1"></i>' : ''}
+                                <div class="dropdown">
+                                    <button class="btn btn-sm ${preset.id === activePreset?.id ? 'btn-light' : 'btn-outline-secondary'}" 
+                                            data-bs-toggle="dropdown" onclick="event.stopPropagation();">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><button class="dropdown-item edit-preset-btn" data-preset-id="${preset.id}">
+                                            <i class="fas fa-edit me-2"></i>Edit
+                                        </button></li>
+                                        <li><button class="dropdown-item text-danger delete-preset-btn" data-preset-id="${preset.id}">
+                                            <i class="fas fa-trash me-2"></i>Delete
+                                        </button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
             </div>
         `;
     }

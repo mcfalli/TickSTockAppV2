@@ -112,7 +112,7 @@ DROPDOWN CONTENT PANEL
   background-color: var(--color-background-primary);
   min-width: 180px;
   box-shadow: var(--shadow-xl);
-  z-index: var(--z-index-dropdown);
+  z-index: 9999 !important; /* Highest z-index to appear above all content */
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--color-border-secondary);
   overflow: hidden;
@@ -412,30 +412,7 @@ ADMIN MENU DROPDOWN - SPRINT 15
   margin-right: var(--spacing-md);
 }
 
-/* Admin menu button styling to match navbar buttons */
-.admin-menu-btn {
-  background: transparent;
-  color: var(--color-text-primary);
-  border: 1px solid transparent;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  transition: var(--transition-all);
-  user-select: none;
-}
-
-.admin-menu-btn:hover {
-  background-color: var(--color-background-secondary);
-  border-color: var(--color-border-light);
-}
-
-.admin-menu-btn[aria-expanded="true"] {
-  background-color: var(--color-background-secondary);
-  border-color: var(--color-border-secondary);
-}
+/* Admin menu button - inherits from .navbar-btn, no overrides needed */
 
 /* Admin dropdown content - inherits from .dropdown-content */
 .admin-dropdown-content {
@@ -447,7 +424,7 @@ ADMIN MENU DROPDOWN - SPRINT 15
   background-color: var(--color-background-primary);
   min-width: 200px;
   box-shadow: var(--shadow-xl);
-  z-index: var(--z-index-dropdown);
+  z-index: 9999 !important; /* Highest z-index to appear above all content */
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--color-border-secondary);
   overflow: hidden;
@@ -498,16 +475,7 @@ ADMIN MENU DROPDOWN - SPRINT 15
   text-align: center;
 }
 
-/* Theme support for admin menu */
-.theme-dark .admin-menu-btn {
-  color: var(--color-text-primary);
-  background: transparent;
-}
-
-.theme-dark .admin-menu-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-}
+/* Admin menu inherits navbar-btn theme styling automatically */
 
 .theme-dark .admin-dropdown-content {
   background-color: var(--color-background-primary);
@@ -529,11 +497,27 @@ ADMIN MENU DROPDOWN - SPRINT 15
     margin-right: var(--spacing-sm);
   }
   
-  .admin-menu-btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
-  }
-  
   .admin-dropdown-content {
     min-width: 180px;
   }
+}
+
+/* Pattern Discovery specific dropdown fix - Force above all content */
+.navbar .dropdown-content,
+.navbar .admin-dropdown-content,
+body.sidebar-navigation-active .navbar .dropdown-content,
+body.sidebar-navigation-active .navbar .admin-dropdown-content {
+  z-index: 999999 !important; /* Maximum z-index */
+  position: absolute !important;
+  /* Ensure dropdown doesn't get clipped */
+  clip: unset !important;
+  overflow: visible !important;
+}
+
+/* Force dropdown parent containers to not clip */
+.navbar .user-menu,
+.navbar .admin-menu {
+  position: relative !important;
+  z-index: 999999 !important;
+  overflow: visible !important;
 }

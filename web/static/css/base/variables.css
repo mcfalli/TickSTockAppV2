@@ -596,6 +596,143 @@ body.theme-dark .navbar,
 
 /*
 ===============================================================================
+TABLE THEME OVERRIDES - Bootstrap Table Dark/Light Theme Support
+===============================================================================
+
+PURPOSE: 
+Provides comprehensive dark/light theme support for Bootstrap tables throughout
+the application, including the Compare navigation content and other analytics
+sections.
+
+FIXES:
+- Overly bright yellow table headers in dark mode
+- Invisible text in detailed statistical comparison tables
+- Inconsistent font colors across table components
+- Missing dark theme support for table elements
+*/
+
+/* Light Theme Table Styles */
+.theme-light .table {
+  --bs-table-color: #333333 !important;
+  --bs-table-bg: #ffffff !important;
+  --bs-table-border-color: #dee2e6 !important;
+  --bs-table-accent-bg: #f8f9fa !important;
+  --bs-table-striped-color: #333333 !important;
+  --bs-table-striped-bg: rgba(0, 0, 0, 0.05) !important;
+  --bs-table-active-color: #333333 !important;
+  --bs-table-active-bg: rgba(0, 0, 0, 0.1) !important;
+  --bs-table-hover-color: #333333 !important;
+  --bs-table-hover-bg: rgba(0, 0, 0, 0.075) !important;
+  color: #333333 !important;
+  background-color: #ffffff !important;
+}
+
+.theme-light .table > :not(caption) > * > * {
+  color: #333333 !important;
+  background-color: #ffffff !important;
+  border-bottom-color: #dee2e6 !important;
+}
+
+.theme-light .table thead th {
+  background-color: #f8f9fa !important;
+  color: #333333 !important;
+  border-bottom: 2px solid #dee2e6 !important;
+  font-weight: 600 !important;
+}
+
+/* Dark Theme Table Styles - Fixes bright yellow headers */
+.theme-dark .table {
+  --bs-table-color: #ffffff !important;
+  --bs-table-bg: #2d2d2d !important;
+  --bs-table-border-color: #404040 !important;
+  --bs-table-accent-bg: #383838 !important;
+  --bs-table-striped-color: #ffffff !important;
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.05) !important;
+  --bs-table-active-color: #ffffff !important;
+  --bs-table-active-bg: rgba(255, 255, 255, 0.1) !important;
+  --bs-table-hover-color: #ffffff !important;
+  --bs-table-hover-bg: rgba(255, 255, 255, 0.075) !important;
+  color: #ffffff !important;
+  background-color: #2d2d2d !important;
+}
+
+.theme-dark .table > :not(caption) > * > * {
+  color: #ffffff !important;
+  background-color: #2d2d2d !important;
+  border-bottom-color: #404040 !important;
+}
+
+/* Dark Theme Table Headers - Replaces bright yellow with subtle gray */
+.theme-dark .table thead th {
+  background-color: #383838 !important;
+  color: #ffffff !important;
+  border-bottom: 2px solid #4a4a4a !important;
+  font-weight: 600 !important;
+}
+
+/* Dark Theme Table Body - Ensures text visibility */
+.theme-dark .table tbody td,
+.theme-dark .table tbody th {
+  color: #ffffff !important;
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+}
+
+/* Dark Theme Striped Tables */
+.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > td,
+.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > th {
+  background-color: #383838 !important;
+  color: #ffffff !important;
+}
+
+/* Dark Theme Hover Effects */
+.theme-dark .table-hover > tbody > tr:hover > td,
+.theme-dark .table-hover > tbody > tr:hover > th {
+  background-color: #404040 !important;
+  color: #ffffff !important;
+}
+
+/* Specific overrides for Compare section table */
+.theme-dark #comparison-details-table {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+}
+
+.theme-dark #comparison-details-table thead th {
+  background-color: #383838 !important;
+  color: #ffffff !important;
+  border-color: #4a4a4a !important;
+}
+
+.theme-dark #comparison-details-table tbody td {
+  color: #ffffff !important;
+  background-color: #2d2d2d !important;
+  border-color: #404040 !important;
+}
+
+/* Text color consistency for table content */
+.theme-dark .table .text-muted {
+  color: #aaaaaa !important;
+}
+
+.theme-dark .table .text-success {
+  color: #4caf50 !important;
+}
+
+.theme-dark .table .text-warning {
+  color: #ff9800 !important;
+}
+
+.theme-dark .table .text-info {
+  color: #2196f3 !important;
+}
+
+.theme-dark .table .text-primary {
+  color: #66bb6a !important;
+}
+
+/*
+===============================================================================
 REDUCED MOTION SUPPORT - Accessibility
 ===============================================================================
 */

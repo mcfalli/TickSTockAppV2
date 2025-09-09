@@ -5,64 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TickStock.ai</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/pattern-discovery.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/retractable-filter.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/sidebar-navigation.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- POST-BOOTSTRAP FIXES: Load after Bootstrap to override conflicts -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/post-bootstrap-fixes.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.min.js"></script>
-    <!-- Chart.js Integration -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- Chart.js Integration - Simplified to avoid module conflicts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- SweetAlert2 for notifications -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        // User context for per-user universe selection
-        window.userContext = {
-            username: "{{ username }}",
-            isAuthenticated: "{{ current_user.is_authenticated|lower }}" === "true",
-            userId: null // Will be populated from API response
-        };
-        
-        // CSRF Token for API calls
-        window.csrfToken = "{{ csrf_token() }}";
-        
-        // Apply saved theme immediately to prevent flash
-        (function() {
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                const html = document.documentElement;
-                const body = document.body;
-                
-                if (savedTheme === 'dark') {
-                    html.classList.add('theme-dark');
-                    html.setAttribute('data-theme', 'dark');
-                    // Set body class when it's available
-                    if (body) {
-                        body.classList.add('theme-dark');
-                    } else {
-                        document.addEventListener('DOMContentLoaded', function() {
-                            document.body.classList.add('theme-dark');
-                        });
-                    }
-                } else {
-                    html.classList.add('theme-light');
-                    html.setAttribute('data-theme', 'light');
-                    if (body) {
-                        body.classList.add('theme-light');
-                    } else {
-                        document.addEventListener('DOMContentLoaded', function() {
-                            document.body.classList.add('theme-light');
-                        });
-                    }
-                }
-            } else {
-                // Default to light theme
-                document.documentElement.classList.add('theme-light');
-                document.documentElement.setAttribute('data-theme', 'light');
-            }
-        })();
-    </script>
+    <!-- PDF Export Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    
-    <!-- Navigation Bar -->
+    <!-- Navigation Bar (restored from original design) -->
     <div class="navbar">
         <div class="navbar-left">
             <img src="{{ url_for('static', filename='images/logo-placeholder.jpg') }}" alt="TickStock.ai Logo" class="navbar-logo" />
@@ -70,7 +30,7 @@
         </div>
         <div class="navbar-right">
             <!-- Market Status -->
-            <span id="market-status" class="status-badge">Loading...</span>
+            <span id="market-status" class="status-badge">Market Open</span>
             
             <!-- Connection Status -->
             <div id="connection-status" class="connection-indicator">
@@ -129,8 +89,6 @@
                         <a href="{{ url_for('account') }}">Account</a>
                         <a href="{{ url_for('subscription') }}">Subscription</a>
                         <a href="{{ url_for('change_password') }}">Change Password</a>
-                        <a href="{{ url_for('backtest_dashboard') }}">📊 Backtesting</a>
-                        <a href="{{ url_for('pattern_alerts') }}">🔔 Pattern Alerts</a>
                         <a href="mailto:support@tickstock.com">support@tickstock.com</a>
                         <a href="{{ url_for('logout') }}">Logout</a>
                     </div>
@@ -139,260 +97,15 @@
         </div>
     </div>
 
-    <div id="error-message" style="display: none;"></div>
-    <!-- Remove loading overlay entirely for simplified version -->
-    <!-- <div class="loading-overlay" id="loading-overlay" style="display: none;">
-        <div class="spinner"></div>
-    </div> -->
-
-    <div class="container">
-        <!-- MAIN CONTENT SECTION - Simple single area -->
-        <main class="content-area">
-            <div id="main-content" class="card" style="min-height: calc(100vh - 200px); margin-top: 20px;">
-                <!-- Sprint 23: Advanced Analytics Dashboard with Tabbed Navigation -->
-                <div class="card-body">
-                    <!-- Navigation Tabs - Complete 8-tab Structure -->
-                    <ul class="nav nav-tabs mb-4" id="dashboard-tabs" role="tablist">
-                        <!-- Pattern Discovery Tab -->
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="pattern-discovery-tab" data-bs-toggle="tab" data-bs-target="#pattern-discovery-content" type="button" role="tab">
-                                <i class="fas fa-search me-1"></i>Pattern Discovery
-                            </button>
-                        </li>
-                        <!-- Original 5 Analytics Tabs -->
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview-content" type="button" role="tab">
-                                <i class="fas fa-chart-line me-1"></i>Overview
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="performance-tab" data-bs-toggle="tab" data-bs-target="#performance-content" type="button" role="tab">
-                                <i class="fas fa-tachometer-alt me-1"></i>Performance
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="distribution-tab" data-bs-toggle="tab" data-bs-target="#distribution-content" type="button" role="tab">
-                                <i class="fas fa-chart-pie me-1"></i>Distribution
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="historical-tab" data-bs-toggle="tab" data-bs-target="#historical-content" type="button" role="tab">
-                                <i class="fas fa-history me-1"></i>Historical
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="market-tab" data-bs-toggle="tab" data-bs-target="#market-content" type="button" role="tab">
-                                <i class="fas fa-chart-bar me-1"></i>Market
-                            </button>
-                        </li>
-                        <!-- Sprint 23 Advanced Analytics Tabs -->
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="correlations-tab" data-bs-toggle="tab" data-bs-target="#correlations-content" type="button" role="tab">
-                                <i class="fas fa-project-diagram me-1"></i>Correlations
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="temporal-tab" data-bs-toggle="tab" data-bs-target="#temporal-content" type="button" role="tab">
-                                <i class="fas fa-clock me-1"></i>Temporal
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="compare-tab" data-bs-toggle="tab" data-bs-target="#compare-content" type="button" role="tab">
-                                <i class="fas fa-balance-scale me-1"></i>Compare
-                            </button>
-                        </li>
-                    </ul>
-                    
-                    <!-- Tab Content - Complete 9-tab Structure -->
-                    <div class="tab-content" id="dashboard-tab-content">
-                        <!-- Pattern Discovery Tab -->
-                        <div class="tab-pane fade show active" id="pattern-discovery-content" role="tabpanel">
-                            <div id="pattern-discovery-dashboard">
-                                <!-- This will be populated by the Pattern Discovery Service -->
-                            </div>
-                        </div>
-                        
-                        <!-- Overview Tab -->
-                        <div class="tab-pane fade" id="overview-content" role="tabpanel">
-                            <div id="overview-dashboard">
-                                <div class="d-flex align-items-center justify-content-center py-5" id="overview-loading">
-                                    <div class="spinner-border text-primary me-3" role="status">
-                                        <span class="visually-hidden">Loading Overview...</span>
-                                    </div>
-                                    <div class="text-muted">Initializing Overview Dashboard...</div>
-                                </div>
-                                <div id="overview-fallback" style="display: none;" class="p-4">
-                                    <h4>Overview Dashboard</h4>
-                                    <div class="row mb-3">
-                                        <div class="col-md-3 col-6 mb-2">
-                                            <div class="text-center">
-                                                <div class="h4 text-primary mb-0">Loading...</div>
-                                                <small class="text-muted">Patterns Today</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 col-6 mb-2">
-                                            <div class="text-center">
-                                                <div class="h4 text-success mb-0">Loading...</div>
-                                                <small class="text-muted">Avg Confidence</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 col-6 mb-2">
-                                            <div class="text-center">
-                                                <div class="h4 text-info mb-0">Loading...</div>
-                                                <small class="text-muted">Per Hour</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 col-6 mb-2">
-                                            <div class="text-center">
-                                                <div class="h4 text-warning mb-0">Loading...</div>
-                                                <small class="text-muted">Market Breadth</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="text-muted">Analytics service is initializing...</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Performance Tab -->
-                        <div class="tab-pane fade" id="performance-content" role="tabpanel">
-                            <div id="performance-dashboard">
-                                <div class="d-flex align-items-center justify-content-center py-5" id="performance-loading">
-                                    <div class="spinner-border text-success me-3" role="status">
-                                        <span class="visually-hidden">Loading Performance...</span>
-                                    </div>
-                                    <div class="text-muted">Initializing Performance Dashboard...</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Distribution Tab -->
-                        <div class="tab-pane fade" id="distribution-content" role="tabpanel">
-                            <div id="distribution-dashboard">
-                                <div class="d-flex align-items-center justify-content-center py-5" id="distribution-loading">
-                                    <div class="spinner-border text-info me-3" role="status">
-                                        <span class="visually-hidden">Loading Distribution...</span>
-                                    </div>
-                                    <div class="text-muted">Initializing Distribution Dashboard...</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Historical Tab -->
-                        <div class="tab-pane fade" id="historical-content" role="tabpanel">
-                            <div id="historical-dashboard">
-                                <div class="d-flex align-items-center justify-content-center py-5" id="historical-loading">
-                                    <div class="spinner-border text-warning me-3" role="status">
-                                        <span class="visually-hidden">Loading Historical...</span>
-                                    </div>
-                                    <div class="text-muted">Initializing Historical Dashboard...</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Market Tab -->
-                        <div class="tab-pane fade" id="market-content" role="tabpanel">
-                            <div id="market-dashboard">
-                                <div class="d-flex align-items-center justify-content-center py-5" id="market-loading">
-                                    <div class="spinner-border text-dark me-3" role="status">
-                                        <span class="visually-hidden">Loading Market...</span>
-                                    </div>
-                                    <div class="text-muted">Initializing Market Dashboard...</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Correlations Tab -->
-                        <div class="tab-pane fade" id="correlations-content" role="tabpanel">
-                            <div id="correlations-dashboard">
-                                <div class="d-flex align-items-center justify-content-center py-5">
-                                    <div class="spinner-border text-secondary me-3" role="status">
-                                        <span class="visually-hidden">Loading Correlations...</span>
-                                    </div>
-                                    <div class="text-muted">Initializing Pattern Correlations Dashboard...</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Temporal Analysis Tab -->
-                        <div class="tab-pane fade" id="temporal-content" role="tabpanel">
-                            <div id="temporal-dashboard">
-                                <div class="d-flex align-items-center justify-content-center py-5">
-                                    <div class="spinner-border text-danger me-3" role="status">
-                                        <span class="visually-hidden">Loading Temporal Analysis...</span>
-                                    </div>
-                                    <div class="text-muted">Initializing Temporal Analysis Dashboard...</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Pattern Comparison Tab -->
-                        <div class="tab-pane fade" id="compare-content" role="tabpanel">
-                            <div id="compare-dashboard">
-                                <div class="d-flex align-items-center justify-content-center py-5">
-                                    <div class="spinner-border text-muted me-3" role="status">
-                                        <span class="visually-hidden">Loading Pattern Comparison...</span>
-                                    </div>
-                                    <div class="text-muted">Initializing Pattern Comparison Dashboard...</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Status Bar -->
-    <div class="status-bar">
-        <div class="status-bar-left">
-            <div class="status-bar-item">
-                <span class="status-label">Version:</span>
-                <span id="app-version">{{ config.APP_VERSION }}</span>
-            </div>
-            <div class="status-bar-item">
-                <span class="status-label">User:</span>
-                <span id="status-username">{{ username }}</span>
-            </div>
-        </div>
-        <div class="status-bar-right">
-            <div class="status-bar-item">
-                <span class="status-label">Status:</span>
-                <span id="status-text">Pattern Discovery Active</span>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Button1 Modal - Placeholder -->
-    <div id="button1Modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Button1 - Future Feature</h3>
-                <span class="close" id="button1Close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <p>This is a placeholder for future functionality.</p>
-                <p>Button1 will be implemented in a future release.</p>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" id="button1CloseBtn">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Button2 Modal - Placeholder -->
-    <div id="button2Modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Button2 - Future Feature</h3>
-                <span class="close" id="button2Close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <p>This is a placeholder for future functionality.</p>
-                <p>Button2 will be implemented in a future release.</p>
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" id="button2CloseBtn">Close</button>
+    <!-- Main Layout Container -->
+    <div class="main-layout-container">
+        <!-- SIDEBAR NAVIGATION WILL BE INSERTED HERE -->
+        <!-- Main content area will be managed by sidebar navigation controller -->
+        
+        <!-- Hidden Pattern Discovery Content (for sidebar to use) -->
+        <div id="pattern-discovery-content" style="display: none;">
+            <div id="pattern-discovery-dashboard">
+                <!-- This will be populated by the Pattern Discovery Service -->
             </div>
         </div>
     </div>
@@ -407,6 +120,12 @@
     <!-- JavaScript Loading - Simplified -->
     <script src="{{ url_for('static', filename='js/core/app-core.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/app-events.js') }}"></script>
+    
+    <!-- Retractable Filter Controller -->
+    <script src="{{ url_for('static', filename='js/components/retractable-filter-controller.js') }}"></script>
+    
+    <!-- Sidebar Navigation Controller -->
+    <script src="{{ url_for('static', filename='js/components/sidebar-navigation-controller.js') }}"></script>
     
     <!-- Pattern Discovery Service - Sprint 20 Phase 2 -->
     <script src="{{ url_for('static', filename='js/services/pattern-discovery.js') }}"></script>
@@ -434,364 +153,111 @@
     <script src="{{ url_for('static', filename='js/services/pattern-temporal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/services/pattern-comparison.js') }}"></script>
     
-    <!-- Initialize status indicators for simplified page -->
+    <!-- Initialize sidebar navigation and all services -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Update connection status to show as ready
-            const connectionDot = document.querySelector('.connection-dot');
-            const connectionText = document.querySelector('.connection-text');
-            if (connectionDot && connectionText) {
-                connectionDot.style.backgroundColor = '#28a745';
-                connectionText.textContent = 'Ready';
-            }
-            
-            // Update market status
-            const marketStatus = document.getElementById('market-status');
-            if (marketStatus) {
-                marketStatus.textContent = 'Ready';
-                marketStatus.style.backgroundColor = '#28a745';
-            }
-            
-            // Sprint 23: Initialize Advanced Analytics Services
-            window.initializeAdvancedAnalytics();
-        });
-    </script>
-    
-    <!-- Sprint 23: Advanced Analytics Dashboard Initialization -->
-    <script>
-        // Global advanced analytics services
-        window.patternAnalyticsService = null;
-        window.correlationsService = null;
-        window.temporalService = null;
-        window.comparisonService = null;
-        
-        /**
-         * Initialize Sprint 23 Advanced Analytics Services
-         */
-        window.initializeAdvancedAnalytics = function() {
-            try {
-                console.log('Initializing All Analytics Services...');
-                
-                // Pattern Analytics Service will initialize itself automatically
-                // Just wait for it to be available
-                console.log('Waiting for PatternAnalyticsService to initialize...');
-                
-                // Initialize Pattern Correlations Service
-                if (typeof PatternCorrelationsService !== 'undefined') {
-                    window.correlationsService = new PatternCorrelationsService();
-                    console.log('Pattern Correlations Service initialized');
-                } else {
-                    console.warn('PatternCorrelationsService not found');
-                }
-                
-                // Initialize Pattern Temporal Service
-                if (typeof PatternTemporalService !== 'undefined') {
-                    window.temporalService = new PatternTemporalService();
-                    console.log('Pattern Temporal Service initialized');
-                } else {
-                    console.warn('PatternTemporalService not found');
-                }
-                
-                // Initialize Pattern Comparison Service
-                if (typeof PatternComparisonService !== 'undefined') {
-                    window.comparisonService = new PatternComparisonService();
-                    console.log('Pattern Comparison Service initialized');
-                } else {
-                    console.warn('PatternComparisonService not found');
-                }
-                
-                // Initialize tab event handlers
-                initializeTabEventHandlers();
-                
-                // Initialize the default active tab (Pattern Discovery) immediately
-                setTimeout(() => {
-                    console.log('Attempting to initialize Pattern Discovery tab...');
-                    // Initialize Pattern Discovery Service which is the default active tab
-                    window.patternAnalyticsService = window.patternAnalytics;
-                    console.log('patternAnalyticsService available:', !!window.patternAnalyticsService);
-                    console.log('window.patternAnalytics available:', !!window.patternAnalytics);
-                    console.log('patternDiscoveryService available:', !!window.patternDiscoveryService);
-                    
-                    // Initialize Pattern Discovery (default active tab)
-                    if (window.patternDiscoveryService) {
-                        console.log('Initializing Pattern Discovery Service...');
-                        window.patternDiscoveryService.initialize();
-                    } else {
-                        console.warn('PatternDiscoveryService not available');
-                    }
-                }, 1500);
-                
-                // Fallback timeout in case analytics don't load
-                setTimeout(() => {
-                    const overviewLoading = document.getElementById('overview-loading');
-                    if (overviewLoading && overviewLoading.style.display !== 'none') {
-                        console.log('Analytics service timeout - showing fallback');
-                        showOverviewFallback();
-                    }
-                }, 3000);
-                
-            } catch (error) {
-                console.error('Error initializing advanced analytics services:', error);
-            }
-        };
-        
-        /**
-         * Initialize tab switching event handlers for Sprint 23 dashboard
-         */
-        function initializeTabEventHandlers() {
-            const tabs = document.querySelectorAll('#dashboard-tabs button[data-bs-toggle="tab"]');
-            
-            tabs.forEach(tab => {
-                tab.addEventListener('shown.bs.tab', async function(event) {
-                    const targetId = event.target.getAttribute('data-bs-target');
-                    console.log('Tab switched to:', targetId);
-                    
-                    switch (targetId) {
-                        case '#pattern-discovery-content':
-                            // Pattern Discovery tab - initialize the main pattern scanning interface
-                            console.log('Initializing Pattern Discovery tab');
-                            if (window.patternDiscoveryService) {
-                                window.patternDiscoveryService.initialize();
-                            }
-                            break;
-                            
-                        case '#overview-content':
-                            if (window.patternAnalyticsService) {
-                                await initializeAnalyticsTab('overview');
-                            }
-                            break;
-                            
-                        case '#performance-content':
-                            if (window.patternAnalyticsService) {
-                                await initializeAnalyticsTab('performance');
-                            }
-                            break;
-                            
-                        case '#distribution-content':
-                            if (window.patternAnalyticsService) {
-                                await initializeAnalyticsTab('distribution');
-                            }
-                            break;
-                            
-                        case '#historical-content':
-                            if (window.patternAnalyticsService) {
-                                await initializeAnalyticsTab('historical');
-                            }
-                            break;
-                            
-                        case '#market-content':
-                            if (window.patternAnalyticsService) {
-                                await initializeAnalyticsTab('market');
-                            }
-                            break;
-                            
-                        case '#correlations-content':
-                            if (window.correlationsService) {
-                                await initializeCorrelationsTab();
-                            }
-                            break;
-                            
-                        case '#temporal-content':
-                            if (window.temporalService) {
-                                await initializeTemporalTab();
-                            }
-                            break;
-                            
-                        case '#compare-content':
-                            if (window.comparisonService) {
-                                await initializeComparisonTab();
-                            }
-                            break;
-                    }
-                });
+            // Initialize sidebar navigation first
+            window.sidebarNavigation = new SidebarNavigationController({
+                defaultSection: 'pattern-discovery',
+                rememberState: true
             });
-        }
-        
-        /**
-         * Show fallback content for Overview tab
-         */
-        function showOverviewFallback() {
-            const overviewLoading = document.getElementById('overview-loading');
-            const overviewFallback = document.getElementById('overview-fallback');
-            if (overviewLoading && overviewFallback) {
-                overviewLoading.style.display = 'none';
-                overviewFallback.style.display = 'block';
-                console.log('Fallback content shown for Overview tab');
+            
+            // Connection status will be handled by the original navbar system
+            
+            // Initialize theme system
+            const savedTheme = localStorage.getItem('tickstock-theme') || 'light';
+            document.documentElement.className = savedTheme === 'dark' ? 'theme-dark' : '';
+            document.body.className = savedTheme === 'dark' ? 'theme-dark' : '';
+            
+            const themeToggle = document.getElementById('themeToggleBtn');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            
+            function updateThemeUI(theme) {
+                if (themeIcon) themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+                if (themeText) themeText.textContent = theme === 'dark' ? 'Light' : 'Dark';
             }
-        }
-        
-        /**
-         * Initialize analytics tab content (Original 5 tabs)
-         */
-        async function initializeAnalyticsTab(tabType) {
-            try {
-                console.log(`[DEBUG] Initializing ${tabType} analytics tab`);
-                const containerId = `${tabType}-dashboard`;
-                const container = document.getElementById(containerId);
-                console.log(`[DEBUG] Container found:`, !!container, `ID: ${containerId}`);
-                console.log(`[DEBUG] Service available:`, !!window.patternAnalyticsService);
-                
-                if (container && window.patternAnalyticsService) {
-                    // Ensure service is initialized first
-                    console.log(`[DEBUG] Service initialized:`, window.patternAnalyticsService.isInitialized);
-                    if (!window.patternAnalyticsService.isInitialized) {
-                        console.log('[DEBUG] Waiting for PatternAnalyticsService initialization...');
-                        // Wait a bit for service to initialize
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        console.log('[DEBUG] After wait, service initialized:', window.patternAnalyticsService.isInitialized);
-                    }
+            
+            updateThemeUI(savedTheme);
+            
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    const currentTheme = document.documentElement.classList.contains('theme-dark') ? 'dark' : 'light';
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
                     
-                    // Call the specific render method for this tab type
-                    let content = '';
-                    console.log(`[DEBUG] Calling render method for ${tabType}`);
-                    try {
-                        switch(tabType) {
-                            case 'overview':
-                                console.log('[DEBUG] Calling renderOverviewTab()');
-                                content = window.patternAnalyticsService.renderOverviewTab();
-                                break;
-                            case 'performance':
-                                console.log('[DEBUG] Calling renderPerformanceTab()');
-                                content = window.patternAnalyticsService.renderPerformanceTab();
-                                break;
-                            case 'distribution':
-                                console.log('[DEBUG] Calling renderDistributionTab()');
-                                content = window.patternAnalyticsService.renderDistributionTab();
-                                break;
-                            case 'historical':
-                                console.log('[DEBUG] Calling renderHistoricalTab()');
-                                content = window.patternAnalyticsService.renderHistoricalTab();
-                                break;
-                            case 'market':
-                                console.log('[DEBUG] Calling renderMarketTab()');
-                                content = window.patternAnalyticsService.renderMarketTab();
-                                break;
-                            default:
-                                content = '<div class="p-4">Tab content not available</div>';
-                        }
-                        console.log(`[DEBUG] Rendered content length:`, content.length);
-                        console.log(`[DEBUG] Content preview:`, content.substring(0, 200));
-                    } catch (renderError) {
-                        console.error(`[DEBUG] Error calling render method:`, renderError);
-                        content = '<div class="p-4 text-danger">Error loading tab content</div>';
-                    }
+                    // Apply theme classes
+                    document.documentElement.className = newTheme === 'dark' ? 'theme-dark' : '';
+                    document.body.className = newTheme === 'dark' ? 'theme-dark' : '';
                     
-                    // Hide loading spinner first
-                    const loadingElement = document.getElementById(`${tabType}-loading`);
-                    if (loadingElement) {
-                        loadingElement.style.display = 'none';
-                        console.log(`[DEBUG] Hidden loading spinner for ${tabType}`);
-                    }
+                    // Save preference
+                    localStorage.setItem('tickstock-theme', newTheme);
                     
-                    // Clear the container but preserve the hidden loading element
-                    console.log(`[DEBUG] Setting innerHTML for container`);
-                    container.innerHTML = content;
-                    
-                    // Ensure loading element stays hidden after innerHTML replacement
-                    const loadingCheck = document.getElementById(`${tabType}-loading`);
-                    if (loadingCheck) {
-                        loadingCheck.style.display = 'none';
-                        console.log(`[DEBUG] Re-confirmed loading spinner hidden for ${tabType}`);
-                    }
-                    
-                    // Setup specific charts for this tab
-                    setTimeout(() => {
-                        switch(tabType) {
-                            case 'overview':
-                                if (window.patternAnalyticsService.createVelocityChart) {
-                                    window.patternAnalyticsService.createVelocityChart();
-                                }
-                                break;
-                            case 'performance':
-                                if (window.patternAnalyticsService.createSuccessRatesChart) {
-                                    window.patternAnalyticsService.createSuccessRatesChart();
-                                }
-                                if (window.patternAnalyticsService.createPerformanceComparisonChart) {
-                                    window.patternAnalyticsService.createPerformanceComparisonChart();
-                                }
-                                break;
-                            case 'distribution':
-                                if (window.patternAnalyticsService.createPatternFrequencyChart) {
-                                    window.patternAnalyticsService.createPatternFrequencyChart();
-                                }
-                                if (window.patternAnalyticsService.createConfidenceDistributionChart) {
-                                    window.patternAnalyticsService.createConfidenceDistributionChart();
-                                }
-                                break;
-                            case 'historical':
-                                if (window.patternAnalyticsService.createHistoricalTrendChart) {
-                                    window.patternAnalyticsService.createHistoricalTrendChart();
-                                }
-                                break;
-                            case 'market':
-                                if (window.patternAnalyticsService.createMarketBreadthChart) {
-                                    window.patternAnalyticsService.createMarketBreadthChart();
-                                }
-                                if (window.patternAnalyticsService.createSectorPerformanceChart) {
-                                    window.patternAnalyticsService.createSectorPerformanceChart();
-                                }
-                                break;
-                        }
-                    }, 200);
-                    
-                    console.log(`${tabType} analytics tab initialized`);
-                } else {
-                    console.warn(`Analytics tab initialization failed - container: ${!!container}, service: ${!!window.patternAnalyticsService}`);
-                }
-            } catch (error) {
-                console.error(`Error initializing ${tabType} analytics tab:`, error);
+                    // Update UI
+                    updateThemeUI(newTheme);
+                });
             }
-        }
-        
-        /**
-         * Initialize correlations tab content
-         */
-        async function initializeCorrelationsTab() {
-            try {
-                const correlationsContainer = document.getElementById('correlations-dashboard');
-                if (correlationsContainer && window.correlationsService) {
-                    await window.correlationsService.initialize('correlations-dashboard');
-                    console.log('Correlations tab initialized');
-                }
-            } catch (error) {
-                console.error('Error initializing correlations tab:', error);
+            
+            
+            // Debug UI elements
+            setTimeout(() => {
+            }, 2000);
+        });
+
+        // Initialize Advanced Analytics Services
+        setTimeout(() => {
+            
+            // Initialize PatternAnalyticsService first
+            if (typeof PatternAnalyticsService !== 'undefined') {
+                window.patternAnalytics = new PatternAnalyticsService();
+                window.patternAnalyticsService = window.patternAnalytics; // Compatibility alias
+            } else {
+                console.warn('PatternAnalyticsService not found - check if pattern-analytics.js is loaded');
             }
-        }
-        
-        /**
-         * Initialize temporal analysis tab content
-         */
-        async function initializeTemporalTab() {
-            try {
-                const temporalContainer = document.getElementById('temporal-dashboard');
-                if (temporalContainer && window.temporalService) {
-                    await window.temporalService.initialize('temporal-dashboard');
-                    console.log('Temporal analysis tab initialized');
-                }
-            } catch (error) {
-                console.error('Error initializing temporal tab:', error);
+            
+            // Initialize Pattern Correlations Service
+            if (typeof PatternCorrelationsService !== 'undefined') {
+                window.patternCorrelations = new PatternCorrelationsService();
             }
-        }
-        
-        /**
-         * Initialize pattern comparison tab content
-         */
-        async function initializeComparisonTab() {
-            try {
-                const comparisonContainer = document.getElementById('compare-dashboard');
-                if (comparisonContainer && window.comparisonService) {
-                    await window.comparisonService.initialize('compare-dashboard');
-                    console.log('Pattern comparison tab initialized');
-                }
-            } catch (error) {
-                console.error('Error initializing comparison tab:', error);
+            
+            // Initialize Pattern Temporal Service  
+            if (typeof PatternTemporalService !== 'undefined') {
+                window.patternTemporal = new PatternTemporalService();
             }
-        }
+            
+            // Initialize Pattern Comparison Service
+            if (typeof PatternComparisonService !== 'undefined') {
+                window.patternComparison = new PatternComparisonService();
+            }
+            
+            // Initialize Pattern Discovery Service
+            if (typeof PatternDiscoveryService !== 'undefined') {
+                window.patternDiscovery = new PatternDiscoveryService();
+            } else {
+                console.warn('PatternDiscoveryService not found - check if pattern-discovery.js is loaded');
+            }
+            
+            // Initialize supporting services for Pattern Discovery
+            if (typeof WatchlistManager !== 'undefined') {
+                window.watchlistManager = new WatchlistManager();
+            } else {
+                console.warn('WatchlistManager not found - check if watchlist-manager.js is loaded');
+            }
+            
+            if (typeof FilterPresetsService !== 'undefined') {
+                window.filterPresetsService = new FilterPresetsService();
+            } else {
+                console.warn('FilterPresetsService not found - check if filter-presets.js is loaded');
+            }
+            
+            if (typeof PatternVisualizationService !== 'undefined') {
+                window.patternVisualizationService = new PatternVisualizationService();
+            } else {
+                console.warn('PatternVisualizationService not found - check if pattern-visualization.js is loaded');
+            }
+            
+        }, 1000);
     </script>
-    
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Admin dropdown script -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -801,14 +267,24 @@
             if (adminMenuBtn && adminDropdownContent) {
                 adminMenuBtn.addEventListener('click', function(event) {
                     event.stopPropagation();
-                    const isExpanded = adminMenuBtn.getAttribute('aria-expanded') === 'true';
-                    adminMenuBtn.setAttribute('aria-expanded', !isExpanded);
-                    adminDropdownContent.classList.toggle('show');
+                    const isOpen = adminDropdownContent.classList.contains('show');
+                    
+                    // Close all other dropdowns first
+                    document.querySelectorAll('.dropdown-content.show').forEach(dropdown => {
+                        dropdown.classList.remove('show');
+                    });
+                    
+                    if (!isOpen) {
+                        adminDropdownContent.classList.add('show');
+                        adminMenuBtn.setAttribute('aria-expanded', 'true');
+                    } else {
+                        adminMenuBtn.setAttribute('aria-expanded', 'false');
+                    }
                 });
                 
-                // Close when clicking outside
-                document.addEventListener('click', function() {
-                    if (adminDropdownContent.classList.contains('show')) {
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(event) {
+                    if (!adminMenuBtn.contains(event.target) && !adminDropdownContent.contains(event.target)) {
                         adminDropdownContent.classList.remove('show');
                         adminMenuBtn.setAttribute('aria-expanded', 'false');
                     }
@@ -819,160 +295,46 @@
                     event.stopPropagation();
                 });
             }
-        });
-    </script>
-    
-    <!-- Button1 and Button2 Modal Scripts -->
-    <script>
-        // Button1 Modal
-        const button1Btn = document.getElementById('button1Btn');
-        const button1Modal = document.getElementById('button1Modal');
-        const button1Close = document.getElementById('button1Close');
-        const button1CloseBtn = document.getElementById('button1CloseBtn');
-        
-        if (button1Btn && button1Modal) {
-            button1Btn.addEventListener('click', function() {
-                button1Modal.style.display = 'flex';
-            });
+
+            // User Settings dropdown
+            const userSettingsBtn = document.querySelector('.user-settings-btn');
+            const userDropdownContent = document.querySelector('.user-menu .dropdown-content');
             
-            button1Close.addEventListener('click', function() {
-                button1Modal.style.display = 'none';
-            });
-            
-            button1CloseBtn.addEventListener('click', function() {
-                button1Modal.style.display = 'none';
-            });
-        }
-        
-        // Button2 Modal
-        const button2Btn = document.getElementById('button2Btn');
-        const button2Modal = document.getElementById('button2Modal');
-        const button2Close = document.getElementById('button2Close');
-        const button2CloseBtn = document.getElementById('button2CloseBtn');
-        
-        if (button2Btn && button2Modal) {
-            button2Btn.addEventListener('click', function() {
-                button2Modal.style.display = 'flex';
-            });
-            
-            button2Close.addEventListener('click', function() {
-                button2Modal.style.display = 'none';
-            });
-            
-            button2CloseBtn.addEventListener('click', function() {
-                button2Modal.style.display = 'none';
-            });
-        }
-        
-        // Close modals when clicking outside
-        window.addEventListener('click', function(event) {
-            if (event.target == button1Modal) {
-                button1Modal.style.display = 'none';
-            }
-            if (event.target == button2Modal) {
-                button2Modal.style.display = 'none';
+            if (userSettingsBtn && userDropdownContent) {
+                userSettingsBtn.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    const isOpen = userDropdownContent.classList.contains('show');
+                    
+                    // Close all other dropdowns first
+                    document.querySelectorAll('.dropdown-content.show').forEach(dropdown => {
+                        dropdown.classList.remove('show');
+                    });
+                    
+                    if (!isOpen) {
+                        userDropdownContent.classList.add('show');
+                        userSettingsBtn.setAttribute('aria-expanded', 'true');
+                    } else {
+                        userSettingsBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(event) {
+                    if (!userSettingsBtn.contains(event.target) && !userDropdownContent.contains(event.target)) {
+                        userDropdownContent.classList.remove('show');
+                        userSettingsBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                
+                // Prevent dropdown from closing when clicking inside
+                userDropdownContent.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                });
             }
         });
     </script>
-    
-    <!-- Theme Manager Script -->
-    <script>
-        class ThemeManager {
-            constructor() {
-                this.themeToggleBtn = document.getElementById('themeToggleBtn');
-                this.themeIcon = document.getElementById('themeIcon');
-                this.themeText = document.getElementById('themeText');
-                this.currentTheme = this.loadTheme();
-                
-                if (this.themeToggleBtn) {
-                    this.init();
-                }
-            }
-            
-            init() {
-                // Sync with early theme application - check what's already applied
-                const html = document.documentElement;
-                if (html.classList.contains('theme-dark')) {
-                    this.currentTheme = 'dark';
-                } else if (html.classList.contains('theme-light')) {
-                    this.currentTheme = 'light';
-                }
-                
-                // Only apply theme if not already applied
-                if (!html.classList.contains('theme-dark') && !html.classList.contains('theme-light')) {
-                    this.applyTheme(this.currentTheme);
-                }
-                
-                this.updateButton();
-                this.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
-            }
-            
-            loadTheme() {
-                const savedTheme = localStorage.getItem('theme');
-                if (savedTheme) {
-                    return savedTheme;
-                }
-                
-                // Default to light theme
-                return 'light';
-            }
-            
-            storeTheme(theme) {
-                localStorage.setItem('theme', theme);
-            }
-            
-            applyTheme(theme) {
-                const html = document.documentElement;
-                const body = document.body;
-                
-                if (theme === 'dark') {
-                    // Remove light theme class and add dark theme class
-                    html.classList.remove('theme-light');
-                    body.classList.remove('theme-light');
-                    html.classList.add('theme-dark');
-                    body.classList.add('theme-dark');
-                    html.setAttribute('data-theme', 'dark');
-                } else {
-                    // Remove dark theme class and add light theme class
-                    html.classList.remove('theme-dark');
-                    body.classList.remove('theme-dark');
-                    html.classList.add('theme-light');
-                    body.classList.add('theme-light');
-                    html.setAttribute('data-theme', 'light');
-                }
-            }
-            
-            updateButton() {
-                if (this.currentTheme === 'dark') {
-                    this.themeIcon.textContent = '☀️';
-                    this.themeText.textContent = 'Light';
-                    this.themeToggleBtn.title = 'Switch to Light Theme';
-                } else {
-                    this.themeIcon.textContent = '🌙';
-                    this.themeText.textContent = 'Dark';
-                    this.themeToggleBtn.title = 'Switch to Dark Theme';
-                }
-            }
-            
-            toggleTheme() {
-                this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
-                this.applyTheme(this.currentTheme);
-                this.updateButton();
-                this.storeTheme(this.currentTheme);
-                
-                // Add smooth transition effect temporarily
-                const originalTransition = document.body.style.transition;
-                document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
-                setTimeout(() => {
-                    document.body.style.transition = originalTransition;
-                }, 300);
-            }
-        }
-        
-        // Initialize theme manager when DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            window.themeManager = new ThemeManager();
-        });
-    </script>
-    </body>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>

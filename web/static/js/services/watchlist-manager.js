@@ -420,36 +420,66 @@ class WatchlistManager {
      * Render watchlist panel in the UI
      */
     renderWatchlistPanel() {
-        const container = document.getElementById('watchlist-panel');
+        // First try the new collapsible structure
+        let container = document.querySelector('#watchlist-content .p-3');
         if (!container) {
-            this.createWatchlistPanel();
-            return;
+            // Fallback to old structure
+            container = document.getElementById('watchlist-panel');
+            if (!container) {
+                this.createWatchlistPanel();
+                return;
+            }
         }
 
         const watchlistArray = this.getAllWatchlists();
         const activeWatchlist = this.getActiveWatchlist();
 
-        container.innerHTML = `
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">
-                        <i class="fas fa-star me-2"></i>Watchlists
-                        ${activeWatchlist ? `<span class="badge bg-primary ms-2">${activeWatchlist.name}</span>` : ''}
-                    </h6>
+        // Check if we're in the new collapsible structure
+        const isCollapsibleStructure = !!document.querySelector('#watchlist-content .p-3');
+
+        if (isCollapsibleStructure) {
+            // New collapsible structure - render compact content
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center">
+                        ${activeWatchlist ? `<span class="badge bg-primary me-2">${activeWatchlist.name}</span>` : 
+                                           `<span class="text-muted small">No watchlist selected</span>`}
+                    </div>
                     <div>
-                        ${this.activeWatchlist ? `<button class="btn btn-sm btn-outline-secondary me-2" id="clear-watchlist-btn">
-                            <i class="fas fa-times"></i> Clear
+                        ${this.activeWatchlist ? `<button class="btn btn-sm btn-outline-secondary me-1" id="clear-watchlist-btn" title="Clear selection">
+                            <i class="fas fa-times"></i>
                         </button>` : ''}
-                        <button class="btn btn-sm btn-outline-primary" id="create-watchlist-btn">
+                        <button class="btn btn-sm btn-primary" id="create-watchlist-btn" title="Create watchlist">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
-                <div class="card-body p-0">
-                    ${watchlistArray.length === 0 ? this.renderEmptyState() : this.renderWatchlistList(watchlistArray, activeWatchlist)}
+                ${watchlistArray.length === 0 ? this.renderEmptyState() : this.renderCompactWatchlistList(watchlistArray, activeWatchlist)}
+            `;
+        } else {
+            // Old structure - render full card
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-star me-2"></i>Watchlists
+                            ${activeWatchlist ? `<span class="badge bg-primary ms-2">${activeWatchlist.name}</span>` : ''}
+                        </h6>
+                        <div>
+                            ${this.activeWatchlist ? `<button class="btn btn-sm btn-outline-secondary me-2" id="clear-watchlist-btn">
+                                <i class="fas fa-times"></i> Clear
+                            </button>` : ''}
+                            <button class="btn btn-sm btn-outline-primary" id="create-watchlist-btn">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        ${watchlistArray.length === 0 ? this.renderEmptyState() : this.renderWatchlistList(watchlistArray, activeWatchlist)}
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
 
         this.setupPanelEventHandlers();
     }
@@ -491,6 +521,50 @@ class WatchlistManager {
                 <i class="fas fa-star fa-2x mb-2"></i>
                 <p class="mb-0">No watchlists created yet</p>
                 <small>Click + to create your first watchlist</small>
+            </div>
+        `;
+    }
+
+    /**
+     * Render compact watchlist list for collapsible structure
+     */
+    renderCompactWatchlistList(watchlists, activeWatchlist) {
+        if (watchlists.length === 0) {
+            return this.renderEmptyState();
+        }
+
+        return `
+            <div class="watchlist-compact-list">
+                ${watchlists.map(watchlist => `
+                    <div class="watchlist-compact-item ${watchlist.id === activeWatchlist?.id ? 'active' : ''}" 
+                         data-watchlist-id="${watchlist.id}">
+                        <div class="d-flex justify-content-between align-items-center py-2 px-2 rounded ${watchlist.id === activeWatchlist?.id ? 'bg-primary text-white' : 'hover-bg-light'}"
+                             style="cursor: pointer;" 
+                             title="${watchlist.name} - ${watchlist.symbols.length} symbols${watchlist.description ? ': ' + watchlist.description : ''}">
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">${watchlist.name}</div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                ${watchlist.id === activeWatchlist?.id ? 
+                                    '<i class="fas fa-check-circle me-1"></i>' : ''}
+                                <div class="dropdown">
+                                    <button class="btn btn-sm ${watchlist.id === activeWatchlist?.id ? 'btn-light' : 'btn-outline-secondary'}" 
+                                            data-bs-toggle="dropdown" onclick="event.stopPropagation();">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><button class="dropdown-item edit-watchlist-btn" data-watchlist-id="${watchlist.id}">
+                                            <i class="fas fa-edit me-2"></i>Edit
+                                        </button></li>
+                                        <li><button class="dropdown-item text-danger delete-watchlist-btn" data-watchlist-id="${watchlist.id}">
+                                            <i class="fas fa-trash me-2"></i>Delete
+                                        </button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
             </div>
         `;
     }

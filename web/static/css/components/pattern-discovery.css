@@ -1,0 +1,601 @@
+/**
+ * Pattern Discovery Dashboard - Sprint 24
+ * Collapsible Filter Panel Styles with Theme Integration
+ */
+
+/* ==========================================================================
+   SLIDE-IN/OUT FILTER PANEL STYLES
+   ========================================================================== */
+
+/* Filter panel container */
+.filter-panel-container {
+    position: fixed;
+    top: 60px; /* Start below navbar */
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 60px); /* Full viewport height minus navbar */
+    z-index: 900; /* Well below navbar to avoid overlay */
+    visibility: hidden;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.filter-panel-container.filter-panel-open {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Overlay for mobile */
+.filter-panel-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: none;
+}
+
+/* Filter panel sidebar */
+.filter-panel-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 320px;
+    height: 100%;
+    background-color: #ffffff;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0 8px 8px 0; /* Rounded right corners */
+}
+
+.filter-panel-container.filter-panel-open .filter-panel-sidebar {
+    transform: translateX(0);
+}
+
+/* Filter panel header */
+.filter-panel-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0f5bd1 100%);
+    color: #ffffff;
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+
+.filter-panel-header h5 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.filter-panel-header .btn-link {
+    color: #ffffff !important;
+    text-decoration: none;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+    font-size: 1.2rem;
+}
+
+.filter-panel-header .btn-link:hover {
+    opacity: 1;
+}
+
+/* Filter panel content */
+.filter-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.filter-panel-content .filter-panel-body {
+    padding: 1.25rem;
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* Filter panel content area */
+.filter-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+    padding-bottom: 0.5rem; /* Reduced padding for footer spacing */
+}
+
+/* Filter panel footer */
+.filter-panel-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    padding: 1rem 1.25rem;
+    flex-shrink: 0;
+}
+
+/* Mobile specific styles */
+@media (max-width: 991.98px) {
+    .filter-panel-overlay {
+        display: block;
+    }
+    
+    .filter-panel-container.filter-panel-open .filter-panel-overlay {
+        opacity: 1;
+    }
+    
+    .filter-panel-sidebar {
+        width: 100%;
+        max-width: 380px;
+    }
+}
+
+/* Desktop specific styles */
+@media (min-width: 992px) {
+    .filter-panel-sidebar {
+        width: 350px;
+        box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15);
+    }
+}
+
+/* Filter panel toggle button */
+#filter-panel-toggle {
+    transition: all 0.3s ease;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    border: 2px solid #0d6efd;
+    background-color: transparent;
+    color: #0d6efd;
+}
+
+#filter-panel-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
+#filter-panel-toggle:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+#filter-toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+/* ==========================================================================
+   LEGACY COLLAPSIBLE STYLES (DEPRECATED)
+   ========================================================================== */
+
+/* Mobile filter toggle button */
+#mobile-filter-toggle {
+    transition: all 0.3s ease;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+#mobile-filter-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Filter panel card */
+.filter-panel-card {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.filter-panel-card:hover {
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Filter panel body */
+.filter-panel-body {
+    transition: all 0.3s ease;
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+/* Filter sections */
+.filter-section {
+    border-radius: 0.5rem;
+    transition: background-color 0.15s ease;
+    padding: 0.5rem;
+    margin: -0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.filter-section:last-child {
+    margin-bottom: -0.5rem;
+}
+
+.filter-section-header h6 {
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.025em;
+}
+
+.filter-section-content {
+    padding-left: 1.25rem;
+}
+
+/* Bootstrap collapse animations - enhanced */
+.collapsing {
+    transition: height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 991.98px) {
+    /* Filter panel takes full width on mobile when expanded */
+    #filter-panel-collapse {
+        margin-bottom: 1rem;
+    }
+    
+    /* Enhanced mobile filter card */
+    .filter-panel-card {
+        border: 2px solid var(--bs-primary);
+        border-radius: 1rem;
+    }
+    
+    /* Mobile filter body - scrollable */
+    .filter-panel-body {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    
+    /* Mobile filter sections - larger touch targets */
+    .filter-section {
+        padding: 0.75rem;
+        margin: -0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Form elements - larger for touch */
+    .filter-section-content .form-select,
+    .filter-section-content .form-range,
+    .filter-section-content .form-check-input {
+        font-size: 1rem;
+    }
+    
+    /* Card footer actions */
+    .card-footer {
+        border-top: 1px solid rgba(0, 0, 0, 0.125);
+        background-color: rgba(13, 110, 253, 0.05) !important;
+    }
+}
+
+/* Desktop-specific styles */
+@media (min-width: 992px) {
+    /* Desktop minimize/expand button */
+    #desktop-filter-collapse {
+        transition: all 0.2s ease;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+    
+    #desktop-filter-collapse:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Desktop filter sections - compact */
+    .filter-section-content {
+        padding-left: 1rem;
+    }
+}
+
+/* ==========================================================================
+   THEME INTEGRATION - LIGHT/DARK MODE
+   ========================================================================== */
+
+/* Light theme (default) */
+html:not(.theme-dark) .filter-panel-card,
+html.theme-light .filter-panel-card {
+    background-color: #ffffff;
+    border-color: #dee2e6;
+}
+
+html:not(.theme-dark) .filter-section:hover,
+html.theme-light .filter-section:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+html:not(.theme-dark) .filter-section-header h6,
+html.theme-light .filter-section-header h6 {
+    color: #0d6efd;
+}
+
+html:not(.theme-dark) #mobile-filter-toggle,
+html.theme-light #mobile-filter-toggle {
+    background-color: #ffffff;
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+html:not(.theme-dark) #mobile-filter-toggle:hover,
+html.theme-light #mobile-filter-toggle:hover {
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
+html:not(.theme-dark) .card-footer,
+html.theme-light .card-footer {
+    background-color: rgba(13, 110, 253, 0.05) !important;
+    border-top-color: #dee2e6;
+}
+
+/* Dark theme */
+html.theme-dark .filter-panel-card,
+body.theme-dark .filter-panel-card {
+    background-color: #2d2d2d !important;
+    border-color: #495057 !important;
+    color: #e9ecef !important;
+}
+
+html.theme-dark .filter-section:hover,
+body.theme-dark .filter-section:hover {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+html.theme-dark .filter-section-header h6,
+body.theme-dark .filter-section-header h6 {
+    color: #ffc107 !important;
+}
+
+html.theme-dark #mobile-filter-toggle,
+body.theme-dark #mobile-filter-toggle {
+    background-color: #2d2d2d !important;
+    border-color: #ffc107 !important;
+    color: #ffc107 !important;
+}
+
+html.theme-dark #mobile-filter-toggle:hover,
+body.theme-dark #mobile-filter-toggle:hover {
+    background-color: #ffc107 !important;
+    color: #1a1a1a !important;
+}
+
+html.theme-dark .card-footer,
+body.theme-dark .card-footer {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+    border-top-color: #495057 !important;
+}
+
+html.theme-dark .card-header,
+body.theme-dark .card-header {
+    background-color: #ffc107 !important;
+    color: #1a1a1a !important;
+}
+
+/* Dark theme for slide-in filter panel */
+html.theme-dark .filter-panel-sidebar,
+body.theme-dark .filter-panel-sidebar {
+    background-color: #2d2d2d !important;
+    color: #e9ecef !important;
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.theme-dark .filter-panel-header,
+body.theme-dark .filter-panel-header {
+    background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%) !important;
+    color: #1a1a1a !important;
+}
+
+html.theme-dark .filter-panel-header .btn-link,
+body.theme-dark .filter-panel-header .btn-link {
+    color: #1a1a1a !important;
+}
+
+html.theme-dark .filter-panel-footer,
+body.theme-dark .filter-panel-footer {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+    border-top-color: #495057 !important;
+}
+
+html.theme-dark #filter-panel-toggle,
+body.theme-dark #filter-panel-toggle {
+    border-color: #ffc107 !important;
+    color: #ffc107 !important;
+}
+
+html.theme-dark #filter-panel-toggle:hover,
+body.theme-dark #filter-panel-toggle:hover {
+    background-color: #ffc107 !important;
+    color: #1a1a1a !important;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3) !important;
+}
+
+/* Form elements in dark theme */
+html.theme-dark .form-select,
+html.theme-dark .form-control,
+html.theme-dark .form-range,
+body.theme-dark .form-select,
+body.theme-dark .form-control,
+body.theme-dark .form-range {
+    background-color: #495057 !important;
+    border-color: #6c757d !important;
+    color: #e9ecef !important;
+}
+
+html.theme-dark .form-select:focus,
+html.theme-dark .form-control:focus,
+body.theme-dark .form-select:focus,
+body.theme-dark .form-control:focus {
+    background-color: #495057 !important;
+    border-color: #ffc107 !important;
+    color: #e9ecef !important;
+    box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25) !important;
+}
+
+html.theme-dark .form-check-input,
+body.theme-dark .form-check-input {
+    background-color: #495057 !important;
+    border-color: #6c757d !important;
+}
+
+html.theme-dark .form-check-input:checked,
+body.theme-dark .form-check-input:checked {
+    background-color: #ffc107 !important;
+    border-color: #ffc107 !important;
+}
+
+/* ==========================================================================
+   ANIMATION ENHANCEMENTS
+   ========================================================================== */
+
+/* Smooth icon rotation */
+#filter-toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+/* Enhanced hover effects */
+.filter-section-content .form-check:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+    border-radius: 0.25rem;
+    transition: background-color 0.15s ease;
+}
+
+html.theme-dark .filter-section-content .form-check:hover,
+body.theme-dark .filter-section-content .form-check:hover {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+/* Button animation */
+.card-footer .btn {
+    transition: all 0.2s ease;
+}
+
+.card-footer .btn:hover {
+    transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   ACCESSIBILITY ENHANCEMENTS
+   ========================================================================== */
+
+/* Focus states */
+#mobile-filter-toggle:focus,
+#desktop-filter-collapse:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+html.theme-dark #mobile-filter-toggle:focus,
+html.theme-dark #desktop-filter-collapse:focus,
+body.theme-dark #mobile-filter-toggle:focus,
+body.theme-dark #desktop-filter-collapse:focus {
+    outline-color: #ffc107;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .filter-panel-card,
+    .filter-section,
+    #mobile-filter-toggle,
+    .collapsing,
+    #filter-toggle-icon {
+        transition: none !important;
+    }
+}
+
+/* ==========================================================================
+   SYMBOL SEARCH AUTOCOMPLETE STYLES
+   ========================================================================== */
+
+/* Symbol search suggestions */
+#symbol-suggestions {
+    max-height: 250px;
+    overflow-y: auto;
+    border-radius: 0.375rem;
+    margin-top: 2px;
+}
+
+#symbol-suggestions .list-group-item {
+    border: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 0.75rem;
+    cursor: pointer;
+}
+
+#symbol-suggestions .list-group-item:last-child {
+    border-bottom: none;
+}
+
+#symbol-suggestions .list-group-item:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Selected symbol badges */
+#selected-symbols .badge {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+    margin: 0.25rem 0.25rem 0.25rem 0;
+}
+
+#selected-symbols .btn-close {
+    font-size: 0.7rem;
+    width: 1rem;
+    height: 1rem;
+    padding: 0;
+    margin-left: 0.5rem;
+}
+
+/* Dark theme for symbol search */
+html.theme-dark #symbol-suggestions .list-group-item,
+body.theme-dark #symbol-suggestions .list-group-item {
+    background-color: #495057 !important;
+    color: #e9ecef !important;
+    border-bottom-color: #6c757d !important;
+}
+
+html.theme-dark #symbol-suggestions .list-group-item:hover,
+body.theme-dark #symbol-suggestions .list-group-item:hover {
+    background-color: rgba(255, 193, 7, 0.2) !important;
+}
+
+html.theme-dark #selected-symbols .badge,
+body.theme-dark #selected-symbols .badge {
+    background-color: #ffc107 !important;
+    color: #1a1a1a !important;
+}
+
+html.theme-dark #symbol-search,
+body.theme-dark #symbol-search {
+    background-color: #495057 !important;
+    border-color: #6c757d !important;
+    color: #e9ecef !important;
+}
+
+html.theme-dark #symbol-search:focus,
+body.theme-dark #symbol-search:focus {
+    background-color: #495057 !important;
+    border-color: #ffc107 !important;
+    color: #e9ecef !important;
+    box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25) !important;
+}
+
+/* ==========================================================================
+   HIGH CONTRAST MODE SUPPORT
+   ========================================================================== */
+
+@media (prefers-contrast: high) {
+    .filter-panel-card {
+        border-width: 2px;
+    }
+    
+    .filter-section-header h6 {
+        font-weight: 700;
+    }
+    
+    #mobile-filter-toggle {
+        border-width: 2px;
+        font-weight: 600;
+    }
+}
