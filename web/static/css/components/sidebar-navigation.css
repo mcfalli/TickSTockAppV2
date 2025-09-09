@@ -114,53 +114,47 @@
    NAVIGATION MENU
    ========================================================================== */
 
-/* Tooltip styles for collapsed sidebar */
+/* Tooltip styles for collapsed sidebar only */
 .sidebar-nav-link {
     position: relative;
 }
 
-/* Ultra-specific tooltip rule - maximum specificity */
-ul#sidebar-nav li.sidebar-nav-item a.sidebar-nav-link:hover::before,
-.sidebar-nav#sidebar-nav .sidebar-nav-item .sidebar-nav-link:hover::before {
-    content: attr(data-tooltip) !important;
+/* JavaScript Tooltip Styles */
+.sidebar-tooltip {
     position: absolute !important;
-    left: calc(100% + 15px) !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    background: red !important;
-    color: white !important;
-    padding: 10px 15px !important;
+    background-color: #333333 !important;
+    color: #ffffff !important;
+    padding: 8px 12px !important;
     border-radius: 6px !important;
     white-space: nowrap !important;
-    font-size: 16px !important;
-    font-weight: bold !important;
-    z-index: 999999 !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    z-index: 1050 !important;
     pointer-events: none !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
-    border: 2px solid yellow !important;
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    animation: none !important;
-    width: auto !important;
-    height: auto !important;
-    clip: auto !important;
-    overflow: visible !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid #495057 !important;
+    line-height: 1.4 !important;
+    max-width: 200px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.2s ease, visibility 0.2s ease !important;
 }
 
-/* Tooltip arrow - positioned next to tooltip */
-.app-sidebar.narrow .sidebar-nav-item .sidebar-nav-link:hover::after {
+.sidebar-tooltip.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.sidebar-tooltip::before {
     content: '' !important;
     position: absolute !important;
-    left: calc(100% + 8px) !important;
+    right: 100% !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
     width: 0 !important;
     height: 0 !important;
     border: 7px solid transparent !important;
-    border-right-color: #333 !important;
-    z-index: 999998 !important;
-    pointer-events: none !important;
+    border-right-color: #333333 !important;
 }
 
 .sidebar-nav {
@@ -279,22 +273,23 @@ ul#sidebar-nav li.sidebar-nav-item a.sidebar-nav-link:hover::before,
     display: none !important;
 }
 
-/* Pattern Discovery tooltip arrow override in narrow mode */
+/* Pattern Discovery tooltip arrow override in narrow mode - ensure it matches the tooltip style */
 .app-sidebar.narrow .sidebar-nav-item[data-section="pattern-discovery"] .sidebar-nav-link:hover::after {
     display: block !important;
     content: '' !important;
     position: absolute !important;
-    left: calc(100% + 8px) !important;
+    left: calc(100% + 5px) !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
     width: 0 !important;
     height: 0 !important;
     border: 7px solid transparent !important;
-    border-right-color: #333 !important;
+    border-right-color: #333333 !important;
     background-color: transparent !important;
     border-radius: 0 !important;
-    z-index: 999998 !important;
+    z-index: 1049 !important;
     pointer-events: none !important;
+    transition: opacity 0.2s ease !important;
 }
 
 /* ==========================================================================
@@ -728,6 +723,20 @@ body.theme-dark .filter-section .form-select {
 html.theme-dark .filter-section .form-check-label,
 body.theme-dark .filter-section .form-check-label {
     color: #adb5bd !important;
+}
+
+/* Dark theme for JavaScript tooltips */
+html.theme-dark .sidebar-tooltip,
+body.theme-dark .sidebar-tooltip {
+    background-color: #1a1a1a !important;
+    color: #e9ecef !important;
+    border-color: #495057 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.theme-dark .sidebar-tooltip::before,
+body.theme-dark .sidebar-tooltip::before {
+    border-right-color: #1a1a1a !important;
 }
 
 /* Dark theme for compact lists */

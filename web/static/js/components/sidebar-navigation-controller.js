@@ -31,6 +31,8 @@ class SidebarNavigationController {
         this.isFilterOpen = false;
         this.isMobile = window.innerWidth < 768;
         this.eventHandlers = new Map();
+        this.currentTooltip = null;
+        this.tooltipTimeout = null;
         
         // Navigation sections configuration
         this.sections = {
@@ -240,13 +242,27 @@ class SidebarNavigationController {
             console.warn('Sidebar toggle button not found');
         }
         
-        // Navigation items
-        const navLinks = document.querySelectorAll('.sidebar-nav-link');
-        navLinks.forEach(link => {
+        // Navigation items - use larger hover area (entire nav item)
+        const navItems = document.querySelectorAll('.sidebar-nav-item');
+        navItems.forEach(item => {
+            const link = item.querySelector('.sidebar-nav-link');
+            
+            // Click handler on the link
             this.addEventHandler(link, 'click', (e) => {
                 e.preventDefault();
                 const section = link.getAttribute('data-section');
                 this.navigateToSection(section);
+            });
+            
+            // Tooltip functionality on the entire nav item for larger hover area
+            this.addEventHandler(item, 'mouseenter', (e) => {
+                if (this.isCollapsed || this.sidebar.classList.contains('narrow')) {
+                    this.showTooltip(link, link.getAttribute('data-tooltip'));
+                }
+            });
+            
+            this.addEventHandler(item, 'mouseleave', (e) => {
+                this.hideTooltip();
             });
         });
         
@@ -287,6 +303,26 @@ class SidebarNavigationController {
                     this.closeFilters();
                 } else if (this.isMobile && this.sidebar.classList.contains('mobile-open')) {
                     this.closeMobileSidebar();
+                }
+                // Also hide tooltips on escape
+                this.hideTooltip();
+            }
+        });
+        
+        // Global mouse monitoring to hide tooltips when mouse leaves sidebar area
+        this.addEventHandler(document, 'mousemove', (e) => {
+            if (this.currentTooltip && this.sidebar) {
+                const sidebarRect = this.sidebar.getBoundingClientRect();
+                const mouseX = e.clientX;
+                const mouseY = e.clientY;
+                
+                // Hide tooltip if mouse is outside sidebar area (with some buffer)
+                const buffer = 50; // 50px buffer zone
+                if (mouseX < sidebarRect.left - buffer || 
+                    mouseX > sidebarRect.right + buffer ||
+                    mouseY < sidebarRect.top - buffer || 
+                    mouseY > sidebarRect.bottom + buffer) {
+                    this.hideTooltip();
                 }
             }
         });
@@ -1217,6 +1253,10 @@ class SidebarNavigationController {
      */
     toggleSidebar() {
         this.isCollapsed = !this.isCollapsed;
+        
+        // Hide any active tooltips when toggling sidebar
+        this.hideAllTooltips();
+        
         this.applySidebarState();
         this.updateToggleIcon();
         this.saveState();
@@ -1436,6 +1476,89 @@ class SidebarNavigationController {
     }
     
     /**
+     * Show tooltip for sidebar navigation item
+     */
+    showTooltip(element, text) {
+        if (!text) return;
+        
+        // Remove any existing tooltip
+        this.hideTooltip();
+        
+        // Create tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'sidebar-tooltip';
+        tooltip.textContent = text;
+        tooltip.id = 'sidebar-tooltip';
+        
+        // Add to body to avoid positioning issues
+        document.body.appendChild(tooltip);
+        
+        // Position tooltip
+        const rect = element.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        const left = rect.right + 12; // 12px offset from sidebar
+        const top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+        
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+        
+        // Show tooltip with animation
+        setTimeout(() => {
+            tooltip.classList.add('show');
+        }, 10);
+        
+        // Store reference for cleanup
+        this.currentTooltip = tooltip;
+    }
+    
+    /**
+     * Hide current tooltip with improved cleanup
+     */
+    hideTooltip() {
+        if (this.currentTooltip) {
+            // Clear any pending show timeouts
+            if (this.tooltipTimeout) {
+                clearTimeout(this.tooltipTimeout);
+                this.tooltipTimeout = null;
+            }
+            
+            this.currentTooltip.classList.remove('show');
+            
+            // Store reference to remove
+            const tooltipToRemove = this.currentTooltip;
+            this.currentTooltip = null;
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                if (tooltipToRemove && tooltipToRemove.parentNode) {
+                    tooltipToRemove.parentNode.removeChild(tooltipToRemove);
+                }
+            }, 200);
+        }
+    }
+    
+    /**
+     * Hide all tooltips (emergency cleanup)
+     */
+    hideAllTooltips() {
+        // Remove any existing tooltips by class
+        const existingTooltips = document.querySelectorAll('.sidebar-tooltip');
+        existingTooltips.forEach(tooltip => {
+            tooltip.parentNode.removeChild(tooltip);
+        });
+        
+        // Clear current reference
+        this.currentTooltip = null;
+        
+        // Clear any pending timeouts
+        if (this.tooltipTimeout) {
+            clearTimeout(this.tooltipTimeout);
+            this.tooltipTimeout = null;
+        }
+    }
+    
+    /**
      * Utility: Debounce function
      */
     debounce(func, wait) {
@@ -1466,6 +1589,9 @@ class SidebarNavigationController {
      * Cleanup event handlers and DOM
      */
     destroy() {
+        // Clean up all tooltips first
+        this.hideAllTooltips();
+        
         // Remove all event handlers
         for (const [element, handlers] of this.eventHandlers) {
             handlers.forEach(({ event, handler }) => {
