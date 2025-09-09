@@ -89,14 +89,14 @@ SPRINT 12: DASHBOARD TABS INTERFACE
 }
 
 .metric-value {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 0.25rem;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-xs);
 }
 
 .metric-label {
-    font-size: 0.875rem;
-    color: var(--text-muted, #6c757d);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -126,13 +126,13 @@ SPRINT 12: DASHBOARD TABS INTERFACE
 }
 
 .symbol-name {
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-lg);
 }
 
 .symbol-company {
-    font-size: 0.75rem;
-    color: var(--text-muted, #6c757d);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
 }
 
 .price-info {
@@ -142,21 +142,21 @@ SPRINT 12: DASHBOARD TABS INTERFACE
 }
 
 .current-price {
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-lg);
 }
 
 .price-change {
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
 }
 
 .price-change.positive {
-    color: #28a745;
+    color: var(--color-positive);
 }
 
 .price-change.negative {
-    color: #dc3545;
+    color: var(--color-negative);
 }
 
 /* Charts tab styling */

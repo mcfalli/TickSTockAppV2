@@ -324,12 +324,12 @@ GRID-STACK TOOLBAR (for edit controls)
 
 /* Edit mode visual indicator */
 .grid-stack.grid-edit-mode .grid-stack-item {
-    border: 2px dashed #007bff;
+    border: 2px dashed var(--color-info);
 }
 
 /* Active edit button */
 #grid-edit-btn.active {
-    background-color: #28a745;
+    background-color: var(--color-success);
 }
 
 /*

@@ -874,8 +874,8 @@ class PatternAnalyticsService {
                 <div class="row mb-4">
                     <div class="col-md-8">
                         <h6 class="mb-2">Pattern Velocity (Last 12 Hours)</h6>
-                        <div style="position: relative; height: 200px;">
-                            <canvas id="velocity-chart"></canvas>
+                        <div style="position: relative; height: 200px; width: 100%; overflow: hidden;">
+                            <canvas id="velocity-chart" style="max-height: 200px; max-width: 100%;"></canvas>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -1095,17 +1095,17 @@ class PatternAnalyticsService {
     renderPerformanceTab() {
         return `
             <div class="p-3">
-                <div class="row mb-3">
-                    <div class="col-md-6">
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
                         <h6 class="mb-2">Success Rates by Pattern Type</h6>
-                        <div style="position: relative; height: 200px;">
-                            <canvas id="success-rates-chart"></canvas>
+                        <div style="position: relative; height: 200px; width: 100%; overflow: hidden; margin-bottom: 1rem;">
+                            <canvas id="success-rates-chart" style="max-height: 200px; max-width: 100%;"></canvas>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 mb-3">
                         <h6 class="mb-2">Average Performance (30-Day)</h6>
-                        <div style="position: relative; height: 200px;">
-                            <canvas id="performance-chart"></canvas>
+                        <div style="position: relative; height: 200px; width: 100%; overflow: hidden; margin-bottom: 1rem;">
+                            <canvas id="performance-chart" style="max-height: 200px; max-width: 100%;"></canvas>
                         </div>
                     </div>
                 </div>
@@ -1113,8 +1113,8 @@ class PatternAnalyticsService {
                 <div class="row">
                     <div class="col-12">
                         <h6 class="mb-2">Reliability Score vs Volume Correlation</h6>
-                        <div style="position: relative; height: 250px;">
-                            <canvas id="reliability-chart"></canvas>
+                        <div style="position: relative; height: 250px; width: 100%; overflow: hidden;">
+                            <canvas id="reliability-chart" style="max-height: 250px; max-width: 100%;"></canvas>
                         </div>
                     </div>
                 </div>
@@ -1481,7 +1481,7 @@ class PatternAnalyticsService {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false }
                 },
@@ -1530,7 +1530,7 @@ class PatternAnalyticsService {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false }
                 },
@@ -1642,7 +1642,7 @@ class PatternAnalyticsService {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false }
                 },
@@ -1691,7 +1691,7 @@ class PatternAnalyticsService {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 scales: {
                     x: {
                         display: true,

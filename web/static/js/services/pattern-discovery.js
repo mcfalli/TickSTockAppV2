@@ -163,7 +163,7 @@ class PatternDiscoveryService {
         contentArea.innerHTML = `
             <div class="pattern-discovery-dashboard">
                 <!-- Header -->
-                <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-light rounded">
+                <div class="d-flex justify-content-between align-items-center mb-4 p-3 rounded" style="background-color: var(--color-background-secondary); border: 1px solid var(--color-border-primary);">
                     <div class="d-flex align-items-center">
                         <h2 class="h4 mb-0 text-primary me-3">
                             <i class="fas fa-chart-line me-2"></i>
@@ -233,7 +233,7 @@ class PatternDiscoveryService {
                                 
                                 <div id="pattern-table-container">
                                     <table id="pattern-table" class="table table-striped table-hover mb-0">
-                                        <thead class="bg-light sticky-top">
+                                        <thead class="sticky-top">
                                             <tr>
                                                 <th class="sortable text-center" data-sort="symbol" style="cursor: pointer; width: 8%;">
                                                     Symbol <i class="fas fa-sort text-muted ms-1" id="sort-symbol"></i>
@@ -994,7 +994,7 @@ class PatternDiscoveryService {
     createMainContent() {
         return `
             <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-light rounded">
+            <div class="d-flex justify-content-between align-items-center mb-4 p-3 rounded" style="background-color: var(--color-background-secondary); border: 1px solid var(--color-border-primary);">
                 <div class="d-flex align-items-center">
                     <h2 class="h4 mb-0 text-primary me-3">
                         <i class="fas fa-chart-line me-2"></i>
@@ -1052,7 +1052,7 @@ class PatternDiscoveryService {
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0" id="pattern-table">
-                                    <thead class="table-light">
+                                    <thead>
                                         <tr>
                                             <th class="sortable text-center" data-sort="symbol" style="width: 8%;">Symbol <i class="fas fa-sort"></i></th>
                                             <th class="sortable text-center" data-sort="pattern" style="width: 10%;">Pattern <i class="fas fa-sort"></i></th>
@@ -3674,7 +3674,7 @@ class PatternDiscoveryService {
                     If problems persist, contact technical support with the error details.</li>
             </ol>
             
-            <div class="mt-3 p-2 bg-light rounded">
+            <div class="mt-3 p-2 rounded" style="background-color: var(--color-background-secondary); border: 1px solid var(--color-border-primary);">
                 <strong>Technical Details:</strong><br>
                 <small class="text-muted">
                     • API Base URL: ${this.apiBaseUrl}<br>

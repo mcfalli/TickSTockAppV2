@@ -1399,7 +1399,18 @@ class SidebarNavigationController {
             const saved = localStorage.getItem(this.options.storageKey);
             if (saved) {
                 const state = JSON.parse(saved);
-                this.currentSection = state.currentSection || this.options.defaultSection;
+                
+                // Check if this is a page refresh by detecting if we're loading from a fresh page state
+                // If Pattern Discovery Mode is enabled globally, always start with pattern-discovery
+                if (window.PATTERN_DISCOVERY_MODE === true) {
+                    // Page refresh with Pattern Discovery mode - always start with default section
+                    this.currentSection = this.options.defaultSection;
+                    console.log('SidebarNavigationController: Page refresh detected - using defaultSection:', this.currentSection);
+                } else {
+                    // Normal navigation - use saved state
+                    this.currentSection = state.currentSection || this.options.defaultSection;
+                }
+                
                 this.isCollapsed = state.isCollapsed || false;
             }
         } catch (error) {

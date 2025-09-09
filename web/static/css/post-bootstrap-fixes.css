@@ -15,9 +15,10 @@ Load Order: This MUST come after Bootstrap in the HTML template.
     transition: background-color 0.2s ease !important;
 }
 
-/* Dark theme hover */
-html[data-theme="dark"] .sidebar-nav-link:hover,
-body.dark-theme .sidebar-nav-link:hover {
+/* Dark theme hover - Updated to match main theme system */
+html.theme-dark .sidebar-nav-link:hover,
+body.theme-dark .sidebar-nav-link:hover,
+.theme-dark .sidebar-nav-link:hover {
     background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
@@ -31,4 +32,966 @@ body.dark-theme .sidebar-nav-link:hover {
 .sidebar-nav-link:focus {
     outline: 2px solid #0d6efd !important;
     outline-offset: -2px !important;
+}
+
+/*
+===============================================================================
+BOOTSTRAP TABLE THEME OVERRIDES - POST-BOOTSTRAP LOADING
+===============================================================================
+
+These styles load AFTER Bootstrap to ensure proper theme override for tables,
+especially fixing bright yellow headers in dark mode for Compare section.
+*/
+
+/* Light Theme Table Styles - Post-Bootstrap */
+html.theme-light .table,
+body.theme-light .table,
+.theme-light .table {
+    --bs-table-color: #333333 !important;
+    --bs-table-bg: #ffffff !important;
+    --bs-table-border-color: #dee2e6 !important;
+    --bs-table-accent-bg: #f8f9fa !important;
+    --bs-table-striped-color: #333333 !important;
+    --bs-table-striped-bg: rgba(0, 0, 0, 0.05) !important;
+    --bs-table-active-color: #333333 !important;
+    --bs-table-active-bg: rgba(0, 0, 0, 0.1) !important;
+    --bs-table-hover-color: #333333 !important;
+    --bs-table-hover-bg: rgba(0, 0, 0, 0.075) !important;
+    color: #333333 !important;
+    background-color: #ffffff !important;
+}
+
+html.theme-light .table > :not(caption) > * > *,
+body.theme-light .table > :not(caption) > * > *,
+.theme-light .table > :not(caption) > * > * {
+    color: #333333 !important;
+    background-color: #ffffff !important;
+    border-bottom-color: #dee2e6 !important;
+}
+
+html.theme-light .table thead th,
+body.theme-light .table thead th,
+.theme-light .table thead th {
+    background-color: #f8f9fa !important;
+    color: #333333 !important;
+    border-bottom: 2px solid #dee2e6 !important;
+    font-weight: 600 !important;
+}
+
+/* Dark Theme Table Styles - Post-Bootstrap - HIGH SPECIFICITY */
+html.theme-dark .table,
+body.theme-dark .table,
+.theme-dark .table {
+    --bs-table-color: #ffffff !important;
+    --bs-table-bg: #2d2d2d !important;
+    --bs-table-border-color: #404040 !important;
+    --bs-table-accent-bg: #383838 !important;
+    --bs-table-striped-color: #ffffff !important;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.05) !important;
+    --bs-table-active-color: #ffffff !important;
+    --bs-table-active-bg: rgba(255, 255, 255, 0.1) !important;
+    --bs-table-hover-color: #ffffff !important;
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.075) !important;
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+}
+
+html.theme-dark .table > :not(caption) > * > *,
+body.theme-dark .table > :not(caption) > * > *,
+.theme-dark .table > :not(caption) > * > * {
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+    border-bottom-color: #404040 !important;
+}
+
+/* Dark Theme Table Headers - CRITICAL FIX for bright yellow headers */
+html.theme-dark .table thead th,
+body.theme-dark .table thead th,
+.theme-dark .table thead th {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-bottom: 2px solid #4a4a4a !important;
+    font-weight: 600 !important;
+}
+
+/* Dark Theme Table Body */
+html.theme-dark .table tbody td,
+html.theme-dark .table tbody th,
+body.theme-dark .table tbody td,
+body.theme-dark .table tbody th,
+.theme-dark .table tbody td,
+.theme-dark .table tbody th {
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+}
+
+/* Dark Theme Striped Tables */
+html.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > td,
+html.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > th,
+body.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > td,
+body.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > th,
+.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > td,
+.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > th {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+}
+
+/* Dark Theme Hover Effects */
+html.theme-dark .table-hover > tbody > tr:hover > td,
+html.theme-dark .table-hover > tbody > tr:hover > th,
+body.theme-dark .table-hover > tbody > tr:hover > td,
+body.theme-dark .table-hover > tbody > tr:hover > th,
+.theme-dark .table-hover > tbody > tr:hover > td,
+.theme-dark .table-hover > tbody > tr:hover > th {
+    background-color: #404040 !important;
+    color: #ffffff !important;
+}
+
+/* Ultra-Specific overrides for Compare section table - HIGHEST PRIORITY */
+html.theme-dark body #comparison-details-table,
+body.theme-dark #comparison-details-table,
+.theme-dark #comparison-details-table {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark body #comparison-details-table thead th,
+body.theme-dark #comparison-details-table thead th,
+.theme-dark #comparison-details-table thead th {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #4a4a4a !important;
+}
+
+html.theme-dark body #comparison-details-table tbody td,
+body.theme-dark #comparison-details-table tbody td,
+.theme-dark #comparison-details-table tbody td {
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+}
+
+/* Text utility classes in dark theme tables */
+html.theme-dark .table .text-muted,
+body.theme-dark .table .text-muted,
+.theme-dark .table .text-muted {
+    color: #aaaaaa !important;
+}
+
+html.theme-dark .table .text-success,
+body.theme-dark .table .text-success,
+.theme-dark .table .text-success {
+    color: #4caf50 !important;
+}
+
+html.theme-dark .table .text-warning,
+body.theme-dark .table .text-warning,
+.theme-dark .table .text-warning {
+    color: #ff9800 !important;
+}
+
+html.theme-dark .table .text-info,
+body.theme-dark .table .text-info,
+.theme-dark .table .text-info {
+    color: #2196f3 !important;
+}
+
+html.theme-dark .table .text-primary,
+body.theme-dark .table .text-primary,
+.theme-dark .table .text-primary {
+    color: #66bb6a !important;
+}
+
+/*
+===============================================================================
+BOOTSTRAP CARD THEME OVERRIDES - POST-BOOTSTRAP LOADING
+===============================================================================
+*/
+
+/* Light Theme Cards - Post-Bootstrap */
+html.theme-light .card,
+body.theme-light .card,
+.theme-light .card {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    border-color: #dee2e6 !important;
+}
+
+html.theme-light .card-body,
+body.theme-light .card-body,
+.theme-light .card-body {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+html.theme-light .card-title,
+body.theme-light .card-title,
+.theme-light .card-title {
+    color: #333333 !important;
+}
+
+/* Dark Theme Cards - Post-Bootstrap */
+html.theme-dark .card,
+body.theme-dark .card,
+.theme-dark .card {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .card-body,
+body.theme-dark .card-body,
+.theme-dark .card-body {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .card-title,
+body.theme-dark .card-title,
+.theme-dark .card-title {
+    color: #ffffff !important;
+}
+
+html.theme-dark .card-header,
+body.theme-dark .card-header,
+.theme-dark .card-header {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .card-footer,
+body.theme-dark .card-footer,
+.theme-dark .card-footer {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+/*
+===============================================================================
+COMPREHENSIVE BOOTSTRAP COMPONENT THEME OVERRIDES - ALL NAVIGATION PAGES
+===============================================================================
+
+These styles ensure consistent theming across ALL navigation pages:
+Temporal, Correlations, Market, Historical, Distribution, Performance, 
+Overview, Pattern Discovery - covering ALL possible Bootstrap components.
+*/
+
+/* ==========================================================================
+   NAVIGATION TABS - Post-Bootstrap Override
+   ========================================================================== */
+
+/* Light Theme Nav Tabs */
+html.theme-light .nav-tabs,
+body.theme-light .nav-tabs,
+.theme-light .nav-tabs {
+    border-bottom-color: #dee2e6 !important;
+}
+
+html.theme-light .nav-tabs .nav-link,
+body.theme-light .nav-tabs .nav-link,
+.theme-light .nav-tabs .nav-link {
+    color: #333333 !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+}
+
+html.theme-light .nav-tabs .nav-link:hover,
+body.theme-light .nav-tabs .nav-link:hover,
+.theme-light .nav-tabs .nav-link:hover {
+    color: #333333 !important;
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 #dee2e6 transparent !important;
+}
+
+html.theme-light .nav-tabs .nav-link.active,
+body.theme-light .nav-tabs .nav-link.active,
+.theme-light .nav-tabs .nav-link.active {
+    color: #333333 !important;
+    background-color: #ffffff !important;
+    border-color: #dee2e6 #dee2e6 #ffffff !important;
+}
+
+/* Dark Theme Nav Tabs */
+html.theme-dark .nav-tabs,
+body.theme-dark .nav-tabs,
+.theme-dark .nav-tabs {
+    border-bottom-color: #404040 !important;
+}
+
+html.theme-dark .nav-tabs .nav-link,
+body.theme-dark .nav-tabs .nav-link,
+.theme-dark .nav-tabs .nav-link {
+    color: #ffffff !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+}
+
+html.theme-dark .nav-tabs .nav-link:hover,
+body.theme-dark .nav-tabs .nav-link:hover,
+.theme-dark .nav-tabs .nav-link:hover {
+    color: #ffffff !important;
+    background-color: #383838 !important;
+    border-color: #404040 #404040 transparent !important;
+}
+
+html.theme-dark .nav-tabs .nav-link.active,
+body.theme-dark .nav-tabs .nav-link.active,
+.theme-dark .nav-tabs .nav-link.active {
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+    border-color: #404040 #404040 #2d2d2d !important;
+}
+
+/* ==========================================================================
+   TAB CONTENT - Post-Bootstrap Override
+   ========================================================================== */
+
+/* Light Theme Tab Panes */
+html.theme-light .tab-content,
+body.theme-light .tab-content,
+.theme-light .tab-content {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+html.theme-light .tab-pane,
+body.theme-light .tab-pane,
+.theme-light .tab-pane {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+
+/* Dark Theme Tab Panes */
+html.theme-dark .tab-content,
+body.theme-dark .tab-content,
+.theme-dark .tab-content {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .tab-pane,
+body.theme-dark .tab-pane,
+.theme-dark .tab-pane {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   BUTTONS - Post-Bootstrap Override
+   ========================================================================== */
+
+/* Light Theme Buttons */
+html.theme-light .btn-outline-primary,
+body.theme-light .btn-outline-primary,
+.theme-light .btn-outline-primary {
+    color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    background-color: transparent !important;
+}
+
+html.theme-light .btn-outline-primary:hover,
+body.theme-light .btn-outline-primary:hover,
+.theme-light .btn-outline-primary:hover {
+    color: #ffffff !important;
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+}
+
+html.theme-light .btn-outline-secondary,
+body.theme-light .btn-outline-secondary,
+.theme-light .btn-outline-secondary {
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+    background-color: transparent !important;
+}
+
+/* Dark Theme Buttons */
+html.theme-dark .btn-outline-primary,
+body.theme-dark .btn-outline-primary,
+.theme-dark .btn-outline-primary {
+    color: #66bb6a !important;
+    border-color: #66bb6a !important;
+    background-color: transparent !important;
+}
+
+html.theme-dark .btn-outline-primary:hover,
+body.theme-dark .btn-outline-primary:hover,
+.theme-dark .btn-outline-primary:hover {
+    color: #ffffff !important;
+    background-color: #66bb6a !important;
+    border-color: #66bb6a !important;
+}
+
+html.theme-dark .btn-outline-secondary,
+body.theme-dark .btn-outline-secondary,
+.theme-dark .btn-outline-secondary {
+    color: #aaaaaa !important;
+    border-color: #aaaaaa !important;
+    background-color: transparent !important;
+}
+
+html.theme-dark .btn-outline-secondary:hover,
+body.theme-dark .btn-outline-secondary:hover,
+.theme-dark .btn-outline-secondary:hover {
+    color: #ffffff !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+/* ==========================================================================
+   ALERTS & BADGES - Post-Bootstrap Override
+   ========================================================================== */
+
+/* Light Theme Alerts */
+html.theme-light .alert,
+body.theme-light .alert,
+.theme-light .alert {
+    background-color: #f8f9fa !important;
+    color: #333333 !important;
+    border-color: #dee2e6 !important;
+}
+
+html.theme-light .alert-info,
+body.theme-light .alert-info,
+.theme-light .alert-info {
+    background-color: #e3f2fd !important;
+    color: #0d47a1 !important;
+    border-color: #bbdefb !important;
+}
+
+html.theme-light .alert-warning,
+body.theme-light .alert-warning,
+.theme-light .alert-warning {
+    background-color: #fff8e1 !important;
+    color: #e65100 !important;
+    border-color: #ffecb3 !important;
+}
+
+/* Dark Theme Alerts */
+html.theme-dark .alert,
+body.theme-dark .alert,
+.theme-dark .alert {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .alert-info,
+body.theme-dark .alert-info,
+.theme-dark .alert-info {
+    background-color: #1a3d5c !important;
+    color: #66bb6a !important;
+    border-color: #2196f3 !important;
+}
+
+html.theme-dark .alert-warning,
+body.theme-dark .alert-warning,
+.theme-dark .alert-warning {
+    background-color: #4d3519 !important;
+    color: #ff9800 !important;
+    border-color: #ff9800 !important;
+}
+
+/* ==========================================================================
+   LIST GROUPS - Post-Bootstrap Override
+   ========================================================================== */
+
+/* Light Theme List Groups */
+html.theme-light .list-group,
+body.theme-light .list-group,
+.theme-light .list-group {
+    background-color: #ffffff !important;
+}
+
+html.theme-light .list-group-item,
+body.theme-light .list-group-item,
+.theme-light .list-group-item {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    border-color: #dee2e6 !important;
+}
+
+html.theme-light .list-group-item:hover,
+body.theme-light .list-group-item:hover,
+.theme-light .list-group-item:hover {
+    background-color: #f8f9fa !important;
+    color: #333333 !important;
+}
+
+html.theme-light .list-group-item.active,
+body.theme-light .list-group-item.active,
+.theme-light .list-group-item.active {
+    background-color: #0d6efd !important;
+    color: #ffffff !important;
+    border-color: #0d6efd !important;
+}
+
+/* Dark Theme List Groups */
+html.theme-dark .list-group,
+body.theme-dark .list-group,
+.theme-dark .list-group {
+    background-color: #2d2d2d !important;
+}
+
+html.theme-dark .list-group-item,
+body.theme-dark .list-group-item,
+.theme-dark .list-group-item {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .list-group-item:hover,
+body.theme-dark .list-group-item:hover,
+.theme-dark .list-group-item:hover {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .list-group-item.active,
+body.theme-dark .list-group-item.active,
+.theme-dark .list-group-item.active {
+    background-color: #66bb6a !important;
+    color: #ffffff !important;
+    border-color: #66bb6a !important;
+}
+
+/* ==========================================================================
+   FORM CONTROLS - Post-Bootstrap Override
+   ========================================================================== */
+
+/* Light Theme Forms */
+html.theme-light .form-control,
+body.theme-light .form-control,
+.theme-light .form-control {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    border-color: #dee2e6 !important;
+}
+
+html.theme-light .form-control:focus,
+body.theme-light .form-control:focus,
+.theme-light .form-control:focus {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    border-color: #0d6efd !important;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+}
+
+html.theme-light .form-select,
+body.theme-light .form-select,
+.theme-light .form-select {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    border-color: #dee2e6 !important;
+}
+
+html.theme-light .form-label,
+body.theme-light .form-label,
+.theme-light .form-label {
+    color: #333333 !important;
+}
+
+/* Dark Theme Forms */
+html.theme-dark .form-control,
+body.theme-dark .form-control,
+.theme-dark .form-control {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .form-control:focus,
+body.theme-dark .form-control:focus,
+.theme-dark .form-control:focus {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #66bb6a !important;
+    box-shadow: 0 0 0 0.2rem rgba(102, 187, 106, 0.25) !important;
+}
+
+html.theme-dark .form-select,
+body.theme-dark .form-select,
+.theme-dark .form-select {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .form-label,
+body.theme-dark .form-label,
+.theme-dark .form-label {
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   MODALS - Post-Bootstrap Override
+   ========================================================================== */
+
+/* Light Theme Modals */
+html.theme-light .modal-content,
+body.theme-light .modal-content,
+.theme-light .modal-content {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    border-color: #dee2e6 !important;
+}
+
+html.theme-light .modal-header,
+body.theme-light .modal-header,
+.theme-light .modal-header {
+    background-color: #f8f9fa !important;
+    color: #333333 !important;
+    border-bottom-color: #dee2e6 !important;
+}
+
+html.theme-light .modal-footer,
+body.theme-light .modal-footer,
+.theme-light .modal-footer {
+    background-color: #f8f9fa !important;
+    border-top-color: #dee2e6 !important;
+}
+
+/* Dark Theme Modals */
+html.theme-dark .modal-content,
+body.theme-dark .modal-content,
+.theme-dark .modal-content {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .modal-header,
+body.theme-dark .modal-header,
+.theme-dark .modal-header {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-bottom-color: #404040 !important;
+}
+
+html.theme-dark .modal-footer,
+body.theme-dark .modal-footer,
+.theme-dark .modal-footer {
+    background-color: #383838 !important;
+    border-top-color: #404040 !important;
+}
+
+html.theme-dark .modal-title,
+body.theme-dark .modal-title,
+.theme-dark .modal-title {
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   DROPDOWNS - Post-Bootstrap Override
+   ========================================================================== */
+
+/* Light Theme Dropdowns */
+html.theme-light .dropdown-menu,
+body.theme-light .dropdown-menu,
+.theme-light .dropdown-menu {
+    background-color: #ffffff !important;
+    border-color: #dee2e6 !important;
+}
+
+html.theme-light .dropdown-item,
+body.theme-light .dropdown-item,
+.theme-light .dropdown-item {
+    color: #333333 !important;
+}
+
+html.theme-light .dropdown-item:hover,
+body.theme-light .dropdown-item:hover,
+.theme-light .dropdown-item:hover {
+    background-color: #f8f9fa !important;
+    color: #333333 !important;
+}
+
+/* Dark Theme Dropdowns */
+html.theme-dark .dropdown-menu,
+body.theme-dark .dropdown-menu,
+.theme-dark .dropdown-menu {
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .dropdown-item,
+body.theme-dark .dropdown-item,
+.theme-dark .dropdown-item {
+    color: #ffffff !important;
+}
+
+html.theme-dark .dropdown-item:hover,
+body.theme-dark .dropdown-item:hover,
+.theme-dark .dropdown-item:hover {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   SPECIFIC COMPONENT OVERRIDES - All Navigation Pages
+   ========================================================================== */
+
+/* Pattern Discovery Dashboard */
+html.theme-dark #pattern-discovery-dashboard,
+body.theme-dark #pattern-discovery-dashboard,
+.theme-dark #pattern-discovery-dashboard {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+/* Temporal Dashboard */
+html.theme-dark #temporal-dashboard,
+body.theme-dark #temporal-dashboard,
+.theme-dark #temporal-dashboard {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+/* Correlations Dashboard */
+html.theme-dark #correlations-dashboard,
+body.theme-dark #correlations-dashboard,
+.theme-dark #correlations-dashboard {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+/* Analytics Dashboards (Market, Historical, Distribution, Performance, Overview) */
+html.theme-dark #analytics-dashboard,
+body.theme-dark #analytics-dashboard,
+.theme-dark #analytics-dashboard,
+html.theme-dark #overview-dashboard,
+body.theme-dark #overview-dashboard,
+.theme-dark #overview-dashboard,
+html.theme-dark #performance-dashboard,
+body.theme-dark #performance-dashboard,
+.theme-dark #performance-dashboard,
+html.theme-dark #distribution-dashboard,
+body.theme-dark #distribution-dashboard,
+.theme-dark #distribution-dashboard,
+html.theme-dark #historical-dashboard,
+body.theme-dark #historical-dashboard,
+.theme-dark #historical-dashboard,
+html.theme-dark #market-dashboard,
+body.theme-dark #market-dashboard,
+.theme-dark #market-dashboard {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+/* Chart containers - ensure proper backgrounds */
+html.theme-dark .chart-container,
+body.theme-dark .chart-container,
+.theme-dark .chart-container {
+    background-color: #2d2d2d !important;
+}
+
+/* Analytics content areas */
+html.theme-dark #analytics-content,
+body.theme-dark #analytics-content,
+.theme-dark #analytics-content {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+/* Analytics tabs */
+html.theme-dark #analytics-tabs,
+body.theme-dark #analytics-tabs,
+.theme-dark #analytics-tabs {
+    border-bottom-color: #404040 !important;
+}
+
+/* Pattern table (Pattern Discovery specific) */
+html.theme-dark #pattern-table,
+body.theme-dark #pattern-table,
+.theme-dark #pattern-table {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark #pattern-table thead th,
+body.theme-dark #pattern-table thead th,
+.theme-dark #pattern-table thead th {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark #pattern-table tbody td,
+body.theme-dark #pattern-table tbody td,
+.theme-dark #pattern-table tbody td {
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+}
+
+/* Enhanced pattern table (Pattern Visualization specific) */
+html.theme-dark .enhanced-pattern-table,
+body.theme-dark .enhanced-pattern-table,
+.theme-dark .enhanced-pattern-table {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .enhanced-pattern-table thead th,
+body.theme-dark .enhanced-pattern-table thead th,
+.theme-dark .enhanced-pattern-table thead th {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .enhanced-pattern-table tbody td,
+body.theme-dark .enhanced-pattern-table tbody td,
+.theme-dark .enhanced-pattern-table tbody td {
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+}
+
+/* Correlation matrix table */
+html.theme-dark .correlation-matrix,
+body.theme-dark .correlation-matrix,
+.theme-dark .correlation-matrix {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .correlation-matrix thead th,
+body.theme-dark .correlation-matrix thead th,
+.theme-dark .correlation-matrix thead th {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .correlation-matrix tbody td,
+body.theme-dark .correlation-matrix tbody td,
+.theme-dark .correlation-matrix tbody td {
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+}
+
+/* Performance comparison tables */
+html.theme-dark .performance-table,
+body.theme-dark .performance-table,
+.theme-dark .performance-table {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .performance-table thead th,
+body.theme-dark .performance-table thead th,
+.theme-dark .performance-table thead th {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+html.theme-dark .performance-table tbody td,
+body.theme-dark .performance-table tbody td,
+.theme-dark .performance-table tbody td {
+    color: #ffffff !important;
+    background-color: #2d2d2d !important;
+    border-color: #404040 !important;
+}
+
+/* Statistics cards for overview */
+html.theme-dark .stats-card,
+body.theme-dark .stats-card,
+.theme-dark .stats-card {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+/* Ensure all h1-h6 headings are properly themed */
+html.theme-dark h1, html.theme-dark h2, html.theme-dark h3, html.theme-dark h4, html.theme-dark h5, html.theme-dark h6,
+body.theme-dark h1, body.theme-dark h2, body.theme-dark h3, body.theme-dark h4, body.theme-dark h5, body.theme-dark h6,
+.theme-dark h1, .theme-dark h2, .theme-dark h3, .theme-dark h4, .theme-dark h5, .theme-dark h6 {
+    color: #ffffff !important;
+}
+
+/* Ensure all paragraph text is properly themed */
+html.theme-dark p,
+body.theme-dark p,
+.theme-dark p {
+    color: #ffffff !important;
+}
+
+/* Loading states and placeholders */
+html.theme-dark .loading-placeholder,
+body.theme-dark .loading-placeholder,
+.theme-dark .loading-placeholder {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+}
+
+/* Error states */
+html.theme-dark .error-state,
+body.theme-dark .error-state,
+.theme-dark .error-state {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   PATTERN DISCOVERY SPECIFIC OVERRIDES - Header Styling
+   ========================================================================== */
+
+/* Pattern Discovery Dashboard Header - Light Theme */
+html.theme-light .pattern-discovery-dashboard .d-flex.justify-content-between,
+body.theme-light .pattern-discovery-dashboard .d-flex.justify-content-between,
+.theme-light .pattern-discovery-dashboard .d-flex.justify-content-between {
+    background-color: #f8f9fa !important;
+    color: #333333 !important;
+    border-color: #dee2e6 !important;
+}
+
+/* Pattern Discovery Dashboard Header - Dark Theme */
+html.theme-dark .pattern-discovery-dashboard .d-flex.justify-content-between,
+body.theme-dark .pattern-discovery-dashboard .d-flex.justify-content-between,
+.theme-dark .pattern-discovery-dashboard .d-flex.justify-content-between {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+    border-color: #404040 !important;
+}
+
+/* Pattern Discovery Dashboard Header Text - Light Theme */
+html.theme-light .pattern-discovery-dashboard h2,
+html.theme-light .pattern-discovery-dashboard .h4,
+body.theme-light .pattern-discovery-dashboard h2,
+body.theme-light .pattern-discovery-dashboard .h4,
+.theme-light .pattern-discovery-dashboard h2,
+.theme-light .pattern-discovery-dashboard .h4 {
+    color: #333333 !important;
+}
+
+/* Pattern Discovery Dashboard Header Text - Dark Theme */
+html.theme-dark .pattern-discovery-dashboard h2,
+html.theme-dark .pattern-discovery-dashboard .h4,
+body.theme-dark .pattern-discovery-dashboard h2,
+body.theme-dark .pattern-discovery-dashboard .h4,
+.theme-dark .pattern-discovery-dashboard h2,
+.theme-dark .pattern-discovery-dashboard .h4 {
+    color: #ffffff !important;
+}
+
+/* Force override any bg-light classes that might still exist */
+html.theme-dark .bg-light,
+body.theme-dark .bg-light,
+.theme-dark .bg-light {
+    background-color: #383838 !important;
+    color: #ffffff !important;
+}
+
+html.theme-light .bg-light,
+body.theme-light .bg-light,
+.theme-light .bg-light {
+    background-color: #f8f9fa !important;
+    color: #333333 !important;
 }
