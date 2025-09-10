@@ -19,7 +19,7 @@ class PatternVisualizationService {
             showContextInfo: true,
             showSuccessRates: true,
             showVolumeIndicators: true,
-            enableHoverDetails: true,
+            enableHoverDetails: false,
             enableClickAnalysis: true
         };
         

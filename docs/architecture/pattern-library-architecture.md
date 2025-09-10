@@ -64,5 +64,6 @@ class EventPublisher:
 ## Related Documentation
 
 - **[`system-architecture.md`](system-architecture.md)** - Complete system architecture overview
+- **[`tickstockpl-architecture.md`](tickstockpl-architecture.md)** - Detailed TickStockPL implementation architecture and performance metrics
 - **[`../planning/pattern_library_overview.md`](../planning/pattern_library_overview.md)** - Pattern library goals and scope
 - **[`../planning/patterns_library_patterns.md`](../planning/patterns_library_patterns.md)** - Pattern specifications

@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import os
 import time
+import json
 import logging
 from datetime import datetime, timedelta
 
@@ -45,6 +46,18 @@ from src.presentation.websocket.manager import WebSocketManager
 # Sprint 10 Phase 2: Enhanced Redis Event Consumption
 from src.core.services.redis_event_subscriber import RedisEventSubscriber
 from src.core.services.websocket_broadcaster import WebSocketBroadcaster
+
+# Mandatory Redis validation for TickStockPL integration
+from src.core.services.redis_validator import (
+    initialize_redis_mandatory,
+    generate_redis_failure_report
+)
+from src.core.exceptions.redis_exceptions import (
+    RedisConnectionError,
+    RedisChannelError,
+    RedisPerformanceError,
+    RedisConfigurationError
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +85,12 @@ comparison_tools_service = None
 APP_VERSION = "2.0.0-simplified"
 
 def initialize_redis(config):
-    """Initialize Redis connection for TickStockPL integration."""
+    """
+    Initialize Redis connection for TickStockPL integration.
+    
+    DEPRECATED: Use initialize_redis_mandatory() for new code.
+    This function is kept for backward compatibility only.
+    """
     global redis_client
     
     # Check if Redis is configured (try config first, then environment)
@@ -371,6 +389,125 @@ def register_basic_routes(app):
     def health_check():
         """Health check endpoint for monitoring."""
         return {"status": "healthy", "version": APP_VERSION}
+    
+    @app.route('/api/health/redis')
+    def api_health_redis():
+        """
+        Detailed Redis health status for mandatory connectivity monitoring.
+        
+        This endpoint provides comprehensive Redis health diagnostics including
+        connectivity, pub-sub functionality, and performance metrics for
+        TickStockPL integration.
+        """
+        if not redis_client:
+            return jsonify({
+                "status": "CRITICAL",
+                "message": "Redis client not initialized - TickStockPL integration unavailable",
+                "timestamp": time.time(),
+                "error": "Redis connectivity is mandatory for TickStockAppV2"
+            }), 503
+        
+        health_data = {
+            "status": "UNKNOWN",
+            "connectivity": False,
+            "pubsub_status": False,
+            "performance": {},
+            "channels": {},
+            "server_info": {},
+            "timestamp": time.time()
+        }
+        
+        try:
+            # Test basic connectivity with performance measurement
+            start_time = time.time()
+            ping_result = redis_client.ping()
+            ping_time = (time.time() - start_time) * 1000
+            
+            if not ping_result:
+                health_data["status"] = "CRITICAL"
+                health_data["error"] = "Redis ping returned False"
+                return jsonify(health_data), 503
+            
+            health_data["connectivity"] = True
+            health_data["performance"]["ping_ms"] = round(ping_time, 2)
+            
+            # Get server information
+            server_info = redis_client.info('server')
+            health_data["server_info"] = {
+                "redis_version": server_info.get('redis_version'),
+                "uptime_seconds": server_info.get('uptime_in_seconds'),
+                "used_memory_human": server_info.get('used_memory_human'),
+                "connected_clients": server_info.get('connected_clients')
+            }
+            
+            # Test pub-sub channels required for TickStockPL integration
+            required_channels = [
+                'tickstock.events.patterns',
+                'tickstock.events.backtesting.progress',
+                'tickstock.events.backtesting.results',
+                'tickstock.health.status'
+            ]
+            
+            channel_test_results = {}
+            pubsub_errors = []
+            
+            for channel in required_channels:
+                try:
+                    # Test publish capability (validates permissions and functionality)
+                    test_payload = {"test": "health_check", "timestamp": time.time()}
+                    publish_result = redis_client.publish(channel, json.dumps(test_payload))
+                    channel_test_results[channel] = {
+                        "status": "accessible",
+                        "subscribers": publish_result
+                    }
+                except Exception as e:
+                    channel_test_results[channel] = {
+                        "status": "error",
+                        "error": str(e)
+                    }
+                    pubsub_errors.append(f"{channel}: {e}")
+            
+            health_data["channels"] = channel_test_results
+            health_data["pubsub_status"] = len(pubsub_errors) == 0
+            
+            # Determine overall status based on performance and functionality
+            if ping_time > 50:
+                health_data["status"] = "CRITICAL"
+                health_data["performance"]["warning"] = f"Ping latency too high: {ping_time:.2f}ms (target: <50ms)"
+            elif ping_time > 25 or pubsub_errors:
+                health_data["status"] = "DEGRADED"
+                if ping_time > 25:
+                    health_data["performance"]["warning"] = f"High ping latency: {ping_time:.2f}ms (target: <25ms)"
+                if pubsub_errors:
+                    health_data["pubsub_errors"] = pubsub_errors
+            else:
+                health_data["status"] = "HEALTHY"
+            
+            # Additional performance metrics
+            health_data["performance"]["target_ping_ms"] = 50
+            health_data["performance"]["optimal_ping_ms"] = 25
+            health_data["integration_status"] = {
+                "tickstockpl_ready": health_data["pubsub_status"],
+                "real_time_capable": ping_time < 50,
+                "optimal_performance": ping_time < 25
+            }
+            
+        except redis.ConnectionError as e:
+            health_data["status"] = "CRITICAL"
+            health_data["error"] = f"Redis connection error: {e}"
+            return jsonify(health_data), 503
+        except Exception as e:
+            health_data["status"] = "CRITICAL"
+            health_data["error"] = f"Redis health check failed: {e}"
+            return jsonify(health_data), 503
+        
+        # Return appropriate HTTP status based on health
+        if health_data["status"] == "HEALTHY":
+            return jsonify(health_data), 200
+        elif health_data["status"] == "DEGRADED":
+            return jsonify(health_data), 200  # Still functional
+        else:
+            return jsonify(health_data), 503  # Critical issues
     
     @app.route('/test')
     @login_required  
@@ -1892,11 +2029,36 @@ def main():
         else:
             logger.error("STARTUP: LOGIN-MANAGER not found in extensions!")
         
-        # Initialize Redis
-        logger.info("STARTUP: Initializing Redis...")
-        redis_success = initialize_redis(config)
-        if not redis_success:
-            logger.warning("STARTUP: Redis connection failed - continuing without Redis")
+        # Initialize Redis (MANDATORY for TickStockPL integration)
+        logger.info("STARTUP: Initializing Redis (MANDATORY)...")
+        try:
+            # Get environment for performance thresholds
+            environment = startup_result.get('env_config', {}).get('APP_ENVIRONMENT', 'PRODUCTION')
+            logger.info(f"STARTUP: Environment detected for Redis validation: {environment}")
+            redis_client = initialize_redis_mandatory(config, environment=environment)
+            logger.info("STARTUP: Redis connectivity validated successfully")
+            # Add Redis client to config for other components
+            config['redis_client'] = redis_client
+        except RedisConfigurationError as e:
+            logger.critical("STARTUP: Redis configuration error")
+            print(generate_redis_failure_report('config', str(e)))
+            sys.exit(1)
+        except RedisConnectionError as e:
+            logger.critical("STARTUP: Redis connection failed")
+            print(generate_redis_failure_report('connection', str(e)))
+            sys.exit(1)
+        except RedisChannelError as e:
+            logger.critical("STARTUP: Redis pub-sub channels unavailable")
+            print(generate_redis_failure_report('channels', str(e)))
+            sys.exit(1)
+        except RedisPerformanceError as e:
+            logger.critical("STARTUP: Redis performance below requirements")
+            print(generate_redis_failure_report('performance', str(e)))
+            sys.exit(1)
+        except Exception as e:
+            logger.critical(f"STARTUP: Unexpected Redis initialization error: {e}")
+            print(generate_redis_failure_report('connection', f"Unexpected error: {e}"))
+            sys.exit(1)
         
         # Initialize SocketIO
         logger.info("STARTUP: Initializing SocketIO...")

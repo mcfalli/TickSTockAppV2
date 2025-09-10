@@ -43,6 +43,8 @@
 - **Historical Analysis**: Pattern performance tracking, strategy validation
 - **Job Processing**: Executes backtest jobs triggered by TickStockApp
 
+For detailed TickStockPL architecture, performance metrics, and implementation specifications, see **[`tickstockpl-architecture.md`](tickstockpl-architecture.md)**.
+
 ### Automation Services (Background Processing) - Support Role
 **Core Philosophy**: Independent background services for data maintenance and monitoring
 

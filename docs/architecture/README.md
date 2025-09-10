@@ -77,12 +77,19 @@ The following complex features were removed during the cleanup to focus on core 
 - **Standard Protocols**: Redis pub-sub for scalable integration
 - **Configuration Driven**: Environment-based setup
 
-## Feature Documentation
+## Architecture Documentation
 
-### Current Feature Docs
+### Core Architecture
+- `system-architecture.md`: Complete system architecture overview and role separation
+- `tickstockpl-architecture.md`: Detailed TickStockPL implementation architecture and performance metrics
+- `pattern-library-architecture.md`: Pattern library structure and integration patterns
+- `database-architecture.md`: Shared TimescaleDB database schema and optimization
+
+### Integration & Implementation
 - `user-authentication.md`: User login and session management
 - `data-integration.md`: Market data ingestion and processing
 - `redis-integration.md`: TickStockPL integration via Redis
+- `websockets-integration.md`: Real-time WebSocket communication patterns
 
 ### Legacy Documentation (Removed)
 - Complex filtering system documentation
