@@ -116,6 +116,32 @@ class TickStockDatabase:
             if conn:
                 conn.close()
     
+    def execute_query(self, query: str, params: list = None) -> List[tuple]:
+        """Execute a raw SQL query and return results as list of tuples."""
+        try:
+            with self.get_connection() as conn:
+                if params:
+                    # For SQLAlchemy 2.x compatibility, we need to pass parameters correctly
+                    # Convert positional parameters to a dict with numbered keys
+                    param_dict = {f"param_{i}": param for i, param in enumerate(params)}
+                    # Replace %s with numbered parameters in query
+                    modified_query = query
+                    for i in range(len(params)):
+                        modified_query = modified_query.replace('%s', f':param_{i}', 1)
+                    result = conn.execute(text(modified_query), param_dict)
+                else:
+                    result = conn.execute(text(query))
+                
+                # Fetch all results and convert to list of tuples
+                rows = result.fetchall()
+                return [tuple(row) for row in rows]
+                
+        except Exception as e:
+            logger.error(f"TICKSTOCK-DB: Query execution failed: {e}")
+            logger.error(f"TICKSTOCK-DB: Query: {query}")
+            logger.error(f"TICKSTOCK-DB: Params: {params}")
+            raise
+    
     def get_symbols_for_dropdown(self) -> List[Dict[str, Any]]:
         """Get all active symbols with metadata for UI dropdown population."""
         try:

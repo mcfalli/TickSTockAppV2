@@ -213,6 +213,7 @@ class CacheEntriesSynchronizer:
             'industry_entries': 0,
             'etf_entries': 0,
             'complete_entries': 0,
+            'combo_entries': 0,
             'stats_entries': 0,
             'redis_notifications': 0
         }
@@ -246,10 +247,13 @@ class CacheEntriesSynchronizer:
             # Step 8: Create complete universe
             stats['complete_entries'] = self._create_complete_entries()
             
-            # Step 9: Create statistics summary
+            # Step 9: Create combo test universe
+            stats['combo_entries'] = self._create_combo_test_entries()
+            
+            # Step 10: Create statistics summary
             stats['stats_entries'] = self._create_stats_entries()
             
-            # Step 10: Redis notifications
+            # Step 11: Redis notifications
             if self.redis_client:
                 stats['redis_notifications'] = self._publish_rebuild_notifications(stats)
             
@@ -562,42 +566,135 @@ class CacheEntriesSynchronizer:
         return created_count
     
     def _create_etf_entries(self) -> int:
-        """Create ETF universe entries."""
+        """Create ETF universe entries with proper categorization."""
         created_count = 0
         
+        # Define ETF categories with smart filtering patterns
         etf_categories = {
-            'etf_broad_market': 'Broad Market ETFs',
-            'etf_sectors': 'Sector ETFs', 
-            'etf_growth': 'Growth ETFs',
-            'etf_value': 'Value ETFs',
-            'etf_international': 'International ETFs',
-            'etf_technology': 'Technology ETFs',
-            'etf_bonds': 'Bond ETFs',
-            'etf_commodities': 'Commodity ETFs'
+            'etf_broad_market': {
+                'name': 'Broad Market ETFs',
+                'patterns': ['Total Stock Market', 'Total Market', 'S&P 500', 'Russell', 'SPDR', 'Core'],
+                'exclude': ['Bond', 'International', 'Emerging', 'Value', 'Growth', 'Technology', 'Sector']
+            },
+            'etf_growth': {
+                'name': 'Growth ETFs', 
+                'patterns': ['Growth'],
+                'exclude': ['Bond', 'International']
+            },
+            'etf_value': {
+                'name': 'Value ETFs',
+                'patterns': ['Value'],
+                'exclude': ['Bond', 'International']
+            },
+            'etf_technology': {
+                'name': 'Technology ETFs',
+                'patterns': ['Technology', 'Information Technology', 'Tech'],
+                'exclude': ['Bond']
+            },
+            'etf_bonds': {
+                'name': 'Bond ETFs',
+                'patterns': ['Bond', 'Aggregate'],
+                'exclude': []
+            },
+            'etf_international': {
+                'name': 'International ETFs',
+                'patterns': ['International', 'Emerging Markets', 'EAFE', 'Developed Markets'],
+                'exclude': ['Bond']
+            },
+            'etf_factor': {
+                'name': 'Factor ETFs',
+                'patterns': ['Factor', 'Momentum', 'Quality', 'Min Vol', 'Low Vol'],
+                'exclude': []
+            },
+            'etf_all': {
+                'name': 'All ETFs',
+                'patterns': [],  # No filtering - all ETFs
+                'exclude': []
+            }
         }
         
         with self.db_conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            for key, name in etf_categories.items():
-                # Get ETFs for this category (basic implementation - can be enhanced)
-                cursor.execute("""
-                    SELECT symbol
-                    FROM symbols
-                    WHERE type = 'ETF'
-                      AND active = true
-                    ORDER BY symbol
-                    LIMIT 10
-                """)
+            for key, config in etf_categories.items():
+                name = config['name']
+                patterns = config['patterns']
+                exclude_patterns = config['exclude']
                 
-                etfs = [row['symbol'] for row in cursor.fetchall()]
+                if key == 'etf_all':
+                    # Special case: get all ETFs
+                    cursor.execute("""
+                        SELECT symbol, name as etf_name, etf_type, issuer
+                        FROM symbols
+                        WHERE type = 'ETF'
+                          AND active = true
+                        ORDER BY symbol
+                    """)
+                else:
+                    # Build WHERE clause for pattern matching
+                    where_conditions = []
+                    params = []
+                    
+                    if patterns:
+                        # Include patterns (OR logic)
+                        pattern_conditions = []
+                        for pattern in patterns:
+                            pattern_conditions.append("name ILIKE %s")
+                            params.append(f'%{pattern}%')
+                        where_conditions.append(f"({' OR '.join(pattern_conditions)})")
+                    
+                    if exclude_patterns:
+                        # Exclude patterns (AND NOT logic)
+                        for exclude_pattern in exclude_patterns:
+                            where_conditions.append("name NOT ILIKE %s")
+                            params.append(f'%{exclude_pattern}%')
+                    
+                    # Build final query
+                    base_query = """
+                        SELECT symbol, name as etf_name, etf_type, issuer
+                        FROM symbols
+                        WHERE type = 'ETF'
+                          AND active = true
+                    """
+                    
+                    if where_conditions:
+                        final_query = f"{base_query} AND {' AND '.join(where_conditions)} ORDER BY symbol"
+                    else:
+                        final_query = f"{base_query} ORDER BY symbol"
+                    
+                    cursor.execute(final_query, params)
                 
-                if etfs:
+                etf_rows = cursor.fetchall()
+                
+                if etf_rows:
+                    # Create both simple ticker list and detailed metadata
+                    etf_tickers = [row['symbol'] for row in etf_rows]
+                    
+                    etf_detailed = {
+                        "count": len(etf_rows),
+                        "etfs": [
+                            {
+                                "symbol": row['symbol'],
+                                "name": row['etf_name'],
+                                "etf_type": row['etf_type'] or 'ETF',
+                                "issuer": row['issuer'] or 'Unknown'
+                            }
+                            for row in etf_rows
+                        ]
+                    }
+                    
+                    # Insert simple ticker list
                     cursor.execute("""
                         INSERT INTO cache_entries (type, name, key, value, environment, created_at, updated_at)
                         VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                    """, ('etf_universe', name, key, json.dumps(etfs), self.environment))
+                    """, ('etf_universe', name, key, json.dumps(etf_tickers), self.environment))
                     
-                    created_count += 1
-                    logger.info(f"📊 Created ETF category {name}: {len(etfs)} ETFs")
+                    # Insert detailed metadata
+                    cursor.execute("""
+                        INSERT INTO cache_entries (type, name, key, value, environment, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    """, ('etf_universe', name, f"{key}_detailed", json.dumps(etf_detailed), self.environment))
+                    
+                    created_count += 2
+                    logger.info(f"📊 Created ETF category {name}: {len(etf_tickers)} ETFs ({etf_tickers})")
         
         return created_count
     
@@ -771,6 +868,132 @@ class CacheEntriesSynchronizer:
                 return 1
         
         return 0
+    
+    def _create_combo_test_entries(self) -> int:
+        """Create combo test universe (stocks + ETFs) for comprehensive testing."""
+        created_count = 0
+        
+        with self.db_conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            # Get top 50 stocks by market cap
+            cursor.execute("""
+                SELECT symbol, name, market_cap, sector, industry, primary_exchange, market
+                FROM symbols
+                WHERE active = true
+                  AND type = 'CS'
+                  AND market_cap IS NOT NULL
+                ORDER BY market_cap DESC
+                LIMIT 50
+            """)
+            
+            stock_rows = cursor.fetchall()
+            
+            # Define essential ETFs for testing - comprehensive market coverage
+            essential_etfs = [
+                # Broad Market Indices
+                'SPY',   # S&P 500
+                'QQQ',   # NASDAQ 100
+                'IWM',   # Russell 2000
+                'VTI',   # Total Stock Market
+                
+                # Style/Factor ETFs
+                'VUG',   # Growth
+                'VTV',   # Value
+                'MTUM',  # Momentum
+                
+                # Technology Focus
+                'VGT',   # Vanguard Technology
+                'XLK',   # Technology Select Sector
+                
+                # Sector ETFs
+                'XLF',   # Financial
+                'XLV',   # Healthcare
+                'XLE',   # Energy
+                'XLI',   # Industrial
+                'XLP',   # Consumer Staples
+                'XLY',   # Consumer Discretionary
+                
+                # Bonds
+                'AGG',   # Core Bonds
+                'BND',   # Total Bond Market
+                
+                # International
+                'VEA',   # Developed Markets
+                'EEM',   # Emerging Markets
+                'IEFA'   # Core EAFE
+            ]
+            
+            # Get ETF details for the essential ETFs
+            placeholders = ','.join(['%s'] * len(essential_etfs))
+            cursor.execute(f"""
+                SELECT symbol, name as etf_name, etf_type, issuer, primary_exchange, market
+                FROM symbols
+                WHERE type = 'ETF'
+                  AND active = true
+                  AND symbol IN ({placeholders})
+                ORDER BY symbol
+            """, essential_etfs)
+            
+            etf_rows = cursor.fetchall()
+            
+            if stock_rows and etf_rows:
+                # Create combined symbol list for simple access
+                stock_symbols = [row['symbol'] for row in stock_rows]
+                etf_symbols = [row['symbol'] for row in etf_rows]
+                all_symbols = stock_symbols + etf_symbols
+                
+                # Create detailed combo data structure
+                combo_detailed = {
+                    "count": len(all_symbols),
+                    "description": "Comprehensive test universe: Top 50 stocks + essential ETFs for market coverage",
+                    "composition": {
+                        "stocks": len(stock_symbols),
+                        "etfs": len(etf_symbols)
+                    },
+                    "stocks": [
+                        {
+                            "name": stock['name'],
+                            "rank": idx + 1,
+                            "sector": stock['sector'] or 'Unknown',
+                            "ticker": stock['symbol'],
+                            "exchange": stock['primary_exchange'] or 'Unknown',
+                            "industry": stock['industry'] or 'Unknown',
+                            "market_cap": float(stock['market_cap']),
+                            "market": stock['market'] or 'Unknown',
+                            "type": "stock"
+                        }
+                        for idx, stock in enumerate(stock_rows)
+                    ],
+                    "etfs": [
+                        {
+                            "name": etf['etf_name'],
+                            "ticker": etf['symbol'],
+                            "etf_type": etf['etf_type'] or 'ETF',
+                            "issuer": etf['issuer'] or 'Unknown',
+                            "exchange": etf['primary_exchange'] or 'Unknown',
+                            "market": etf['market'] or 'Unknown',
+                            "type": "etf"
+                        }
+                        for etf in etf_rows
+                    ]
+                }
+                
+                # Insert simple symbol list version
+                cursor.execute("""
+                    INSERT INTO cache_entries (type, name, key, value, environment, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, ('stock_etf_combo', 'stock_etf_test', 'combo_test', json.dumps(all_symbols), self.environment))
+                
+                # Insert detailed version with full metadata
+                cursor.execute("""
+                    INSERT INTO cache_entries (type, name, key, value, environment, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, ('stock_etf_combo', 'stock_etf_test', 'combo_test_detailed', json.dumps(combo_detailed), self.environment))
+                
+                created_count = 2
+                logger.info(f"🧪 Created combo test universe: {len(stock_symbols)} stocks + {len(etf_symbols)} ETFs = {len(all_symbols)} total symbols")
+                logger.info(f"🧪 ETFs included: {etf_symbols}")
+        
+        return created_count
     
     def _publish_rebuild_notifications(self, stats: Dict[str, int]) -> int:
         """Publish Redis notifications about cache rebuild."""

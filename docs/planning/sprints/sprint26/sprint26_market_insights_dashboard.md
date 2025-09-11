@@ -159,12 +159,34 @@ class MarketRiskAssessment:
 
 ## Technical Implementation Details
 
+## WebSocket Integration
+
+This feature integrates with the core WebSocket architecture documented in `docs/architecture/websocket-scalability-architecture.md`.
+
+### Market Insights WebSocket Integration
+```python
+class MarketInsightsWebSocketIntegration:
+    def __init__(self, websocket_manager: UniversalWebSocketManager):
+        self.websocket = websocket_manager
+        
+    def subscribe_user_to_market_insights(self, user_id: str, preferences: Dict):
+        """Subscribe user to market insights updates"""
+        filters = {
+            'etfs': preferences.get('etfs', ['SPY', 'QQQ', 'IWM']),
+            'market_regimes': preferences.get('market_regimes', ['bull', 'bear', 'neutral']),
+            'sectors': preferences.get('sectors', []),
+            'update_frequency': preferences.get('update_frequency', 30)  # seconds
+        }
+        
+        return self.websocket.subscribe_user(user_id, 'market_insights', filters)
+```
+
 ### Data Flow Architecture
 1. **Market Data Ingestion**: Real-time ETF price/volume from existing market data service
 2. **ETF Analysis Engine**: Calculate performance metrics, correlations, signals
 3. **Market State Classification**: Determine regime and risk assessment
-4. **Pattern Context Integration**: Filter TickStockPL patterns by market state
-5. **Dashboard Updates**: Real-time WebSocket updates to UI components
+4. **WebSocket Broadcasting**: Use `UniversalWebSocketManager.broadcast_event()` for market updates
+5. **Pattern Context Integration**: Filter TickStockPL patterns by market state
 
 ### Performance Requirements
 - **Market State Updates**: Every 30 seconds during market hours

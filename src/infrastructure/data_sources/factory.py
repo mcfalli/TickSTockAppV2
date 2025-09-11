@@ -10,7 +10,7 @@ Removed: Multi-frequency complexity, validation layers, fallback logic.
 from typing import Dict, Any
 from src.core.interfaces.data_provider import DataProvider
 from src.infrastructure.data_sources.synthetic.provider import SimulatedDataProvider
-from src.infrastructure.data_sources.polygon import PolygonDataProvider
+from src.infrastructure.data_sources.polygon.provider import PolygonDataProvider
 import logging
 
 logger = logging.getLogger(__name__)

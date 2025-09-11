@@ -59,12 +59,13 @@ class RedisEventSubscriber:
     """
     
     def __init__(self, redis_client: redis.Redis, socketio: SocketIO, config: Dict[str, Any], 
-                 backtest_manager=None):
+                 backtest_manager=None, flask_app=None):
         """Initialize Redis event subscriber."""
         self.redis_client = redis_client
         self.socketio = socketio
         self.config = config
         self.backtest_manager = backtest_manager
+        self.flask_app = flask_app
         
         # Subscription management
         self.pubsub = None
@@ -283,54 +284,65 @@ class RedisEventSubscriber:
             logger.warning("REDIS-SUBSCRIBER: Pattern event missing required fields")
             return
         
-        # Phase 4: Implement user-specific filtering via PatternAlertManager
-        try:
-            # Get pattern alert manager from Flask app context
-            from flask import current_app
-            pattern_alert_manager = getattr(current_app, 'pattern_alert_manager', None)
-            
-            if pattern_alert_manager:
-                # Get users who should receive this alert
-                interested_users = pattern_alert_manager.get_users_for_alert(
-                    pattern_name, symbol, confidence
-                )
+        # Execute within Flask app context
+        def emit_pattern_alert():
+            try:
+                # Get pattern alert manager from Flask app context
+                pattern_alert_manager = getattr(self.flask_app, 'pattern_alert_manager', None)
                 
-                if interested_users:
-                    # Send targeted alerts to specific users
+                if pattern_alert_manager:
+                    # Get users who should receive this alert
+                    interested_users = pattern_alert_manager.get_users_for_alert(
+                        pattern_name, symbol, confidence
+                    )
+                    
+                    if interested_users:
+                        # Send targeted alerts to specific users
+                        websocket_data = {
+                            'type': 'pattern_alert',
+                            'event': event.to_websocket_dict()
+                        }
+                        
+                        for user_id in interested_users:
+                            # Emit to specific user rooms (if using Socket.IO rooms)
+                            self.socketio.emit('pattern_alert', websocket_data, room=f'user_{user_id}')
+                        
+                        self.stats['events_forwarded'] += len(interested_users)
+                        logger.info(f"REDIS-SUBSCRIBER: Pattern alert sent to {len(interested_users)} users - {pattern_name} on {symbol}")
+                    else:
+                        logger.debug(f"REDIS-SUBSCRIBER: No users subscribed to {pattern_name} on {symbol}")
+                else:
+                    # Fallback: Broadcast to all users (backward compatibility)
                     websocket_data = {
                         'type': 'pattern_alert',
                         'event': event.to_websocket_dict()
                     }
                     
-                    for user_id in interested_users:
-                        # Emit to specific user rooms (if using Socket.IO rooms)
-                        self.socketio.emit('pattern_alert', websocket_data, room=f'user_{user_id}')
+                    # Use namespace parameter instead of broadcast for Flask-SocketIO
+                    self.socketio.emit('pattern_alert', websocket_data, namespace='/')
+                    self.stats['events_forwarded'] += 1
+                    logger.info(f"REDIS-SUBSCRIBER: Pattern alert broadcasted (no filter) - {pattern_name} on {symbol}")
                     
-                    self.stats['events_forwarded'] += len(interested_users)
-                    logger.info(f"REDIS-SUBSCRIBER: Pattern alert sent to {len(interested_users)} users - {pattern_name} on {symbol}")
-                else:
-                    logger.debug(f"REDIS-SUBSCRIBER: No users subscribed to {pattern_name} on {symbol}")
-            else:
-                # Fallback: Broadcast to all users (backward compatibility)
-                websocket_data = {
-                    'type': 'pattern_alert',
-                    'event': event.to_websocket_dict()
-                }
-                
-                self.socketio.emit('pattern_alert', websocket_data, broadcast=True)
-                self.stats['events_forwarded'] += 1
-                logger.info(f"REDIS-SUBSCRIBER: Pattern alert broadcasted (no filter) - {pattern_name} on {symbol}")
-                
-        except Exception as e:
-            logger.error(f"REDIS-SUBSCRIBER: Error in pattern filtering: {e}")
-            # Fallback to broadcast on error
-            websocket_data = {
-                'type': 'pattern_alert',
-                'event': event.to_websocket_dict()
-            }
-            
-            self.socketio.emit('pattern_alert', websocket_data, broadcast=True)
-            self.stats['events_forwarded'] += 1
+            except Exception as e:
+                logger.error(f"REDIS-SUBSCRIBER: Error in pattern filtering: {e}")
+                # Fallback to broadcast on error
+                try:
+                    websocket_data = {
+                        'type': 'pattern_alert',
+                        'event': event.to_websocket_dict()
+                    }
+                    
+                    self.socketio.emit('pattern_alert', websocket_data, namespace='/')
+                    self.stats['events_forwarded'] += 1
+                except Exception as emit_error:
+                    logger.error(f"REDIS-SUBSCRIBER: Failed to emit pattern alert: {emit_error}")
+        
+        # Execute within Flask app context if available
+        if self.flask_app:
+            with self.flask_app.app_context():
+                emit_pattern_alert()
+        else:
+            emit_pattern_alert()
     
     def _handle_backtest_progress(self, event: TickStockEvent):
         """Handle backtest progress updates."""
@@ -356,7 +368,7 @@ class RedisEventSubscriber:
             'event': event.to_websocket_dict()
         }
         
-        self.socketio.emit('backtest_progress', websocket_data, broadcast=True)
+        self.socketio.emit('backtest_progress', websocket_data, namespace='/')
         self.stats['events_forwarded'] += 1
         
         logger.debug(f"REDIS-SUBSCRIBER: Backtest progress forwarded for job {job_id}: {progress:.1%}")
@@ -384,7 +396,7 @@ class RedisEventSubscriber:
             'event': event.to_websocket_dict()
         }
         
-        self.socketio.emit('backtest_result', websocket_data, broadcast=True)
+        self.socketio.emit('backtest_result', websocket_data, namespace='/')
         self.stats['events_forwarded'] += 1
         
         logger.info(f"REDIS-SUBSCRIBER: Backtest result forwarded for job {job_id}: {status}")
@@ -397,7 +409,7 @@ class RedisEventSubscriber:
         }
         
         # Broadcast to all connected users
-        self.socketio.emit('system_health', websocket_data, broadcast=True)
+        self.socketio.emit('system_health', websocket_data, namespace='/')
         self.stats['events_forwarded'] += 1
         
         logger.debug("REDIS-SUBSCRIBER: System health update forwarded")

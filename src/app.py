@@ -146,7 +146,7 @@ def initialize_market_service(config, socketio):
         logger.error(f"MARKET-SERVICE: Initialization failed: {e}")
         raise
 
-def initialize_tickstockpl_services(config, socketio, redis_client):
+def initialize_tickstockpl_services(config, socketio, redis_client, flask_app=None):
     """Initialize TickStockPL integration services for Phase 2-4."""
     global redis_event_subscriber, websocket_broadcaster, pattern_alert_manager
     
@@ -166,7 +166,8 @@ def initialize_tickstockpl_services(config, socketio, redis_client):
         # Initialize Redis event subscriber if Redis is available
         if redis_client:
             # The backtest manager will be injected later when the API routes are registered
-            redis_event_subscriber = RedisEventSubscriber(redis_client, socketio, config)
+            # Pass Flask app for app context in Redis subscriber thread
+            redis_event_subscriber = RedisEventSubscriber(redis_client, socketio, config, flask_app=flask_app)
             
             # Connect event subscriber to broadcaster
             from src.core.services.redis_event_subscriber import EventType
@@ -382,6 +383,17 @@ def register_basic_routes(app):
             return render_template('dashboard/index.html')
         except Exception as e:
             logger.error(f"ROUTE-ERROR: Index route failed: {e}")
+            raise
+    
+    @app.route('/sprint25')
+    @login_required
+    def sprint25_dashboard():
+        """Sprint 25 Multi-Tier Pattern Dashboard."""
+        try:
+            logger.info("ROUTE: Sprint 25 Multi-Tier Dashboard requested")
+            return render_template('dashboard/sprint25_multi_tier.html')
+        except Exception as e:
+            logger.error(f"ROUTE-ERROR: Sprint 25 dashboard route failed: {e}")
             raise
     
     @app.route('/health')
@@ -2128,6 +2140,20 @@ def main():
             register_api_routes(app, extensions, cache_control, config)
             logger.info("STARTUP: API routes registered successfully")
             
+            # Sprint 25 Week 2: Register tier patterns API
+            logger.info("STARTUP: Registering Sprint 25 tier patterns API...")
+            try:
+                from src.api.rest.tier_patterns import tier_patterns_bp, init_tier_patterns_api
+                
+                # Initialize and register the tier patterns API with database integration
+                init_tier_patterns_api()
+                app.register_blueprint(tier_patterns_bp)
+                logger.info("STARTUP: Sprint 25 tier patterns API registered successfully")
+                
+            except Exception as tier_error:
+                logger.warning(f"STARTUP: Tier patterns API registration failed: {tier_error}")
+                # Don't fail startup for this - it's optional Sprint 25 functionality
+            
             logger.info("STARTUP: Registering TickStockPL API routes...")
             register_tickstockpl_routes(app, extensions, cache_control, config)
             logger.info("STARTUP: TickStockPL API routes registered successfully")
@@ -2163,7 +2189,7 @@ def main():
         # Initialize TickStockPL integration services (Phase 2)
         logger.info("STARTUP: Initializing TickStockPL integration services...")
         try:
-            if initialize_tickstockpl_services(config, socketio, redis_client):
+            if initialize_tickstockpl_services(config, socketio, redis_client, flask_app=app):
                 logger.info("STARTUP: TickStockPL integration services initialized successfully")
             else:
                 logger.warning("STARTUP: TickStockPL integration services initialization incomplete")

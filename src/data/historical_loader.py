@@ -241,20 +241,75 @@ class PolygonHistoricalLoader:
         
         # Determine correlation reference based on common patterns
         symbol = ticker_data.get('ticker', '')
-        if symbol in ['SPY', 'VOO', 'IVV'] or 'S&P 500' in name:
+        name_upper = name.upper()
+        
+        # Broad Market ETFs
+        if symbol in ['SPY', 'VOO', 'IVV'] or 'S&P 500' in name_upper:
             etf_fields['correlation_reference'] = 'SPY'
             etf_fields['underlying_index'] = 'S&P 500'
-        elif symbol in ['QQQ', 'TQQQ'] or 'NASDAQ' in name:
+        elif symbol in ['QQQ', 'TQQQ'] or 'NASDAQ' in name_upper:
             etf_fields['correlation_reference'] = 'QQQ'
             etf_fields['underlying_index'] = 'NASDAQ-100'
-        elif symbol in ['IWM', 'IWN', 'IWO'] or 'RUSSELL 2000' in name:
+        elif symbol in ['IWM', 'IWN', 'IWO'] or 'RUSSELL 2000' in name_upper:
             etf_fields['correlation_reference'] = 'IWM'
             etf_fields['underlying_index'] = 'Russell 2000'
-        elif symbol in ['VTI', 'ITOT'] or 'TOTAL STOCK' in name:
+        elif symbol in ['VTI', 'ITOT'] or 'TOTAL STOCK' in name_upper:
             etf_fields['correlation_reference'] = 'VTI'
             etf_fields['underlying_index'] = 'CRSP US Total Market'
+        # Style ETFs
+        elif symbol in ['VUG', 'IVW', 'SCHG'] or 'GROWTH' in name_upper:
+            etf_fields['correlation_reference'] = 'VUG'
+            etf_fields['underlying_index'] = 'Growth Index'
+        elif symbol in ['VTV', 'IVE', 'SCHV'] or 'VALUE' in name_upper:
+            etf_fields['correlation_reference'] = 'VTV'
+            etf_fields['underlying_index'] = 'Value Index'
+        # Technology ETFs
+        elif symbol in ['VGT', 'XLK', 'FTEC'] or 'TECHNOLOGY' in name_upper:
+            etf_fields['correlation_reference'] = 'VGT'
+            etf_fields['underlying_index'] = 'Technology Sector'
+        # Sector ETFs
+        elif symbol == 'XLF' or 'FINANCIAL' in name_upper:
+            etf_fields['correlation_reference'] = 'XLF'
+            etf_fields['underlying_index'] = 'Financial Sector'
+        elif symbol == 'XLV' or 'HEALTH' in name_upper:
+            etf_fields['correlation_reference'] = 'XLV'
+            etf_fields['underlying_index'] = 'Healthcare Sector'
+        elif symbol == 'XLE' or 'ENERGY' in name_upper:
+            etf_fields['correlation_reference'] = 'XLE'
+            etf_fields['underlying_index'] = 'Energy Sector'
+        elif symbol in ['XLI'] or 'INDUSTRIAL' in name_upper:
+            etf_fields['correlation_reference'] = 'XLI'
+            etf_fields['underlying_index'] = 'Industrial Sector'
+        elif symbol in ['XLP'] or 'CONSUMER STAPLES' in name_upper:
+            etf_fields['correlation_reference'] = 'XLP'
+            etf_fields['underlying_index'] = 'Consumer Staples Sector'
+        elif symbol in ['XLY'] or 'CONSUMER DISCRETIONARY' in name_upper:
+            etf_fields['correlation_reference'] = 'XLY'
+            etf_fields['underlying_index'] = 'Consumer Discretionary Sector'
+        # Bond ETFs
+        elif symbol in ['AGG', 'BND'] or 'BOND' in name_upper or 'AGGREGATE' in name_upper:
+            etf_fields['correlation_reference'] = 'AGG'
+            etf_fields['underlying_index'] = 'Bond Aggregate'
+        # International ETFs
+        elif symbol in ['VEA', 'IEFA'] or 'EAFE' in name_upper or 'DEVELOPED' in name_upper:
+            etf_fields['correlation_reference'] = 'VEA'
+            etf_fields['underlying_index'] = 'EAFE Index'
+        elif symbol in ['EEM', 'VWO'] or 'EMERGING' in name_upper:
+            etf_fields['correlation_reference'] = 'EEM'
+            etf_fields['underlying_index'] = 'Emerging Markets'
+        # Factor ETFs
+        elif symbol == 'MTUM' or 'MOMENTUM' in name_upper:
+            etf_fields['correlation_reference'] = 'MTUM'
+            etf_fields['underlying_index'] = 'Momentum Factor'
+        elif symbol == 'QUAL' or 'QUALITY' in name_upper:
+            etf_fields['correlation_reference'] = 'QUAL'
+            etf_fields['underlying_index'] = 'Quality Factor'
+        elif symbol == 'USMV' or 'MIN VOL' in name_upper or 'LOW VOL' in name_upper:
+            etf_fields['correlation_reference'] = 'USMV'
+            etf_fields['underlying_index'] = 'Minimum Volatility'
         else:
             etf_fields['correlation_reference'] = 'SPY'  # Default to S&P 500
+            etf_fields['underlying_index'] = 'S&P 500'  # Default underlying index
         
         # Calculate AUM from market cap if available
         market_cap = ticker_data.get('market_cap')
@@ -796,7 +851,14 @@ class PolygonHistoricalLoader:
         self._connect_db()
         
         # Build query based on universe type
-        if universe_key.startswith('top_10_') and universe_key != 'top_10_stocks':
+        if universe_key.startswith('etf_'):
+            # ETF universe categories
+            query = """
+            SELECT value FROM cache_entries 
+            WHERE type = 'etf_universe' 
+              AND key = %s
+            """
+        elif universe_key.startswith('top_10_') and universe_key != 'top_10_stocks':
             # Sector leaders format (top_10_technology, top_10_healthcare, etc.)
             query = """
             SELECT value FROM cache_entries 
@@ -819,6 +881,14 @@ class PolygonHistoricalLoader:
             WHERE type = 'stock_universe' 
               AND name = 'themes'
               AND key = %s
+            """
+        elif universe_key == 'combo_test':
+            # Stock + ETF combo test universe
+            query = """
+            SELECT value FROM cache_entries 
+            WHERE type = 'stock_etf_combo' 
+              AND name = 'stock_etf_test'
+              AND key = 'combo_test'
             """
         elif universe_key == 'all_stocks':
             # Complete universe (simple ticker array)
@@ -843,8 +913,11 @@ class PolygonHistoricalLoader:
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 # Execute query based on parameter count
-                if universe_key == 'all_stocks':
-                    cursor.execute(query)  # No parameters for all_stocks
+                if universe_key in ['all_stocks', 'combo_test']:
+                    cursor.execute(query)  # No parameters for all_stocks and combo_test
+                elif universe_key.startswith('etf_'):
+                    # ETF universe queries - single parameter
+                    cursor.execute(query, (universe_key,))
                 elif 'LIMIT 1' in query:
                     # Query needs two parameters (for market_leaders fallback)
                     cursor.execute(query, (universe_key, universe_key))
@@ -868,7 +941,8 @@ class PolygonHistoricalLoader:
                     # Check if it has 'etfs' key (ETF universes)
                     elif isinstance(value, dict) and 'etfs' in value:
                         etfs = value.get('etfs', [])
-                        symbols = [etf['ticker'] for etf in etfs]
+                        # Handle both 'ticker' and 'symbol' field names
+                        symbols = [etf.get('ticker') or etf.get('symbol') for etf in etfs if etf.get('ticker') or etf.get('symbol')]
                     else:
                         logger.warning(f"HISTORICAL-LOADER: Unknown value format for {universe_key}")
                         return []

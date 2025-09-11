@@ -154,14 +154,21 @@ class PolygonDataProvider(DataProvider):
     def is_available(self) -> bool:
         """Check if Polygon API is available."""
         if not self.api_key:
+            logger.warning("POLYGON-PROVIDER: No API key available")
             return False
         
         try:
             endpoint = "/v1/marketstatus/now"
+            params = {"apikey": self.api_key}
             response = requests.get(f"{self.base_url}{endpoint}", 
-                                  headers={"Authorization": f"Bearer {self.api_key}"}, 
-                                  timeout=5)
-            return response.status_code == 200
+                                  params=params, 
+                                  timeout=10)
+            success = response.status_code == 200
+            if success:
+                logger.info("POLYGON-PROVIDER: API availability confirmed")
+            else:
+                logger.warning(f"POLYGON-PROVIDER: API availability check failed - status: {response.status_code}")
+            return success
         except Exception as e:
             logger.error(f"POLYGON-PROVIDER: Availability check failed: {e}")
             return False

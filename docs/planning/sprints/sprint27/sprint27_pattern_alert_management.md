@@ -54,10 +54,42 @@ src/core/services/alert_history_service.py         # Alert tracking and history
 ```
 
 **Delivery Channels**:
-- **WebSocket Real-Time**: Instant browser notifications with sound/visual alerts
+- **WebSocket Real-Time**: Uses `UniversalWebSocketManager` for instant browser notifications
 - **Email Notifications**: Configurable frequency (immediate, digest, daily summary)
 - **Database History**: Complete alert audit trail with delivery confirmation
 - **Mobile Push Ready**: Architecture prepared for mobile app notifications
+
+## WebSocket Integration
+
+This feature integrates with the core WebSocket architecture documented in `docs/architecture/websocket-scalability-architecture.md`.
+
+### Pattern Alert WebSocket Integration
+```python
+class PatternAlertWebSocketIntegration:
+    def __init__(self, websocket_manager: UniversalWebSocketManager):
+        self.websocket = websocket_manager
+        
+    def subscribe_user_to_alerts(self, user_id: str, alert_rules: List[AlertRule]):
+        """Subscribe user to pattern alerts based on their rules"""
+        filters = {
+            'pattern_types': self._extract_pattern_types(alert_rules),
+            'symbols': self._extract_symbols(alert_rules),
+            'confidence_min': self._get_min_confidence(alert_rules),
+            'alert_urgency': ['HIGH', 'CRITICAL']  # Only high-priority alerts via WebSocket
+        }
+        
+        return self.websocket.subscribe_user(user_id, 'pattern_alerts', filters)
+    
+    def broadcast_pattern_alert(self, alert: AlertMessage):
+        """Broadcast alert to specific user"""
+        targeting = {
+            'subscription_type': 'pattern_alerts',
+            'user_id': alert.user_id,  # Target specific user
+            'urgency': alert.urgency.value
+        }
+        
+        return self.websocket.broadcast_event('pattern_alert', alert.to_dict(), targeting)
+```
 
 **Alert Formatting**:
 ```python

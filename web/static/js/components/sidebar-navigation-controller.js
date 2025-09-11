@@ -42,6 +42,14 @@ class SidebarNavigationController {
                 hasFilters: true,
                 component: 'PatternDiscoveryService'
             },
+            'sprint25': {
+                title: 'Pattern Dashboard',
+                icon: 'fas fa-layer-group',
+                hasFilters: false,
+                component: 'PatternDashboardService',
+                description: 'Multi-Tier Pattern Dashboard with Real-Time Integration',
+                isNew: true
+            },
             'overview': {
                 title: 'Overview',
                 icon: 'fas fa-chart-line',
@@ -512,7 +520,10 @@ class SidebarNavigationController {
     initializeAnalyticsTab(sectionKey, section, contentArea) {
         
         // Special handling for different section types
-        if (sectionKey === 'compare') {
+        if (sectionKey === 'sprint25') {
+            this.initializeSprint25Section(contentArea, section);
+            return;
+        } else if (sectionKey === 'compare') {
             this.initializeCompareSection(contentArea, section);
             return;
         } else if (['correlations', 'temporal'].includes(sectionKey)) {
@@ -1583,6 +1594,261 @@ class SidebarNavigationController {
             isFilterOpen: this.isFilterOpen,
             isMobile: this.isMobile
         };
+    }
+    
+    /**
+     * Initialize Multi-Tier Pattern Dashboard section
+     */
+    initializeSprint25Section(contentArea, section) {
+        if (SIDEBAR_DEBUG) console.log('[SidebarNavigation] Initializing Multi-Tier Pattern Dashboard');
+        
+        // Check if Pattern Dashboard components are available
+        if (typeof window.MultiTierDashboard !== 'undefined' && typeof window.TierPatternService !== 'undefined') {
+            // Pattern Dashboard components already loaded - render the dashboard
+            this.renderSprint25Dashboard(contentArea, section);
+        } else {
+            // Show loading state and initialize Pattern Dashboard components
+            this.showSprint25LoadingState(contentArea, section);
+            this.initializeSprint25Components(contentArea, section);
+        }
+    }
+    
+    /**
+     * Show Pattern Dashboard loading state
+     */
+    showSprint25LoadingState(contentArea, section) {
+        contentArea.innerHTML = `
+            <div id="sprint25-dashboard" class="p-4">
+                <h4><i class="${section.icon} me-2"></i>${section.title}</h4>
+                <div class="alert alert-info d-flex align-items-center">
+                    <i class="fas fa-layer-group me-3 fa-2x"></i>
+                    <div>
+                        <h5 class="alert-heading mb-1">Pattern Dashboard</h5>
+                        <p class="mb-0">Initializing multi-tier pattern dashboard with real-time integration...</p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Implementation Progress</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="progress-item">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Week 1: WebSocket Scalability Foundation</span>
+                                        <span class="badge bg-success">✅ Complete</span>
+                                    </div>
+                                    <small class="text-muted">UniversalWebSocketManager + SubscriptionIndexManager + ScalableBroadcaster + EventRouter</small>
+                                </div>
+                                <hr>
+                                <div class="progress-item">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Week 2: Multi-Tier Dashboard UI</span>
+                                        <span class="badge bg-primary">🔄 Loading</span>
+                                    </div>
+                                    <small class="text-muted">Three-column layout with real-time pattern updates and WebSocket integration</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Initialize Pattern Dashboard components and render dashboard
+     */
+    initializeSprint25Components(contentArea, section) {
+        // Try to initialize Pattern Dashboard components
+        setTimeout(() => {
+            // Check if services are loaded
+            if (typeof TierPatternService !== 'undefined' && typeof MultiTierDashboard !== 'undefined') {
+                this.renderSprint25Dashboard(contentArea, section);
+            } else {
+                // Try loading the scripts if not already loaded
+                this.loadSprint25Scripts().then(() => {
+                    this.renderSprint25Dashboard(contentArea, section);
+                }).catch((error) => {
+                    console.error('[SidebarNavigation] Failed to load Pattern Dashboard scripts:', error);
+                    this.showSprint25ErrorState(contentArea, section);
+                });
+            }
+        }, 1000);
+    }
+    
+    /**
+     * Load Pattern Dashboard JavaScript components dynamically
+     */
+    loadSprint25Scripts() {
+        return new Promise((resolve, reject) => {
+            const scripts = [
+                '/static/js/services/tier_pattern_service.js',
+                '/static/js/components/multi_tier_dashboard.js'
+            ];
+            
+            let loadedCount = 0;
+            const totalScripts = scripts.length;
+            
+            scripts.forEach(scriptSrc => {
+                // Check if script is already loaded
+                if (document.querySelector(`script[src="${scriptSrc}"]`)) {
+                    loadedCount++;
+                    if (loadedCount === totalScripts) resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = scriptSrc;
+                script.onload = () => {
+                    loadedCount++;
+                    if (loadedCount === totalScripts) resolve();
+                };
+                script.onerror = () => reject(new Error(`Failed to load ${scriptSrc}`));
+                document.head.appendChild(script);
+            });
+        });
+    }
+    
+    /**
+     * Render Multi-Tier Pattern Dashboard
+     */
+    renderSprint25Dashboard(contentArea, section) {
+        contentArea.innerHTML = `
+            <div id="sprint25-dashboard" class="sprint25-container">
+                <!-- Pattern Dashboard Header -->
+                <div class="dashboard-header mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="mb-1">
+                                <i class="${section.icon} me-2"></i>Multi-Tier Pattern Dashboard
+                            </h4>
+                            <p class="text-muted mb-0">
+                                Real-time pattern monitoring across Daily, Intraday, and Combo tiers with live updates
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="badge bg-success me-2">Week 1: Foundation ✅</div>
+                            <div class="badge bg-primary">Week 2: Dashboard UI 🔄</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Multi-Tier Dashboard Container -->
+                <div id="multi-tier-dashboard-container" data-component="multi-tier-dashboard-container">
+                    <!-- Dashboard content will be rendered here by MultiTierDashboard component -->
+                </div>
+            </div>
+        `;
+        
+        // Initialize the Multi-Tier Dashboard component
+        setTimeout(() => {
+            try {
+                // Check if container exists
+                const container = document.getElementById('multi-tier-dashboard-container');
+                if (!container) {
+                    throw new Error('Dashboard container not found in DOM');
+                }
+                
+                if (typeof MultiTierDashboard !== 'undefined') {
+                    if (SIDEBAR_DEBUG) {
+                        console.log('[SidebarNavigation] Initializing MultiTierDashboard with container:', container);
+                    }
+                    
+                    // Create new dashboard instance
+                    window.multiTierDashboard = new MultiTierDashboard('#multi-tier-dashboard-container', {
+                        enableRealTime: true,
+                        maxPatternsPerTier: 50,
+                        updateInterval: 100,
+                        enableTooltips: true,
+                        enableFiltering: true
+                    });
+                    
+                    if (SIDEBAR_DEBUG) {
+                        console.log('[SidebarNavigation] Multi-Tier Pattern Dashboard initialized successfully');
+                    }
+                } else {
+                    throw new Error('MultiTierDashboard class not available');
+                }
+            } catch (error) {
+                console.error('[SidebarNavigation] Error initializing Pattern Dashboard:', error);
+                console.error('[SidebarNavigation] Debug info:', {
+                    MultiTierDashboard: typeof MultiTierDashboard,
+                    TierPatternService: typeof TierPatternService,
+                    containerExists: !!document.getElementById('multi-tier-dashboard-container'),
+                    tierPatternService: !!window.tierPatternService
+                });
+                this.showSprint25ErrorState(contentArea, section);
+            }
+        }, 1000); // Increased delay to 1 second
+    }
+    
+    /**
+     * Show Pattern Dashboard error state
+     */
+    showSprint25ErrorState(contentArea, section) {
+        contentArea.innerHTML = `
+            <div id="sprint25-dashboard" class="p-4">
+                <h4><i class="${section.icon} me-2"></i>${section.title}</h4>
+                <div class="alert alert-warning d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-3 fa-2x"></i>
+                    <div>
+                        <h5 class="alert-heading mb-1">Pattern Dashboard Components Unavailable</h5>
+                        <p class="mb-2">The multi-tier pattern dashboard could not be loaded. This may be due to:</p>
+                        <ul class="mb-2">
+                            <li>Pattern Dashboard JavaScript components not loaded</li>
+                            <li>WebSocket infrastructure initialization delay</li>
+                            <li>Network connectivity issues</li>
+                        </ul>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-primary btn-sm me-2" onclick="location.reload()">
+                                <i class="fas fa-refresh me-1"></i>Refresh Page
+                            </button>
+                            <a href="/dashboard/pattern-dashboard" class="btn btn-primary btn-sm" target="_blank">
+                                <i class="fas fa-external-link-alt me-1"></i>Open Standalone Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pattern Dashboard Information Card -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Pattern Dashboard Architecture Overview</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Week 1: WebSocket Foundation ✅</h6>
+                                        <ul class="list-unstyled small">
+                                            <li>• UniversalWebSocketManager</li>
+                                            <li>• SubscriptionIndexManager (&lt;5ms filtering)</li>
+                                            <li>• ScalableBroadcaster (&lt;100ms delivery)</li>
+                                            <li>• EventRouter (&lt;20ms routing)</li>
+                                            <li>• TierPatternWebSocketIntegration</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Week 2: Dashboard UI 🔄</h6>
+                                        <ul class="list-unstyled small">
+                                            <li>• Multi-Tier Dashboard Component</li>
+                                            <li>• Tier Pattern Service (WebSocket Client)</li>
+                                            <li>• API Endpoints (/api/patterns/*)</li>
+                                            <li>• Real-time Updates (&lt;125ms total)</li>
+                                            <li>• 500+ Concurrent Users Support</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
     
     /**

@@ -305,13 +305,46 @@ class DashboardTemplates:
 5. Add behavioral learning integration
 6. Unit tests for dashboard logic
 
+## WebSocket Integration
+
+This feature integrates with the core WebSocket architecture documented in `docs/architecture/websocket-scalability-architecture.md`.
+
+### Personalized Dashboard WebSocket Integration
+```python
+class PersonalizedDashboardWebSocketIntegration:
+    def __init__(self, websocket_manager: UniversalWebSocketManager):
+        self.websocket = websocket_manager
+        
+    def subscribe_user_to_dashboard_updates(self, user_id: str, dashboard_config: DashboardConfig):
+        """Subscribe user to personalized dashboard data updates"""
+        filters = {
+            'active_widgets': dashboard_config.active_widgets,
+            'pattern_filters': dashboard_config.pattern_filters,
+            'symbol_filters': dashboard_config.symbol_filters,
+            'update_priorities': dashboard_config.widget_priorities
+        }
+        
+        return self.websocket.subscribe_user(user_id, 'dashboard_updates', filters)
+    
+    def broadcast_widget_data_update(self, widget_type: str, widget_data: Dict):
+        """Broadcast widget-specific data updates to interested users"""
+        targeting = {
+            'subscription_type': 'dashboard_updates',
+            'widget_type': widget_type
+        }
+        
+        return self.websocket.broadcast_event('widget_data_update', 
+                                            {'widget_type': widget_type, 'data': widget_data}, 
+                                            targeting)
+```
+
 ### Week 2: Core Widgets & UI Framework  
-1. Build core dashboard widgets
+1. Build core dashboard widgets with WebSocket data integration
 2. Create drag-and-drop dashboard interface
-3. Implement widget customization system
+3. Implement widget customization system with real-time updates
 4. Add dashboard template system
 5. Build dashboard analytics tracking
-6. Integration testing with user preferences
+6. Integration testing with user preferences and WebSocket updates
 
 ### Week 3: Advanced Features & Polish
 1. Implement intelligent content curation

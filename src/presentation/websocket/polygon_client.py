@@ -39,6 +39,7 @@ class PolygonWebSocketClient:
         self.should_reconnect = True
         self.auth_received = False
         self.subscribed_tickers = set()
+        self.subscription_confirmations = set()
         
         # Reconnection settings
         self.reconnect_attempts = 0
@@ -71,6 +72,7 @@ class PolygonWebSocketClient:
             
             # Reset state
             self.auth_received = False
+            self.subscription_confirmations = set()
             
             # Create new WebSocket
             self.ws = websocket.WebSocketApp(
@@ -137,9 +139,10 @@ class PolygonWebSocketClient:
         subscribe_message = {"action": "subscribe", "params": ",".join(formatted_tickers)}
         
         try:
-            logger.info(f"POLYGON-CLIENT: Subscribing to {len(new_tickers)} tickers")
+            logger.info(f"POLYGON-CLIENT: Subscribing to {len(new_tickers)} tickers: {', '.join(new_tickers)}")
             self.ws.send(json.dumps(subscribe_message))
             self.subscribed_tickers.update(new_tickers)
+            logger.info(f"POLYGON-CLIENT: Total subscribed tickers: {len(self.subscribed_tickers)}")
             return True
         except Exception as e:
             logger.error(f"POLYGON-CLIENT: Error subscribing: {e}")
@@ -184,22 +187,6 @@ class PolygonWebSocketClient:
         except Exception as e:
             logger.error(f"POLYGON-CLIENT: Failed to send authentication: {e}")
             return
-        
-        # Wait for authentication
-        auth_timeout = 10
-        start_time = time.time()
-        while time.time() - start_time < auth_timeout:
-            if self.auth_received:
-                break
-            time.sleep(0.5)
-        
-        if self.auth_received:
-            self.connected = True
-            if self.on_status_callback:
-                self.on_status_callback('connected', {'message': 'Authentication successful'})
-            logger.info("POLYGON-CLIENT: Connected and authenticated")
-        else:
-            logger.warning("POLYGON-CLIENT: Authentication timeout")
     
     def _on_message(self, ws, message):
         """Handle incoming WebSocket messages."""
@@ -219,10 +206,30 @@ class PolygonWebSocketClient:
         if msg.get('ev') == 'status':
             if msg.get('status') == 'auth_success':
                 self.auth_received = True
-                logger.info("POLYGON-CLIENT: Authentication confirmed")
+                self.connected = True
+                logger.info("POLYGON-CLIENT: Authentication confirmed - connection established")
+                if self.on_status_callback:
+                    self.on_status_callback('connected', {'message': 'Authentication successful'})
             else:
                 status = msg.get('status')
                 message = msg.get('message')
+                
+                # Handle subscription confirmations specially
+                if status == 'success' and message and message.startswith('subscribed to:'):
+                    ticker = message.replace('subscribed to: A.', '')
+                    self.subscription_confirmations.add(ticker)
+                    
+                    # Only log summary when all subscriptions are confirmed
+                    if len(self.subscription_confirmations) == len(self.subscribed_tickers):
+                        logger.info(f"POLYGON-CLIENT: ✅ All {len(self.subscribed_tickers)} ticker subscriptions confirmed: {', '.join(sorted(self.subscribed_tickers))}")
+                    # Log progress for large subscription sets
+                    elif len(self.subscribed_tickers) > 5:
+                        logger.info(f"POLYGON-CLIENT: Subscription progress: {len(self.subscription_confirmations)}/{len(self.subscribed_tickers)} confirmed")
+                    else:
+                        logger.info(f"POLYGON-CLIENT: Confirmed subscription: {ticker}")
+                else:
+                    logger.info(f"POLYGON-CLIENT: Status update - {status}: {message}")
+                
                 if self.on_status_callback:
                     self.on_status_callback('status_update', {'status': status, 'message': message})
         elif msg.get('ev') in ['A', 'T', 'Q']:

@@ -15,13 +15,15 @@
 - **User Management**: Authentication, registration, session handling
 - **UI & Dashboard**: Real-time WebSocket updates, pattern alert notifications
 - **Event Consumption**: Subscribes to TickStockPL events via Redis pub-sub
-- **Pattern Discovery APIs**: REST endpoints consuming Redis-cached pattern data (`/api/patterns/*`)
+- **Real-Time Pattern Events**: ✅ **COMPLETE** - Live WebSocket broadcasting of pattern detections from TickStockPL
+- **Pattern Discovery APIs**: REST endpoints consuming database pattern data (`/api/patterns/daily`, `/api/patterns/intraday`, `/api/patterns/combo`)
+- **Tier Pattern Dashboard**: Multi-tier pattern visualization (Daily, Intraday, Combo) with real-time updates
 - **User Universe APIs**: Symbol management and watchlist APIs (`/api/symbols`, `/api/users/*`)
-- **Redis Pattern Caching**: Multi-layer caching of TickStockPL pattern events for <50ms API responses
+- **WebSocket Broadcasting**: Real-time pattern alerts to connected users (<100ms delivery)
 - **Job Triggering**: Submits backtest/analysis jobs to TickStockPL via Redis
 - **Result Display**: Visualizes TickStockPL-computed metrics and results
 - **Basic Data Ingestion**: Receives raw market data, forwards to Redis for TickStockPL
-- **Read-Only Database**: Simple queries for UI data (symbols, user preferences, alert history)
+- **Read-Only Database**: TimescaleDB queries for pattern data (daily_patterns, intraday_patterns, pattern_detections)
 
 **What TickStockApp DOES NOT DO**:
 - ❌ **Pattern Detection**: No algorithm implementation - consumes TickStockPL events

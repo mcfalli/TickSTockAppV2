@@ -11,6 +11,7 @@ Removed: Complex orchestration, analytics coordination, worker pools, universe m
 
 import time
 import threading
+import json
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 
@@ -145,15 +146,34 @@ class MarketDataService:
             self.running = False
     
     def _get_universe(self) -> List[str]:
-        """Get the universe of tickers to monitor."""
-        # Simple default universe for demo purposes
+        """Get the universe of tickers to monitor from cache configuration."""
+        # Default fallback universe
         default_universe = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'NFLX', 'META', 'NVDA']
         
-        # Could be extended to load from database or configuration
-        universe = self.config.get('TICKER_UNIVERSE', default_universe)
+        try:
+            # Get universe key from configuration
+            universe_key = self.config.get('SYMBOL_UNIVERSE_KEY', 'market_leaders:top_50')
+            logger.info(f"MARKET-DATA-SERVICE: Loading universe from key: {universe_key}")
+            
+            # Import here to avoid circular imports
+            from src.infrastructure.cache.cache_control import CacheControl
+            cache = CacheControl()
+            
+            # Get tickers from cache
+            universe_tickers = cache.get_universe_tickers(universe_key)
+            
+            if universe_tickers and len(universe_tickers) > 0:
+                logger.info(f"MARKET-DATA-SERVICE: Using universe '{universe_key}' with {len(universe_tickers)} tickers: {', '.join(universe_tickers[:10])}{'...' if len(universe_tickers) > 10 else ''}")
+                return universe_tickers
+            else:
+                logger.warning(f"MARKET-DATA-SERVICE: Universe key '{universe_key}' not found or empty, using default")
+                
+        except Exception as e:
+            logger.error(f"MARKET-DATA-SERVICE: Error loading universe from cache: {e}")
         
-        logger.info(f"MARKET-DATA-SERVICE: Using universe of {len(universe)} tickers")
-        return universe
+        # Fallback to default universe
+        logger.info(f"MARKET-DATA-SERVICE: Using default universe with {len(default_universe)} tickers")
+        return default_universe
     
     def _handle_tick_data(self, tick_data: TickData):
         """Handle incoming tick data."""
@@ -167,6 +187,29 @@ class MarketDataService:
                 result = self.data_publisher.publish_tick_data(tick_data)
                 if result.success:
                     self.stats.events_published += 1
+            
+            # Publish raw tick data to Redis for TickStockPL processing
+            if self.data_publisher and self.data_publisher.redis_client:
+                try:
+                    raw_data = {
+                        'ticker': tick_data.ticker,
+                        'price': tick_data.price,
+                        'volume': tick_data.volume,
+                        'timestamp': tick_data.timestamp,
+                        'event_type': tick_data.event_type,
+                        'source': tick_data.source,
+                        'tick_open': getattr(tick_data, 'tick_open', None),
+                        'tick_high': getattr(tick_data, 'tick_high', None),
+                        'tick_low': getattr(tick_data, 'tick_low', None),
+                        'tick_close': getattr(tick_data, 'tick_close', None),
+                        'tick_volume': getattr(tick_data, 'tick_volume', None),
+                        'tick_vwap': getattr(tick_data, 'tick_vwap', None),
+                        'bid': getattr(tick_data, 'bid', None),
+                        'ask': getattr(tick_data, 'ask', None)
+                    }
+                    self.data_publisher.redis_client.publish('tickstock.data.raw', json.dumps(raw_data))
+                except Exception as e:
+                    logger.error(f"MARKET-DATA-SERVICE: Failed to publish raw data to Redis: {e}")
             
             # Log first few ticks for debugging
             if self.stats.ticks_processed <= 10:

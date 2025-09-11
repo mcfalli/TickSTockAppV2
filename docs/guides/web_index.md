@@ -1,8 +1,8 @@
 # TickStockAppV2 Dashboard Architecture Guide
 
-**Date**: 2025-09-08  
+**Date**: 2025-09-10  
 **Version**: Master Dashboard Architecture Guide  
-**Status**: Active - Sprint 24 Complete (Sidebar Navigation)  
+**Status**: Active - Pattern Dashboard Integration (Multi-Tier)  
 **Dashboard URL**: `/dashboard`  
 **Primary Template**: `/web/templates/dashboard/index.html`
 
@@ -10,7 +10,7 @@
 
 ## Overview
 
-The TickStockAppV2 dashboard is a sophisticated single-page application (SPA) built on a **vertical sidebar navigation system** with 9 sections that provides comprehensive real-time market analytics, pattern discovery, and advanced financial analysis capabilities. This guide serves as the foundational reference for understanding the overall dashboard system before diving into specific section functionality.
+The TickStockAppV2 dashboard is a sophisticated single-page application (SPA) built on a **vertical sidebar navigation system** with 10 sections that provides comprehensive real-time market analytics, pattern discovery, and advanced financial analysis capabilities. This guide serves as the foundational reference for understanding the overall dashboard system before diving into specific section functionality.
 
 ### Core Architecture Principles
 
@@ -28,18 +28,19 @@ The TickStockAppV2 dashboard is a sophisticated single-page application (SPA) bu
 
 The dashboard implements a **vertical sidebar navigation** with collapsible functionality and filter column integration, providing different analytical perspectives on market data:
 
-#### **Primary Analytics Sections (6)**
+#### **Primary Analytics Sections (7)**
 1. **Pattern Discovery** - Real-time pattern scanning with dedicated filter column (Default active)
-2. **Overview** - High-level market metrics and velocity analysis  
-3. **Performance** - Success rates, backtesting results, and performance comparison
-4. **Distribution** - Pattern frequency analysis and confidence distributions
-5. **Historical** - Time-series analysis and historical trend visualization
-6. **Market** - Market breadth analysis and sector performance tracking
+2. **Pattern Dashboard** - Multi-tier pattern dashboard with real-time integration and scalable architecture  
+3. **Overview** - High-level market metrics and velocity analysis  
+4. **Performance** - Success rates, backtesting results, and performance comparison
+5. **Distribution** - Pattern frequency analysis and confidence distributions
+6. **Historical** - Time-series analysis and historical trend visualization
+7. **Market** - Market breadth analysis and sector performance tracking
 
 #### **Advanced Analytics Sections (3)** - Sprint 23
-7. **Correlations** - Pattern correlation analysis and relationship mapping
-8. **Temporal** - Time-based pattern analysis and periodicity detection
-9. **Compare** - Side-by-side pattern comparison and benchmarking
+8. **Correlations** - Pattern correlation analysis and relationship mapping
+9. **Temporal** - Time-based pattern analysis and periodicity detection
+10. **Compare** - Side-by-side pattern comparison and benchmarking
 
 ### Entry Points and Navigation
 
@@ -70,7 +71,7 @@ The dashboard implements a **vertical sidebar navigation** with collapsible func
   <body>
     <!-- Navigation Bar with status indicators -->
     <!-- 9-Tab Interface -->
-    <!-- Service Loading (13 JavaScript files) -->
+    <!-- Service Loading (15 JavaScript files) -->
     <!-- Theme Management System -->
   </body>
 </html>
@@ -143,6 +144,10 @@ All JavaScript services are loaded globally in `index.html` to enable cross-tab 
 <script src="js/services/pattern-correlations.js"></script>        <!-- Correlation analysis -->
 <script src="js/services/pattern-temporal.js"></script>            <!-- Time-series analysis -->
 <script src="js/services/pattern-comparison.js"></script>          <!-- Pattern comparison -->
+
+<!-- Pattern Dashboard: Multi-Tier Dashboard -->
+<script src="js/services/tier_pattern_service.js"></script>        <!-- Tier pattern data service -->
+<script src="js/components/multi_tier_dashboard.js"></script>      <!-- Multi-tier dashboard component -->
 ```
 
 ### Service Initialization Order
@@ -164,6 +169,7 @@ All JavaScript services are loaded globally in `index.html` to enable cross-tab 
 2. **Supporting Services**: Watchlist, filters, export functionality
 3. **Chart Libraries**: Chart.js initialization and theme configuration
 4. **Filter System**: Pattern Discovery filter column initialization
+5. **Pattern Dashboard Services**: TierPatternService initialization and MultiTierDashboard component loading
 
 #### **Phase 4: Section Services (Lazy Loading)**
 - Section-specific services initialized only when sections are activated

@@ -49,6 +49,9 @@ class ConfigManager:
         'MARKET_TIMEZONE': 'US/Eastern',
         'UPDATE_INTERVAL': UPDATE_INTERVAL,
         
+        # Symbol Universe Configuration 
+        'SYMBOL_UNIVERSE_KEY': 'stock_etf_test:combo_test',  # Default universe key for WebSocket subscriptions
+        
         # Sprint 10: Redis Configuration for TickStockPL Integration
         'REDIS_URL': '',
         'REDIS_HOST': 'localhost',
@@ -226,6 +229,7 @@ class ConfigManager:
         'SEED_FROM_RECENT_CANDLE': bool,
         'USE_SYNTHETIC_DATA': bool,
         'SIMULATOR_UNIVERSE': str,
+        'SYMBOL_UNIVERSE_KEY': str,
         'SYNTHETIC_DATA_RATE': float,
         'SYNTHETIC_DATA_VARIANCE': float,
         'MOMENTUM_WINDOW_SECONDS': float,
@@ -233,6 +237,12 @@ class ConfigManager:
         'FLOW_WINDOW_SECONDS': float,
         'FLOW_MAX_THRESHOLD': int,
         'FLOW_DECAY_FACTOR': float,
+        
+        # REDIS CONFIGURATION TYPES
+        'REDIS_URL': str,
+        'REDIS_HOST': str,
+        'REDIS_PORT': int,
+        'REDIS_DB': int,
         
         # LOGGING CONFIGURATION TYPES
         'LOG_CONSOLE_VERBOSE': bool,

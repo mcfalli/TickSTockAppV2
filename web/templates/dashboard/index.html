@@ -153,6 +153,10 @@
     <script src="{{ url_for('static', filename='js/services/pattern-temporal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/services/pattern-comparison.js') }}"></script>
     
+    <!-- Pattern Dashboard: Multi-Tier Dashboard Services -->
+    <script src="{{ url_for('static', filename='js/services/tier_pattern_service.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/multi_tier_dashboard.js') }}"></script>
+    
     <!-- Initialize sidebar navigation and all services -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -253,6 +257,21 @@
                 window.patternVisualizationService = new PatternVisualizationService();
             } else {
                 console.warn('PatternVisualizationService not found - check if pattern-visualization.js is loaded');
+            }
+            
+            // Initialize Pattern Dashboard Services
+            if (typeof TierPatternService !== 'undefined') {
+                window.tierPatternService = new TierPatternService();
+                window.tierPatternService.initialize();
+            } else {
+                console.warn('TierPatternService not found - check if tier_pattern_service.js is loaded');
+            }
+            
+            if (typeof MultiTierDashboard !== 'undefined') {
+                // MultiTierDashboard will be initialized by sidebar navigation when needed
+                console.log('MultiTierDashboard component loaded and ready');
+            } else {
+                console.warn('MultiTierDashboard not found - check if multi_tier_dashboard.js is loaded');
             }
             
         }, 1000);

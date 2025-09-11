@@ -104,6 +104,7 @@ class CacheControl:
                 'cache_config': {},
                 'stock_universes': {},
                 'etf_universes': {},
+                'stock_etf_combos': {},  # Combined stock+ETF universes
                 'themes': {},
                 'stock_stats': {},
                 'universes': {},  # Built universes for dropdowns
@@ -146,6 +147,12 @@ class CacheControl:
                         self.cache['etf_universes'][entry_name] = {}
                     self.cache['etf_universes'][entry_name][entry_key] = entry_value
                 
+                elif entry_type == 'stock_etf_combo':
+                    # Load combined stock+ETF universe entries
+                    if entry_name not in self.cache['stock_etf_combos']:
+                        self.cache['stock_etf_combos'][entry_name] = {}
+                    self.cache['stock_etf_combos'][entry_name][entry_key] = entry_value
+                
                 elif entry_type == 'themes':
                     # Load theme entries (simple ticker arrays)
                     if entry_key == 'list':
@@ -177,6 +184,7 @@ class CacheControl:
             logger.info("  - Cache config: %d categories", len(self.cache['cache_config']))
             logger.info("  - Stock universes: %d categories", len(self.cache['stock_universes']))
             logger.info("  - ETF universes: %d categories", len(self.cache['etf_universes']))
+            logger.info("  - Stock+ETF combos: %d categories", len(self.cache['stock_etf_combos']))
             logger.info("  - Themes: %d", len(self.cache['themes']))
             logger.info("  - Built universes: %d selections", len(self.cache['universes']))
             
@@ -250,6 +258,57 @@ class CacheControl:
                             'count': len(etf_list),
                             'criteria': f"ETF - {category_name}",
                             'description': f"{category_name} ETFs"
+                        }
+                        
+                        universes_built += 1
+            
+            # Build universes from stock+ETF combo entries
+            for category_name, category_data in self.cache['stock_etf_combos'].items():
+                for universe_key, combo_data in category_data.items():
+                    # Create universe key in format 'name:key' 
+                    full_key = f"{category_name}:{universe_key}"
+                    
+                    # Extract tickers based on data format (similar to stock_universe processing)
+                    tickers = []
+                    if isinstance(combo_data, dict):
+                        if 'stocks' in combo_data:
+                            # Full stock data format with stocks array
+                            tickers = [stock['ticker'] for stock in combo_data['stocks'] if isinstance(stock, dict) and 'ticker' in stock]
+                        elif 'symbols' in combo_data:
+                            # Alternative format with symbols array (mixed stocks/ETFs)
+                            symbols = combo_data['symbols']
+                            tickers = [symbol['ticker'] if isinstance(symbol, dict) else symbol 
+                                      for symbol in symbols 
+                                      if (isinstance(symbol, dict) and 'ticker' in symbol) or isinstance(symbol, str)]
+                        elif isinstance(combo_data, list):
+                            # Simple ticker array format (mixed stocks/ETFs)
+                            tickers = combo_data
+                        count = combo_data.get('count', len(tickers))
+                        description = f"{category_name.title()} {universe_key.replace('_', ' ').title()}"
+                    elif isinstance(combo_data, list):
+                        # Simple ticker array format
+                        tickers = combo_data
+                        count = len(tickers)
+                        description = f"{category_name.title()} {universe_key.replace('_', ' ').title()}"
+                    else:
+                        # Handle other formats
+                        continue
+                    
+                    if tickers:
+                        self.cache['universes'][full_key] = {
+                            'tickers': tickers,
+                            'count': count,
+                            'metadata': {
+                                'criteria': f"{category_name} - {universe_key}",
+                                'description': description
+                            }
+                        }
+                        
+                        # Store metadata separately for quick access
+                        self.cache['universe_metadata'][full_key] = {
+                            'count': count,
+                            'criteria': f"{category_name} - {universe_key}",
+                            'description': description
                         }
                         
                         universes_built += 1

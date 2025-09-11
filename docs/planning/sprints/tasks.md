@@ -3,6 +3,8 @@ Track items for our next set of user stories and or tasks
 
 ## Topics
 
+- Data load history, cache alignment job and ETFs
+- Data load history, nees to allow loading ETFs (all stocks, all ETF options)
 -Database backed up and sprint database migration process
 -CHARTS - select a stock, pop a chart with patterns and highlights
 -Clean Up - js console

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprint 25 - Multi-Tier Pattern Dashboard | TickStock.ai</title>
+    
+    <!-- Core Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Sprint 25 Specific Styles -->
+    <style>
+        /* Sprint 25 Multi-Tier Dashboard Styles */
+        .sprint25-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .tier-column {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        
+        .tier-header {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            position: relative;
+        }
+        
+        .tier-title {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+        }
+        
+        .tier-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+        
+        .pattern-list {
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        
+        .pattern-card {
+            transition: all 0.3s ease;
+        }
+        
+        .pattern-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .performance-metrics {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .metric-card {
+            text-align: center;
+            padding: 0.5rem;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            background: #e9ecef;
+        }
+        
+        .loading-state {
+            color: #6c757d;
+        }
+        
+        .empty-state {
+            color: #6c757d;
+        }
+        
+        .tier-footer {
+            padding: 0.5rem 1rem;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .dashboard-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Dark theme support */
+        [data-theme="dark"] .tier-column {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+        
+        [data-theme="dark"] .tier-header {
+            background: #4a5568;
+        }
+        
+        [data-theme="dark"] .performance-metrics {
+            background: #2d3748;
+        }
+        
+        [data-theme="dark"] .tier-footer {
+            background: #4a5568;
+        }
+    </style>
+    
+    <!-- Core JavaScript Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <!-- Sprint 25 Header -->
+    <div class="sprint25-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-layer-group me-3"></i>
+                        Sprint 25: Multi-Tier Pattern Dashboard
+                    </h1>
+                    <p class="mb-0 opacity-75">
+                        Real-time pattern monitoring across Daily, Intraday, and Combo tiers with WebSocket scalability
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="text-light">
+                        <small>Sprint 25 Week 2</small><br>
+                        <strong>WebSocket Foundation + UI</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Dashboard Container -->
+    <div class="container-fluid">
+        <!-- Multi-Tier Dashboard Component Container -->
+        <div id="multi-tier-dashboard-container" data-component="multi-tier-dashboard-container">
+            <!-- Dashboard will be rendered here by JavaScript -->
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading Multi-Tier Dashboard...</span>
+                </div>
+                <div class="mt-3">
+                    <h5>Initializing Sprint 25 Multi-Tier Dashboard</h5>
+                    <p class="text-muted">Setting up WebSocket connections and loading pattern data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="mt-5 py-4 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Sprint 25 Implementation Status</h6>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-2"></i>Week 1: WebSocket Scalability Foundation</li>
+                        <li><i class="fas fa-cog fa-spin text-primary me-2"></i>Week 2: Multi-Tier Dashboard UI (Current)</li>
+                        <li><i class="fas fa-clock text-muted me-2"></i>Week 3: Production & Performance</li>
+                    </ul>
+                </div>
+                <div class="col-md-6 text-end">
+                    <small class="text-muted">
+                        WebSocket Architecture: UniversalWebSocketManager + SubscriptionIndexManager + 
+                        ScalableBroadcaster + EventRouter + TierPatternWebSocketIntegration
+                    </small>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Sprint 25 JavaScript Components -->
+    <script>
+        // Initialize global WebSocket connection
+        const socket = io();
+        window.socket = socket;
+        
+        // Sprint 25 debug mode
+        window.SPRINT25_DEBUG = true;
+        
+        // Connection status monitoring
+        socket.on('connect', function() {
+            console.log('[Sprint25] WebSocket connected');
+            updateConnectionStatus(true);
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('[Sprint25] WebSocket disconnected');
+            updateConnectionStatus(false);
+        });
+        
+        function updateConnectionStatus(connected) {
+            // This will be enhanced by the MultiTierDashboard component
+            console.log('[Sprint25] Connection status:', connected ? 'Connected' : 'Disconnected');
+        }
+        
+        // Sprint 25 Performance Monitoring
+        const sprint25Metrics = {
+            startTime: Date.now(),
+            componentLoadTime: null,
+            firstRenderTime: null
+        };
+        
+        // Component performance tracking
+        function trackComponentPerformance(event, timestamp) {
+            sprint25Metrics[event] = timestamp || Date.now();
+            console.log(`[Sprint25 Performance] ${event}:`, timestamp || Date.now());
+        }
+        
+        // Track when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            trackComponentPerformance('domReady');
+        });
+        
+        // Track when components are loaded
+        window.addEventListener('load', function() {
+            trackComponentPerformance('windowLoad');
+        });
+    </script>
+    
+    <!-- Load Sprint 25 Components -->
+    <script src="{{ url_for('static', filename='js/services/tier_pattern_service.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/multi_tier_dashboard.js') }}"></script>
+    
+    <!-- Initialize Sprint 25 Dashboard -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[Sprint25] Initializing Multi-Tier Dashboard...');
+            
+            try {
+                // Initialize dashboard with container
+                const dashboardContainer = document.getElementById('multi-tier-dashboard-container');
+                
+                if (dashboardContainer && typeof MultiTierDashboard !== 'undefined') {
+                    // Create dashboard instance
+                    window.multiTierDashboard = new MultiTierDashboard('#multi-tier-dashboard-container', {
+                        enableRealTime: true,
+                        maxPatternsPerTier: 50,
+                        updateInterval: 100,
+                        enableTooltips: true,
+                        enableFiltering: true
+                    });
+                    
+                    trackComponentPerformance('dashboardInitialized');
+                    console.log('[Sprint25] Multi-Tier Dashboard initialized successfully');
+                } else {
+                    console.error('[Sprint25] MultiTierDashboard component not found or container missing');
+                    showFallbackContent();
+                }
+            } catch (error) {
+                console.error('[Sprint25] Dashboard initialization failed:', error);
+                showFallbackContent();
+            }
+        });
+        
+        function showFallbackContent() {
+            const container = document.getElementById('multi-tier-dashboard-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="alert alert-warning" role="alert">
+                        <h4 class="alert-heading">Sprint 25 Dashboard Loading</h4>
+                        <p>The Multi-Tier Dashboard is loading or WebSocket services are initializing.</p>
+                        <hr>
+                        <p class="mb-0">
+                            <strong>Week 1 Foundation:</strong> WebSocket scalability architecture completed<br>
+                            <strong>Week 2 Current:</strong> Multi-Tier Dashboard UI implementation
+                        </p>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="tier-column">
+                                <div class="tier-header" style="border-left: 4px solid #007bff">
+                                    <div class="tier-title">
+                                        <span class="tier-icon">📊</span>
+                                        <span class="tier-label">Daily Patterns</span>
+                                    </div>
+                                </div>
+                                <div class="pattern-list">
+                                    <div class="empty-state text-center py-4">
+                                        <i class="fas fa-clock fa-2x mb-2"></i>
+                                        <div>Loading daily patterns...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="tier-column">
+                                <div class="tier-header" style="border-left: 4px solid #28a745">
+                                    <div class="tier-title">
+                                        <span class="tier-icon">⚡</span>
+                                        <span class="tier-label">Intraday Patterns</span>
+                                    </div>
+                                </div>
+                                <div class="pattern-list">
+                                    <div class="empty-state text-center py-4">
+                                        <i class="fas fa-clock fa-2x mb-2"></i>
+                                        <div>Loading intraday patterns...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="tier-column">
+                                <div class="tier-header" style="border-left: 4px solid #17a2b8">
+                                    <div class="tier-title">
+                                        <span class="tier-icon">🔗</span>
+                                        <span class="tier-label">Combo Patterns</span>
+                                    </div>
+                                </div>
+                                <div class="pattern-list">
+                                    <div class="empty-state text-center py-4">
+                                        <i class="fas fa-clock fa-2x mb-2"></i>
+                                        <div>Loading combo patterns...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
