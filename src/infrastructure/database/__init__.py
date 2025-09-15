@@ -25,6 +25,14 @@ from src.infrastructure.database.models.base import (
 from src.infrastructure.database.migrations.run_migrations import (
     run_migration_command,
 )
+
+# Import OHLCV persistence service
+from src.infrastructure.database.ohlcv_persistence import (
+    OHLCVPersistenceService,
+    OHLCVRecord,
+    PersistenceStats,
+)
+
 # Analytics models removed during Phase 2 cleanup
 
 __all__ = [
@@ -48,4 +56,9 @@ __all__ = [
     
     # Migration utilities
     'run_migration_command',
+    
+    # OHLCV Persistence
+    'OHLCVPersistenceService',
+    'OHLCVRecord',
+    'PersistenceStats',
 ]

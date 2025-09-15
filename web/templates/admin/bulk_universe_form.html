@@ -1,0 +1,227 @@
+<!-- Bulk Universe Loading Form Component -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>🚀 Bulk Universe Loading</h5>
+        <small class="text-muted">Load thousands of symbols from predefined universes with optional testing limits</small>
+    </div>
+    <div class="card-body">
+        <form id="bulkUniverseForm" action="{{ url_for('admin_trigger_bulk_universe_load') }}" method="post">
+            <div class="row">
+                <!-- Universe Selection -->
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="universe_type">Universe Type *</label>
+                        <select class="form-control" id="universe_type" name="universe_type" required onchange="updateEstimate()">
+                            <option value="">Select Universe...</option>
+                            {% for universe_key, universe_info in available_universes.items() %}
+                            <option value="{{ universe_key }}" 
+                                    data-description="{{ universe_info.description }}"
+                                    data-count="{{ universe_info.estimated_count }}">
+                                {{ universe_info.name }} (~{{ universe_info.estimated_count }} symbols)
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">Choose from predefined symbol universes</small>
+                    </div>
+                </div>
+
+                <!-- Testing Limiter -->
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="limit">
+                            Testing Limit 
+                            <i class="fas fa-info-circle" data-toggle="tooltip" 
+                               title="Optional: Limit number of symbols for testing (e.g., load only top 20 from S&P 500)"></i>
+                        </label>
+                        <input type="number" class="form-control" id="limit" name="limit" 
+                               placeholder="Optional" min="1" max="5000" onchange="updateEstimate()">
+                        <small class="form-text text-muted">Leave empty to load all</small>
+                    </div>
+                </div>
+
+                <!-- Sort By -->
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label for="sort_by">Sort By</label>
+                        <select class="form-control" id="sort_by" name="sort_by">
+                            <option value="market_cap">Market Cap</option>
+                            <option value="name">Name (A-Z)</option>
+                            <option value="volume">Volume</option>
+                        </select>
+                        <small class="form-text text-muted">How to select limited symbols</small>
+                    </div>
+                </div>
+
+                <!-- Load Button -->
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="submit" class="btn btn-primary btn-block" id="bulkLoadBtn">
+                            <i class="fas fa-download"></i> Start Bulk Load
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Load Estimate Display -->
+            <div class="row" id="loadEstimate" style="display: none;">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-chart-line"></i> Load Estimate</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Universe:</strong> <span id="estimateUniverse">-</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Total Available:</strong> <span id="estimateTotal">-</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Will Load:</strong> <span id="estimateWillLoad">-</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Cache Entries:</strong> <span id="estimateCacheEntries">2</span>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small><strong>Description:</strong> <span id="estimateDescription">-</span></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Options -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header p-2">
+                            <a href="#" data-toggle="collapse" data-target="#advancedOptions">
+                                <small><i class="fas fa-cog"></i> Advanced Options</small>
+                            </a>
+                        </div>
+                        <div class="collapse" id="advancedOptions">
+                            <div class="card-body p-3">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="create_cache_entries" name="create_cache_entries" checked>
+                                            <label class="form-check-label" for="create_cache_entries">
+                                                Create Cache Entries
+                                            </label>
+                                            <small class="form-text text-muted">Auto-organize loaded symbols into universes</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="overwrite_existing" name="overwrite_existing">
+                                            <label class="form-check-label" for="overwrite_existing">
+                                                Overwrite Existing
+                                            </label>
+                                            <small class="form-text text-muted">Update symbols that already exist</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Usage Examples -->
+        <div class="mt-3">
+            <h6><i class="fas fa-lightbulb"></i> Usage Examples</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body p-3">
+                            <h6 class="card-title">🧪 Testing Setup</h6>
+                            <p class="card-text small mb-1">
+                                <strong>Universe:</strong> S&P 500<br>
+                                <strong>Limit:</strong> 20<br>
+                                <strong>Sort:</strong> Market Cap
+                            </p>
+                            <small class="text-muted">Loads top 20 largest S&P 500 companies for testing</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body p-3">
+                            <h6 class="card-title">🚀 Production Load</h6>
+                            <p class="card-text small mb-1">
+                                <strong>Universe:</strong> Russell 3000<br>
+                                <strong>Limit:</strong> <em>empty</em><br>
+                                <strong>Sort:</strong> Market Cap
+                            </p>
+                            <small class="text-muted">Loads all ~3000 Russell 3000 symbols</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update load estimate when universe or limit changes
+function updateEstimate() {
+    const universeSelect = document.getElementById('universe_type');
+    const limitInput = document.getElementById('limit');
+    const estimateDiv = document.getElementById('loadEstimate');
+    
+    if (!universeSelect.value) {
+        estimateDiv.style.display = 'none';
+        return;
+    }
+    
+    // Get estimate from server
+    fetch('/admin/bulk-universe/estimate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            universe_type: universeSelect.value,
+            limit: limitInput.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            console.error('Estimate error:', data.error);
+            return;
+        }
+        
+        // Update estimate display
+        document.getElementById('estimateUniverse').textContent = data.universe_name;
+        document.getElementById('estimateTotal').textContent = data.total_available.toLocaleString();
+        document.getElementById('estimateWillLoad').textContent = data.estimated_size.toLocaleString();
+        document.getElementById('estimateDescription').textContent = data.description;
+        
+        estimateDiv.style.display = 'block';
+    })
+    .catch(error => {
+        console.error('Failed to get estimate:', error);
+    });
+}
+
+// Form submission handling
+document.getElementById('bulkUniverseForm').addEventListener('submit', function(e) {
+    const btn = document.getElementById('bulkLoadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting Load...';
+    
+    // Re-enable after a delay (form will redirect)
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-download"></i> Start Bulk Load';
+    }, 3000);
+});
+
+// Initialize tooltips
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+</script>

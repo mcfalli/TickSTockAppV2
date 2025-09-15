@@ -214,110 +214,6 @@
             </div>
         </div>
         
-        <!-- Load Control Panel -->
-        <div class="job-controls">
-            <h3>Trigger Historical Data Load</h3>
-            <form method="POST" action="{{ url_for('admin_trigger_historical_load') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Load Type</label>
-                        <select name="load_type" id="load_type" onchange="toggleLoadOptions()">
-                            <option value="universe">Stock Universe</option>
-                            <option value="symbols">Specific Symbols</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group" id="universe_group">
-                        <label>Universe</label>
-                        <select name="universe_key">
-                            <optgroup label="Market Leaders">
-                                <option value="top_10_stocks">Top 10 Stocks</option>
-                                <option value="top_50">Top 50 Stocks</option>
-                                <option value="top_100">Top 100 Stocks</option>
-                                <option value="top_250">Top 250 Stocks</option>
-                                <option value="top_500">Top 500 Stocks</option>
-                                <option value="top_1000">Top 1000 Stocks</option>
-                            </optgroup>
-                            <optgroup label="Market Cap Categories">
-                                <option value="mega_cap">Mega Cap (>$200B)</option>
-                                <option value="large_cap">Large Cap ($10B-$200B)</option>
-                            </optgroup>
-                            <optgroup label="Sectors (Top 10 Each)">
-                                <option value="top_10_technology">Technology Leaders</option>
-                                <option value="top_10_financial_services">Financial Services Leaders</option>
-                                <option value="top_10_healthcare">Healthcare Leaders</option>
-                                <option value="top_10_consumer_discretionary">Consumer Discretionary</option>
-                                <option value="top_10_industrials">Industrials Leaders</option>
-                            </optgroup>
-                            <optgroup label="Themes">
-                                <option value="ai">AI Stocks</option>
-                                <option value="cloud">Cloud Computing</option>
-                                <option value="ev">Electric Vehicles</option>
-                                <option value="fintech">FinTech</option>
-                                <option value="semi">Semiconductors</option>
-                            </optgroup>
-                            <optgroup label="ETF Categories">
-                                <option value="etf_broad_market">📊 Broad Market ETFs (SPY, VTI, etc.)</option>
-                                <option value="etf_technology">💻 Technology ETFs (VGT, FTEC, etc.)</option>
-                                <option value="etf_growth">📈 Growth ETFs (VUG, IVW, etc.)</option>
-                                <option value="etf_value">💰 Value ETFs (VTV, IVE, etc.)</option>
-                                <option value="etf_bonds">🏦 Bond ETFs (AGG, BND, etc.)</option>
-                                <option value="etf_international">🌍 International ETFs (VEA, EEM, etc.)</option>
-                                <option value="etf_factor">⚡ Factor ETFs (MTUM, QUAL, etc.)</option>
-                                <option value="etf_all">🏛️ All ETFs (Complete ETF Universe)</option>
-                            </optgroup>
-                            <optgroup label="Test Universes">
-                                <option value="combo_test" style="color: #28a745; font-weight: bold;">🧪 COMBO TEST (Top 50 Stocks + 20 Essential ETFs)</option>
-                            </optgroup>
-                            <optgroup label="Complete Universe">
-                                <option value="all_stocks" style="color: #ff6b6b; font-weight: bold;">🚀 ALL STOCKS (Full Universe)</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group" id="symbols_group" style="display: none;">
-                        <label>Symbols (comma-separated)</label>
-                        <input type="text" name="symbols" placeholder="AAPL,MSFT,GOOGL,TSLA">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Years of Data</label>
-                        <select name="years">
-                            <option value="0.1">~1 Month</option>
-                            <option value="0.25">3 Months</option>
-                            <option value="0.5">6 Months</option>
-                            <option value="1" selected>1 Year</option>
-                            <option value="2">2 Years</option>
-                            <option value="5">5 Years</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Timespan</label>
-                        <select name="timespan">
-                            <option value="day" selected>Daily (Recommended)</option>
-                            <option value="minute">1-Minute (High Volume)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Priority</label>
-                        <select name="priority">
-                            <option value="normal" selected>Normal</option>
-                            <option value="high">High</option>
-                            <option value="low">Low</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary">Start Load Job</button>
-                    </div>
-                </div>
-            </form>
-        </div>
         
         <!-- Active Jobs and Job History -->
         <div class="jobs-section">
@@ -387,16 +283,100 @@
             </div>
         </div>
         
-        <!-- Data Management -->
+        
+        <!-- CSV Universe Loading -->
         <div class="job-controls">
-            <h3>Data Management</h3>
-            <div class="form-row">
-                <button onclick="refreshDataSummary()" class="btn btn-secondary">Refresh Data Summary</button>
-                <button onclick="showCleanupOptions()" class="btn btn-secondary">Data Cleanup</button>
-                <button onclick="exportDataReport()" class="btn btn-secondary">Export Report</button>
-            </div>
+            <h3>📋 CSV Universe Loading</h3>
+            <p>Load curated symbol lists and fetch fresh data from Polygon API</p>
+            <form id="csvUniverseForm" action="{{ url_for('admin_csv_universe_load') }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="form-row">
+                    <!-- CSV File Selection -->
+                    <div class="form-group">
+                        <label for="csv_file">CSV Universe File *</label>
+                        <select class="form-control" id="csv_file" name="csv_file" required onchange="updateCsvEstimate()">
+                            <option value="">Select CSV File...</option>
+                            {% if csv_files %}
+                                {% for csv_file in csv_files %}
+                                <option value="{{ csv_file.filename }}" 
+                                        data-count="{{ csv_file.symbol_count }}"
+                                        data-description="{{ csv_file.description }}">
+                                    {{ csv_file.name }} ({{ csv_file.symbol_count }} symbols)
+                                </option>
+                                {% endfor %}
+                            {% else %}
+                                <option value="dow_30.csv">Dow Jones 30 (30 stocks)</option>
+                                <option value="nasdaq_100.csv">NASDAQ 100 (100 stocks)</option>
+                                <option value="sp_500.csv">S&P 500 (500 stocks)</option>
+                                <option value="curated-etfs.csv">Curated ETFs (46 funds)</option>
+                                <option value="russell_3000_part1.csv">Russell 3000 Part 1 (500 stocks)</option>
+                                <option value="russell_3000_part2.csv">Russell 3000 Part 2 (500 stocks)</option>
+                                <option value="russell_3000_part3.csv">Russell 3000 Part 3 (500 stocks)</option>
+                                <option value="russell_3000_part4.csv">Russell 3000 Part 4 (500 stocks)</option>
+                                <option value="russell_3000_part5.csv">Russell 3000 Part 5 (500 stocks)</option>
+                                <option value="russell_3000_part6.csv">Russell 3000 Part 6 (500+ stocks)</option>
+                            {% endif %}
+                        </select>
+                        <small class="form-text text-muted">Choose from curated CSV symbol lists</small>
+                    </div>
+
+                    <!-- Historical Data Duration -->
+                    <div class="form-group">
+                        <label for="years">Historical Data Duration</label>
+                        <select class="form-control" id="years" name="years" onchange="updateCsvEstimate()">
+                            <option value="0.003">1 Day</option>
+                            <option value="0.005">2 Days</option>
+                            <option value="0.02">1 Week (~7 days)</option>
+                            <option value="0.08">1 Month (~30 days)</option>
+                            <option value="0.25">3 Months</option>
+                            <option value="0.5">6 Months</option>
+                            <option value="1" selected>1 Year</option>
+                            <option value="2">2 Years</option>
+                            <option value="5">5 Years</option>
+                        </select>
+                        <small class="form-text text-muted">How much historical OHLCV data to load from Polygon API</small>
+                    </div>
+
+                    <!-- Include OHLCV Data -->
+                    <div class="form-group">
+                        <label for="include_ohlcv">Load Historical Data</label>
+                        <select class="form-control" id="include_ohlcv" name="include_ohlcv">
+                            <option value="true" selected>Yes - Load symbols + OHLCV daily data</option>
+                            <option value="false">No - Load symbols only</option>
+                        </select>
+                        <small class="form-text text-muted">Include daily OHLCV data from Polygon API</small>
+                    </div>
+                    
+                    <!-- Load Button -->
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-success" id="csvLoadBtn">
+                            <span>📋 Load CSV Universe</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CSV Load Estimate Display -->
+                <div class="form-row" id="csvLoadEstimate" style="display: none; margin-top: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 15px;">
+                            <h6><span>📊</span> CSV Load Estimate</h6>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+                                <div><strong>CSV File:</strong> <span id="csvEstimateFile">-</span></div>
+                                <div><strong>Symbols:</strong> <span id="csvEstimateCount">-</span></div>
+                                <div><strong>Duration:</strong> <span id="csvEstimateDuration">-</span></div>
+                                <div><strong>Data Source:</strong> <span>Polygon.io API</span></div>
+                                <div><strong>Est. Time:</strong> <span id="csvEstimateTime">-</span></div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <small><strong>Description:</strong> <span id="csvEstimateDescription">-</span></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
         
+
         <!-- Cache Management -->
         <div class="job-controls">
             <h3>Cache Organization</h3>
@@ -517,6 +497,55 @@ Enter 1 or 2:`);
             }
         }
         
+
+        // CSV Universe Loading Functions
+        function updateCsvEstimate() {
+            const csvSelect = document.getElementById('csv_file');
+            const yearsSelect = document.getElementById('years');
+            const estimateDiv = document.getElementById('csvLoadEstimate');
+            
+            if (!csvSelect.value) {
+                estimateDiv.style.display = 'none';
+                return;
+            }
+            
+            const selectedOption = csvSelect.options[csvSelect.selectedIndex];
+            const selectedYears = yearsSelect.options[yearsSelect.selectedIndex];
+            
+            if (selectedOption && selectedOption.dataset.count) {
+                const symbolCount = parseInt(selectedOption.dataset.count);
+                
+                // Calculate estimated time (roughly 2 symbols per second for API calls)
+                const estimatedSeconds = Math.ceil(symbolCount / 2);
+                const estimatedTime = estimatedSeconds < 60 
+                    ? `~${estimatedSeconds}s` 
+                    : `~${Math.ceil(estimatedSeconds / 60)}m`;
+                
+                document.getElementById('csvEstimateFile').textContent = selectedOption.text.split(' (')[0];
+                document.getElementById('csvEstimateCount').textContent = symbolCount.toLocaleString();
+                document.getElementById('csvEstimateDuration').textContent = selectedYears.textContent;
+                document.getElementById('csvEstimateTime').textContent = estimatedTime;
+                document.getElementById('csvEstimateDescription').textContent = selectedOption.dataset.description || 'Curated symbol list with Polygon API data';
+                
+                estimateDiv.style.display = 'block';
+            }
+        }
+
+        // Form submission handling for CSV universe  
+        document.getElementById('csvUniverseForm').addEventListener('submit', function(e) {
+            const btn = document.getElementById('csvLoadBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span>🔄 Loading CSV Universe...</span>';
+            
+            // Re-enable after a delay (form will redirect)
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }, 5000);
+        });
+
+
         // Auto-refresh active jobs every 10 seconds
         setInterval(() => {
             const activeJobs = document.querySelectorAll('[id^="job-"]');

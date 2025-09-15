@@ -409,12 +409,7 @@ def log_performance(f):
     wrapper.__name__ = f.__name__
     return wrapper
 
-# Apply performance monitoring to all endpoints
-for rule in pattern_consumer_bp.url_map.iter_rules():
-    if rule.endpoint != 'static':
-        view_func = pattern_consumer_bp.view_functions.get(rule.endpoint)
-        if view_func:
-            pattern_consumer_bp.view_functions[rule.endpoint] = log_performance(view_func)
+# Performance monitoring applied via decorator to individual endpoints
 
 # Blueprint error handlers
 @pattern_consumer_bp.errorhandler(404)

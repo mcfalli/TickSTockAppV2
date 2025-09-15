@@ -480,6 +480,121 @@ def create_app():
 
 **Breaking Change**: `get_symbols_for_dropdown()` now returns rich objects instead of strings
 
+## Production Readiness Requirements
+
+### **CRITICAL PRODUCTION DEPLOYMENT STANDARDS** ⚠️
+
+**These requirements are MANDATORY for production deployment. NO exceptions.**
+
+#### **1. Zero Mock Code Policy** 🚫
+- **NEVER** deploy mock endpoints, hardcoded values, or stubbed CRUD methods
+- **ALL** API endpoints must connect to real backend services
+- **ALL** database operations must use production-ready persistence
+- **ALL** integration points must be fully functional
+- **VERIFY**: No `/api/*/mock`, test data, or `TODO` implementations remain
+
+#### **2. Data Integrity Guarantee** 💾
+- **OHLCV Persistence**: All tick data MUST be persisted to database (`ohlcv_1min` table)
+- **Zero Event Loss**: Pull Model architecture MUST guarantee no data loss
+- **Transactional Integrity**: Database operations MUST be atomic with rollback handling
+- **Backup Strategy**: Real-time data replication and recovery procedures required
+- **VERIFY**: Database persistence active and tick data flowing to `ohlcv_1min` table
+
+#### **3. TickStockPL Integration Excellence** 🔄
+- **Redis Pub-Sub**: MUST consume real pattern events from TickStockPL via Redis
+- **Fallback Detection**: Local pattern detection MUST activate when TickStockPL offline
+- **Performance Targets**: <100ms WebSocket delivery, <50ms API responses
+- **Message Validation**: All Redis messages MUST be validated and sanitized
+- **VERIFY**: Pattern detection active, Redis subscriber connected to 4+ channels
+
+#### **4. Security Standards (CRITICAL)** 🔐
+- **Database Credentials**: NEVER hardcode passwords in source code
+- **WebSocket Authentication**: MUST validate all WebSocket connections
+- **Input Validation**: SQL injection and XSS prevention MANDATORY
+- **Security Headers**: HTTPS, CORS, and security headers properly configured
+- **VERIFY**: No hardcoded credentials, proper authentication on all endpoints
+
+#### **5. Performance Requirements (NON-NEGOTIABLE)** ⚡
+- **Tick Processing**: <1ms per tick processing latency
+- **Database Operations**: <50ms for batch persistence operations
+- **WebSocket Delivery**: <100ms end-to-end real-time delivery
+- **API Response Time**: <50ms for 95th percentile responses
+- **VERIFY**: Performance benchmarks passing in production environment
+
+#### **6. Comprehensive Testing (MANDATORY)** ✅
+- **Unit Tests**: 90%+ code coverage for all critical components
+- **Integration Tests**: All cross-system communication tested
+- **Performance Tests**: Sub-millisecond requirements validated
+- **Security Tests**: Vulnerability scanning and penetration testing
+- **VERIFY**: 150+ tests passing, including performance benchmarks
+
+### **Production Deployment Checklist** 📋
+
+Before ANY production deployment, ALL items must be ✅:
+
+#### **Code Quality**
+- [ ] All mock endpoints removed from codebase
+- [ ] Real pattern discovery APIs registered and functional
+- [ ] OHLCV database persistence active and verified
+- [ ] TickStockPL Redis integration working with fallback
+- [ ] No hardcoded credentials in source code
+- [ ] Unicode logging issues resolved for production OS
+
+#### **Security Validation**
+- [ ] Database password changed from exposed value (`LJI48rUEkUpe6e`)
+- [ ] WebSocket authentication implemented and tested
+- [ ] CORS configuration restricted (no `"*"` origins)
+- [ ] Security headers configured (Flask-Talisman)
+- [ ] Input validation implemented on all endpoints
+- [ ] Session security and CSRF protection active
+
+#### **Performance Verification**
+- [ ] <1ms tick processing latency achieved
+- [ ] <50ms database persistence verified under load
+- [ ] <100ms WebSocket delivery confirmed with multiple users
+- [ ] <50ms API response times validated
+- [ ] Memory usage stable under sustained load
+
+#### **Integration Testing**
+- [ ] TickStockPL communication via Redis validated
+- [ ] Database read/write operations tested
+- [ ] WebSocket broadcasting to multiple clients verified
+- [ ] Error handling and recovery tested
+- [ ] Polygon.io API integration working properly
+
+#### **Infrastructure Readiness**
+- [ ] Production database configured and accessible
+- [ ] Redis server operational with proper configuration
+- [ ] SSL certificates configured for HTTPS
+- [ ] Environment variables properly configured
+- [ ] Monitoring and logging systems operational
+
+### **Production Incident Response** 🚨
+
+If ANY of these issues occur in production, **IMMEDIATE ACTION REQUIRED**:
+
+1. **Data Loss**: If tick data not persisting to database
+2. **Mock Endpoints Active**: If UI showing test/mock data
+3. **Pattern Detection Down**: If no pattern updates for >10 minutes
+4. **Security Breach**: If unauthorized access detected
+5. **Performance Degradation**: If latency exceeds targets
+
+**Emergency Contacts**: Maintain 24/7 support for real-time trading system
+
+### **AGENT-ENFORCED QUALITY GATES** 🤖
+
+These specialized agents AUTOMATICALLY validate production readiness:
+
+- **`tickstock-test-specialist`**: MANDATORY comprehensive testing
+- **`code-security-specialist`**: MANDATORY security vulnerability scanning  
+- **`architecture-validation-specialist`**: MANDATORY architecture compliance
+- **`database-query-specialist`**: MANDATORY database performance validation
+- **`redis-integration-specialist`**: MANDATORY TickStockPL integration testing
+
+**CRITICAL**: NO production deployment without ALL agent validations PASSING.
+
+---
+
 ## Important Operating Guidelines
 
 ### Critical Rules

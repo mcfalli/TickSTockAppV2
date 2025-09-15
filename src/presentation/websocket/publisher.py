@@ -55,8 +55,8 @@ class WebSocketPublisher:
             return
             
         redis_host = self.config.get('REDIS_HOST', 'localhost')
-        redis_port = self.config.get('REDIS_PORT', 6379)
-        redis_db = self.config.get('REDIS_DB', 0)
+        redis_port = int(self.config.get('REDIS_PORT', 6379))
+        redis_db = int(self.config.get('REDIS_DB', 0))
         
         logger.info(f"WEBSOCKET-PUBLISHER: Attempting to connect to Redis at {redis_host}:{redis_port}")
         

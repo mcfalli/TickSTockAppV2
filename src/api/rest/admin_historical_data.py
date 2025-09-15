@@ -34,6 +34,17 @@ def _get_historical_loader():
     except ImportError as e:
         raise ImportError(f"Historical loader not available: {e}")
 
+def _get_bulk_universe_seeder():
+    """Import and return BulkUniverseSeeder on demand."""
+    try:
+        import sys
+        from pathlib import Path
+        sys.path.append(str(Path(__file__).parent.parent.parent))
+        from src.data.bulk_universe_seeder import BulkUniverseSeeder, UniverseType, BulkLoadRequest
+        return BulkUniverseSeeder, UniverseType, BulkLoadRequest
+    except ImportError as e:
+        raise ImportError(f"Bulk universe seeder not available: {e}")
+
 def register_admin_historical_routes(app):
     """Register admin historical data routes with the Flask app"""
     
@@ -57,6 +68,18 @@ def register_admin_historical_routes(app):
             # Get available symbols
             available_symbols = loader.load_symbols_from_cache('top_50')
             
+            # Get available bulk universes
+            try:
+                BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
+                bulk_seeder = BulkUniverseSeeder(
+                    polygon_api_key=os.getenv('POLYGON_API_KEY'),
+                    database_uri=os.getenv('DATABASE_URI')
+                )
+                available_universes = bulk_seeder.get_available_universes()
+            except Exception as e:
+                logger.warning(f"Bulk universe seeder not available: {e}")
+                available_universes = {}
+            
             # Get job status
             job_stats = {
                 'active_jobs': len([j for j in active_jobs.values() if j['status'] == 'running']),
@@ -70,6 +93,7 @@ def register_admin_historical_routes(app):
                                  daily_summary=daily_summary,
                                  minute_summary=minute_summary,
                                  available_symbols=available_symbols,
+                                 available_universes=available_universes,
                                  job_stats=job_stats,
                                  active_jobs=active_jobs,
                                  recent_jobs=job_history[-10:])
@@ -78,7 +102,7 @@ def register_admin_historical_routes(app):
             flash(f'Error loading dashboard: {str(e)}', 'error')
             return render_template('admin/historical_data_dashboard.html',
                                  daily_summary={}, minute_summary={}, available_symbols=[],
-                                 job_stats={}, active_jobs={}, recent_jobs=[])
+                                 available_universes={}, job_stats={}, active_jobs={}, recent_jobs=[])
     
     @app.route('/admin/historical-data/trigger-load', methods=['POST'])
     @login_required
@@ -238,14 +262,14 @@ def register_admin_historical_routes(app):
                 return jsonify({'error': 'Job not found'}), 404
         
         return jsonify({
-            'id': job['id'],
-            'status': job['status'],
-            'progress': job['progress'],
-            'current_symbol': job['current_symbol'],
-            'successful_count': len(job['successful_symbols']),
-            'failed_count': len(job['failed_symbols']),
-            'log_messages': job['log_messages'][-20:],  # Last 20 messages
-            'completed_at': job['completed_at'].isoformat() if job['completed_at'] else None
+            'id': job.get('id', job_id),
+            'status': job.get('status', 'unknown'),
+            'progress': job.get('progress', 0),
+            'current_symbol': job.get('current_symbol', ''),
+            'successful_count': len(job.get('successful_symbols', [])),
+            'failed_count': len(job.get('failed_symbols', [])),
+            'log_messages': job.get('log_messages', [])[-20:],  # Last 20 messages
+            'completed_at': job['completed_at'].isoformat() if job.get('completed_at') else None
         })
     
     @app.route('/admin/historical-data/job/<job_id>/cancel', methods=['POST'])
@@ -266,6 +290,214 @@ def register_admin_historical_routes(app):
             return jsonify({'success': True})
         
         return jsonify({'error': 'Job not found or not running'}), 404
+    
+    @app.route('/admin/bulk-universe/trigger-load', methods=['POST'])
+    @login_required
+    @admin_required
+    def admin_trigger_bulk_universe_load():
+        """Trigger bulk universe loading with optional testing limiter."""
+        try:
+            # Get form parameters
+            universe_type = request.form.get('universe_type')
+            limit = request.form.get('limit')
+            sort_by = request.form.get('sort_by', 'market_cap')
+            overwrite_existing = request.form.get('overwrite_existing') == 'on'
+            create_cache_entries = request.form.get('create_cache_entries', 'on') == 'on'
+            
+            # Validate inputs
+            if not universe_type:
+                flash('Universe type is required', 'error')
+                return redirect(url_for('admin_historical_dashboard'))
+                
+            # Parse limit (optional testing limiter)
+            limit_int = None
+            if limit and limit.strip():
+                try:
+                    limit_int = int(limit.strip())
+                    if limit_int <= 0 or limit_int > 5000:
+                        flash('Limit must be between 1 and 5000', 'error')
+                        return redirect(url_for('admin_historical_dashboard'))
+                except ValueError:
+                    flash('Limit must be a valid number', 'error')
+                    return redirect(url_for('admin_historical_dashboard'))
+                    
+            if sort_by not in ['market_cap', 'name', 'volume']:
+                flash('Invalid sort option selected', 'error')
+                return redirect(url_for('admin_historical_dashboard'))
+            
+            # Initialize bulk seeder
+            BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
+            bulk_seeder = BulkUniverseSeeder(
+                polygon_api_key=os.getenv('POLYGON_API_KEY'),
+                database_uri=os.getenv('DATABASE_URI')
+            )
+            
+            # Validate universe type
+            universe_enum = None
+            for enum_val in UniverseType:
+                if enum_val.value == universe_type:
+                    universe_enum = enum_val
+                    break
+                    
+            if not universe_enum:
+                flash(f'Invalid universe type: {universe_type}', 'error')
+                return redirect(url_for('admin_historical_dashboard'))
+            
+            # Create bulk load request
+            bulk_request = BulkLoadRequest(
+                universe_type=universe_enum,
+                limit=limit_int,
+                sort_by=sort_by,
+                create_cache_entries=create_cache_entries,
+                overwrite_existing=overwrite_existing
+            )
+            
+            # Estimate load size for user feedback
+            estimated_size = bulk_seeder.estimate_load_size(bulk_request)
+            
+            # Create job
+            job_id = f"bulk_{universe_type}_{int(time.time())}_{len(active_jobs)}"
+            job = {
+                'id': job_id,
+                'type': 'bulk_universe',
+                'status': 'queued',
+                'universe_type': universe_type,
+                'limit': limit_int,
+                'sort_by': sort_by,
+                'estimated_size': estimated_size,
+                'overwrite_existing': overwrite_existing,
+                'create_cache_entries': create_cache_entries,
+                'created_at': datetime.now(),
+                'created_by': current_user.username if hasattr(current_user, 'username') else 'admin',
+                'progress': 0,
+                'symbols_loaded': 0,
+                'symbols_updated': 0,
+                'symbols_skipped': 0,
+                'cache_entries_created': 0,
+                'log_messages': [],
+                'errors': [],
+                'completed_at': None
+            }
+            
+            active_jobs[job_id] = job
+            
+            # Start background job
+            def run_bulk_universe_job(job_data):
+                try:
+                    job_data['status'] = 'running'
+                    job_data['log_messages'].append(
+                        f"Starting bulk load of {universe_type} universe (limit: {limit_int or 'none'})"
+                    )
+                    
+                    # Execute bulk load
+                    result = bulk_seeder.load_universe(bulk_request)
+                    
+                    # Update job with results
+                    job_data['symbols_loaded'] = result.symbols_loaded
+                    job_data['symbols_updated'] = result.symbols_updated  
+                    job_data['symbols_skipped'] = result.symbols_skipped
+                    job_data['cache_entries_created'] = result.cache_entries_created
+                    job_data['errors'].extend(result.errors)
+                    job_data['progress'] = 100
+                    
+                    if result.success:
+                        job_data['status'] = 'completed'
+                        job_data['log_messages'].append(
+                            f"✓ Bulk load completed: {result.symbols_loaded} loaded, "
+                            f"{result.symbols_updated} updated, {result.symbols_skipped} skipped"
+                        )
+                        if result.cache_entries_created:
+                            job_data['log_messages'].append(
+                                f"✓ Created {result.cache_entries_created} cache entries"
+                            )
+                    else:
+                        job_data['status'] = 'failed'
+                        job_data['log_messages'].append(f"✗ Bulk load failed: {'; '.join(result.errors)}")
+                        
+                    job_data['completed_at'] = datetime.now()
+                    
+                except Exception as e:
+                    job_data['status'] = 'failed'
+                    job_data['errors'].append(str(e))
+                    job_data['log_messages'].append(f"✗ Job failed with exception: {str(e)}")
+                    job_data['completed_at'] = datetime.now()
+                    logger.error(f"Bulk universe job {job_id} failed: {e}")
+                finally:
+                    # Move to history
+                    job_history.append(job_data.copy())
+                    if job_id in active_jobs:
+                        del active_jobs[job_id]
+            
+            # Start job in background thread
+            job_thread = Thread(target=run_bulk_universe_job, args=(job,), daemon=True)
+            job_thread.start()
+            
+            flash(f'Bulk universe load started for {universe_type} '
+                  f'(estimated {estimated_size} symbols, limit: {limit_int or "none"})', 'info')
+            return redirect(url_for('admin_historical_dashboard'))
+            
+        except Exception as e:
+            flash(f'Error starting bulk universe load: {str(e)}', 'error')
+            logger.error(f"Failed to start bulk universe load: {e}")
+            return redirect(url_for('admin_historical_dashboard'))
+
+    @app.route('/admin/bulk-universe/estimate', methods=['POST'])
+    @login_required
+    @admin_required
+    def admin_estimate_bulk_universe():
+        """Get size estimate for bulk universe loading."""
+        try:
+            universe_type = request.json.get('universe_type')
+            limit = request.json.get('limit')
+            
+            if not universe_type:
+                return jsonify({'error': 'Universe type is required'}), 400
+                
+            # Parse limit
+            limit_int = None
+            if limit:
+                try:
+                    limit_int = int(limit)
+                except ValueError:
+                    return jsonify({'error': 'Limit must be a valid number'}), 400
+            
+            # Initialize bulk seeder
+            BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
+            bulk_seeder = BulkUniverseSeeder(
+                polygon_api_key=os.getenv('POLYGON_API_KEY'),
+                database_uri=os.getenv('DATABASE_URI')
+            )
+            
+            # Find universe enum
+            universe_enum = None
+            for enum_val in UniverseType:
+                if enum_val.value == universe_type:
+                    universe_enum = enum_val
+                    break
+                    
+            if not universe_enum:
+                return jsonify({'error': f'Invalid universe type: {universe_type}'}), 400
+            
+            # Create request for estimation
+            bulk_request = BulkLoadRequest(
+                universe_type=universe_enum,
+                limit=limit_int
+            )
+            
+            # Get estimate
+            estimated_size = bulk_seeder.estimate_load_size(bulk_request)
+            universe_config = bulk_seeder.UNIVERSE_CONFIGS.get(universe_enum, {})
+            
+            return jsonify({
+                'estimated_size': estimated_size,
+                'universe_name': getattr(universe_config, 'name', universe_type),
+                'description': getattr(universe_config, 'description', ''),
+                'total_available': getattr(universe_config, 'estimated_count', 0)
+            })
+            
+        except Exception as e:
+            logger.error(f"Failed to estimate bulk universe size: {e}")
+            return jsonify({'error': str(e)}), 500
     
     @app.route('/admin/historical-data/data-summary')
     @login_required
@@ -407,3 +639,245 @@ def register_admin_historical_routes(app):
             flash(f'Cache rebuild failed: {str(e)}', 'error')
             
         return redirect(url_for('admin_historical_dashboard'))
+
+    @app.route('/admin/csv-universe-load', methods=['POST'])
+    @login_required
+    @admin_required
+    def admin_csv_universe_load():
+        """Load symbols and OHLCV data from CSV file with symbol_load_log tracking."""
+        try:
+            # Get form parameters
+            csv_file = request.form.get('csv_file')
+            years = float(request.form.get('years', '1'))
+            
+            # Validate inputs
+            if not csv_file:
+                flash('CSV file selection is required', 'error')
+                return redirect(url_for('admin_historical_dashboard'))
+                
+            if years <= 0 or years > 10:
+                flash('Years must be between 0.1 and 10', 'error')
+                return redirect(url_for('admin_historical_dashboard'))
+            
+            # Import required classes
+            import csv
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            
+            # Get project root and CSV path
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            csv_path = os.path.join(project_root, 'data', csv_file)
+            
+            # Verify CSV file exists
+            if not os.path.exists(csv_path):
+                flash(f'CSV file not found: {csv_file}', 'error')
+                return redirect(url_for('admin_historical_dashboard'))
+            
+            # Read symbols from CSV
+            symbols = []
+            try:
+                with open(csv_path, 'r') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        symbol = row['symbol'].strip().upper()
+                        if symbol:
+                            symbols.append(symbol)
+            except Exception as e:
+                flash(f'Error reading CSV file: {str(e)}', 'error')
+                return redirect(url_for('admin_historical_dashboard'))
+            
+            if not symbols:
+                flash('No valid symbols found in CSV file', 'error')
+                return redirect(url_for('admin_historical_dashboard'))
+            
+            # Create job for background processing
+            job_id = f"csv_{csv_file.replace('.csv', '')}_{int(time.time())}_{len(active_jobs)}"
+            job = {
+                'id': job_id,
+                'type': 'csv_universe',
+                'status': 'queued',
+                'csv_file': csv_file,
+                'csv_path': csv_path,
+                'symbols': symbols,
+                'years': years,
+                'created_at': datetime.now(),
+                'created_by': current_user.username if hasattr(current_user, 'username') else 'admin',
+                'progress': 0,
+                'current_symbol': None,
+                'symbols_loaded': 0,
+                'symbols_updated': 0,
+                'symbols_skipped': 0,
+                'ohlcv_records_loaded': 0,
+                'load_log_id': None,
+                'log_messages': [],
+                'errors': [],
+                'completed_at': None
+            }
+            
+            active_jobs[job_id] = job
+            
+            # Start background job
+            def run_csv_universe_job(job_data):
+                database_uri = os.getenv('DATABASE_URI')
+                conn = None
+                
+                try:
+                    job_data['status'] = 'running'
+                    job_data['log_messages'].append(f"Starting CSV universe load from {job_data['csv_file']}")
+                    job_data['log_messages'].append(f"Found {len(job_data['symbols'])} symbols to process")
+                    
+                    # Connect to database
+                    conn = psycopg2.connect(database_uri)
+                    cursor = conn.cursor(cursor_factory=RealDictCursor)
+                    
+                    # Create initial symbol_load_log entry
+                    cursor.execute("""
+                        INSERT INTO symbol_load_log (csv_filename, symbol_count, load_status)
+                        VALUES (%s, %s, 'running')
+                        RETURNING id
+                    """, (job_data['csv_file'], len(job_data['symbols'])))
+                    job_data['load_log_id'] = cursor.fetchone()['id']
+                    conn.commit()
+                    
+                    # Import historical loader
+                    PolygonHistoricalLoader = _get_historical_loader()
+                    loader = PolygonHistoricalLoader()
+                    
+                    # Process each symbol
+                    for i, symbol in enumerate(job_data['symbols']):
+                        if job_data['status'] == 'cancelled':
+                            break
+                            
+                        job_data['current_symbol'] = symbol
+                        job_data['progress'] = int((i / len(job_data['symbols'])) * 100)
+                        
+                        try:
+                            # Step 1: Ensure symbol exists in symbols table (with full Polygon.io data)
+                            symbol_created = loader.ensure_symbol_exists(symbol)
+                            
+                            if symbol_created:
+                                job_data['symbols_loaded'] += 1
+                                job_data['log_messages'].append(f"✓ {symbol}: Symbol created in database")
+                            else:
+                                # Symbol already existed, count as updated/verified
+                                job_data['symbols_updated'] += 1
+                                job_data['log_messages'].append(f"✓ {symbol}: Symbol verified in database")
+                            
+                            # Step 2: Load OHLCV daily data
+                            start_date = datetime.now() - timedelta(days=int(job_data['years'] * 365))
+                            end_date = datetime.now()
+                            
+                            try:
+                                df = loader.fetch_symbol_data(
+                                    symbol, 
+                                    start_date.strftime('%Y-%m-%d'),
+                                    end_date.strftime('%Y-%m-%d'),
+                                    'day'  # Daily data
+                                )
+                                
+                                if not df.empty:
+                                    records_saved = loader.save_data_to_db(df, 'day')
+                                    job_data['ohlcv_records_loaded'] += len(df)
+                                    job_data['log_messages'].append(
+                                        f"✓ {symbol}: {len(df)} OHLCV records loaded ({job_data['years']} years)"
+                                    )
+                                else:
+                                    job_data['log_messages'].append(f"! {symbol}: No OHLCV data available")
+                                    
+                            except Exception as e:
+                                job_data['errors'].append(f"{symbol}: OHLCV load failed - {str(e)}")
+                                job_data['log_messages'].append(f"✗ {symbol}: OHLCV load failed - {str(e)}")
+                                
+                        except Exception as e:
+                            job_data['symbols_skipped'] += 1
+                            job_data['errors'].append(f"{symbol}: {str(e)}")
+                            job_data['log_messages'].append(f"✗ {symbol}: Failed - {str(e)}")
+                    
+                    # Complete job
+                    job_data['progress'] = 100
+                    job_data['current_symbol'] = None
+                    job_data['status'] = 'completed'
+                    job_data['completed_at'] = datetime.now()
+                    
+                    # Calculate duration
+                    duration = (job_data['completed_at'] - job_data['created_at']).total_seconds()
+                    
+                    # Update symbol_load_log with final results
+                    cursor.execute("""
+                        UPDATE symbol_load_log SET 
+                            symbols_loaded = %s,
+                            symbols_updated = %s,
+                            symbols_skipped = %s,
+                            ohlcv_records_loaded = %s,
+                            load_status = 'completed',
+                            load_duration_seconds = %s,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (
+                        job_data['symbols_loaded'],
+                        job_data['symbols_updated'], 
+                        job_data['symbols_skipped'],
+                        job_data['ohlcv_records_loaded'],
+                        duration,
+                        job_data['load_log_id']
+                    ))
+                    conn.commit()
+                    
+                    # Final summary
+                    job_data['log_messages'].append(
+                        f"✅ CSV load completed: {job_data['symbols_loaded']} new, "
+                        f"{job_data['symbols_updated']} updated, {job_data['symbols_skipped']} skipped, "
+                        f"{job_data['ohlcv_records_loaded']} OHLCV records"
+                    )
+                    
+                except Exception as e:
+                    job_data['status'] = 'failed'
+                    job_data['completed_at'] = datetime.now()
+                    job_data['errors'].append(f"Job failed: {str(e)}")
+                    job_data['log_messages'].append(f"✗ CSV load failed: {str(e)}")
+                    
+                    # Update symbol_load_log with failure
+                    if job_data.get('load_log_id') and conn:
+                        try:
+                            cursor = conn.cursor()
+                            cursor.execute("""
+                                UPDATE symbol_load_log SET 
+                                    symbols_loaded = %s,
+                                    symbols_updated = %s,
+                                    symbols_skipped = %s,
+                                    ohlcv_records_loaded = %s,
+                                    load_status = 'failed',
+                                    error_message = %s,
+                                    updated_at = CURRENT_TIMESTAMP
+                                WHERE id = %s
+                            """, (
+                                job_data['symbols_loaded'],
+                                job_data['symbols_updated'], 
+                                job_data['symbols_skipped'],
+                                job_data['ohlcv_records_loaded'],
+                                str(e)[:500],  # Truncate error message if too long
+                                job_data['load_log_id']
+                            ))
+                            conn.commit()
+                        except Exception as log_error:
+                            job_data['log_messages'].append(f"Failed to update load log: {str(log_error)}")
+                            
+                finally:
+                    if conn:
+                        conn.close()
+                    
+                    # Move to history
+                    job_history.append(job_data.copy())
+                    if job_id in active_jobs:
+                        del active_jobs[job_id]
+            
+            # Start job in background thread
+            job_thread = Thread(target=run_csv_universe_job, args=(job,), daemon=True)
+            job_thread.start()
+            
+            flash(f'CSV universe load started: {csv_file} ({len(symbols)} symbols, {years} years historical data)', 'info')
+            return redirect(url_for('admin_historical_dashboard'))
+            
+        except Exception as e:
+            flash(f'Error starting CSV universe load: {str(e)}', 'error')
+            return redirect(url_for('admin_historical_dashboard'))

@@ -20,3 +20,7 @@ WS_RECONNECT_DELAY = 5
 # Processing
 WORKER_POOL_MIN = 2
 WORKER_POOL_MAX = 8
+
+# OHLCV Database Persistence Settings
+DB_BATCH_SIZE = 50  # Smaller batches for development
+DB_FLUSH_INTERVAL = 2.0  # Flush every 2 seconds in dev

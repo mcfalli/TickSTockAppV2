@@ -111,10 +111,10 @@ class PatternDiscoveryService:
             # Build Redis configuration
             redis_config = RedisConnectionConfig(
                 host=self.config.get('redis_host', 'localhost'),
-                port=self.config.get('redis_port', 6379),
-                db=self.config.get('redis_db', 0),
+                port=int(self.config.get('redis_port', 6379)),
+                db=int(self.config.get('redis_db', 0)),
                 password=self.config.get('redis_password'),
-                max_connections=self.config.get('redis_max_connections', 20),
+                max_connections=int(self.config.get('redis_max_connections', 20)),
                 socket_timeout=2.0,  # Optimized for real-time
                 socket_connect_timeout=1.0,
                 health_check_interval=15,

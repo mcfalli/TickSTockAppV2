@@ -20,6 +20,7 @@ from src.core.domain.market.tick import TickData
 from src.presentation.websocket.data_publisher import DataPublisher
 from src.presentation.websocket.publisher import WebSocketPublisher
 from src.infrastructure.data_sources.adapters.realtime_adapter import SyntheticDataAdapter, RealTimeDataAdapter
+from src.infrastructure.database.ohlcv_persistence import OHLCVPersistenceService
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,13 @@ class MarketDataService:
         self.websocket_publisher = WebSocketPublisher(config, socketio, self) if socketio else None
         self.data_adapter = None
         
+        # Database persistence service
+        self.ohlcv_persistence = OHLCVPersistenceService(
+            config=config,
+            batch_size=config.get('DB_BATCH_SIZE', 100),
+            flush_interval=config.get('DB_FLUSH_INTERVAL', 5.0)
+        )
+        
         # Thread management
         self._service_thread = None
         self._shutdown_event = threading.Event()
@@ -68,6 +76,11 @@ class MarketDataService:
             
             # Initialize data adapter
             self._init_data_adapter()
+            
+            # Start OHLCV persistence service
+            if not self.ohlcv_persistence.start():
+                logger.error("MARKET-DATA-SERVICE: Failed to start OHLCV persistence service")
+                return False
             
             # Start service thread
             self._service_thread = threading.Thread(target=self._service_loop, daemon=True)
@@ -94,6 +107,10 @@ class MarketDataService:
         # Disconnect data adapter
         if self.data_adapter:
             self.data_adapter.disconnect()
+        
+        # Stop OHLCV persistence service
+        if self.ohlcv_persistence:
+            self.ohlcv_persistence.stop()
         
         # Wait for service thread to finish
         if self._service_thread and self._service_thread.is_alive():
@@ -182,6 +199,23 @@ class MarketDataService:
             self.stats.ticks_processed += 1
             self.stats.last_tick_time = time.time()
             
+            # Persist tick data to database (non-blocking)
+            if self.ohlcv_persistence:
+                persistence_success = self.ohlcv_persistence.persist_tick_data(tick_data)
+                if not persistence_success:
+                    logger.warning(f"MARKET-DATA-SERVICE: Failed to queue tick data for persistence: {tick_data.ticker}")
+            
+            # Feed tick data to fallback pattern detector for analysis
+            # Import here to avoid circular import
+            from src.app import fallback_pattern_detector
+            if fallback_pattern_detector and fallback_pattern_detector.is_active:
+                fallback_pattern_detector.add_market_tick(
+                    tick_data.ticker, 
+                    tick_data.price, 
+                    tick_data.volume or 0,
+                    tick_data.timestamp
+                )
+            
             # Publish tick data
             if self.data_publisher:
                 result = self.data_publisher.publish_tick_data(tick_data)
@@ -258,6 +292,11 @@ class MarketDataService:
             ws_stats = self.websocket_publisher.get_stats()
             base_stats.update({f'websocket_{k}': v for k, v in ws_stats.items()})
         
+        # Add OHLCV persistence stats if available
+        if self.ohlcv_persistence:
+            persistence_stats = self.ohlcv_persistence.get_stats()
+            base_stats.update({f'persistence_{k}': v for k, v in persistence_stats.items()})
+        
         return base_stats
     
     def is_running(self) -> bool:
@@ -266,10 +305,17 @@ class MarketDataService:
     
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status for monitoring."""
-        return {
+        health_status = {
             'service_running': self.running,
             'ticks_processed': self.stats.ticks_processed,
             'last_tick_age_seconds': time.time() - self.stats.last_tick_time if self.stats.last_tick_time else None,
             'data_adapter_connected': self.data_adapter is not None,
             'redis_connected': self.data_publisher.redis_client is not None if self.data_publisher else False
         }
+        
+        # Add OHLCV persistence health status
+        if self.ohlcv_persistence:
+            persistence_health = self.ohlcv_persistence.get_health_status()
+            health_status.update({f'persistence_{k}': v for k, v in persistence_health.items()})
+        
+        return health_status

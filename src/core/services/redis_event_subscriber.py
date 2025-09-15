@@ -461,6 +461,9 @@ class RedisEventSubscriber:
         """Get health status for monitoring."""
         stats = self.get_stats()
         
+        # Check TickStockPL producer status
+        tickstock_pl_online = self._check_tickstock_pl_status()
+        
         # Determine health status
         if not self.is_running:
             status = 'error'
@@ -468,6 +471,9 @@ class RedisEventSubscriber:
         elif stats['connection_errors'] > 5:
             status = 'degraded'
             message = f"Multiple connection errors ({stats['connection_errors']})"
+        elif not tickstock_pl_online:
+            status = 'warning'
+            message = 'TickStockPL producer appears offline - using fallback detection'
         elif stats['last_event_time'] and (time.time() - stats['last_event_time']) > 300:
             status = 'warning'
             message = 'No events received in last 5 minutes'
@@ -479,5 +485,30 @@ class RedisEventSubscriber:
             'status': status,
             'message': message,
             'stats': stats,
+            'tickstock_pl_online': tickstock_pl_online,
             'last_check': time.time()
         }
+    
+    def _check_tickstock_pl_status(self) -> bool:
+        """Check if TickStockPL producer system is online."""
+        try:
+            # Check for TickStockPL heartbeat
+            heartbeat = self.redis_client.get('tickstock:producer:heartbeat')
+            if heartbeat:
+                heartbeat_time = float(heartbeat)
+                return (time.time() - heartbeat_time) < 60  # Within last minute
+            
+            # Check for recent pattern activity
+            pattern_keys = self.redis_client.keys('tickstock:patterns:*')
+            if pattern_keys:
+                # Check if any pattern data is recent
+                for key in pattern_keys[:5]:  # Check first 5 keys
+                    ttl = self.redis_client.ttl(key)
+                    if ttl > 0 and ttl < 3600:  # Fresh data (less than 1 hour old)
+                        return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"REDIS-SUBSCRIBER: Error checking TickStockPL status: {e}")
+            return False

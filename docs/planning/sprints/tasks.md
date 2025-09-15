@@ -2,9 +2,6 @@
 Track items for our next set of user stories and or tasks
 
 ## Topics
-
-- Data load history, cache alignment job and ETFs
-- Data load history, nees to allow loading ETFs (all stocks, all ETF options)
 -Database backed up and sprint database migration process
 -CHARTS - select a stock, pop a chart with patterns and highlights
 -Clean Up - js console
@@ -12,7 +9,7 @@ Track items for our next set of user stories and or tasks
 -Hard coded values
 -UI Organization
 -Security
-
+- history job to load last 2, 4, 5 days to speed things up
 
 1. jasvascript console logs.  There are a lot of js messages written to the console that need cleaned up
 2. What in our application is mocked up data and hardcoded stocks!  
@@ -25,3 +22,6 @@ Track items for our next set of user stories and or tasks
 3c. organize
 
 
+## Complete 
+- Data load history, cache alignment job and ETFs
+- Data load history, nees to allow loading ETFs (all stocks, all ETF options)

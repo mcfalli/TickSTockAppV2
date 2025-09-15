@@ -47,6 +47,12 @@ from src.presentation.websocket.manager import WebSocketManager
 from src.core.services.redis_event_subscriber import RedisEventSubscriber
 from src.core.services.websocket_broadcaster import WebSocketBroadcaster
 
+# Sprint 25: Fallback Pattern Detection
+from src.core.services.fallback_pattern_detector import FallbackPatternDetector
+
+# Sprint 10 Phase 3: Real Pattern Discovery API Integration
+from src.api.rest.pattern_discovery import init_app as init_pattern_discovery_app
+
 # Mandatory Redis validation for TickStockPL integration
 from src.core.services.redis_validator import (
     initialize_redis_mandatory,
@@ -70,6 +76,9 @@ socketio = None
 # Sprint 10 Phase 2: TickStockPL Integration Services
 redis_event_subscriber = None
 websocket_broadcaster = None
+
+# Sprint 25: Fallback Pattern Detection
+fallback_pattern_detector = None
 
 # Sprint 10 Phase 4: Pattern Alert System
 pattern_alert_manager = None
@@ -197,6 +206,24 @@ def initialize_tickstockpl_services(config, socketio, redis_client, flask_app=No
                 logger.warning("TICKSTOCKPL-SERVICES: Redis event subscriber failed to start")
         else:
             logger.warning("TICKSTOCKPL-SERVICES: Redis not available - event subscriber disabled")
+        
+        # Initialize fallback pattern detector for when TickStockPL is offline
+        global fallback_pattern_detector
+        logger.info("TICKSTOCKPL-SERVICES: Initializing fallback pattern detector...")
+        try:
+            fallback_pattern_detector = FallbackPatternDetector(
+                websocket_publisher=websocket_broadcaster,
+                redis_client=redis_client
+            )
+            
+            # Start fallback detector 
+            if fallback_pattern_detector.start():
+                logger.info("TICKSTOCKPL-SERVICES: Fallback pattern detector started successfully")
+            else:
+                logger.warning("TICKSTOCKPL-SERVICES: Fallback pattern detector failed to start")
+                
+        except Exception as e:
+            logger.error(f"TICKSTOCKPL-SERVICES: Failed to initialize fallback pattern detector: {e}")
         
         logger.info("TICKSTOCKPL-SERVICES: All integration services initialized")
         return True
@@ -541,91 +568,11 @@ def register_basic_routes(app):
         
         return stats_data
     
-    # SPRINT 20 MOCK API - Pattern Discovery Dashboard
-    @app.route('/api/patterns/scan')
-    @login_required
-    def api_patterns_scan():
-        """Mock Pattern Discovery API for UI testing - Sprint 20."""
-        import random
-        from datetime import datetime, timedelta
-        
-        logger.info("PATTERN-API: Mock pattern scan requested")
-        
-        # Mock pattern data for UI testing
-        patterns = []
-        symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META', 'CRM', 'NFLX', 'AMD']
-        pattern_types = ['WeeklyBO', 'DailyBO', 'Doji', 'Hammer', 'ShootingStar', 'Engulfing', 'Harami']
-        
-        # Generate 5-15 random patterns
-        num_patterns = random.randint(5, 15)
-        
-        for i in range(num_patterns):
-            # Random timestamp within last 24 hours
-            hours_ago = random.randint(0, 24)
-            timestamp = datetime.now() - timedelta(hours=hours_ago)
-            
-            pattern = {
-                "id": f"mock_pattern_{i}",
-                "symbol": random.choice(symbols),
-                "pattern": random.choice(pattern_types),
-                "confidence": round(random.uniform(0.6, 0.98), 2),
-                "price": round(random.uniform(50, 500), 2),
-                "change_percent": round(random.uniform(-5.0, 8.0), 2),
-                "rs": random.randint(20, 95) if random.random() > 0.3 else None,
-                "volume": random.randint(100000, 5000000),
-                "rsi": round(random.uniform(25, 75), 1) if random.random() > 0.2 else None,
-                "market_cap": random.randint(1000000000, 3000000000000),
-                "timestamp": timestamp.isoformat() + "Z"
-            }
-            patterns.append(pattern)
-        
-        # Sort by confidence (highest first)
-        patterns.sort(key=lambda x: x['confidence'], reverse=True)
-        
-        response = {
-            "patterns": patterns,
-            "count": len(patterns),
-            "cache_hit": True,
-            "response_time_ms": round(random.uniform(15, 45), 1),
-            "query_time": datetime.now().isoformat() + "Z"
-        }
-        
-        return response
+    # SPRINT 20 MOCK API REMOVED - Pattern Discovery now uses real APIs
+    # Real pattern discovery endpoints provided via blueprint registration from:
+    # src/api/rest/pattern_consumer.py - /api/patterns/scan, /api/patterns/stats, /api/patterns/summary, /api/patterns/health
     
-    @app.route('/api/patterns/simulate-alert')
-    @login_required
-    def simulate_pattern_alert():
-        """Simulate a pattern alert for testing WebSocket functionality."""
-        import random
-        from datetime import datetime
-        
-        symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA']
-        pattern_types = ['WeeklyBO', 'DailyBO', 'Doji', 'Hammer']
-        
-        mock_alert = {
-            "event": {
-                "data": {
-                    "id": f"alert_{random.randint(1000, 9999)}",
-                    "symbol": random.choice(symbols),
-                    "pattern": random.choice(pattern_types),
-                    "confidence": round(random.uniform(0.7, 0.95), 2),
-                    "price": round(random.uniform(100, 400), 2),
-                    "change_percent": round(random.uniform(1.0, 5.0), 2),
-                    "rs": random.randint(70, 95),
-                    "volume": random.randint(500000, 2000000),
-                    "timestamp": datetime.now().isoformat() + "Z"
-                },
-                "timestamp": datetime.now().isoformat() + "Z"
-            },
-            "message": f"New pattern detected"
-        }
-        
-        # Emit to all connected clients
-        if socketio:
-            socketio.emit('pattern_alert', mock_alert)
-            logger.info(f"PATTERN-ALERT: Simulated alert for {mock_alert['event']['data']['symbol']}")
-        
-        return {"status": "alert_sent", "alert": mock_alert}
+    # Pattern alert simulation removed - real pattern alerts now come from TickStockPL via Redis pub-sub
     
     # SPRINT 21 MOCK API - Watchlist Management System
     @app.route('/api/watchlists', methods=['GET'])
@@ -2089,6 +2036,7 @@ def main():
         logger.info("STARTUP: Initializing market data service...")
         try:
             market_service = initialize_market_service(config, socketio)
+            globals()['market_service'] = market_service  # Assign to global variable
             logger.info("STARTUP: Market data service initialized successfully")
         except Exception as e:
             logger.error(f"STARTUP: Market data service initialization failed: {e}")
@@ -2166,6 +2114,18 @@ def main():
             from src.api.rest.admin_users import admin_users_bp
             app.register_blueprint(admin_users_bp)
             logger.info("STARTUP: Admin user management routes registered successfully")
+            
+            # Register Real Pattern Discovery APIs (Sprint 10 Complete)
+            logger.info("STARTUP: Registering real pattern discovery APIs...")
+            try:
+                pattern_api_success = init_pattern_discovery_app(app)
+                if pattern_api_success:
+                    logger.info("STARTUP: Pattern discovery APIs registered successfully - MOCK ENDPOINTS ELIMINATED")
+                else:
+                    logger.error("STARTUP: Pattern discovery API registration failed")
+            except Exception as pattern_error:
+                logger.error(f"STARTUP: Pattern discovery API registration error: {pattern_error}")
+                # Don't fail startup - this is a warning but not critical
             
         except ImportError as e:
             logger.warning(f"STARTUP: Some API routes failed to load: {e}")

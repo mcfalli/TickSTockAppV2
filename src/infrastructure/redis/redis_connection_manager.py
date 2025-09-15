@@ -140,23 +140,44 @@ class RedisConnectionManager:
     
     def _create_connection_pool(self) -> redis.ConnectionPool:
         """Create optimized Redis connection pool."""
-        pool_kwargs = {
-            'host': self.config.host,
-            'port': self.config.port,
-            'db': self.config.db,
-            'password': self.config.password,
-            'max_connections': self.config.max_connections,
-            'socket_timeout': self.config.socket_timeout,
-            'socket_connect_timeout': self.config.socket_connect_timeout,
-            'socket_keepalive': self.config.socket_keepalive,
-            'socket_keepalive_options': self.config.socket_keepalive_options,
-            'health_check_interval': self.config.health_check_interval,
-            'retry_on_timeout': self.config.retry_on_timeout,
-            'retry_on_error': self.config.retry_on_error,
-            'retry': Retry(ExponentialBackoff(), retries=3)
-        }
-        
-        return redis.ConnectionPool(**pool_kwargs)
+        try:
+            pool_kwargs = {
+                'host': self.config.host,
+                'port': self.config.port,
+                'db': self.config.db,
+                'password': self.config.password,
+                'max_connections': self.config.max_connections,
+                'socket_timeout': self.config.socket_timeout,
+                'socket_connect_timeout': self.config.socket_connect_timeout,
+                'socket_keepalive': self.config.socket_keepalive,
+                'health_check_interval': self.config.health_check_interval,
+                'retry_on_timeout': self.config.retry_on_timeout,
+                'retry_on_error': self.config.retry_on_error,
+                'retry': Retry(ExponentialBackoff(), retries=3)
+            }
+            
+            # Conditionally add socket_keepalive_options only if not empty
+            # This might be causing issues on Windows
+            if self.config.socket_keepalive_options and len(self.config.socket_keepalive_options) > 0:
+                logger.debug("REDIS-MANAGER: Adding socket_keepalive_options: %s", self.config.socket_keepalive_options)
+                pool_kwargs['socket_keepalive_options'] = self.config.socket_keepalive_options
+            else:
+                logger.debug("REDIS-MANAGER: Skipping socket_keepalive_options (empty or None)")
+            
+            # Debug log all parameter types
+            logger.debug("REDIS-MANAGER: Connection pool parameters:")
+            for key, value in pool_kwargs.items():
+                logger.debug("  %s: %s (type: %s)", key, value, type(value))
+            
+            return redis.ConnectionPool(**pool_kwargs)
+            
+        except Exception as e:
+            logger.error("REDIS-MANAGER: Failed to create connection pool: %s", e)
+            # Log detailed config for debugging
+            logger.error("REDIS-MANAGER: socket_keepalive_options: %s", self.config.socket_keepalive_options)
+            logger.error("REDIS-MANAGER: health_check_interval: %s (type: %s)", 
+                        self.config.health_check_interval, type(self.config.health_check_interval))
+            raise
     
     def _test_connection(self) -> bool:
         """Test Redis connection with timeout."""
@@ -170,10 +191,13 @@ class RedisConnectionManager:
             # Track performance
             self._record_command_time(response_time)
             
-            return result
+            return bool(result)  # Ensure boolean return
             
         except Exception as e:
+            # Add more detailed error information
             logger.error("REDIS-MANAGER: Connection test failed: %s", e)
+            logger.error("REDIS-MANAGER: Config - host:%s, port:%s, db:%s", 
+                        self.config.host, type(self.config.port), type(self.config.db))
             self._consecutive_failures += 1
             return False
     
@@ -425,13 +449,10 @@ class RedisConnectionManager:
             self.config.socket_timeout = 2.0
             self.config.socket_connect_timeout = 1.0
             
-            # Enable keepalive for stable connections
+            # Enable keepalive for stable connections (but disable TCP options on Windows)
             self.config.socket_keepalive = True
-            self.config.socket_keepalive_options = {
-                'TCP_KEEPIDLE': 1,
-                'TCP_KEEPINTVL': 1,
-                'TCP_KEEPCNT': 3
-            }
+            # Disable socket keepalive options on Windows - they may cause issues
+            self.config.socket_keepalive_options = {}
             
             # Increase connection pool for high throughput
             if self.config.max_connections < 50:

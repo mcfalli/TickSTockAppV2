@@ -104,7 +104,7 @@ def register_api_routes(app, extensions, cache_control, config):
     @app.route('/api/health')
     @login_required
     def api_health():
-        """API health check endpoint."""
+        """API health check endpoint with OHLCV persistence monitoring."""
         try:
             # Basic health checks
             db_healthy = True
@@ -114,11 +114,59 @@ def register_api_routes(app, extensions, cache_control, config):
                 logger.error("Database health check failed: %s", str(e))
                 db_healthy = False
 
+            # Market data service health check
+            market_data_healthy = True
+            persistence_healthy = True
+            market_service_stats = {}
+            persistence_stats = {}
+            
+            try:
+                # Import market_service from global scope
+                from src.app import market_service
+                
+                if market_service:
+                    market_health = market_service.get_health_status()
+                    market_data_healthy = market_health.get('service_running', False)
+                    persistence_healthy = market_health.get('persistence_healthy', True)
+                    
+                    # Get market service stats
+                    market_service_stats = {
+                        'ticks_processed': market_health.get('ticks_processed', 0),
+                        'last_tick_age_seconds': market_health.get('last_tick_age_seconds'),
+                        'data_adapter_connected': market_health.get('data_adapter_connected', False)
+                    }
+                    
+                    # Get persistence stats
+                    persistence_stats = {
+                        'records_queued': market_health.get('persistence_records_queued', 0),
+                        'records_persisted': market_health.get('persistence_records_persisted', 0),
+                        'queue_size': market_health.get('persistence_queue_size', 0),
+                        'avg_batch_time_ms': market_health.get('persistence_avg_batch_time_ms', 0),
+                        'connection_test_passed': market_health.get('persistence_connection_test_passed', False)
+                    }
+                else:
+                    market_data_healthy = False
+                    persistence_healthy = False
+                    
+            except Exception as e:
+                logger.error("Market data service health check failed: %s", str(e))
+                market_data_healthy = False
+                persistence_healthy = False
+
+            # Overall system health
+            overall_healthy = db_healthy and market_data_healthy and persistence_healthy
+
             return jsonify({
-                "status": "healthy" if db_healthy else "unhealthy",
+                "status": "healthy" if overall_healthy else "unhealthy",
                 "components": {
                     "database": "healthy" if db_healthy else "unhealthy",
-                    "api": "healthy"
+                    "api": "healthy",
+                    "market_data_service": "healthy" if market_data_healthy else "unhealthy",
+                    "ohlcv_persistence": "healthy" if persistence_healthy else "unhealthy"
+                },
+                "stats": {
+                    "market_service": market_service_stats,
+                    "persistence": persistence_stats
                 },
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
