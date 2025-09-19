@@ -1,8 +1,8 @@
 # TickStock Documentation - Simplified Architecture
 
-**Version**: 2.0.0-simplified + Sprint 23 Advanced Analytics Complete  
-**Last Updated**: September 6, 2025  
-**Status**: Advanced Pattern Analytics Dashboard Complete ✅
+**Version**: 2.0.0-simplified + Sprint 25A Integration Complete
+**Last Updated**: September 18, 2025
+**Status**: Multi-Tier Pattern Dashboard Ready, Integration Verified ✅
 
 ## Overview
 
@@ -10,9 +10,10 @@ Welcome to the TickStock documentation for the simplified architecture. After a 
 
 ## Quick Start
 
+- **📊 Current Status**: [`CURRENT_STATUS.md`](CURRENT_STATUS.md) - **Live system status and sprint progress**
 - **🎯 Project Overview**: [`planning/project-overview.md`](planning/project-overview.md) - Vision, requirements, system architecture
-- **🏗️ Architecture Details**: [`architecture/system-architecture.md`](architecture/system-architecture.md) - Role separation and communication  
-- **🚀 Integration Guide**: [`guides/integration-guide.md`](guides/integration-guide.md) - **Complete TickStockPL integration guide**
+- **🏗️ Architecture Details**: [`architecture/system-architecture.md`](architecture/system-architecture.md) - Role separation and communication
+- **🚀 Integration Guide**: [`guides/integration-guide.md`](guides/integration-guide.md) - Complete TickStockPL integration guide
 - **⚙️ Development Setup**: [`development/coding-practices.md`](development/coding-practices.md) - Development standards and practices
 
 ## Documentation Structure
@@ -71,15 +72,17 @@ Welcome to the TickStock documentation for the simplified architecture. After a 
 - **Performance Improvements**: Eliminated processing overhead
 - **Integration Ready**: Clean Redis interface for TickStockPL
 
-### Current System (Sprint 23 Advanced Analytics Complete)
+### Current System (Sprint 25A Integration Complete)
 - **Real-time Data Processing**: Polygon.io + Synthetic data sources
-- **TickStockPL Integration**: Complete Redis pub-sub consumption with UI layer
-- **Advanced Pattern Analytics Dashboard**: 3 sophisticated analytics tabs (Correlations, Temporal, Compare)
+- **TickStockPL Integration**: ✅ VERIFIED - Single subscriber pattern with comprehensive monitoring
+- **Multi-Tier Pattern Dashboard**: Daily/Intraday/Combo tier visualization (Sprint 25)
+- **Integration Logging**: Complete audit trail with flow tracking (Sprint 25A)
 - **Pattern Discovery APIs**: REST endpoints with Redis caching (<50ms responses)
-- **Backtesting Platform**: Full UI for job creation, management, and results visualization  
+- **Advanced Analytics Dashboard**: 3 sophisticated analytics tabs (Correlations, Temporal, Compare)
+- **Backtesting Platform**: Full UI for job creation, management, and results visualization
 - **Pattern Alert System**: Personalized notifications with comprehensive management
-- **Health Monitoring**: Real-time system status and connectivity dashboards
-- **WebSocket Broadcasting**: <100ms real-time updates for all TickStockPL events
+- **Health Monitoring**: Real-time system status with heartbeat monitoring (60s intervals)
+- **WebSocket Broadcasting**: <100ms real-time updates with shared event handlers
 
 ### Core Components
 1. **Market Data Service** (232 lines) - Central tick processing

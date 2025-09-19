@@ -221,7 +221,7 @@ class PolygonWebSocketClient:
                     
                     # Only log summary when all subscriptions are confirmed
                     if len(self.subscription_confirmations) == len(self.subscribed_tickers):
-                        logger.info(f"POLYGON-CLIENT: ✅ All {len(self.subscribed_tickers)} ticker subscriptions confirmed: {', '.join(sorted(self.subscribed_tickers))}")
+                        logger.info(f"POLYGON-CLIENT: [SUCCESS] All {len(self.subscribed_tickers)} ticker subscriptions confirmed: {', '.join(sorted(self.subscribed_tickers))}")
                     # Log progress for large subscription sets
                     elif len(self.subscribed_tickers) > 5:
                         logger.info(f"POLYGON-CLIENT: Subscription progress: {len(self.subscription_confirmations)}/{len(self.subscribed_tickers)} confirmed")

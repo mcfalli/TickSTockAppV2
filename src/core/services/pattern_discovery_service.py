@@ -46,7 +46,7 @@ class PatternDiscoveryService:
         self.pattern_cache: Optional[RedisPatternCache] = None
         self.tickstock_db: Optional[TickStockDatabase] = None
         self.cache_control: Optional[CacheControl] = None
-        self.event_subscriber: Optional[RedisEventSubscriber] = None
+        # Removed: self.event_subscriber - will use main app's subscriber
         
         # Service state
         self.initialized = False
@@ -83,11 +83,10 @@ class PatternDiscoveryService:
             # Initialize cache control
             if not self._initialize_cache_control():
                 return False
-            
-            # Initialize event subscriber
-            if not self._initialize_event_subscriber():
-                return False
-            
+
+            # Note: Event subscriber will be registered with main app's subscriber
+            # Removed: _initialize_event_subscriber()
+
             # Register with Flask app
             self._register_with_app()
             
@@ -204,35 +203,31 @@ class PatternDiscoveryService:
             logger.error("PATTERN-DISCOVERY: Cache control initialization error: %s", e)
             return False
     
-    def _initialize_event_subscriber(self) -> bool:
-        """Initialize Redis event subscriber for TickStockPL integration."""
+    def register_with_main_subscriber(self, subscriber: 'RedisEventSubscriber') -> bool:
+        """Register pattern event handler with the main app's Redis subscriber.
+
+        This eliminates duplicate Redis subscriptions by using the shared subscriber.
+
+        Args:
+            subscriber: The main app's RedisEventSubscriber instance
+
+        Returns:
+            bool: True if registration successful, False otherwise
+        """
         try:
-            subscriber_config = {
-                'channels': self.config.get('tickstock_channels', [
-                    'tickstock.events.patterns',
-                    'tickstock.events.backtesting.progress',
-                    'tickstock.events.backtesting.results'
-                ])
-            }
-            
-            # Create event subscriber (without SocketIO for now)
-            self.event_subscriber = RedisEventSubscriber(
-                self.redis_client, 
-                None,  # SocketIO will be set later
-                subscriber_config
-            )
-            
-            # Add pattern event handler
-            self.event_subscriber.add_event_handler(
+            from src.core.services.redis_event_subscriber import EventType
+
+            # Register our pattern event handler with the main subscriber
+            subscriber.add_event_handler(
                 EventType.PATTERN_DETECTED,
                 self._handle_pattern_event
             )
-            
-            logger.info("PATTERN-DISCOVERY: Event subscriber initialized")
+
+            logger.info("PATTERN-DISCOVERY: Registered handler with main Redis subscriber")
             return True
-            
+
         except Exception as e:
-            logger.error("PATTERN-DISCOVERY: Event subscriber initialization error: %s", e)
+            logger.error("PATTERN-DISCOVERY: Failed to register with main subscriber: %s", e)
             return False
     
     def _register_with_app(self):
@@ -255,13 +250,12 @@ class PatternDiscoveryService:
             # Start pattern cache cleanup
             if self.pattern_cache:
                 self.pattern_cache.start_background_cleanup()
-            
-            # Start Redis event subscriber
-            if self.event_subscriber:
-                self.event_subscriber.start()
-            
+
+            # Note: Redis event subscriber is handled by main app
+            # Removed: self.event_subscriber.start()
+
             logger.info("PATTERN-DISCOVERY: Background services started")
-            
+
         except Exception as e:
             logger.error("PATTERN-DISCOVERY: Background service startup error: %s", e)
     
@@ -269,23 +263,35 @@ class PatternDiscoveryService:
         """Handle pattern detection events from TickStockPL."""
         try:
             if self.pattern_cache:
+                # Extract the actual pattern data from the event
+                # event.data contains the full event JSON, we need the 'data' field inside it
+                pattern_data = event.data.get('data', event.data)
+
+                # Create event structure expected by process_pattern_event
+                event_for_cache = {
+                    'event_type': event.data.get('event_type', 'pattern_detected'),
+                    'data': pattern_data
+                }
+
                 # Process event in pattern cache
-                success = self.pattern_cache.process_pattern_event(event.data)
-                
+                success = self.pattern_cache.process_pattern_event(event_for_cache)
+
                 if success:
-                    logger.debug("PATTERN-DISCOVERY: Pattern event processed - %s on %s", 
-                               event.data.get('pattern'), event.data.get('symbol'))
+                    logger.debug("PATTERN-DISCOVERY: Pattern event processed - %s on %s",
+                               pattern_data.get('pattern'), pattern_data.get('symbol'))
                 else:
                     logger.warning("PATTERN-DISCOVERY: Failed to process pattern event")
-            
+
         except Exception as e:
             logger.error("PATTERN-DISCOVERY: Error handling pattern event: %s", e)
     
     def set_socketio(self, socketio):
-        """Set SocketIO instance for event subscriber."""
-        if self.event_subscriber:
-            self.event_subscriber.socketio = socketio
-            logger.info("PATTERN-DISCOVERY: SocketIO integration enabled")
+        """Deprecated: SocketIO is handled by main app's subscriber.
+
+        This method is kept for backwards compatibility but does nothing.
+        """
+        # No longer needed - main app's subscriber handles SocketIO
+        pass
     
     def get_health_status(self) -> Dict[str, Any]:
         """Get comprehensive health status of all service components."""
@@ -361,10 +367,9 @@ class PatternDiscoveryService:
     
     def _check_subscriber_health(self) -> bool:
         """Check event subscriber health."""
+        # Subscriber is managed by main app, report as healthy if pattern cache is working
         try:
-            if not self.event_subscriber:
-                return False
-            return self.event_subscriber.is_running
+            return self.pattern_cache is not None
         except Exception:
             return False
     
@@ -388,10 +393,10 @@ class PatternDiscoveryService:
             # Stop background services
             if self.pattern_cache:
                 self.pattern_cache.stop_background_cleanup()
-            
-            if self.event_subscriber:
-                self.event_subscriber.stop()
-            
+
+            # Note: Event subscriber is managed by main app
+            # Removed: self.event_subscriber.stop()
+
             # Close database connections
             if self.tickstock_db:
                 self.tickstock_db.close()
@@ -414,6 +419,26 @@ _global_pattern_discovery_service: Optional[PatternDiscoveryService] = None
 def get_pattern_discovery_service() -> Optional[PatternDiscoveryService]:
     """Get global pattern discovery service instance."""
     return _global_pattern_discovery_service
+
+def register_pattern_discovery_with_subscriber(subscriber: 'RedisEventSubscriber') -> bool:
+    """Register pattern discovery service with main app's Redis subscriber.
+
+    This should be called after both the pattern discovery service and
+    the main app's Redis subscriber are initialized.
+
+    Args:
+        subscriber: The main app's RedisEventSubscriber instance
+
+    Returns:
+        bool: True if registration successful, False otherwise
+    """
+    global _global_pattern_discovery_service
+
+    if _global_pattern_discovery_service is None:
+        logger.error("PATTERN-DISCOVERY: Service not initialized, cannot register with subscriber")
+        return False
+
+    return _global_pattern_discovery_service.register_with_main_subscriber(subscriber)
 
 def initialize_pattern_discovery_service(app: Flask, config: Dict[str, Any]) -> bool:
     """Initialize global pattern discovery service."""

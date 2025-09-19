@@ -289,9 +289,9 @@ class RedisPatternCache:
             pipe = self.redis_client.pipeline()
             
             # Store pattern data
-            pipe.hset(pattern_key, {
+            pipe.hset(pattern_key, mapping={
                 'data': json.dumps(asdict(pattern)),
-                'cached_at': time.time()
+                'cached_at': str(time.time())  # Convert to string for Redis
             })
             pipe.expire(pattern_key, self.pattern_cache_ttl)
             

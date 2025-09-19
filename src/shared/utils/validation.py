@@ -51,7 +51,7 @@ def validate_strength(strength: str) -> bool:
 
 def validate_direction(direction: str) -> bool:
     """Validate direction value"""
-    valid_directions = ['up', 'down', '↑', '↓']
+    valid_directions = ['up', 'down', '^', 'v']
     return direction in valid_directions
 
 class FieldValidator:

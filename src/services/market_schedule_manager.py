@@ -912,7 +912,7 @@ async def main():
         for exchange, info in status['exchanges'].items():
             status_text = "🟢 TRADING" if info['is_currently_trading'] else "🔴 CLOSED"
             holiday_text = f" 🎄 {info['holiday_name']}" if info['holiday_name'] else ""
-            early_close_text = " ⏰ Early Close" if info['is_early_close'] else ""
+            early_close_text = " [TIME] Early Close" if info['is_early_close'] else ""
             
             print(f"  {exchange}: {status_text}{holiday_text}{early_close_text}")
 

@@ -18,6 +18,7 @@ from flask_socketio import SocketIO, emit, disconnect
 from flask_login import current_user
 from flask import request
 import redis
+from src.core.services.integration_logger import IntegrationPoint, flow_logger
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ class WebSocketBroadcaster:
                 self.stats['total_connections'] += 1
                 self.stats['active_connections'] = len(self.connected_users)
                 
-                logger.info(f"WEBSOCKET-BROADCASTER: User {user_id} connected (session: {session_id})")
+                logger.debug(f"WEBSOCKET-BROADCASTER: User {user_id} connected")
                 
                 # Send connection confirmation
                 emit('connection_confirmed', {
@@ -144,7 +145,7 @@ class WebSocketBroadcaster:
                     self.stats['disconnections'] += 1
                     self.stats['active_connections'] = len(self.connected_users)
                     
-                    logger.info(f"WEBSOCKET-BROADCASTER: User {user_id} disconnected (session: {session_id})")
+                    logger.debug(f"WEBSOCKET-BROADCASTER: User {user_id} disconnected")
                 
             except Exception as e:
                 logger.error(f"WEBSOCKET-BROADCASTER: Disconnection error: {e}")
@@ -199,11 +200,28 @@ class WebSocketBroadcaster:
     def broadcast_pattern_alert(self, pattern_event: Dict[str, Any]):
         """Broadcast pattern alert to subscribed users."""
         try:
-            pattern_name = pattern_event.get('data', {}).get('pattern')
-            symbol = pattern_event.get('data', {}).get('symbol')
-            
+            # Handle nested data structure from TickStockPL
+            data = pattern_event.get('data', {})
+
+            # Check if we have nested data.data structure
+            if 'data' in data:
+                # Use the nested data field
+                actual_data = data['data']
+            else:
+                # Use the direct data field
+                actual_data = data
+
+            # Try to get pattern from data.pattern (new format)
+            pattern_name = actual_data.get('pattern')
+
+            # Fallback to data.pattern_name (old format) if pattern is not found
             if not pattern_name:
-                logger.warning("WEBSOCKET-BROADCASTER: Pattern event missing pattern name")
+                pattern_name = actual_data.get('pattern_name')
+
+            symbol = actual_data.get('symbol')
+
+            if not pattern_name:
+                logger.warning(f"WEBSOCKET-BROADCASTER: Pattern event missing pattern name. Event structure: {pattern_event}")
                 return
             
             # Find users subscribed to this pattern
@@ -235,7 +253,13 @@ class WebSocketBroadcaster:
                 except Exception as e:
                     logger.error(f"WEBSOCKET-BROADCASTER: Failed to send to session {session_id}: {e}")
             
-            logger.info(f"WEBSOCKET-BROADCASTER: Pattern alert sent to {len(target_sessions)} users - {pattern_name} on {symbol}")
+            # Integration logging
+            if len(target_sessions) > 0:
+                flow_logger.log_checkpoint('', IntegrationPoint.WEBSOCKET_DELIVERED,
+                                         f"{pattern_name}@{symbol} to {len(target_sessions)} users")
+            else:
+                flow_logger.log_checkpoint('', IntegrationPoint.NO_SUBSCRIBERS,
+                                         f"{pattern_name}@{symbol}")
             
         except Exception as e:
             logger.error(f"WEBSOCKET-BROADCASTER: Pattern alert broadcast error: {e}")

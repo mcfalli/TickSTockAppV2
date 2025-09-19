@@ -320,7 +320,7 @@ class TierPatternIntegrationPatterns:
             
             logger.info(f"INTEGRATION-PATTERNS: Pattern {pattern_event.pattern_type} on {pattern_event.symbol} "
                        f"delivered to {delivery_count} users in {total_latency:.1f}ms "
-                       f"({'✓ COMPLIANT' if performance_compliant else '⚠ SLOW'})")
+                       f"({'[OK] COMPLIANT' if performance_compliant else '⚠ SLOW'})")
             
             return metrics
             

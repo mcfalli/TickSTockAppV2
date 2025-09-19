@@ -18,6 +18,13 @@ from dataclasses import dataclass
 from enum import Enum
 import redis
 from flask_socketio import SocketIO
+from src.core.services.integration_logger import (
+    flow_logger, IntegrationPoint, log_redis_publish, log_websocket_delivery
+)
+from src.core.services.database_integration_logger import (
+    get_database_integration_logger, IntegrationEventType, IntegrationCheckpoint
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -99,8 +106,13 @@ class RedisEventSubscriber:
             'events_dropped': 0,
             'connection_errors': 0,
             'last_event_time': None,
-            'start_time': time.time()
+            'start_time': time.time(),
+            'last_heartbeat': None
         }
+
+        # Heartbeat tracking
+        self.heartbeat_interval = 60  # Log heartbeat every 60 seconds
+        self.last_heartbeat_log = time.time()
         
     def start(self) -> bool:
         """Start the Redis event subscription service."""
@@ -121,8 +133,20 @@ class RedisEventSubscriber:
             # Subscribe to TickStockPL channels
             channel_list = list(self.channels.keys())
             self.pubsub.subscribe(channel_list)
-            
+
             logger.info(f"REDIS-SUBSCRIBER: Subscribed to {len(channel_list)} channels: {channel_list}")
+
+            # Log to database that subscriptions are active
+            db_logger = get_database_integration_logger()
+            if db_logger:
+                for channel in channel_list:
+                    db_logger.log_system_event(
+                        event_type='subscription_active',
+                        source_system='TickStockAppV2',
+                        checkpoint='CHANNEL_SUBSCRIBED',
+                        channel=channel,
+                        details={'status': 'listening', 'timestamp': time.time()}
+                    )
             
             # Start subscriber thread
             self.is_running = True
@@ -180,12 +204,31 @@ class RedisEventSubscriber:
             try:
                 # Get message with timeout
                 message = self.pubsub.get_message(timeout=1.0)
-                
+
+                # Check for heartbeat logging
+                current_time = time.time()
+                if current_time - self.last_heartbeat_log >= self.heartbeat_interval:
+                    self._log_heartbeat()
+                    self.last_heartbeat_log = current_time
+
                 if message is None:
                     continue
                     
-                # Skip subscription confirmation messages
+                # Log subscription confirmation messages
                 if message['type'] in ['subscribe', 'unsubscribe']:
+                    channel_name = message.get('channel', b'unknown').decode('utf-8') if isinstance(message.get('channel'), bytes) else message.get('channel')
+                    logger.info(f"REDIS-SUBSCRIBER: Channel {message['type']}: {channel_name}")
+
+                    # Log subscription status to database
+                    db_logger = get_database_integration_logger()
+                    if db_logger and message['type'] == 'subscribe':
+                        db_logger.log_system_event(
+                            event_type='subscription_confirmed',
+                            source_system='TickStockAppV2',
+                            checkpoint='REDIS_CONFIRMED',
+                            channel=channel_name,
+                            details={'redis_response': message['type'], 'pattern': message.get('pattern')}
+                        )
                     continue
                     
                 # Process actual messages
@@ -207,14 +250,17 @@ class RedisEventSubscriber:
         """Process a Redis message and forward to WebSocket."""
         try:
             self.stats['events_received'] += 1
-            
+
+            # Start integration flow tracking
+            flow_id = None
+
             channel = message['channel']
             data = message['data']
-            
+
             # Decode message data
             if isinstance(data, bytes):
                 data = data.decode('utf-8')
-            
+
             # Parse JSON
             try:
                 event_data = json.loads(data)
@@ -222,14 +268,21 @@ class RedisEventSubscriber:
                 logger.error(f"REDIS-SUBSCRIBER: Invalid JSON in message from {channel}: {e}")
                 self.stats['events_dropped'] += 1
                 return
-            
+
             # Create structured event
             event_type = self.channels.get(channel)
             if not event_type:
                 logger.warning(f"REDIS-SUBSCRIBER: Unknown channel: {channel}")
                 self.stats['events_dropped'] += 1
                 return
-            
+
+            # Database integration logging for pattern events
+            if event_type == EventType.PATTERN_DETECTED:
+                db_logger = get_database_integration_logger()
+                if db_logger:
+                    # Log EVENT_RECEIVED and extract flow_id from TickStockPL
+                    flow_id = db_logger.log_pattern_received(event_data, channel)
+
             event = TickStockEvent(
                 event_type=event_type,
                 source=event_data.get('source', 'unknown'),
@@ -237,12 +290,16 @@ class RedisEventSubscriber:
                 data=event_data,
                 channel=channel
             )
-            
+
+            # Add flow_id to event data for downstream logging
+            if flow_id:
+                event.data['_flow_id'] = flow_id
+
             # Process event
             self._handle_event(event)
             self.stats['events_processed'] += 1
             self.stats['last_event_time'] = time.time()
-            
+
         except Exception as e:
             logger.error(f"REDIS-SUBSCRIBER: Error processing message: {e}")
             self.stats['events_dropped'] += 1
@@ -251,7 +308,7 @@ class RedisEventSubscriber:
         """Handle a processed TickStockPL event."""
         try:
             # Log event for debugging
-            logger.debug(f"REDIS-SUBSCRIBER: Handling {event.event_type.value} event from {event.source}")
+            # Handled by integration logger
             
             # Apply user filtering for pattern events
             if event.event_type == EventType.PATTERN_DETECTED:
@@ -275,10 +332,39 @@ class RedisEventSubscriber:
     
     def _handle_pattern_event(self, event: TickStockEvent):
         """Handle pattern detection events with user filtering."""
-        pattern_data = event.data
+        # Handle potential double-nested data structure from TickStockPL
+        if 'data' in event.data and 'data' in event.data.get('data', {}):
+            # Double-nested: event.data.data.data contains the actual pattern data
+            pattern_data = event.data['data']['data']
+            flow_id = event.data.get('_flow_id') or event.data['data'].get('flow_id')
+        elif 'data' in event.data:
+            # Single-nested: event.data.data contains the pattern data
+            pattern_data = event.data['data']
+            flow_id = event.data.get('_flow_id') or event.data.get('flow_id')
+        else:
+            # Direct: event.data contains the pattern data
+            pattern_data = event.data
+            flow_id = event.data.get('_flow_id') or event.data.get('flow_id')
+
+        # Try to get pattern from 'pattern' field (new format)
         pattern_name = pattern_data.get('pattern')
+
+        # Fallback to 'pattern_name' field (old format) if pattern is not found
+        if not pattern_name:
+            pattern_name = pattern_data.get('pattern_name')
+
         symbol = pattern_data.get('symbol')
         confidence = pattern_data.get('confidence', 0)
+
+        # Database integration logging for EVENT_PARSED
+        if pattern_name and symbol:
+            db_logger = get_database_integration_logger()
+            if db_logger:
+                db_logger.log_pattern_parsed(flow_id, symbol, pattern_name, confidence)
+
+            # File-based integration logging using correct enum
+            flow_logger.log_checkpoint('', IntegrationPoint.EVENT_PARSED,
+                                     f"{pattern_name}@{symbol}")
         
         if not pattern_name or not symbol:
             logger.warning("REDIS-SUBSCRIBER: Pattern event missing required fields")
@@ -303,12 +389,23 @@ class RedisEventSubscriber:
                             'event': event.to_websocket_dict()
                         }
                         
-                        for user_id in interested_users:
-                            # Emit to specific user rooms (if using Socket.IO rooms)
-                            self.socketio.emit('pattern_alert', websocket_data, room=f'user_{user_id}')
-                        
-                        self.stats['events_forwarded'] += len(interested_users)
-                        logger.info(f"REDIS-SUBSCRIBER: Pattern alert sent to {len(interested_users)} users - {pattern_name} on {symbol}")
+                        # Only emit if socketio is available
+                        if self.socketio:
+                            for user_id in interested_users:
+                                # Emit to specific user rooms (if using Socket.IO rooms)
+                                self.socketio.emit('pattern_alert', websocket_data, room=f'user_{user_id}')
+
+                            self.stats['events_forwarded'] += len(interested_users)
+                        else:
+                            logger.warning(f"REDIS-SUBSCRIBER: SocketIO not available, cannot emit to {len(interested_users)} users")
+
+                        # Database integration logging for WEBSOCKET_DELIVERED
+                        db_logger = get_database_integration_logger()
+                        if db_logger:
+                            db_logger.log_websocket_delivery(flow_id, symbol, pattern_name, len(interested_users))
+
+                        # File-based integration logging
+                        log_websocket_delivery(pattern_name, symbol, len(interested_users))
                     else:
                         logger.debug(f"REDIS-SUBSCRIBER: No users subscribed to {pattern_name} on {symbol}")
                 else:
@@ -317,11 +414,20 @@ class RedisEventSubscriber:
                         'type': 'pattern_alert',
                         'event': event.to_websocket_dict()
                     }
-                    
-                    # Use namespace parameter instead of broadcast for Flask-SocketIO
-                    self.socketio.emit('pattern_alert', websocket_data, namespace='/')
-                    self.stats['events_forwarded'] += 1
-                    logger.info(f"REDIS-SUBSCRIBER: Pattern alert broadcasted (no filter) - {pattern_name} on {symbol}")
+
+                    # Only emit if socketio is available
+                    if self.socketio:
+                        # Use namespace parameter instead of broadcast for Flask-SocketIO
+                        self.socketio.emit('pattern_alert', websocket_data, namespace='/')
+                        self.stats['events_forwarded'] += 1
+                        logger.debug(f"REDIS-SUBSCRIBER: Pattern alert broadcasted - {pattern_name} on {symbol}")
+                    else:
+                        logger.warning(f"REDIS-SUBSCRIBER: SocketIO not available, cannot broadcast pattern alert for {pattern_name}")
+
+                    # Database integration logging for broadcast
+                    db_logger = get_database_integration_logger()
+                    if db_logger:
+                        db_logger.log_websocket_delivery(flow_id, symbol, pattern_name, 1)  # Broadcast count
                     
             except Exception as e:
                 logger.error(f"REDIS-SUBSCRIBER: Error in pattern filtering: {e}")
@@ -331,9 +437,19 @@ class RedisEventSubscriber:
                         'type': 'pattern_alert',
                         'event': event.to_websocket_dict()
                     }
-                    
-                    self.socketio.emit('pattern_alert', websocket_data, namespace='/')
-                    self.stats['events_forwarded'] += 1
+
+                    # Only emit if socketio is available
+                    if self.socketio:
+                        self.socketio.emit('pattern_alert', websocket_data, namespace='/')
+                        self.stats['events_forwarded'] += 1
+                    else:
+                        logger.warning(f"REDIS-SUBSCRIBER: SocketIO not available, cannot emit pattern alert for {pattern_name}")
+
+                    # Database integration logging for error fallback
+                    db_logger = get_database_integration_logger()
+                    if db_logger:
+                        db_logger.log_websocket_delivery(flow_id, symbol, pattern_name, 1)  # Fallback broadcast
+
                 except Exception as emit_error:
                     logger.error(f"REDIS-SUBSCRIBER: Failed to emit pattern alert: {emit_error}")
         
@@ -489,6 +605,38 @@ class RedisEventSubscriber:
             'last_check': time.time()
         }
     
+    def _log_heartbeat(self):
+        """Log periodic heartbeat to show system is alive and listening."""
+        try:
+            # Log heartbeat to database
+            db_logger = get_database_integration_logger()
+            if db_logger:
+                db_logger.log_system_event(
+                    event_type='heartbeat',
+                    source_system='TickStockAppV2',
+                    checkpoint='SUBSCRIBER_ALIVE',
+                    channel='all',
+                    details={
+                        'subscribed_channels': list(self.channels.keys()),
+                        'events_received': self.stats['events_received'],
+                        'events_processed': self.stats['events_processed'],
+                        'events_forwarded': self.stats['events_forwarded'],
+                        'connection_errors': self.stats['connection_errors'],
+                        'uptime_seconds': round(time.time() - self.stats['start_time']),
+                        'last_event_time': self.stats['last_event_time']
+                    }
+                )
+
+            # Also log to standard logger
+            logger.info(f"REDIS-SUBSCRIBER HEARTBEAT: Alive and listening on {len(self.channels)} channels | "
+                       f"Events: {self.stats['events_received']} received, {self.stats['events_processed']} processed | "
+                       f"Uptime: {round(time.time() - self.stats['start_time'])}s")
+
+            self.stats['last_heartbeat'] = time.time()
+
+        except Exception as e:
+            logger.error(f"REDIS-SUBSCRIBER: Error logging heartbeat: {e}")
+
     def _check_tickstock_pl_status(self) -> bool:
         """Check if TickStockPL producer system is online."""
         try:
@@ -497,7 +645,7 @@ class RedisEventSubscriber:
             if heartbeat:
                 heartbeat_time = float(heartbeat)
                 return (time.time() - heartbeat_time) < 60  # Within last minute
-            
+
             # Check for recent pattern activity
             pattern_keys = self.redis_client.keys('tickstock:patterns:*')
             if pattern_keys:
@@ -506,9 +654,9 @@ class RedisEventSubscriber:
                     ttl = self.redis_client.ttl(key)
                     if ttl > 0 and ttl < 3600:  # Fresh data (less than 1 hour old)
                         return True
-            
+
             return False
-            
+
         except Exception as e:
             logger.error(f"REDIS-SUBSCRIBER: Error checking TickStockPL status: {e}")
             return False

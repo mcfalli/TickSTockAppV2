@@ -630,7 +630,7 @@ class PolygonHistoricalLoader:
                 self.conn.commit()
                 
                 # Log successful upsert (ON CONFLICT handles insert vs update)
-                logger.info(f"HISTORICAL-LOADER: ✓ Upserted symbol metadata for {symbol}")
+                logger.info(f"HISTORICAL-LOADER: [OK] Upserted symbol metadata for {symbol}")
                 return True
                 
         except Exception as e:
@@ -1103,7 +1103,7 @@ class PolygonHistoricalLoader:
                 # Ensure symbol exists in symbols table first
                 logger.debug(f"HISTORICAL-LOADER: About to ensure symbol {symbol} exists")
                 if not self.ensure_symbol_exists(symbol):
-                    logger.error(f"HISTORICAL-LOADER: ✗ {symbol} - failed to create symbol record")
+                    logger.error(f"HISTORICAL-LOADER: [FAIL] {symbol} - failed to create symbol record")
                     failed_symbols.append(symbol)
                     continue
                 logger.debug(f"HISTORICAL-LOADER: Symbol {symbol} existence confirmed")
@@ -1115,13 +1115,13 @@ class PolygonHistoricalLoader:
                     # Save to database
                     self.save_data_to_db(df, timespan)
                     successful_loads += 1
-                    logger.info(f"HISTORICAL-LOADER: ✓ {symbol} completed ({len(df)} records)")
+                    logger.info(f"HISTORICAL-LOADER: [OK] {symbol} completed ({len(df)} records)")
                 else:
-                    logger.warning(f"HISTORICAL-LOADER: ✗ {symbol} - no data received")
+                    logger.warning(f"HISTORICAL-LOADER: [FAIL] {symbol} - no data received")
                     failed_symbols.append(symbol)
                     
             except Exception as e:
-                logger.error(f"HISTORICAL-LOADER: ✗ {symbol} failed: {e}")
+                logger.error(f"HISTORICAL-LOADER: [FAIL] {symbol} failed: {e}")
                 failed_symbols.append(symbol)
                 
         logger.info(f"HISTORICAL-LOADER: Bulk load completed")

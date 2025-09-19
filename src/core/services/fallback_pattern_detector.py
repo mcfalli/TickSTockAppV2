@@ -260,6 +260,12 @@ class FallbackPatternDetector:
         
         # Volume surge threshold (3x average)
         if current_tick.volume > avg_volume * 3 and avg_volume > 100:
+            # Calculate price change from previous tick
+            price_change = 0.0
+            if len(ticks) >= 2:
+                prev_price = ticks[-2].price
+                price_change = ((current_tick.price - prev_price) / prev_price) * 100
+
             return PatternDetection(
                 pattern=PatternType.HIGH_VOLUME_SURGE,
                 symbol=current_tick.symbol,
@@ -271,6 +277,7 @@ class FallbackPatternDetector:
                 metadata={
                     "avg_volume": avg_volume,
                     "volume_ratio": current_tick.volume / avg_volume,
+                    "price_change": price_change,
                     "source": "fallback_detector"
                 }
             )
@@ -292,8 +299,12 @@ class FallbackPatternDetector:
         # Doji-like: price near middle of recent range
         middle_threshold = 0.3  # Within 30% of middle
         price_middle_distance = abs(current_tick.price - avg_price) / price_range
-        
+
         if price_range > 0 and price_middle_distance < middle_threshold:
+            # Calculate price change from first to last price in range
+            first_price = recent_prices[0]
+            price_change = ((current_tick.price - first_price) / first_price) * 100
+
             return PatternDetection(
                 pattern=PatternType.DOJI,
                 symbol=current_tick.symbol,
@@ -306,6 +317,7 @@ class FallbackPatternDetector:
                     "price_range": price_range,
                     "avg_price": avg_price,
                     "middle_distance": price_middle_distance,
+                    "price_change": price_change,
                     "source": "fallback_detector"
                 }
             )
@@ -349,20 +361,26 @@ class FallbackPatternDetector:
     def _publish_pattern(self, pattern: PatternDetection):
         """Publish detected pattern via Redis and WebSocket."""
         try:
-            # Create pattern event message
+            # Create pattern event message in correct nested structure
+            current_timestamp = pattern.timestamp
             pattern_event = {
-                'event_type': 'pattern_detected',
-                'pattern': pattern.pattern.value,
-                'symbol': pattern.symbol,
-                'timestamp': pattern.timestamp,
-                'confidence': pattern.confidence,
-                'timeframe': '1min',
-                'direction': pattern.direction,
-                'source': 'fallback_detector',
-                'metadata': {
-                    'price': pattern.price,
-                    'volume': pattern.volume,
-                    **pattern.metadata
+                "event_type": "pattern_detected",
+                "source": "fallback_detector",
+                "timestamp": current_timestamp,
+                "data": {
+                    "symbol": pattern.symbol,
+                    "pattern": pattern.pattern.value,
+                    "confidence": pattern.confidence,
+                    "current_price": pattern.price,
+                    "price_change": pattern.metadata.get('price_change', 0.0),
+                    "timestamp": current_timestamp,
+                    "expires_at": current_timestamp + (3 * 24 * 60 * 60),  # 3 days
+                    "indicators": {
+                        "relative_strength": pattern.metadata.get('relative_strength', 1.0),
+                        "relative_volume": pattern.metadata.get('volume_ratio', 1.0),
+                        "volume": pattern.volume
+                    },
+                    "source": "fallback"  # Data source tier
                 }
             }
             

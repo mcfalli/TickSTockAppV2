@@ -92,6 +92,11 @@ class ConfigManager:
         'LOG_FILE_ENABLED': False,  # Temporarily disabled to fix startup hanging
         'LOG_FILE_PRODUCTION_MODE': False,
 
+        # Integration Logging Configuration
+        'INTEGRATION_LOGGING_ENABLED': True,
+        'INTEGRATION_LOG_FILE': False,
+        'INTEGRATION_LOG_LEVEL': 'INFO',
+
         # (Removed legacy tracing configuration - no longer needed after event detection cleanup)
 
         # POOL WORKERS CONFIGURATION - SPRINT 26 BASELINE

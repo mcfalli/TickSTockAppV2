@@ -3,7 +3,7 @@
 Enterprise Production Load Scheduler - Sprint 14 Phase 4
 
 This service provides enterprise-scale production load scheduling capabilities:
-- Advanced scheduling for 5 years × 500 symbols with <5% error rate
+- Advanced scheduling for 5 years x 500 symbols with <5% error rate
 - Redis-based job queue management with priority ordering
 - Fault tolerance and resume capability with job state persistence
 - Multi-threaded load balancing with API rate limit coordination
@@ -77,7 +77,7 @@ class EnterpriseProductionScheduler:
     Enterprise Production Load Scheduler
     
     Provides enterprise-scale historical data loading with:
-    - Massive data loads (5 years × 500+ symbols)
+    - Massive data loads (5 years x 500+ symbols)
     - Fault-tolerant job queue management via Redis
     - Priority-based scheduling with resource management
     - Multi-threaded execution with API rate limiting

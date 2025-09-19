@@ -190,7 +190,7 @@ def register_admin_historical_routes(app):
                             # Ensure symbol exists in database first
                             if not loader.ensure_symbol_exists(symbol):
                                 job_data['failed_symbols'].append(symbol)
-                                job_data['log_messages'].append(f"✗ {symbol}: Failed to create symbol record")
+                                job_data['log_messages'].append(f"[FAIL] {symbol}: Failed to create symbol record")
                                 continue
                             
                             # Load data for this symbol
@@ -207,14 +207,14 @@ def register_admin_historical_routes(app):
                             if not df.empty:
                                 loader.save_data_to_db(df, job_data['timespan'])
                                 job_data['successful_symbols'].append(symbol)
-                                job_data['log_messages'].append(f"✓ {symbol}: {len(df)} records loaded")
+                                job_data['log_messages'].append(f"[OK] {symbol}: {len(df)} records loaded")
                             else:
                                 job_data['failed_symbols'].append(symbol)
-                                job_data['log_messages'].append(f"✗ {symbol}: No data received")
+                                job_data['log_messages'].append(f"[FAIL] {symbol}: No data received")
                                 
                         except Exception as e:
                             job_data['failed_symbols'].append(symbol)
-                            job_data['log_messages'].append(f"✗ {symbol}: {str(e)}")
+                            job_data['log_messages'].append(f"[FAIL] {symbol}: {str(e)}")
                     
                     # Complete job
                     job_data['progress'] = 100
@@ -403,23 +403,23 @@ def register_admin_historical_routes(app):
                     if result.success:
                         job_data['status'] = 'completed'
                         job_data['log_messages'].append(
-                            f"✓ Bulk load completed: {result.symbols_loaded} loaded, "
+                            f"[OK] Bulk load completed: {result.symbols_loaded} loaded, "
                             f"{result.symbols_updated} updated, {result.symbols_skipped} skipped"
                         )
                         if result.cache_entries_created:
                             job_data['log_messages'].append(
-                                f"✓ Created {result.cache_entries_created} cache entries"
+                                f"[OK] Created {result.cache_entries_created} cache entries"
                             )
                     else:
                         job_data['status'] = 'failed'
-                        job_data['log_messages'].append(f"✗ Bulk load failed: {'; '.join(result.errors)}")
+                        job_data['log_messages'].append(f"[FAIL] Bulk load failed: {'; '.join(result.errors)}")
                         
                     job_data['completed_at'] = datetime.now()
                     
                 except Exception as e:
                     job_data['status'] = 'failed'
                     job_data['errors'].append(str(e))
-                    job_data['log_messages'].append(f"✗ Job failed with exception: {str(e)}")
+                    job_data['log_messages'].append(f"[FAIL] Job failed with exception: {str(e)}")
                     job_data['completed_at'] = datetime.now()
                     logger.error(f"Bulk universe job {job_id} failed: {e}")
                 finally:
@@ -623,15 +623,15 @@ def register_admin_historical_routes(app):
             
             # Build success message
             success_msg = f"""Cache rebuild completed in {duration.total_seconds():.1f}s:
-• Deleted entries: {stats['deleted_entries']}
-• Market cap categories: {stats['market_cap_entries']}
-• Sector leaders: {stats['sector_leader_entries']}
-• Market leaders: {stats['market_leader_entries']}
-• Themes: {stats['theme_entries']}
-• Industries: {stats['industry_entries']}
-• ETF categories: {stats['etf_entries']}
-• Complete universes: {stats['complete_entries']}
-• Stats summaries: {stats['stats_entries']}"""
+* Deleted entries: {stats['deleted_entries']}
+* Market cap categories: {stats['market_cap_entries']}
+* Sector leaders: {stats['sector_leader_entries']}
+* Market leaders: {stats['market_leader_entries']}
+* Themes: {stats['theme_entries']}
+* Industries: {stats['industry_entries']}
+* ETF categories: {stats['etf_entries']}
+* Complete universes: {stats['complete_entries']}
+* Stats summaries: {stats['stats_entries']}"""
             
             flash(success_msg, 'success')
             
@@ -757,11 +757,11 @@ def register_admin_historical_routes(app):
                             
                             if symbol_created:
                                 job_data['symbols_loaded'] += 1
-                                job_data['log_messages'].append(f"✓ {symbol}: Symbol created in database")
+                                job_data['log_messages'].append(f"[OK] {symbol}: Symbol created in database")
                             else:
                                 # Symbol already existed, count as updated/verified
                                 job_data['symbols_updated'] += 1
-                                job_data['log_messages'].append(f"✓ {symbol}: Symbol verified in database")
+                                job_data['log_messages'].append(f"[OK] {symbol}: Symbol verified in database")
                             
                             # Step 2: Load OHLCV daily data
                             start_date = datetime.now() - timedelta(days=int(job_data['years'] * 365))
@@ -779,19 +779,19 @@ def register_admin_historical_routes(app):
                                     records_saved = loader.save_data_to_db(df, 'day')
                                     job_data['ohlcv_records_loaded'] += len(df)
                                     job_data['log_messages'].append(
-                                        f"✓ {symbol}: {len(df)} OHLCV records loaded ({job_data['years']} years)"
+                                        f"[OK] {symbol}: {len(df)} OHLCV records loaded ({job_data['years']} years)"
                                     )
                                 else:
                                     job_data['log_messages'].append(f"! {symbol}: No OHLCV data available")
                                     
                             except Exception as e:
                                 job_data['errors'].append(f"{symbol}: OHLCV load failed - {str(e)}")
-                                job_data['log_messages'].append(f"✗ {symbol}: OHLCV load failed - {str(e)}")
+                                job_data['log_messages'].append(f"[FAIL] {symbol}: OHLCV load failed - {str(e)}")
                                 
                         except Exception as e:
                             job_data['symbols_skipped'] += 1
                             job_data['errors'].append(f"{symbol}: {str(e)}")
-                            job_data['log_messages'].append(f"✗ {symbol}: Failed - {str(e)}")
+                            job_data['log_messages'].append(f"[FAIL] {symbol}: Failed - {str(e)}")
                     
                     # Complete job
                     job_data['progress'] = 100
@@ -825,7 +825,7 @@ def register_admin_historical_routes(app):
                     
                     # Final summary
                     job_data['log_messages'].append(
-                        f"✅ CSV load completed: {job_data['symbols_loaded']} new, "
+                        f"[SUCCESS] CSV load completed: {job_data['symbols_loaded']} new, "
                         f"{job_data['symbols_updated']} updated, {job_data['symbols_skipped']} skipped, "
                         f"{job_data['ohlcv_records_loaded']} OHLCV records"
                     )
@@ -834,7 +834,7 @@ def register_admin_historical_routes(app):
                     job_data['status'] = 'failed'
                     job_data['completed_at'] = datetime.now()
                     job_data['errors'].append(f"Job failed: {str(e)}")
-                    job_data['log_messages'].append(f"✗ CSV load failed: {str(e)}")
+                    job_data['log_messages'].append(f"[FAIL] CSV load failed: {str(e)}")
                     
                     # Update symbol_load_log with failure
                     if job_data.get('load_log_id') and conn:

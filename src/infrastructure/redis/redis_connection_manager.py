@@ -186,7 +186,9 @@ class RedisConnectionManager:
             result = self._client.ping()
             response_time = (time.time() - start_time) * 1000
             
-            logger.debug("REDIS-MANAGER: Ping successful - %s ms", response_time)
+            # Only log ping at TRACE level to reduce noise
+            if logger.isEnabledFor(logging.DEBUG - 5):  # TRACE level
+                logger.log(logging.DEBUG - 5, "REDIS-MANAGER: Ping successful - %s ms", response_time)
             
             # Track performance
             self._record_command_time(response_time)
@@ -251,19 +253,21 @@ class RedisConnectionManager:
         """Update connection pool statistics."""
         try:
             if self._primary_pool:
-                self._pool_stats.created_connections = self._primary_pool.created_connections
-                self._pool_stats.available_connections = len(self._primary_pool._available_connections)
-                self._pool_stats.in_use_connections = (
-                    self._primary_pool.created_connections - 
-                    len(self._primary_pool._available_connections)
-                )
-                
+                # The created_connections attribute doesn't exist on standard ConnectionPool
+                # Use available connections info instead
+                if hasattr(self._primary_pool, '_available_connections'):
+                    self._pool_stats.available_connections = len(self._primary_pool._available_connections)
+                if hasattr(self._primary_pool, '_in_use_connections'):
+                    self._pool_stats.in_use_connections = len(self._primary_pool._in_use_connections)
+
                 # Calculate average response time
                 if self._command_times:
                     self._pool_stats.avg_response_time_ms = sum(self._command_times) / len(self._command_times)
-                
+
         except Exception as e:
-            logger.debug("REDIS-MANAGER: Error updating pool stats: %s", e)
+            # Only log at TRACE level to reduce noise
+            if logger.isEnabledFor(logging.DEBUG - 5):  # TRACE level
+                logger.log(logging.DEBUG - 5, "REDIS-MANAGER: Error updating pool stats: %s", e)
     
     def _record_command_time(self, response_time_ms: float):
         """Record command response time for performance tracking."""
@@ -459,7 +463,7 @@ class RedisConnectionManager:
                 self.config.max_connections = 50
             
             # More aggressive health checking
-            self.config.health_check_interval = 15
+            self.config.health_check_interval = 60  # Check once per minute instead of every 15 seconds
             
             # Recreate pool with new settings
             if self._primary_pool:

@@ -378,7 +378,7 @@ def initialize_redis_mandatory(config: Dict[str, Any], environment: str = 'PRODU
     performance_results = validate_redis_performance(redis_client, environment=environment)
     
     # All validations passed
-    logger.info("REDIS: ✅ All mandatory validations passed successfully")
+    logger.info("REDIS: [SUCCESS] All mandatory validations passed successfully")
     logger.info(f"REDIS: Ready for TickStockPL integration - "
                f"ping: {connectivity_results['response_time_ms']}ms, "
                f"channels: {len(pubsub_results['required_channels'])}, "

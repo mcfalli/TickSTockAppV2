@@ -72,22 +72,22 @@ def run_migration_command(command, message=None):
             if command == 'init':
                 print("Initializing migration repository...")
                 init()
-                print("✅ Migration repository initialized")
+                print("[SUCCESS] Migration repository initialized")
                 
             elif command == 'migrate':
                 print(f"Creating migration: {message}")
                 migrate(message=message)
-                print("✅ Migration created")
+                print("[SUCCESS] Migration created")
                 
             elif command == 'upgrade':
                 print("Upgrading database...")
                 upgrade()
-                print("✅ Database upgraded")
+                print("[SUCCESS] Database upgraded")
                 
             elif command == 'stamp':
                 print("Stamping database as current...")
                 stamp()
-                print("✅ Database stamped")
+                print("[SUCCESS] Database stamped")
                 
             else:
                 print(f"Unknown command: {command}")
@@ -96,7 +96,7 @@ def run_migration_command(command, message=None):
         return True
         
     except Exception as e:
-        print(f"❌ Migration failed: {e}")
+        print(f"[ERROR] Migration failed: {e}")
         import traceback
         traceback.print_exc()
         return False

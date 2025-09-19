@@ -84,14 +84,14 @@ class CacheEntriesSynchronizer:
                 logger.warning("Redis connection failed, notifications will be disabled")
                 self.redis_client = None
             
-            logger.info("✅ CacheEntriesSynchronizer connected to database")
+            logger.info("[SUCCESS] CacheEntriesSynchronizer connected to database")
             
             # Load configuration from database
             self._load_configuration()
             
             return True
         except Exception as e:
-            logger.error(f"❌ Connection failed: {e}")
+            logger.error(f"[ERROR] Connection failed: {e}")
             return False
     
     def disconnect(self):
@@ -145,18 +145,18 @@ class CacheEntriesSynchronizer:
                     elif config_name == 'complete_limits':
                         self.complete_limits[config_key] = parsed_value
                 
-                logger.info(f"📋 Loaded configuration: {len(self.market_cap_thresholds)} thresholds, "
+                logger.info(f"[LIST] Loaded configuration: {len(self.market_cap_thresholds)} thresholds, "
                            f"{len(self.theme_definitions)} themes, {len(self.industry_groups)} industries, "
                            f"{len(self.etf_categories)} ETF categories")
                 
         except Exception as e:
-            logger.error(f"❌ Failed to load configuration: {e}")
+            logger.error(f"[ERROR] Failed to load configuration: {e}")
             # Fall back to default configuration
             self._load_default_configuration()
     
     def _load_default_configuration(self):
         """Load default configuration as fallback."""
-        logger.warning("⚠️ Loading default configuration as fallback")
+        logger.warning("[WARNING] Loading default configuration as fallback")
         
         self.market_cap_thresholds = {
             'mega_cap': 200_000_000_000,
@@ -202,7 +202,7 @@ class CacheEntriesSynchronizer:
         Returns:
             Dict with rebuild statistics
         """
-        logger.info(f"🔄 Starting cache entries rebuild at {self.sync_timestamp}")
+        logger.info(f"[SYNC] Starting cache entries rebuild at {self.sync_timestamp}")
         
         stats = {
             'deleted_entries': 0,
@@ -260,13 +260,13 @@ class CacheEntriesSynchronizer:
             # Commit all changes
             self.db_conn.commit()
             
-            logger.info(f"✅ Cache rebuild completed successfully: {stats}")
+            logger.info(f"[SUCCESS] Cache rebuild completed successfully: {stats}")
             return stats
             
         except Exception as e:
             if self.db_conn:
                 self.db_conn.rollback()
-            logger.error(f"❌ Cache rebuild failed: {e}")
+            logger.error(f"[ERROR] Cache rebuild failed: {e}")
             raise
         finally:
             self.disconnect()
@@ -340,7 +340,7 @@ class CacheEntriesSynchronizer:
                     """, ('stock_universe', 'market_cap', category, json.dumps(stock_data), self.environment))
                     
                     created_count += 1
-                    logger.info(f"📊 Created {category} with {len(stocks)} stocks")
+                    logger.info(f"[STATS] Created {category} with {len(stocks)} stocks")
         
         return created_count
     
@@ -453,7 +453,7 @@ class CacheEntriesSynchronizer:
                     """, ('stock_universe', 'market_leaders', key_name, json.dumps(stock_data), self.environment))
                     
                     created_count += 1
-                    logger.info(f"📈 Created market leaders top {count}: {len(stocks)} stocks")
+                    logger.info(f"[UP] Created market leaders top {count}: {len(stocks)} stocks")
         
         return created_count
     
@@ -489,7 +489,7 @@ class CacheEntriesSynchronizer:
                     """, ('stock_universe', 'themes', theme_name, json.dumps(available_tickers), self.environment))
                     
                     created_count += 2
-                    logger.info(f"🎯 Created theme {theme_name}: {len(available_tickers)} stocks")
+                    logger.info(f"[TARGET] Created theme {theme_name}: {len(available_tickers)} stocks")
         
         return created_count
     
@@ -694,7 +694,7 @@ class CacheEntriesSynchronizer:
                     """, ('etf_universe', name, f"{key}_detailed", json.dumps(etf_detailed), self.environment))
                     
                     created_count += 2
-                    logger.info(f"📊 Created ETF category {name}: {len(etf_tickers)} ETFs ({etf_tickers})")
+                    logger.info(f"[STATS] Created ETF category {name}: {len(etf_tickers)} ETFs ({etf_tickers})")
         
         return created_count
     
@@ -755,7 +755,7 @@ class CacheEntriesSynchronizer:
             """, ('stock_universe', 'complete', f'top_{limit}', json.dumps(stock_data_limited), self.environment))
             
             created_count += 1
-            logger.info(f"📊 Created complete stocks top {limit}: {len(top_limited)} stocks")
+            logger.info(f"[STATS] Created complete stocks top {limit}: {len(top_limited)} stocks")
             
             # 2. All stocks as simple ticker array (performance optimized)
             all_tickers = [stock['symbol'] for stock in all_stocks]
@@ -812,7 +812,7 @@ class CacheEntriesSynchronizer:
             """, ('etf_universe', 'complete', f'top_{limit}', json.dumps(etf_data_limited), self.environment))
             
             created_count += 1
-            logger.info(f"📊 Created complete ETFs top {limit}: {len(top_limited)} ETFs")
+            logger.info(f"[STATS] Created complete ETFs top {limit}: {len(top_limited)} ETFs")
             
             # 2. All ETFs as simple ticker array (performance optimized)
             all_etf_tickers = [etf['symbol'] for etf in all_etfs]
@@ -864,7 +864,7 @@ class CacheEntriesSynchronizer:
                     VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 """, ('stock_stats', 'universe', 'summary', json.dumps(overview_data), self.environment))
                 
-                logger.info(f"📊 Created stock statistics summary")
+                logger.info(f"[STATS] Created stock statistics summary")
                 return 1
         
         return 0
@@ -1020,7 +1020,7 @@ class CacheEntriesSynchronizer:
             return published
             
         except Exception as e:
-            logger.error(f"❌ Failed to publish Redis notifications: {e}")
+            logger.error(f"[ERROR] Failed to publish Redis notifications: {e}")
             return 0
 
 def main():
@@ -1029,10 +1029,10 @@ def main():
     
     try:
         stats = synchronizer.rebuild_stock_cache_entries()
-        print(f"✅ Cache rebuild completed: {stats}")
+        print(f"[SUCCESS] Cache rebuild completed: {stats}")
         return 0
     except Exception as e:
-        print(f"❌ Cache rebuild failed: {e}")
+        print(f"[ERROR] Cache rebuild failed: {e}")
         return 1
 
 if __name__ == '__main__':

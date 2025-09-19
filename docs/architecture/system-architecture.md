@@ -14,18 +14,19 @@
 **What TickStockApp DOES**:
 - **User Management**: Authentication, registration, session handling
 - **UI & Dashboard**: Real-time WebSocket updates, pattern alert notifications
-- **Event Consumption**: Subscribes to TickStockPL events via Redis pub-sub
+- **Event Consumption**: Single RedisEventSubscriber with shared handlers (Sprint 25A fix)
+- **Integration Logging**: ✅ **COMPLETE** - Comprehensive database logging with flow tracking (Sprint 25A)
 - **Real-Time Pattern Events**: ✅ **COMPLETE** - Live WebSocket broadcasting of pattern detections from TickStockPL
-- **TickStockPL Integration**: ✅ **COMPLETE** - Service-based architecture with Redis pub-sub confirmed operational
+- **TickStockPL Integration**: ✅ **VERIFIED** - Redis pub-sub with monitoring and heartbeat (60s intervals)
 - **Live Data Processing**: ✅ **COMPLETE** - 70 tickers streaming Polygon → Redis → TickStockPL → OHLCV database
-- **Pattern Discovery APIs**: REST endpoints consuming database pattern data (`/api/patterns/daily`, `/api/patterns/intraday`, `/api/patterns/combo`)
-- **Tier Pattern Dashboard**: Multi-tier pattern visualization (Daily, Intraday, Combo) with real-time updates
+- **Pattern Discovery APIs**: REST endpoints consuming Redis cache (no direct DB queries for patterns)
+- **Tier Pattern Dashboard**: Multi-tier pattern visualization (Daily, Intraday, Combo) with real-time updates (Sprint 25)
 - **User Universe APIs**: Symbol management and watchlist APIs (`/api/symbols`, `/api/users/*`)
 - **WebSocket Broadcasting**: Real-time pattern alerts to connected users (<100ms delivery)
 - **Job Triggering**: Submits backtest/analysis jobs to TickStockPL via Redis
 - **Result Display**: Visualizes TickStockPL-computed metrics and results
 - **Basic Data Ingestion**: Receives raw market data, forwards to Redis for TickStockPL
-- **Read-Only Database**: TimescaleDB queries for pattern data (daily_patterns, intraday_patterns, pattern_detections)
+- **Read-Only Database**: TimescaleDB queries for UI data only (symbols, users, NOT patterns)
 
 **What TickStockApp DOES NOT DO**:
 - ❌ **Pattern Detection**: No algorithm implementation - consumes TickStockPL events
@@ -75,9 +76,10 @@ For detailed TickStockPL architecture, performance metrics, and implementation s
 - `tickstock.data.raw` - Raw market data forwarding
 
 **TickStockPL → TickStockApp** (Event Publishing):
-- `tickstock.events.patterns` - Real-time pattern detections
+- `tickstock.events.patterns` - Real-time pattern detections (supports nested data structure)
 - `tickstock.events.backtesting.progress` - Backtest progress updates
 - `tickstock.events.backtesting.results` - Completed backtest results
+- `tickstock.health.status` - System health and heartbeat events
 
 **Automation Services → System** (Notifications):
 - `eod_processing_complete` - End-of-day processing completion notifications

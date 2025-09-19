@@ -16,6 +16,7 @@ from typing import Dict, Any, List, Set, Optional, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
 import redis
+from src.core.services.integration_logger import flow_logger, IntegrationPoint
 from src.infrastructure.database.tickstock_db import TickStockDatabase
 
 logger = logging.getLogger(__name__)
@@ -140,7 +141,10 @@ class PatternAlertManager:
         """Initialize pattern alert manager."""
         self.redis_client = redis_client
         self.tickstock_db = tickstock_db
-        
+
+        # Redis key prefix for all alert-related keys
+        self.key_prefix = "tickstock:alerts:"
+
         # Redis key patterns
         self.user_prefs_key = "tickstock:alerts:prefs:{user_id}"
         self.user_subscriptions_key = "tickstock:alerts:subscriptions:{user_id}"
@@ -591,7 +595,7 @@ class PatternAlertManager:
                     interested_users.append(user_id)
                     
                 except Exception as e:
-                    logger.error(f"PATTERN-ALERT-MANAGER: Error checking user {key}: {e}")
+                    logger.debug(f"PATTERN-ALERT-MANAGER: Skipping user {key}: {e}")
                     continue
             
             return interested_users

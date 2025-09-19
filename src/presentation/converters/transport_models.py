@@ -104,7 +104,7 @@ class StockData:
     session_low: Optional[float] = None
     
     # Trend tracking fields (for current state, not storage)
-    trend_direction: str = '→'  # '↑', '↓', '→'
+    trend_direction: str = '->'  # '^', 'v', '->'
     trend_strength: str = 'neutral'  # 'weak', 'moderate', 'strong', 'extreme'
     trend_score: float = 0.0
     trend_count: int = 0
@@ -114,7 +114,7 @@ class StockData:
     # Surge tracking fields (for current state, not storage)
     surge_active: bool = False
     surge_last_magnitude: float = 0.0
-    surge_last_direction: str = '→'
+    surge_last_direction: str = '->'
     surge_count: int = 0
     surge_count_up: int = 0
     surge_count_down: int = 0

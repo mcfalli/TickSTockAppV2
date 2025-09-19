@@ -62,7 +62,7 @@ class SessionManager:
         # Initialize current session
         self._update_current_session()
         
-        logger.info(f"✅ SessionManager initialized - Current: {self.current_session.value}")
+        logger.info(f"[SUCCESS] SessionManager initialized - Current: {self.current_session.value}")
     
     def _extract_session_config(self, config: Dict) -> Dict:
         """Extract session manager specific configuration."""
@@ -145,7 +145,7 @@ class SessionManager:
                 affected_components=[]
             )
             
-            logger.info(f"🔄 SESSION TRANSITION: {old_session.value} → {new_session.value}")
+            logger.info(f"[SYNC] SESSION TRANSITION: {old_session.value} -> {new_session.value}")
             
             # Execute callbacks
             self._execute_session_callbacks(transition)
@@ -185,12 +185,12 @@ class SessionManager:
                 
             except Exception as e:
                 error_msg = f"Session callback failed for {component_name}: {str(e)}"
-                logger.error(f"❌ {error_msg}")
+                logger.error(f"[ERROR] {error_msg}")
                 transition.errors.append(error_msg)
                 transition.success = False
         
         if transition.affected_components:
-            logger.info(f"✅ Session callbacks executed: {len(transition.affected_components)} components")
+            logger.info(f"[SUCCESS] Session callbacks executed: {len(transition.affected_components)} components")
     
     def _update_current_session(self):
         """Update the current session on initialization."""
@@ -323,7 +323,7 @@ class SessionManager:
             affected_components=[]
         )
         
-        logger.warning(f"⚠️ FORCED session transition: {old_session.value} → {self.current_session.value}")
+        logger.warning(f"[WARNING] FORCED session transition: {old_session.value} -> {self.current_session.value}")
         
         # Execute callbacks
         self._execute_session_callbacks(transition)

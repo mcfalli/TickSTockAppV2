@@ -102,6 +102,8 @@ These guides provide complete coverage of TickStock's development workflow and m
 - **YAGNI**: Build features only when needed
 - **DRY**: Avoid code duplication through abstraction
 - **Single Responsibility**: Each component has one clear purpose
+- **FIX IT RIGHT**: Always fix the root cause, never patch symptoms with workarounds
+- **NO BAND-AIDS**: Reject quick fixes that hide architectural problems - address the underlying design issue
 
 ## Code Standards & Quality
 
@@ -142,6 +144,29 @@ These guides provide complete coverage of TickStock's development workflow and m
 ***TickStock uses a comprehensive testing strategy with pytest for quality assurance and performance verification.***
 
 **Comprehensive Testing Guidelines**: See `docs/development/unit_testing.md` for complete testing standards, organization structure, sprint requirements, and best practices.
+
+**Integration Testing**: See `docs/testing/INTEGRATION_TESTING.md` for bulletproof integration testing with TickStockPL.
+
+### 🚨 MANDATORY Testing Requirements
+
+**Before ANY commit or PR**:
+```bash
+# Run the Integration Test Suite (<10 seconds)
+python run_tests.py
+```
+
+**Alternative commands (same result)**:
+```bash
+python tests/integration/run_integration_tests.py  # Direct path
+```
+
+**All tests MUST pass before code changes are considered complete**.
+
+**Key Testing Principles**:
+- **NO MOCKS for integration tests** - Test real Redis, real database, real services
+- **<10 second execution** - Fast feedback loop
+- **Would have caught the issue** - Tests must validate actual problems we've encountered
+- **Clear diagnostics** - Failed tests must indicate exact problem
 
 **Testing Agents**: Comprehensive testing is provided by multiple specialized agents:
 - **`tickstock-test-specialist`**: Automated test generation and quality assurance for TickStock processing components

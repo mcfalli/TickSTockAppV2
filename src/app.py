@@ -172,6 +172,11 @@ def initialize_tickstockpl_services(config, socketio, redis_client, flask_app=No
             pattern_alert_manager = PatternAlertManager(redis_client, config)
             logger.info("TICKSTOCKPL-SERVICES: Pattern alert manager initialized")
         
+        # Initialize database integration logger
+        from src.core.services.database_integration_logger import initialize_database_integration_logger
+        db_integration_logger = initialize_database_integration_logger(config)
+        logger.info("TICKSTOCKPL-SERVICES: Database integration logger initialized")
+
         # Initialize Redis event subscriber if Redis is available
         if redis_client:
             # The backtest manager will be injected later when the API routes are registered
@@ -1960,7 +1965,7 @@ def main():
     
     try:
         logger.info("=" * 60)
-        logger.info("🚀 TICKSTOCK APPLICATION STARTING (Simplified)")
+        logger.info("[STARTUP] TICKSTOCK APPLICATION STARTING (Simplified)")
         logger.info("=" * 60)
         
         # Run startup sequence
@@ -1987,6 +1992,26 @@ def main():
             logger.info("STARTUP: LOGIN-MANAGER configured immediately after extensions")
         else:
             logger.error("STARTUP: LOGIN-MANAGER not found in extensions!")
+
+        # Initialize integration logging from environment
+        try:
+            from src.core.services.integration_logger import configure_integration_logging
+            import os
+
+            # Get settings from environment variables (via .env)
+            integration_enabled = os.getenv('INTEGRATION_LOGGING_ENABLED', 'true').lower() == 'true'
+            integration_log_file = os.getenv('INTEGRATION_LOG_FILE', 'false').lower() == 'true'
+            integration_log_level = os.getenv('INTEGRATION_LOG_LEVEL', 'INFO')
+
+            flow_logger = configure_integration_logging(
+                enabled=integration_enabled,
+                log_file=integration_log_file,
+                log_level=integration_log_level
+            )
+
+            logger.info(f"STARTUP: Integration logging configured (enabled={integration_enabled})")
+        except ImportError:
+            logger.warning("STARTUP: Integration logging not available")
         
         # Initialize Redis (MANDATORY for TickStockPL integration)
         logger.info("STARTUP: Initializing Redis (MANDATORY)...")
@@ -2121,6 +2146,14 @@ def main():
                 pattern_api_success = init_pattern_discovery_app(app)
                 if pattern_api_success:
                     logger.info("STARTUP: Pattern discovery APIs registered successfully - MOCK ENDPOINTS ELIMINATED")
+
+                    # Register pattern discovery service with main Redis subscriber to avoid duplicate subscriptions
+                    if redis_event_subscriber:
+                        from src.core.services.pattern_discovery_service import register_pattern_discovery_with_subscriber
+                        if register_pattern_discovery_with_subscriber(redis_event_subscriber):
+                            logger.info("STARTUP: Pattern discovery service registered with main Redis subscriber")
+                        else:
+                            logger.warning("STARTUP: Failed to register pattern discovery with main subscriber")
                 else:
                     logger.error("STARTUP: Pattern discovery API registration failed")
             except Exception as pattern_error:
@@ -2193,10 +2226,10 @@ def main():
             raise
         
         logger.info("=" * 60)
-        logger.info("✅ TICKSTOCK APPLICATION READY")
-        logger.info(f"📊 Data Source: {'Synthetic' if config.get('USE_SYNTHETIC_DATA') else 'Polygon API'}")
-        logger.info(f"🔧 Redis: {'Connected' if redis_client else 'Disabled'}")
-        logger.info(f"🌐 SocketIO: Enabled")
+        logger.info("[SUCCESS] TICKSTOCK APPLICATION READY")
+        logger.info(f"[INFO] Data Source: {'Synthetic' if config.get('USE_SYNTHETIC_DATA') else 'Polygon API'}")
+        logger.info(f"[INFO] Redis: {'Connected' if redis_client else 'Disabled'}")
+        logger.info(f"[INFO] SocketIO: Enabled")
         logger.info("=" * 60)
         
         # Start the application
