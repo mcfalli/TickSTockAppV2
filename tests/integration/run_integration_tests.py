@@ -10,6 +10,8 @@ import os
 from pathlib import Path
 import time
 import subprocess
+from datetime import datetime
+import json
 
 # Test colors for terminal
 GREEN = '\033[92m'
@@ -34,6 +36,7 @@ def run_test_file(filepath, description):
     """Run a single test file and capture results."""
     print(f"\n{description}...")
     start_time = time.time()
+    test_details = []
 
     try:
         result = subprocess.run(
@@ -44,6 +47,14 @@ def run_test_file(filepath, description):
         )
 
         elapsed = time.time() - start_time
+        output = result.stdout + result.stderr
+
+        # Extract individual test results from output
+        for line in output.split('\n'):
+            if '[OK]' in line or '[PASS]' in line:
+                test_details.append({'test': line.strip(), 'status': 'PASS'})
+            elif '[X]' in line or '[FAIL]' in line:
+                test_details.append({'test': line.strip(), 'status': 'FAIL'})
 
         if result.returncode == 0:
             print(f"{GREEN}[PASS] PASSED{RESET} ({elapsed:.2f}s)")
@@ -51,21 +62,135 @@ def run_test_file(filepath, description):
             for line in result.stdout.split('\n'):
                 if '[OK]' in line or '[PASS]' in line:
                     print(f"  {GREEN}{line.strip()}{RESET}")
-            return True, elapsed
+            return True, elapsed, test_details
         else:
             print(f"{RED}[FAIL] FAILED{RESET} ({elapsed:.2f}s)")
             # Show errors
             for line in result.stderr.split('\n')[-5:]:
                 if line.strip():
                     print(f"  {RED}{line.strip()}{RESET}")
-            return False, elapsed
+            return False, elapsed, test_details
 
     except subprocess.TimeoutExpired:
         print(f"{RED}[FAIL] TIMEOUT{RESET} (>30s)")
-        return False, 30.0
+        return False, 30.0, [{'test': f'{description} - TIMEOUT', 'status': 'FAIL'}]
     except Exception as e:
         print(f"{RED}[FAIL] ERROR: {e}{RESET}")
-        return False, 0.0
+        return False, 0.0, [{'test': f'{description} - ERROR: {e}', 'status': 'FAIL'}]
+
+def write_test_report(results, total_elapsed, all_test_details):
+    """Write detailed test report to LAST_TEST_RUN.md."""
+    report_file = Path(__file__).parent.parent / "LAST_TEST_RUN.md"
+
+    passed_count = sum(1 for _, passed, _, _ in results if passed)
+    failed_count = len(results) - passed_count
+
+    # Count individual test details
+    detail_pass = sum(1 for d in all_test_details if d['status'] == 'PASS')
+    detail_fail = sum(1 for d in all_test_details if d['status'] == 'FAIL')
+
+    content = f"""# Last Test Run Report
+
+**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**Command**: `python run_tests.py`
+**Total Duration**: {total_elapsed:.2f} seconds
+**Status**: {"[PASSED]" if failed_count == 0 else "[FAILED]"}
+
+## Summary Statistics
+
+- **Test Suites Run**: {len(results)}
+- **Test Suites Passed**: {passed_count}
+- **Test Suites Failed**: {failed_count}
+- **Individual Tests Passed**: {detail_pass}
+- **Individual Tests Failed**: {detail_fail}
+- **Performance Target (<10s)**: {"[MET]" if total_elapsed < 10 else "[MISSED]"}
+
+## Test Suite Results
+
+| Suite | Status | Duration | Tests |
+|-------|--------|----------|-------|
+"""
+
+    for description, passed, elapsed, details in results:
+        status = "[PASS]" if passed else "[FAIL]"
+        test_count = len(details)
+        content += f"| {description} | {status} | {elapsed:.2f}s | {test_count} |\n"
+
+    content += "\n## Individual Test Results\n\n"
+
+    # Group tests by suite
+    for description, passed, elapsed, details in results:
+        if details:
+            content += f"\n### {description}\n\n"
+            for detail in details:
+                status_icon = "[PASS]" if detail['status'] == 'PASS' else "[FAIL]"
+                # Clean up the test name
+                test_name = detail['test'].replace('[OK]', '').replace('[X]', '').replace('[PASS]', '').replace('[FAIL]', '').strip()
+                content += f"- {status_icon} {test_name}\n"
+
+    content += f"""
+## Expected Test Coverage
+
+These integration tests validate:
+
+1. **Redis Integration**
+   - Active subscription to `tickstock.events.patterns`
+   - Publisher count verification
+   - Message delivery confirmation
+
+2. **Event Processing**
+   - Pattern event structure compatibility
+   - Nested data structure handling
+   - Field name flexibility (pattern/pattern_name)
+
+3. **Database Integration**
+   - Integration events logging
+   - Flow UUID tracking
+   - Processing time measurements
+   - Checkpoint logging
+
+4. **Pattern Flow**
+   - Multi-tier patterns (Daily/Intraday/Combo)
+   - NumPy data serialization
+   - High-volume processing (40+ patterns/minute)
+   - End-to-end latency tracking
+
+5. **Monitoring**
+   - 60-second heartbeat intervals
+   - Subscription health checks
+   - Performance metrics collection
+
+## Performance Targets
+
+| Metric | Target | Status |
+|--------|--------|--------|
+| Total Test Time | <10 seconds | {"[MET]" if total_elapsed < 10 else "[MISSED]"} |
+| Pattern Processing | <100ms per event | Check logs |
+| Database Logging | <50ms per checkpoint | Check logs |
+| WebSocket Delivery | <100ms end-to-end | Check logs |
+
+## Next Run
+
+To run these tests again:
+
+```bash
+python run_tests.py
+```
+
+To monitor integration performance:
+
+```bash
+python scripts/monitor_integration_performance.py
+```
+
+---
+*Report generated by TickStockAppV2 Integration Test Suite*
+"""
+
+    with open(report_file, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+    print(f"\n{GREEN}Test report written to: {report_file}{RESET}")
 
 def check_prerequisites():
     """Check that required services are running."""
@@ -144,10 +269,12 @@ def main():
     total_start = time.time()
     results = []
 
+    all_test_details = []
     for test_file, description in tests:
         if test_file.exists():
-            passed, elapsed = run_test_file(str(test_file), description)
-            results.append((description, passed, elapsed))
+            passed, elapsed, test_details = run_test_file(str(test_file), description)
+            results.append((description, passed, elapsed, test_details))
+            all_test_details.extend(test_details)
         else:
             print(f"\n{YELLOW}[!] Skipping {description} (file not found){RESET}")
 
@@ -156,11 +283,11 @@ def main():
     # Summary
     print_header("TEST SUMMARY")
 
-    passed_count = sum(1 for _, passed, _ in results if passed)
+    passed_count = sum(1 for _, passed, _, _ in results if passed)
     failed_count = len(results) - passed_count
 
     print(f"\n{BOLD}Results:{RESET}")
-    for description, passed, elapsed in results:
+    for description, passed, elapsed, _ in results:
         status = f"{GREEN}PASS{RESET}" if passed else f"{RED}FAIL{RESET}"
         print(f"  {status} - {description} ({elapsed:.2f}s)")
 
@@ -174,6 +301,9 @@ def main():
         print(f"  {GREEN}[PASS] Target met: <10 seconds{RESET}")
     else:
         print(f"  {YELLOW}[!] Target missed: >10 seconds{RESET}")
+
+    # Write test report
+    write_test_report(results, total_elapsed, all_test_details)
 
     # Final verdict
     if failed_count == 0:
