@@ -43,11 +43,11 @@ class SidebarNavigationController {
                 component: 'PatternDiscoveryService'
             },
             'sprint25': {
-                title: 'Pattern Dashboard',
-                icon: 'fas fa-layer-group',
+                title: 'Pattern Flow',
+                icon: 'fas fa-stream',
                 hasFilters: false,
-                component: 'PatternDashboardService',
-                description: 'Multi-Tier Pattern Dashboard with Real-Time Integration',
+                component: 'PatternFlowService',
+                description: 'Real-Time Pattern Flow Display with 4-Column Layout',
                 isNew: true
             },
             'overview': {
@@ -1600,31 +1600,31 @@ class SidebarNavigationController {
      * Initialize Multi-Tier Pattern Dashboard section
      */
     initializeSprint25Section(contentArea, section) {
-        if (SIDEBAR_DEBUG) console.log('[SidebarNavigation] Initializing Multi-Tier Pattern Dashboard');
-        
-        // Check if Pattern Dashboard components are available
-        if (typeof window.MultiTierDashboard !== 'undefined' && typeof window.TierPatternService !== 'undefined') {
-            // Pattern Dashboard components already loaded - render the dashboard
+        if (SIDEBAR_DEBUG) console.log('[SidebarNavigation] Initializing Pattern Flow Display');
+
+        // Check if Pattern Flow components are available
+        if (typeof window.PatternFlowService !== 'undefined' && typeof window.TierPatternService !== 'undefined') {
+            // Pattern Flow components already loaded - render the dashboard
             this.renderSprint25Dashboard(contentArea, section);
         } else {
-            // Show loading state and initialize Pattern Dashboard components
+            // Show loading state and initialize Pattern Flow components
             this.showSprint25LoadingState(contentArea, section);
             this.initializeSprint25Components(contentArea, section);
         }
     }
     
     /**
-     * Show Pattern Dashboard loading state
+     * Show Pattern Flow loading state
      */
     showSprint25LoadingState(contentArea, section) {
         contentArea.innerHTML = `
             <div id="sprint25-dashboard" class="p-4">
                 <h4><i class="${section.icon} me-2"></i>${section.title}</h4>
                 <div class="alert alert-info d-flex align-items-center">
-                    <i class="fas fa-layer-group me-3 fa-2x"></i>
+                    <i class="fas fa-stream me-3 fa-2x"></i>
                     <div>
-                        <h5 class="alert-heading mb-1">Pattern Dashboard</h5>
-                        <p class="mb-0">Initializing multi-tier pattern dashboard with real-time integration...</p>
+                        <h5 class="alert-heading mb-1">Pattern Flow</h5>
+                        <p class="mb-0">Initializing real-time pattern flow display with 4-column layout...</p>
                     </div>
                 </div>
                 
@@ -1662,17 +1662,17 @@ class SidebarNavigationController {
      * Initialize Pattern Dashboard components and render dashboard
      */
     initializeSprint25Components(contentArea, section) {
-        // Try to initialize Pattern Dashboard components
+        // Try to initialize Pattern Flow components
         setTimeout(() => {
             // Check if services are loaded
-            if (typeof TierPatternService !== 'undefined' && typeof MultiTierDashboard !== 'undefined') {
+            if (typeof TierPatternService !== 'undefined' && typeof PatternFlowService !== 'undefined') {
                 this.renderSprint25Dashboard(contentArea, section);
             } else {
                 // Try loading the scripts if not already loaded
                 this.loadSprint25Scripts().then(() => {
                     this.renderSprint25Dashboard(contentArea, section);
                 }).catch((error) => {
-                    console.error('[SidebarNavigation] Failed to load Pattern Dashboard scripts:', error);
+                    console.error('[SidebarNavigation] Failed to load Pattern Flow scripts:', error);
                     this.showSprint25ErrorState(contentArea, section);
                 });
             }
@@ -1680,13 +1680,13 @@ class SidebarNavigationController {
     }
     
     /**
-     * Load Pattern Dashboard JavaScript components dynamically
+     * Load Pattern Flow JavaScript components dynamically
      */
     loadSprint25Scripts() {
         return new Promise((resolve, reject) => {
             const scripts = [
                 '/static/js/services/tier_pattern_service.js',
-                '/static/js/components/multi_tier_dashboard.js'
+                '/static/js/services/pattern_flow.js'
             ];
             
             let loadedCount = 0;
@@ -1718,66 +1718,43 @@ class SidebarNavigationController {
     renderSprint25Dashboard(contentArea, section) {
         contentArea.innerHTML = `
             <div id="sprint25-dashboard" class="sprint25-container">
-                <!-- Pattern Dashboard Header -->
-                <div class="dashboard-header mb-4">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h4 class="mb-1">
-                                <i class="${section.icon} me-2"></i>Multi-Tier Pattern Dashboard
-                            </h4>
-                            <p class="text-muted mb-0">
-                                Real-time pattern monitoring across Daily, Intraday, and Combo tiers with live updates
-                            </p>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <div class="badge bg-success me-2">Week 1: Foundation ✅</div>
-                            <div class="badge bg-primary">Week 2: Dashboard UI 🔄</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Multi-Tier Dashboard Container -->
-                <div id="multi-tier-dashboard-container" data-component="multi-tier-dashboard-container">
-                    <!-- Dashboard content will be rendered here by MultiTierDashboard component -->
+                <!-- Pattern Flow Container -->
+                <div id="pattern-flow-container" data-component="pattern-flow-container">
+                    <!-- Pattern Flow content will be rendered here by PatternFlowService -->
                 </div>
             </div>
         `;
-        
-        // Initialize the Multi-Tier Dashboard component
-        setTimeout(() => {
+
+        // Initialize the Pattern Flow Service
+        setTimeout(async () => {
             try {
                 // Check if container exists
-                const container = document.getElementById('multi-tier-dashboard-container');
+                const container = document.getElementById('pattern-flow-container');
                 if (!container) {
-                    throw new Error('Dashboard container not found in DOM');
+                    throw new Error('Pattern Flow container not found in DOM');
                 }
-                
-                if (typeof MultiTierDashboard !== 'undefined') {
+
+                if (typeof PatternFlowService !== 'undefined') {
                     if (SIDEBAR_DEBUG) {
-                        console.log('[SidebarNavigation] Initializing MultiTierDashboard with container:', container);
+                        console.log('[SidebarNavigation] Initializing PatternFlowService with container:', container);
                     }
-                    
-                    // Create new dashboard instance
-                    window.multiTierDashboard = new MultiTierDashboard('#multi-tier-dashboard-container', {
-                        enableRealTime: true,
-                        maxPatternsPerTier: 50,
-                        updateInterval: 100,
-                        enableTooltips: true,
-                        enableFiltering: true
-                    });
-                    
+
+                    // Create new Pattern Flow instance
+                    window.patternFlowService = new PatternFlowService();
+                    await window.patternFlowService.initialize('#pattern-flow-container');
+
                     if (SIDEBAR_DEBUG) {
-                        console.log('[SidebarNavigation] Multi-Tier Pattern Dashboard initialized successfully');
+                        console.log('[SidebarNavigation] Pattern Flow Service initialized successfully');
                     }
                 } else {
-                    throw new Error('MultiTierDashboard class not available');
+                    throw new Error('PatternFlowService class not available');
                 }
             } catch (error) {
-                console.error('[SidebarNavigation] Error initializing Pattern Dashboard:', error);
+                console.error('[SidebarNavigation] Error initializing Pattern Flow:', error);
                 console.error('[SidebarNavigation] Debug info:', {
-                    MultiTierDashboard: typeof MultiTierDashboard,
+                    PatternFlowService: typeof PatternFlowService,
                     TierPatternService: typeof TierPatternService,
-                    containerExists: !!document.getElementById('multi-tier-dashboard-container'),
+                    containerExists: !!document.getElementById('pattern-flow-container'),
                     tierPatternService: !!window.tierPatternService
                 });
                 this.showSprint25ErrorState(contentArea, section);

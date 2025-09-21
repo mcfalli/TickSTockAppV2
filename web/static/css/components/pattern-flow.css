@@ -1,0 +1,493 @@
+/*
+===============================================================================
+PATTERN FLOW COMPONENT STYLES - SPRINT 26
+===============================================================================
+
+PURPOSE:
+Styles for the real-time Pattern Flow display with 4-column layout showing
+Daily, Intraday, Combo, and Indicator patterns with 15-second auto-refresh.
+
+FEATURES:
+- 4-column responsive layout
+- Minimal 60px pattern rows
+- Light/Dark theme support
+- Smooth animations and transitions
+- Real-time update indicators
+
+VERSION: 1.0.0
+SPRINT: 26 - Pattern Flow Display
+===============================================================================
+*/
+
+/* ==========================================================================
+   PATTERN FLOW CONTAINER - Main layout structure
+   ========================================================================== */
+
+.pattern-flow-container,
+#pattern-flow-container {
+    padding: 15px;
+    background: var(--color-background-tertiary);
+    min-height: calc(100vh - 200px);
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Header Section */
+.pattern-flow-header {
+    padding: var(--spacing-md);
+    background: var(--color-background-primary);
+    border-radius: var(--border-radius-base);
+    border: 1px solid var(--color-border-light);
+    box-shadow: var(--shadow-subtle);
+    margin-bottom: var(--spacing-lg);
+}
+
+.pattern-flow-header h3 {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
+}
+
+.pattern-flow-header .refresh-indicator {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.pattern-flow-header .countdown-display {
+    color: var(--color-primary);
+    font-weight: var(--font-weight-semibold);
+    min-width: 35px;
+    display: inline-block;
+    text-align: center;
+}
+
+/* ==========================================================================
+   COLUMN LAYOUT - 4-column grid for pattern tiers
+   ========================================================================== */
+
+.pattern-flow-columns {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 15px;
+    margin: 0;
+    overflow-x: auto;
+}
+
+.pattern-column-wrapper {
+    flex: 1 1 25%;
+    min-width: 250px;
+    max-width: calc(25% - 12px);
+}
+
+/* Force 4 columns in one row on larger screens */
+@media (min-width: 1200px) {
+    .pattern-flow-columns {
+        overflow-x: hidden;
+    }
+
+    .pattern-column-wrapper {
+        flex: 1 1 calc(25% - 12px);
+        max-width: calc(25% - 12px);
+    }
+}
+
+/* Stack to 2x2 on medium screens */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .pattern-flow-columns {
+        flex-wrap: wrap !important;
+    }
+
+    .pattern-column-wrapper {
+        flex: 1 1 calc(50% - 8px);
+        max-width: calc(50% - 8px);
+    }
+}
+
+/* Stack vertically on small screens */
+@media (max-width: 767px) {
+    .pattern-flow-columns {
+        flex-direction: column;
+    }
+
+    .pattern-column-wrapper {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+}
+
+/* Individual Column */
+.pattern-column {
+    background: var(--color-background-primary);
+    border-radius: var(--border-radius-base);
+    border: 1px solid var(--color-border-light);
+    box-shadow: var(--shadow-subtle);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 280px);
+    min-height: 400px;
+}
+
+.column-header {
+    flex-shrink: 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--color-border-light);
+    border-radius: var(--border-radius-base) var(--border-radius-base) 0 0;
+}
+
+.column-header h5 {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.column-header .pattern-count {
+    background: var(--color-border-secondary);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-xs);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: normal;
+}
+
+.column-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   PATTERN ROWS - Single-line compact design
+   ========================================================================== */
+
+.pattern-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pattern-row {
+    height: 40px;
+    padding: 8px 10px;
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--border-radius-small);
+    display: flex;
+    align-items: center;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.pattern-row:hover {
+    background: var(--color-background-primary);
+    border-color: var(--color-border-primary);
+    transform: translateX(3px);
+    box-shadow: var(--shadow-hover);
+}
+
+.pattern-row.new-pattern {
+    animation: pulseIn 0.6s ease;
+    background: var(--color-success-light);
+    border-color: var(--color-success);
+}
+
+/* Pattern Content - Single Line Layout */
+.pattern-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+}
+
+.pattern-symbol {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--color-text-primary);
+    min-width: 45px;
+    text-align: left;
+}
+
+.pattern-type {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 4px;
+}
+
+.pattern-time {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+/* ==========================================================================
+   CONFIDENCE BADGES - Color-coded confidence indicators
+   ========================================================================== */
+
+.confidence-badge {
+    font-size: var(--font-size-xs);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+}
+
+.confidence-badge.high {
+    background: var(--color-success);
+    color: white;
+}
+
+.confidence-badge.low {
+    background: var(--color-warning);
+    color: white;
+}
+
+.confidence-badge:not(.high):not(.low) {
+    background: var(--color-info);
+    color: white;
+}
+
+/* ==========================================================================
+   CONNECTION STATUS - Real-time connection indicators
+   ========================================================================== */
+
+.connection-status .fa-circle {
+    font-size: 10px;
+    transition: color var(--transition-fast);
+}
+
+.connection-status .fa-circle.text-success {
+    color: var(--color-success);
+    animation: pulse 2s infinite;
+}
+
+.connection-status .fa-circle.text-secondary {
+    color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   ANIMATIONS - Smooth transitions and effects
+   ========================================================================== */
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulseIn {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.pattern-row {
+    animation: slideIn 0.3s ease;
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES - Specific styles for light theme
+   ========================================================================== */
+
+.theme-light .pattern-flow-header {
+    background: #ffffff;
+    border-color: #dee2e6;
+}
+
+.theme-light .pattern-column {
+    background: #ffffff;
+    border-color: #dee2e6;
+}
+
+.theme-light .column-header {
+    background: #f8f9fa;
+    border-bottom-color: #dee2e6;
+}
+
+.theme-light .column-body {
+    background: #ffffff;
+}
+
+.theme-light .pattern-row {
+    background: #f8f9fa;
+    border-color: #e9ecef;
+}
+
+.theme-light .pattern-row:hover {
+    background: #ffffff;
+    border-color: #dee2e6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.theme-light .pattern-row.new-pattern {
+    background: #e8f5e9;
+    border-color: #4caf50;
+}
+
+.theme-light .pattern-count {
+    background: #e9ecef;
+    color: #495057;
+}
+
+/* ==========================================================================
+   DARK THEME OVERRIDES - Specific styles for dark theme
+   ========================================================================== */
+
+.theme-dark .pattern-flow-header {
+    background: #2d2d2d;
+    border-color: #444444;
+}
+
+.theme-dark .pattern-column {
+    background: #1a1a1a;
+    border-color: #444444;
+}
+
+.theme-dark .column-header {
+    background: #242424;
+    border-bottom-color: #444444;
+}
+
+.theme-dark .column-body {
+    background: #1a1a1a;
+}
+
+.theme-dark .pattern-row {
+    background: #2d2d2d;
+    border-color: #333333;
+}
+
+.theme-dark .pattern-row:hover {
+    background: #3a3a3a;
+    border-color: #555555;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .pattern-row.new-pattern {
+    background: #1e3a1e;
+    border-color: #4caf50;
+}
+
+.theme-dark .pattern-count {
+    background: #444444;
+    color: #ffffff;
+}
+
+.theme-dark .confidence-badge {
+    filter: brightness(0.9);
+}
+
+/* ==========================================================================
+   SCROLLBAR STYLING - Custom scrollbar for pattern lists
+   ========================================================================== */
+
+/* Light Theme Scrollbar */
+.theme-light .column-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.theme-light .column-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.theme-light .column-body::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.theme-light .column-body::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Dark Theme Scrollbar */
+.theme-dark .column-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.theme-dark .column-body::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 4px;
+}
+
+.theme-dark .column-body::-webkit-scrollbar-thumb {
+    background: #444444;
+    border-radius: 4px;
+}
+
+.theme-dark .column-body::-webkit-scrollbar-thumb:hover {
+    background: #555555;
+}
+
+/* ==========================================================================
+   LOADING & ERROR STATES - Feedback for various states
+   ========================================================================== */
+
+.pattern-column.loading .column-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.pattern-column.error .column-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-error);
+}
+
+.loading-spinner {
+    border: 3px solid var(--color-border-light);
+    border-top: 3px solid var(--color-primary);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.pattern-list.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    text-align: center;
+}

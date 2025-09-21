@@ -1,0 +1,107 @@
+/*
+===============================================================================
+PATTERN FLOW BOOTSTRAP OVERRIDES
+===============================================================================
+Load this AFTER Bootstrap to override any conflicting styles
+===============================================================================
+*/
+
+/* Override Bootstrap's row and column classes when inside Pattern Flow */
+#pattern-flow-container .pattern-flow-columns,
+.pattern-flow-container .pattern-flow-columns {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex-direction: row !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0 !important;
+    gap: 15px !important;
+    width: 100% !important;
+    --bs-gutter-x: 0 !important;
+    --bs-gutter-y: 0 !important;
+}
+
+/* Ensure columns stay in one row */
+#pattern-flow-container .pattern-column-wrapper,
+.pattern-flow-container .pattern-column-wrapper {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Remove any Bootstrap column classes that might be inherited */
+#pattern-flow-container [class*="col-"],
+.pattern-flow-container [class*="col-"] {
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Ensure pattern columns fill their wrappers */
+#pattern-flow-container .pattern-column,
+.pattern-flow-container .pattern-column {
+    width: 100% !important;
+    min-width: 220px !important;
+}
+
+/* For very wide screens, limit the max width */
+@media (min-width: 1600px) {
+    #pattern-flow-container .pattern-flow-columns,
+    .pattern-flow-container .pattern-flow-columns {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+}
+
+/* For medium screens (tablets), allow 2x2 */
+@media (max-width: 1199px) and (min-width: 768px) {
+    #pattern-flow-container .pattern-flow-columns,
+    .pattern-flow-container .pattern-flow-columns {
+        flex-wrap: wrap !important;
+    }
+
+    #pattern-flow-container .pattern-column-wrapper,
+    .pattern-flow-container .pattern-column-wrapper {
+        flex: 0 0 calc(50% - 8px) !important;
+        max-width: calc(50% - 8px) !important;
+    }
+}
+
+/* For small screens, stack vertically */
+@media (max-width: 767px) {
+    #pattern-flow-container .pattern-flow-columns,
+    .pattern-flow-container .pattern-flow-columns {
+        flex-direction: column !important;
+    }
+
+    #pattern-flow-container .pattern-column-wrapper,
+    .pattern-flow-container .pattern-column-wrapper {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+/* Ensure the columns have equal height */
+#pattern-flow-container .pattern-column,
+.pattern-flow-container .pattern-column {
+    height: calc(100vh - 300px);
+    min-height: 400px;
+    max-height: 800px;
+}
+
+/* Fix any potential overflow issues */
+#pattern-flow-container,
+.pattern-flow-container {
+    overflow-x: hidden !important;
+}
+
+#pattern-flow-container .pattern-flow-columns,
+.pattern-flow-container .pattern-flow-columns {
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+}

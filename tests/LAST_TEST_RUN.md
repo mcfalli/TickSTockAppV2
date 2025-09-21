@@ -1,8 +1,8 @@
 # Last Test Run Report
 
-**Generated**: 2025-09-19 15:57:00
+**Generated**: 2025-09-20 14:55:44
 **Command**: `python run_tests.py`
-**Total Duration**: 14.74 seconds
+**Total Duration**: 14.40 seconds
 **Status**: [FAILED]
 
 ## Summary Statistics
@@ -10,7 +10,7 @@
 - **Test Suites Run**: 2
 - **Test Suites Passed**: 0
 - **Test Suites Failed**: 2
-- **Individual Tests Passed**: 7
+- **Individual Tests Passed**: 6
 - **Individual Tests Failed**: 8
 - **Performance Target (<10s)**: [MISSED]
 
@@ -18,8 +18,8 @@
 
 | Suite | Status | Duration | Tests |
 |-------|--------|----------|-------|
-| Core Integration Tests | [FAIL] | 10.94s | 9 |
-| End-to-End Pattern Flow | [FAIL] | 3.80s | 6 |
+| Core Integration Tests | [FAIL] | 10.30s | 8 |
+| End-to-End Pattern Flow | [FAIL] | 4.10s | 6 |
 
 ## Individual Test Results
 
@@ -28,9 +28,8 @@
 
 - [FAIL] Redis Subscription FAILED: No subscribers on tickstock.events.patterns channel
 - [FAIL] Event Structure FAILED: Failed to publish test event
-- [FAIL] Database Logging FAILED: No recent heartbeat found
-- [PASS] PatternDetectionService heartbeat: 2 beats, ~60s interval
-- [FAIL] Redis->DB Flow FAILED: No events logged for flow_id 67e6be86-511e-4842-80bd-fc620a96c710
+- [FAIL] Database Logging FAILED: No recent integration events in database
+- [FAIL] Redis->DB Flow FAILED: No events logged for flow_id 3de4c2f3-f6bf-443f-9181-6e11541a2f18
 - [PASS] Pattern cache contains 0 entries
 - [FAIL] WebSocket Config FAILED: No pattern event handlers registered
 - [FAIL] Performance ERROR: column "processing_time_ms" does not exist
@@ -38,7 +37,7 @@
 
 ### End-to-End Pattern Flow
 
-- [PASS] Published pattern with flow_id: 07c96f0e-272c-465f-b3da-d1055a4979f5
+- [PASS] Published pattern with flow_id: d22aa1ed-d831-4882-80f3-1aeee3a47520
 - [PASS] Published daily tier pattern: HeadShoulders for TSLA
 - [PASS] Published intraday tier pattern: VolumeSurge for NVDA
 - [PASS] Published combo tier pattern: SupportBreakout for AAPL

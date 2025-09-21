@@ -21,6 +21,7 @@
 - **Live Data Processing**: ✅ **COMPLETE** - 70 tickers streaming Polygon → Redis → TickStockPL → OHLCV database
 - **Pattern Discovery APIs**: REST endpoints consuming Redis cache (no direct DB queries for patterns)
 - **Tier Pattern Dashboard**: Multi-tier pattern visualization (Daily, Intraday, Combo) with real-time updates (Sprint 25)
+- **Pattern Flow Display**: ✅ **COMPLETE** - Real-time pattern monitoring interface with 4-column layout (Daily/Intraday/Combo/Indicators), 15-second auto-refresh, and live WebSocket updates (Sprint 26)
 - **User Universe APIs**: Symbol management and watchlist APIs (`/api/symbols`, `/api/users/*`)
 - **WebSocket Broadcasting**: Real-time pattern alerts to connected users (<100ms delivery)
 - **Job Triggering**: Submits backtest/analysis jobs to TickStockPL via Redis

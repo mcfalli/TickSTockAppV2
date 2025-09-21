@@ -1195,7 +1195,7 @@ class TestRedisClusterResilience:
             print(f"  Post-failover: {len(post_failover_received)}/{len(post_failover_messages)} ({post_retention:.1%})")
             print(f"  Failover errors: {failover_errors}")
             print(f"  Retry successes: {retry_successes}")
-            print(f"  Pattern recovery: {len(pattern_received)}/3")
+            print(f"  pattern discovery: {len(pattern_received)}/3")
             print(f"  Core system health: {core_system_health:.1%}")
             
         finally:

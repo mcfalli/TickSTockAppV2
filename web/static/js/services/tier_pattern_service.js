@@ -49,7 +49,7 @@ class TierPatternService {
                 maxPatterns: 50
             },
             intraday: {
-                endpoint: '/api/patterns/intraday', 
+                endpoint: '/api/patterns/intraday',
                 wsEvent: 'tier_pattern_intraday',
                 alertEvent: 'tier_pattern_alert_intraday',
                 maxPatterns: 100
@@ -59,6 +59,12 @@ class TierPatternService {
                 wsEvent: 'tier_pattern_combo',
                 alertEvent: 'tier_pattern_alert_combo',
                 maxPatterns: 30
+            },
+            indicators: {
+                endpoint: '/api/patterns/indicators',
+                wsEvent: 'tier_pattern_indicators',
+                alertEvent: 'tier_pattern_alert_indicators',
+                maxPatterns: 50
             }
         };
         
