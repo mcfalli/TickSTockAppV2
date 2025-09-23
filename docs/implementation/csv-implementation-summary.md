@@ -38,7 +38,7 @@
 #### **1. Create Database Table** ⚡ **5 minutes**
 ```bash
 # Run the SQL script to create tracking table
-PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5433 -U app_readwrite -d tickstock -f scripts/database/create_symbol_load_log_table.sql
+PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5432 -U app_readwrite -d tickstock -f scripts/database/create_symbol_load_log_table.sql
 ```
 
 #### **2. Enhance Admin Interface** 🖥️ **30-45 minutes**

@@ -13,9 +13,9 @@ def get_database_config() -> Dict[str, Any]:
     
     return {
         # Connection parameters from .env DATABASE_URI
-        # postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5433/tickstock
+        # postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock
         'host': 'localhost',
-        'port': '5433',
+        'port': '5432',
         'database': 'tickstock',
         'user': 'app_readwrite',
         'password': 'LJI48rUEkUpe6e',

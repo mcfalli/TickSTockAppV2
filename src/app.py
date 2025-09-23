@@ -2093,7 +2093,7 @@ def main():
             from src.api.rest.main import register_main_routes
             from src.api.rest.api import register_api_routes
             from src.api.rest.tickstockpl_api import register_tickstockpl_routes
-            from src.api.rest.admin_historical_data import register_admin_historical_routes
+            from src.api.rest.admin_historical_data_redis import register_admin_historical_routes
             
             logger.info("STARTUP: Registering auth routes...")
             try:
@@ -2134,7 +2134,16 @@ def main():
             logger.info("STARTUP: Registering admin historical data routes...")
             register_admin_historical_routes(app)
             logger.info("STARTUP: Admin historical data routes registered successfully")
-            
+
+            logger.info("STARTUP: Registering admin monitoring routes...")
+            try:
+                from src.api.rest.admin_monitoring import register_admin_monitoring_routes
+                register_admin_monitoring_routes(app)
+                logger.info("STARTUP: Admin monitoring routes registered successfully")
+            except Exception as monitoring_error:
+                logger.warning(f"STARTUP: Admin monitoring routes registration failed: {monitoring_error}")
+                # Don't fail startup for monitoring - it's optional
+
             logger.info("STARTUP: Registering admin user management routes...")
             from src.api.rest.admin_users import admin_users_bp
             app.register_blueprint(admin_users_bp)
@@ -2213,6 +2222,16 @@ def main():
             app.pattern_alert_manager = pattern_alert_manager
             logger.info("STARTUP: Pattern alert manager attached to Flask app")
         
+        # Start monitoring subscriber for TickStockPL monitoring events
+        logger.info("STARTUP: Starting monitoring subscriber...")
+        try:
+            from src.services.monitoring_subscriber import start_monitoring_subscriber
+            start_monitoring_subscriber()
+            logger.info("STARTUP: Monitoring subscriber started - receiving TickStockPL events")
+        except Exception as e:
+            logger.warning(f"STARTUP: Monitoring subscriber failed to start: {e}")
+            # Don't fail startup - monitoring is optional
+
         # Start market data service
         logger.info("STARTUP: Starting market data service...")
         try:
@@ -2249,17 +2268,25 @@ def main():
     finally:
         # Cleanup
         logger.info("SHUTDOWN: Cleaning up...")
-        
+
+        # Stop monitoring subscriber
+        try:
+            from src.services.monitoring_subscriber import stop_monitoring_subscriber
+            stop_monitoring_subscriber()
+            logger.info("SHUTDOWN: Monitoring subscriber stopped")
+        except:
+            pass
+
         # Stop TickStockPL integration services
         if redis_event_subscriber:
             redis_event_subscriber.stop()
-        
+
         if pattern_alert_manager:
             pattern_alert_manager.cleanup_expired_data()
-        
+
         if market_service:
             market_service.stop()
-            
+
         if redis_client:
             redis_client.close()
             

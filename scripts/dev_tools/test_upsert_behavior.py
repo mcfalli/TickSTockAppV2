@@ -20,14 +20,14 @@ def test_upsert_behavior():
     
     try:
         loader = PolygonHistoricalLoader(
-            database_uri='postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5433/tickstock'
+            database_uri='postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock'
         )
         
         print("1. Current AAPL data before update:")
         # Show current data first
         import psycopg2
         from psycopg2.extras import RealDictCursor
-        conn = psycopg2.connect('postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5433/tickstock')
+        conn = psycopg2.connect('postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock')
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         cursor.execute("""

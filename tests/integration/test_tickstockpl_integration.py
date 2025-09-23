@@ -36,7 +36,7 @@ class TestTickStockPLIntegration:
         # Real database connection
         cls.db_conn = psycopg2.connect(
             host='localhost',
-            port=5433,
+            port=5432,
             database='tickstock',
             user='app_readwrite',
             password='LJI48rUEkUpe6e'

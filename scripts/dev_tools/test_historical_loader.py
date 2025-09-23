@@ -21,7 +21,7 @@ def test_loader_functionality():
     # Initialize loader with database only (no API key needed for testing)
     try:
         loader = PolygonHistoricalLoader(
-            database_uri='postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5433/tickstock'
+            database_uri='postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock'
         )
         print("Success: Loader initialized successfully")
         

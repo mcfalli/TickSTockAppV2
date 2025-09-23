@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Historical Data Management - TickStock Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .status-indicator {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-connected { background: #d4edda; color: #155724; }
+        .status-disconnected { background: #f8d7da; color: #721c24; }
+
+        .job-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #fff;
+        }
+
+        .job-status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .status-submitted { background: #cfe2ff; color: #084298; }
+        .status-running, .status-in_progress { background: #fff3cd; color: #856404; }
+        .status-completed { background: #d1e7dd; color: #0f5132; }
+        .status-failed { background: #f8d7da; color: #842029; }
+        .status-cancelled, .status-cancelling { background: #e2e3e5; color: #41464b; }
+
+        #job-status-container {
+            display: none;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .progress {
+            height: 25px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            display: none;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .notification-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .notification-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .load-type-section {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">Historical Data Management</h1>
+
+                <!-- Redis Connection Status -->
+                <div class="alert alert-info mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>System Status:</strong>
+                            <span id="redis-status" class="status-indicator status-disconnected ms-2">Redis Checking...</span>
+                            <span id="tickstockpl-status" class="status-indicator status-disconnected ms-2">TickStockPL Checking...</span>
+                        </div>
+                        <button id="test-redis" class="btn btn-sm btn-outline-primary">Test Connection</button>
+                    </div>
+                </div>
+
+                <!-- Job Submission Form -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Submit Data Load Job</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="data-load-form" method="POST" action="/admin/historical-data/trigger-load">
+                            {{ csrf_token() }}
+
+                            <!-- Load Type Selection -->
+                            <div class="mb-3">
+                                <label class="form-label">Load Type</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="load_type" id="load_symbols" value="symbols" checked>
+                                    <label class="form-check-label" for="load_symbols">
+                                        Individual Symbols
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="load_type" id="load_universe" value="universe">
+                                    <label class="form-check-label" for="load_universe">
+                                        Universe (S&P 500, NASDAQ 100, ETFs)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="load_type" id="load_multi" value="multi_timeframe">
+                                    <label class="form-check-label" for="load_multi">
+                                        Multi-Timeframe Load
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Symbols Section -->
+                            <div id="symbols-section" class="load-type-section" style="display: block;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="symbols" class="form-label">Symbols (comma-separated)</label>
+                                            <input type="text" class="form-control" id="symbols" name="symbols"
+                                                   placeholder="AAPL, MSFT, GOOGL" value="{{ ', '.join(symbols) if symbols else '' }}">
+                                            <div class="form-text">Enter stock symbols separated by commas</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="mb-3">
+                                            <label for="years" class="form-label">Years of History</label>
+                                            <select class="form-select" id="years" name="years">
+                                                <option value="1">1 Year</option>
+                                                <option value="2">2 Years</option>
+                                                <option value="5">5 Years</option>
+                                                <option value="10">10 Years</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="mb-3">
+                                            <label for="timespan" class="form-label">Timespan</label>
+                                            <select class="form-select" id="timespan" name="timespan">
+                                                <option value="minute">1 Minute</option>
+                                                <option value="hour">1 Hour</option>
+                                                <option value="day" selected>Daily</option>
+                                                <option value="week">Weekly</option>
+                                                <option value="month">Monthly</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Universe Section -->
+                            <div id="universe-section" class="load-type-section">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="universe_type" class="form-label">Universe Type</label>
+                                            <select class="form-select" id="universe_type" name="universe_type">
+                                                {% for key, value in available_universes.items() %}
+                                                <option value="{{ key }}">{{ value }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="universe_years" class="form-label">Years of History</label>
+                                            <select class="form-select" id="universe_years" name="universe_years">
+                                                <option value="1">1 Year</option>
+                                                <option value="2">2 Years</option>
+                                                <option value="5">5 Years</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Multi-Timeframe Section -->
+                            <div id="multi-timeframe-section" class="load-type-section">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="multi_symbols" class="form-label">Symbols (comma-separated)</label>
+                                            <input type="text" class="form-control" id="multi_symbols" name="multi_symbols"
+                                                   placeholder="AAPL, MSFT, GOOGL">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="mb-3">
+                                            <label class="form-label">Timeframes</label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="timeframes" value="minute" id="tf_minute">
+                                                <label class="form-check-label" for="tf_minute">1 Minute</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="timeframes" value="hour" id="tf_hour" checked>
+                                                <label class="form-check-label" for="tf_hour">1 Hour</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="timeframes" value="day" id="tf_day" checked>
+                                                <label class="form-check-label" for="tf_day">Daily</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="timeframes" value="week" id="tf_week">
+                                                <label class="form-check-label" for="tf_week">Weekly</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="mb-3">
+                                            <label for="multi_years" class="form-label">Years of History</label>
+                                            <select class="form-select" id="multi_years" name="multi_years">
+                                                <option value="1">1 Year</option>
+                                                <option value="2">2 Years</option>
+                                                <option value="5">5 Years</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submit-load" class="btn btn-primary">Submit Load Job</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Job Status Container -->
+                <div id="job-status-container">
+                    <h5>Job Progress</h5>
+                    <div id="job-status" class="mb-2">Waiting...</div>
+                    <div class="progress">
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                </div>
+
+                <!-- Active Jobs -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Active Jobs</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="active-jobs">
+                                    <!-- Active jobs will be added here dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Jobs -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Recent Jobs</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if recent_jobs %}
+                                    {% for job in recent_jobs %}
+                                    <div class="job-card">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>{{ job.job_id[:8] }}...</strong>
+                                            <span class="job-status-badge status-{{ job.current_status.status if job.current_status else 'unknown' }}">
+                                                {{ job.current_status.status if job.current_status else 'Unknown' }}
+                                            </span>
+                                        </div>
+                                        <small>{{ job.description if job.description else job.type }}</small>
+                                        <div class="text-muted">
+                                            <small>Submitted: {{ job.submitted_at.strftime('%H:%M:%S') if job.submitted_at else 'Unknown' }}</small>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted">No recent jobs</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Operations -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Bulk Operations</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-info bulk-operation" data-operation="refresh_all_etfs">
+                            Refresh All ETFs
+                        </button>
+                        <button class="btn btn-success bulk-operation" data-operation="load_sp500">
+                            Load S&P 500
+                        </button>
+                        <button class="btn btn-success bulk-operation" data-operation="load_nasdaq100">
+                            Load NASDAQ 100
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification placeholder -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Load Bootstrap JS and our custom JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/admin/historical_data.js') }}"></script>
+</body>
+</html>

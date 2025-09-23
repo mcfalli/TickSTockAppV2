@@ -36,7 +36,7 @@ def test_no_duplicate_subscribers():
             'redis_host': 'localhost',
             'redis_port': 6379,
             'database_host': 'localhost',
-            'database_port': 5433,
+            'database_port': 5432,
             'database_name': 'tickstock',
             'database_user': 'app_readwrite',
             'database_password': 'LJI48rUEkUpe6e'
@@ -101,7 +101,7 @@ def test_registration_mechanism():
             'redis_host': 'localhost',
             'redis_port': 6379,
             'database_host': 'localhost',
-            'database_port': 5433,
+            'database_port': 5432,
             'database_name': 'tickstock',
             'database_user': 'app_readwrite',
             'database_password': 'LJI48rUEkUpe6e'

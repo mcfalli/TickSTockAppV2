@@ -23,7 +23,7 @@ This guide provides complete startup instructions for TickStockAppV2 after Sprin
 ### Required Services
 These services **MUST** be running before starting TickStockAppV2:
 
-#### 1. PostgreSQL + TimescaleDB (Port 5433)
+#### 1. PostgreSQL + TimescaleDB (Port 5432)
 - **Database Name**: `tickstock`
 - **User**: `app_readwrite`
 - **Password**: `LJI48rUEkUpe6e`
@@ -46,8 +46,8 @@ These services **MUST** be running before starting TickStockAppV2:
 
 ### Step 1: Verify Prerequisites
 ```powershell
-# Check PostgreSQL is running (should see port 5433 LISTENING)
-netstat -an | findstr 5433
+# Check PostgreSQL is running (should see port 5432 LISTENING)
+netstat -an | findstr 5432
 
 # Check Redis is running (should see port 6379 LISTENING)  
 netstat -an | findstr 6379
@@ -174,7 +174,7 @@ TICKSTOCK-DB: Connection test failed: connection to server failed
 ```
 
 **Solutions:**
-1. **Verify PostgreSQL is running**: `netstat -an | findstr 5433`
+1. **Verify PostgreSQL is running**: `netstat -an | findstr 5432`
 2. **Check credentials**: Ensure `app_readwrite` user exists with correct password
 3. **Test manual connection**: Use pgAdmin or psql to connect to `tickstock` database
 
@@ -211,7 +211,7 @@ APP_DEBUG=false
 APP_ENVIRONMENT=development
 
 # Database (Original TickStock database)
-DATABASE_URI=postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5433/tickstock
+DATABASE_URI=postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock
 
 # Redis Configuration (Sprint 10)
 REDIS_URL=redis://localhost:6379/0
@@ -221,7 +221,7 @@ REDIS_DB=0
 
 # TimescaleDB Configuration (Sprint 10)
 TICKSTOCK_DB_HOST=localhost
-TICKSTOCK_DB_PORT=5433
+TICKSTOCK_DB_PORT=5432
 TICKSTOCK_DB_NAME=tickstock
 TICKSTOCK_DB_USER=app_readwrite
 TICKSTOCK_DB_PASSWORD=LJI48rUEkUpe6e

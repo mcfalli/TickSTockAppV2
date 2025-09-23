@@ -40,7 +40,7 @@ class TickStockDatabase:
             
         # Fallback to individual environment variables
         db_host = os.getenv('TICKSTOCK_DB_HOST', 'localhost')
-        db_port = os.getenv('TICKSTOCK_DB_PORT', '5433')
+        db_port = os.getenv('TICKSTOCK_DB_PORT', '5432')
         db_name = 'tickstock'  # Fixed database name for shared TickStockPL database
         db_user = os.getenv('TICKSTOCK_DB_USER', 'app_readwrite')
         db_password = os.getenv('TICKSTOCK_DB_PASSWORD', 'LJI48rUEkUpe6e')

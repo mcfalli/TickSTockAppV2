@@ -29,7 +29,7 @@ Assumptions:
 ### Required Services
 Start these **before** launching either app:
 
-#### 1. PostgreSQL + TimescaleDB (Port 5433)
+#### 1. PostgreSQL + TimescaleDB (Port 5432)
 - **Database Name**: `tickstock`
 - **User/Password**: `app_readwrite` / `LJI48rUEkUpe6e` (TickStockPL: read/write; AppV2: read-only).
 - **Purpose**: Historical OHLCV (`ohlcv_1min`, `ohlcv_daily`), ticks, events.
@@ -45,8 +45,8 @@ Start these **before** launching either app:
 
 ### Verify Services
 ```powershell
-# PostgreSQL (port 5433 LISTENING)
-netstat -an | findstr 5433
+# PostgreSQL (port 5432 LISTENING)
+netstat -an | findstr 5432
 
 # Redis (port 6379 LISTENING)
 netstat -an | findstr 6379
@@ -86,7 +86,7 @@ APP_DEBUG=true  # For dev reloads
 REDIS_URL=redis://localhost:6379/0
 
 # Database (TimescaleDB)
-DATABASE_URI=postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5433/tickstock
+DATABASE_URI=postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock
 
 # Data Sources (Start with synthetic)
 USE_SYNTHETIC_DATA=true

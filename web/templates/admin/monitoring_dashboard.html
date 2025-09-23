@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>System Monitoring - TickStock Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --status-excellent: #00aa00;
+            --status-healthy: #88cc00;
+            --status-degraded: #ffaa00;
+            --status-unhealthy: #ff6600;
+            --status-critical: #cc0000;
+
+            --alert-info: #0066cc;
+            --alert-warning: #ff9900;
+            --alert-critical: #cc0000;
+            --alert-emergency: #ff0000;
+            --alert-resolved: #00aa00;
+        }
+
+        body {
+            background: #f0f2f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .monitoring-dashboard {
+            padding: 20px;
+        }
+
+        .status-header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .metric-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-trend {
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .trend-up {
+            color: var(--status-unhealthy);
+        }
+
+        .trend-down {
+            color: var(--status-healthy);
+        }
+
+        .trend-stable {
+            color: #666;
+        }
+
+        .health-score-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+        }
+
+        .health-score-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--status-healthy) var(--health-percent),
+                #e9ecef var(--health-percent)
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .health-score-inner {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .health-score-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .health-score-label {
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .alert-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .alert-item {
+            border-left: 4px solid;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .alert-info {
+            border-left-color: var(--alert-info);
+        }
+
+        .alert-warning {
+            border-left-color: var(--alert-warning);
+        }
+
+        .alert-critical {
+            border-left-color: var(--alert-critical);
+        }
+
+        .alert-emergency {
+            border-left-color: var(--alert-emergency);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .alert-level {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .alert-actions {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .processing-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .gauge-container {
+            text-align: center;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: center;
+        }
+
+        .component-health {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .component-name {
+            flex: 0 0 120px;
+            font-size: 0.9rem;
+        }
+
+        .component-bar {
+            flex: 1;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 10px;
+        }
+
+        .component-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .component-score {
+            flex: 0 0 50px;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .timeframe-indicator {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .timeframe-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+
+        .timeframe-active {
+            background: var(--status-healthy);
+            color: white;
+        }
+
+        .timeframe-inactive {
+            background: #e9ecef;
+            color: #999;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            z-index: 9999;
+            display: none;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .notification-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .notification-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        @media (max-width: 768px) {
+            .metric-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .processing-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="monitoring-dashboard">
+        <!-- Header -->
+        <div class="status-header">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-heartbeat text-danger me-2"></i>
+                    TickStockPL System Monitoring
+                </h1>
+                <div>
+                    <span id="redis-status" class="status-indicator status-disconnected">
+                        <i class="fas fa-circle me-1"></i> Redis: Disconnected
+                    </span>
+                    <span id="tickstockpl-status" class="status-indicator status-disconnected">
+                        <i class="fas fa-circle me-1"></i> TickStockPL: Unknown
+                    </span>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('admin_historical_dashboard') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-line"></i> Historical Data
+                </a>
+                <a href="{{ url_for('admin_users.users_dashboard') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-users"></i> User Management
+                </a>
+                <a href="{{ url_for('admin_users.health_dashboard') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-server"></i> App Health
+                </a>
+                <button class="btn btn-outline-success" onclick="monitoringDashboard.forceHealthCheck()">
+                    <i class="fas fa-sync"></i> Force Health Check
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-lg-8">
+                <!-- System Metrics -->
+                <div class="metric-panel">
+                    <h4 class="mb-3">
+                        <i class="fas fa-microchip text-primary"></i> System Resources
+                    </h4>
+                    <div class="metric-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">CPU Usage</div>
+                            <div class="metric-value" id="cpu-value">--</div>
+                            <div class="metric-trend" id="cpu-trend">
+                                <i class="fas fa-minus"></i> Stable
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Memory</div>
+                            <div class="metric-value" id="memory-value">--</div>
+                            <div class="metric-trend" id="memory-trend">
+                                <i class="fas fa-minus"></i> Stable
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Threads</div>
+                            <div class="metric-value" id="threads-value">--</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Uptime</div>
+                            <div class="metric-value" id="uptime-value">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Processing Performance -->
+                <div class="metric-panel">
+                    <h4 class="mb-3">
+                        <i class="fas fa-tachometer-alt text-success"></i> Processing Performance
+                    </h4>
+                    <div class="processing-panel">
+                        <div class="gauge-container">
+                            <canvas id="patterns-gauge" width="200" height="120"></canvas>
+                            <div class="metric-label">Patterns/sec</div>
+                        </div>
+                        <div class="gauge-container">
+                            <canvas id="indicators-gauge" width="200" height="120"></canvas>
+                            <div class="metric-label">Indicators/sec</div>
+                        </div>
+                        <div class="gauge-container">
+                            <canvas id="cache-gauge" width="200" height="120"></canvas>
+                            <div class="metric-label">Cache Hit Rate</div>
+                        </div>
+                    </div>
+
+                    <div class="metric-grid mt-3">
+                        <div class="metric-card">
+                            <div class="metric-label">Avg Pattern Detection</div>
+                            <div class="metric-value" id="pattern-time">-- ms</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Avg Indicator Calc</div>
+                            <div class="metric-value" id="indicator-time">-- ms</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Symbols Processed</div>
+                            <div class="metric-value" id="symbols-count">--</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">DB Query Avg</div>
+                            <div class="metric-value" id="db-query-time">-- ms</div>
+                        </div>
+                    </div>
+
+                    <!-- Active Timeframes -->
+                    <div class="timeframe-indicator" id="timeframe-indicators">
+                        <span class="timeframe-badge timeframe-inactive">1min</span>
+                        <span class="timeframe-badge timeframe-inactive">5min</span>
+                        <span class="timeframe-badge timeframe-inactive">hourly</span>
+                        <span class="timeframe-badge timeframe-inactive">daily</span>
+                        <span class="timeframe-badge timeframe-inactive">weekly</span>
+                        <span class="timeframe-badge timeframe-inactive">monthly</span>
+                    </div>
+                </div>
+
+                <!-- Database & Redis Stats -->
+                <div class="metric-panel">
+                    <h4 class="mb-3">
+                        <i class="fas fa-database text-info"></i> Database & Redis
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Database</h6>
+                            <div class="metric-card">
+                                <div class="metric-label">Active Connections</div>
+                                <div class="metric-value" id="db-connections">--</div>
+                            </div>
+                            <div class="metric-card mt-2">
+                                <div class="metric-label">Slow Queries</div>
+                                <div class="metric-value" id="slow-queries">--</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Redis</h6>
+                            <div class="metric-card">
+                                <div class="metric-label">Messages/sec</div>
+                                <div class="metric-value" id="redis-messages">--</div>
+                            </div>
+                            <div class="metric-card mt-2">
+                                <div class="metric-label">Connected Clients</div>
+                                <div class="metric-value" id="redis-clients">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-lg-4">
+                <!-- Health Score -->
+                <div class="metric-panel text-center">
+                    <h4 class="mb-3">
+                        <i class="fas fa-heart text-danger"></i> System Health
+                    </h4>
+                    <div class="health-score-container">
+                        <div class="health-score-circle" style="--health-percent: 0%;">
+                            <div class="health-score-inner">
+                                <div class="health-score-value" id="health-score">--</div>
+                                <div class="health-score-label" id="health-status">Unknown</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Component Health -->
+                    <div class="mt-4" id="component-health">
+                        <div class="component-health">
+                            <span class="component-name">Pattern Detection</span>
+                            <div class="component-bar">
+                                <div class="component-fill" id="health-pattern" style="width: 0%; background: #ccc;"></div>
+                            </div>
+                            <span class="component-score" id="score-pattern">--</span>
+                        </div>
+                        <div class="component-health">
+                            <span class="component-name">Database</span>
+                            <div class="component-bar">
+                                <div class="component-fill" id="health-database" style="width: 0%; background: #ccc;"></div>
+                            </div>
+                            <span class="component-score" id="score-database">--</span>
+                        </div>
+                        <div class="component-health">
+                            <span class="component-name">Redis</span>
+                            <div class="component-bar">
+                                <div class="component-fill" id="health-redis" style="width: 0%; background: #ccc;"></div>
+                            </div>
+                            <span class="component-score" id="score-redis">--</span>
+                        </div>
+                        <div class="component-health">
+                            <span class="component-name">Memory</span>
+                            <div class="component-bar">
+                                <div class="component-fill" id="health-memory" style="width: 0%; background: #ccc;"></div>
+                            </div>
+                            <span class="component-score" id="score-memory">--</span>
+                        </div>
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div class="mt-3" id="recommendations-container" style="display: none;">
+                        <h6>Recommendations</h6>
+                        <ul class="list-unstyled text-start" id="recommendations-list"></ul>
+                    </div>
+                </div>
+
+                <!-- Active Alerts -->
+                <div class="alert-panel">
+                    <h4 class="mb-3">
+                        <i class="fas fa-exclamation-triangle text-warning"></i> Active Alerts
+                        <span class="badge bg-danger ms-2" id="alert-count">0</span>
+                    </h4>
+                    <div id="alerts-container">
+                        <p class="text-muted">No active alerts</p>
+                    </div>
+                </div>
+
+                <!-- Manual Actions -->
+                <div class="metric-panel">
+                    <h4 class="mb-3">
+                        <i class="fas fa-tools text-secondary"></i> Manual Actions
+                    </h4>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-outline-primary" onclick="monitoringDashboard.triggerAction('clear_cache')">
+                            <i class="fas fa-broom"></i> Clear Cache
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="monitoringDashboard.triggerAction('force_gc')">
+                            <i class="fas fa-trash"></i> Force GC
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="monitoringDashboard.triggerAction('reload_patterns')">
+                            <i class="fas fa-redo"></i> Reload Patterns
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="monitoringDashboard.triggerAction('restart_workers')">
+                            <i class="fas fa-power-off"></i> Restart Workers
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification placeholder -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/admin/monitoring_dashboard.js') }}"></script>
+</body>
+</html>

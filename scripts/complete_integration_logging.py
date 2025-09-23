@@ -172,7 +172,7 @@ GRANT EXECUTE ON FUNCTION log_integration_event TO app_readwrite;
         f.write(sql_script)
 
     print("[OK] Created database integration logging table script")
-    print("     Run with: PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5433 -U app_readwrite -d tickstock -f scripts/database/create_integration_logging_table.sql")
+    print("     Run with: PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5432 -U app_readwrite -d tickstock -f scripts/database/create_integration_logging_table.sql")
 
 def create_simple_integration_test():
     """Create a simple test to verify integration logging is working."""

@@ -60,7 +60,7 @@ class ConfigManager:
         
         # Sprint 10: TimescaleDB Configuration
         'TICKSTOCK_DB_HOST': 'localhost',
-        'TICKSTOCK_DB_PORT': 5433,
+        'TICKSTOCK_DB_PORT': 5432,
         'TICKSTOCK_DB_NAME': 'tickstock',
         'TICKSTOCK_DB_USER': 'app_readwrite',
         'TICKSTOCK_DB_PASSWORD': 'LJI48rUEkUpe6e',

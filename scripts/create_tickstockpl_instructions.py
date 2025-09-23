@@ -23,7 +23,7 @@ from datetime import datetime
 def get_db_connection():
     return psycopg2.connect(
         host='localhost',
-        port=5433,
+        port=5432,
         database='tickstock',
         user='app_readwrite',
         password='LJI48rUEkUpe6e'
@@ -126,21 +126,21 @@ def log_pattern_publish(symbol, pattern_name, confidence):
 Run this query to see TickStockPL's published patterns:
 
 ```bash
-PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5433 -U app_readwrite -d tickstock -c "SELECT timestamp, checkpoint, symbol, pattern_name, confidence FROM integration_events WHERE source_system='TickStockPL' ORDER BY timestamp DESC LIMIT 10;"
+PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5432 -U app_readwrite -d tickstock -c "SELECT timestamp, checkpoint, symbol, pattern_name, confidence FROM integration_events WHERE source_system='TickStockPL' ORDER BY timestamp DESC LIMIT 10;"
 ```
 
 ### Check Complete Flow (Both Apps)
 To see the complete pattern flow from TickStockPL → TickStockAppV2:
 
 ```bash
-PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5433 -U app_readwrite -d tickstock -c "SELECT timestamp, source_system, checkpoint, symbol, pattern_name FROM integration_events ORDER BY timestamp DESC LIMIT 20;"
+PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5432 -U app_readwrite -d tickstock -c "SELECT timestamp, source_system, checkpoint, symbol, pattern_name FROM integration_events ORDER BY timestamp DESC LIMIT 20;"
 ```
 
 ### Check Flow Analysis
 To see pattern flow with latency measurements:
 
 ```bash
-PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5433 -U app_readwrite -d tickstock -c "SELECT * FROM pattern_flow_analysis ORDER BY start_time DESC LIMIT 5;"
+PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5432 -U app_readwrite -d tickstock -c "SELECT * FROM pattern_flow_analysis ORDER BY start_time DESC LIMIT 5;"
 ```
 
 ## Expected Flow

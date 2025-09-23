@@ -218,7 +218,7 @@ def main():
 
     if not check_postgres():
         print("WARNING: PostgreSQL not detected. Pattern detection may fail.")
-        print("Please ensure PostgreSQL is running on localhost:5433")
+        print("Please ensure PostgreSQL is running on localhost:5432")
     else:
         print("[OK] PostgreSQL is running")
 

@@ -434,10 +434,10 @@ python scripts/dev_tools/util_test_db_integrity.py --sprint 23
 def get_db_connection_params() -> Dict[str, str]:
     """Get database connection parameters from TickStockAppV2 .env file"""
     # Using hardcoded values from .env DATABASE_URI
-    # postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5433/tickstock
+    # postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock
     return {
         'host': 'localhost',
-        'port': '5433',
+        'port': '5432',
         'database': 'tickstock',
         'user': 'app_readwrite',
         'password': 'LJI48rUEkUpe6e'

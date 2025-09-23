@@ -40,7 +40,7 @@ class TestTickStockDatabaseConnection:
         """Test connection URL building with custom environment variables."""
         env_vars = {
             'TICKSTOCK_DB_HOST': 'production-host',
-            'TICKSTOCK_DB_PORT': '5433',
+            'TICKSTOCK_DB_PORT': '5432',
             'TICKSTOCK_DB_USER': 'appv2_user',
             'TICKSTOCK_DB_PASSWORD': 'secure_password'
         }
@@ -52,7 +52,7 @@ class TestTickStockDatabaseConnection:
             
             url = db._build_connection_url()
             
-            expected_url = "postgresql://appv2_user:secure_password@production-host:5433/tickstock"
+            expected_url = "postgresql://appv2_user:secure_password@production-host:5432/tickstock"
             assert expected_url == url
 
     def test_fixed_database_name_enforcement(self):

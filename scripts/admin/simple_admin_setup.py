@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 def simple_admin_setup():
     load_dotenv()
-    DATABASE_URI = os.getenv('DATABASE_URI', 'postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5433/tickstock')
+    DATABASE_URI = os.getenv('DATABASE_URI', 'postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock')
     
     try:
         conn = psycopg2.connect(DATABASE_URI)

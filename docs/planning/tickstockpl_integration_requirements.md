@@ -49,7 +49,7 @@ TickStockAppV2 (consumer) is fully operational and listening for pattern events.
 ```python
 DB_CONFIG = {
     'host': 'localhost',
-    'port': 5433,
+    'port': 5432,
     'database': 'tickstock',
     'user': 'app_readwrite',
     'password': 'LJI48rUEkUpe6e'  # TODO: Change for production
@@ -248,7 +248,7 @@ import random
 # Configuration
 DB_CONFIG = {
     'host': 'localhost',
-    'port': 5433,
+    'port': 5432,
     'database': 'tickstock',
     'user': 'app_readwrite',
     'password': 'LJI48rUEkUpe6e'
@@ -357,7 +357,7 @@ class PatternDetectionService:
         self.redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
         self.db_config = {
             'host': 'localhost',
-            'port': 5433,
+            'port': 5432,
             'database': 'tickstock',
             'user': 'app_readwrite',
             'password': 'LJI48rUEkUpe6e'
@@ -543,7 +543,7 @@ if __name__ == "__main__":
 When starting `run_pattern_detection_service.py`, verify:
 
 - [ ] Redis connection established (localhost:6379)
-- [ ] Database connection established (localhost:5433)
+- [ ] Database connection established (localhost:5432)
 - [ ] Startup event logged to `integration_events` table
 - [ ] Heartbeat timer started (60-second interval)
 - [ ] Market data source connected (Polygon.io API or synthetic)
@@ -562,7 +562,7 @@ redis-cli
 ### Check Database Logging
 ```bash
 # View TickStockPL events
-PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5433 -U app_readwrite -d tickstock -c "SELECT timestamp, checkpoint, symbol, pattern_name FROM integration_events WHERE source_system='TickStockPL' ORDER BY timestamp DESC LIMIT 10;"
+PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5432 -U app_readwrite -d tickstock -c "SELECT timestamp, checkpoint, symbol, pattern_name FROM integration_events WHERE source_system='TickStockPL' ORDER BY timestamp DESC LIMIT 10;"
 ```
 
 ### Check Heartbeat
@@ -599,7 +599,7 @@ python scripts/monitor_system_health.py --watch
 ### Issue: Database Logging Fails
 **Symptoms**: Patterns work but no database records
 **Solutions**:
-- Check PostgreSQL on port 5433
+- Check PostgreSQL on port 5432
 - Verify `log_integration_event` function exists
 - Ensure UUID format for flow_id
 - Check database credentials

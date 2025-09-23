@@ -416,7 +416,7 @@ class TestSprint10ConfigurationIntegration:
         
         test_config = {
             'database_host': 'test-host',
-            'database_port': '5433',
+            'database_port': '5432',
             'redis_client': Mock(),
             'custom_setting': 'test_value'
         }

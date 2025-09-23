@@ -24,7 +24,7 @@ REDIS_CONFIG = {
 
 DB_CONFIG = {
     'host': 'localhost',
-    'port': 5433,
+    'port': 5432,
     'database': 'tickstock',
     'user': 'app_readwrite',
     'password': 'LJI48rUEkUpe6e'

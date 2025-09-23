@@ -30,7 +30,7 @@ ps aux | grep tickstock       # Linux/Mac
 # Check pattern table counts
 python -c "
 import psycopg2
-conn = psycopg2.connect('postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5433/tickstock')
+conn = psycopg2.connect('postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock')
 cur = conn.cursor()
 cur.execute('SELECT COUNT(*) FROM daily_patterns')
 print(f'Daily patterns: {cur.fetchone()[0]}')
@@ -43,7 +43,7 @@ conn.close()
 ### **Database Health**
 ```bash
 # Check TimescaleDB hypertable status
-PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5433 -U app_readwrite -d tickstock -c "
+PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5432 -U app_readwrite -d tickstock -c "
 SELECT hypertable_name, num_chunks FROM timescaledb_information.hypertables 
 WHERE hypertable_name IN ('daily_patterns', 'intraday_patterns');
 "

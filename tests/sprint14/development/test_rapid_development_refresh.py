@@ -88,7 +88,7 @@ def mock_docker_client():
     mock_container.id = "container_123"
     mock_container.status = 'running'
     mock_container.start = Mock()
-    mock_container.ports = {'5432/tcp': [{'HostPort': '5433'}]}
+    mock_container.ports = {'5432/tcp': [{'HostPort': '5432'}]}
     mock_container.exec_run.return_value.exit_code = 0
     mock_container.exec_run.return_value.output = b"Success"
     mock_container.put_archive = Mock()
@@ -465,7 +465,7 @@ class TestRapidDevelopmentRefresh:
         """Test developer-specific database connection via Docker"""
         # Mock Docker container with port mapping
         mock_container = Mock()
-        mock_container.ports = {'5432/tcp': [{'HostPort': '5433'}]}
+        mock_container.ports = {'5432/tcp': [{'HostPort': '5432'}]}
         mock_docker_client.containers.list.return_value = [mock_container]
         
         refresh_system.docker_client = mock_docker_client
@@ -478,7 +478,7 @@ class TestRapidDevelopmentRefresh:
             # Should have attempted connection with developer-specific URI
             mock_get_conn.assert_called_once()
             args = mock_get_conn.call_args[0]
-            assert '5433' in args[0]  # Port should be mapped port
+            assert '5432' in args[0]  # Port should be mapped port
             assert 'test_dev' in args[0]  # Database name should include developer
 
     def test_docker_reset_restore(self, refresh_system, mock_docker_client):

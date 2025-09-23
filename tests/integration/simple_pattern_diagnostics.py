@@ -35,7 +35,7 @@ def test_database_connectivity():
         import psycopg2
         conn = psycopg2.connect(
             host='localhost',
-            port=5433,
+            port=5432,
             database='tickstock',
             user='app_readwrite',
             password='LJI48rUEkUpe6e'
@@ -62,7 +62,7 @@ def test_pattern_tables():
         import psycopg2
         conn = psycopg2.connect(
             host='localhost',
-            port=5433,
+            port=5432,
             database='tickstock',
             user='app_readwrite',
             password='LJI48rUEkUpe6e'

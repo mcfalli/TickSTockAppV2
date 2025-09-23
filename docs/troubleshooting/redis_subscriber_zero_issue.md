@@ -193,7 +193,7 @@ python run_pattern_detection_service.py
 ### **TickStockApp (.env)**
 ```env
 REDIS_URL=redis://localhost:6379/0
-DATABASE_URI=postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5433/tickstock
+DATABASE_URI=postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock
 PATTERN_EVENTS_CHANNEL=tickstock.events.patterns
 TICKSTOCKPL_INTEGRATION=true
 ```

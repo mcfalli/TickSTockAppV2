@@ -15,7 +15,7 @@ def analyze_pattern_detections_correct():
     try:
         conn = psycopg2.connect(
             host='localhost',
-            port=5433,
+            port=5432,
             database='tickstock',
             user='app_readwrite',
             password='LJI48rUEkUpe6e'
@@ -103,7 +103,7 @@ def check_daily_intraday_data():
     try:
         conn = psycopg2.connect(
             host='localhost',
-            port=5433,
+            port=5432,
             database='tickstock',
             user='app_readwrite',
             password='LJI48rUEkUpe6e'
@@ -194,7 +194,7 @@ def generate_final_diagnostic_report():
     print("   - Ensure TickStockPL Redis config matches TickStockApp:")
     print("     * Redis host: localhost:6379")
     print("     * Channels: tickstock.events.patterns")
-    print("   - Verify TickStockPL database connection (port 5433)")
+    print("   - Verify TickStockPL database connection (port 5432)")
     
     print("\n3. SCHEMA ALIGNMENT:")
     print("   - Check if TickStockPL should populate daily/intraday tables")

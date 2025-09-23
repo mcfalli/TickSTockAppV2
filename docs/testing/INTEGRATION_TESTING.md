@@ -95,7 +95,7 @@ Before running tests, ensure:
    ```
 
 2. **Database Access**:
-   - PostgreSQL on `localhost:5433`
+   - PostgreSQL on `localhost:5432`
    - Database: `tickstock`
    - User: `app_readwrite`
 
@@ -195,7 +195,7 @@ ORDER BY start_time DESC;
 - Check: `redis-cli CLIENT LIST` shows subscribers
 
 ### Database Logging Failed
-- Check: PostgreSQL running on port 5433
+- Check: PostgreSQL running on port 5432
 - Verify: `integration_events` table exists
 - Check: Database credentials correct
 

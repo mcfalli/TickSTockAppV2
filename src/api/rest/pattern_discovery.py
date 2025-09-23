@@ -79,7 +79,7 @@ def _load_pattern_discovery_config() -> Dict[str, Any]:
         
         # Database configuration (from existing environment)
         'database_host': os.getenv('TICKSTOCK_DB_HOST', 'localhost'),
-        'database_port': int(os.getenv('TICKSTOCK_DB_PORT', 5433)),
+        'database_port': int(os.getenv('TICKSTOCK_DB_PORT', 5432)),
         'database_name': 'tickstock',
         'database_user': os.getenv('TICKSTOCK_DB_USER', 'app_readwrite'),
         'database_password': os.getenv('TICKSTOCK_DB_PASSWORD', 'LJI48rUEkUpe6e'),

@@ -201,7 +201,7 @@ ORDER BY timestamp DESC;
 
 ### Database Connection
 - Host: localhost
-- Port: 5433
+- Port: 5432
 - Database: tickstock
 - User: app_readwrite
 - Password: Configured in environment

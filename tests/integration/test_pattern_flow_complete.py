@@ -23,7 +23,7 @@ class TestPatternFlowComplete:
     def __init__(self):
         self.redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
         self.db_conn = psycopg2.connect(
-            host='localhost', port=5433, database='tickstock',
+            host='localhost', port=5432, database='tickstock',
             user='app_readwrite', password='LJI48rUEkUpe6e'
         )
         self.db_conn.autocommit = True

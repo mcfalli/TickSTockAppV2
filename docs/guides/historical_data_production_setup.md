@@ -16,7 +16,7 @@ This guide covers setting up historical data management for TickStock in product
 ```bash
 # Required
 export POLYGON_API_KEY="your_polygon_api_key_here"
-export DATABASE_URI="postgresql://app_readwrite:password@localhost:5433/tickstock"
+export DATABASE_URI="postgresql://app_readwrite:password@localhost:5432/tickstock"
 
 # Optional - for enhanced features  
 export SLACK_WEBHOOK_URL="https://hooks.slack.com/your/webhook"

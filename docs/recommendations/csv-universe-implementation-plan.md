@@ -28,10 +28,10 @@
 
 ```bash
 # 1. Backup database
-pg_dump -h localhost -p 5433 -U app_readwrite tickstock > backup_before_etf_cleanup.sql
+pg_dump -h localhost -p 5432 -U app_readwrite tickstock > backup_before_etf_cleanup.sql
 
 # 2. Run cleanup script
-PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5433 -U app_readwrite -d tickstock -f scripts/database/cleanup_etfs_to_curated.sql
+PGPASSWORD=LJI48rUEkUpe6e psql -h localhost -p 5432 -U app_readwrite -d tickstock -f scripts/database/cleanup_etfs_to_curated.sql
 
 # 3. Load curated ETFs via admin interface
 # Universe: "Curated ETFs" -> Load all 46 symbols

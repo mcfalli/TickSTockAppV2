@@ -88,7 +88,7 @@ python util_test_db_integrity.py --sprint 24 --generate-fixes
 Edit `db_config.py` or set environment variables:
 ```python
 DB_HOST=localhost
-DB_PORT=5433
+DB_PORT=5432
 DB_NAME=tickstock  
 DB_USER=app_readwrite
 DB_PASSWORD=your_password

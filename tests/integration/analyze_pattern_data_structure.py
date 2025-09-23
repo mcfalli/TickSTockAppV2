@@ -15,7 +15,7 @@ def analyze_pattern_detections():
     try:
         conn = psycopg2.connect(
             host='localhost',
-            port=5433,
+            port=5432,
             database='tickstock',
             user='app_readwrite',
             password='LJI48rUEkUpe6e'
@@ -112,7 +112,7 @@ def check_daily_intraday_tables():
     try:
         conn = psycopg2.connect(
             host='localhost',
-            port=5433,
+            port=5432,
             database='tickstock',
             user='app_readwrite',
             password='LJI48rUEkUpe6e'
