@@ -313,7 +313,7 @@ Application logs stored in: `logs/tickstock_YYYYMMDD_HHMMSS_*.log`
 ### Documentation
 - **Sprint 10 Summary**: Sprint 10 has been completed - see `../planning/evolution_index.md` for project history
 - **Architecture Overview**: `../architecture/system-architecture.md`
-- **Project Structure**: `../development/project_structure.md`
+- **Project Structure**: `../project_structure.md`
 
 ---
 

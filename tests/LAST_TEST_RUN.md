@@ -1,8 +1,8 @@
 # Last Test Run Report
 
-**Generated**: 2025-09-20 14:55:44
+**Generated**: 2025-09-25 08:28:11
 **Command**: `python run_tests.py`
-**Total Duration**: 14.40 seconds
+**Total Duration**: 13.40 seconds
 **Status**: [FAILED]
 
 ## Summary Statistics
@@ -11,15 +11,15 @@
 - **Test Suites Passed**: 0
 - **Test Suites Failed**: 2
 - **Individual Tests Passed**: 6
-- **Individual Tests Failed**: 8
+- **Individual Tests Failed**: 10
 - **Performance Target (<10s)**: [MISSED]
 
 ## Test Suite Results
 
 | Suite | Status | Duration | Tests |
 |-------|--------|----------|-------|
-| Core Integration Tests | [FAIL] | 10.30s | 8 |
-| End-to-End Pattern Flow | [FAIL] | 4.10s | 6 |
+| Core Integration Tests | [FAIL] | 9.74s | 10 |
+| End-to-End Pattern Flow | [FAIL] | 3.66s | 6 |
 
 ## Individual Test Results
 
@@ -28,21 +28,23 @@
 
 - [FAIL] Redis Subscription FAILED: No subscribers on tickstock.events.patterns channel
 - [FAIL] Event Structure FAILED: Failed to publish test event
-- [FAIL] Database Logging FAILED: No recent integration events in database
-- [FAIL] Redis->DB Flow FAILED: No events logged for flow_id 3de4c2f3-f6bf-443f-9181-6e11541a2f18
+- [FAIL] Database Logging ERROR: relation "integration_events" does not exist
+- [FAIL] Pattern Flow ERROR: relation "integration_events" does not exist
+- [FAIL] Heartbeat Monitor ERROR: relation "integration_events" does not exist
+- [FAIL] Redis->DB Flow ERROR: relation "integration_events" does not exist
 - [PASS] Pattern cache contains 0 entries
 - [FAIL] WebSocket Config FAILED: No pattern event handlers registered
-- [FAIL] Performance ERROR: column "processing_time_ms" does not exist
+- [FAIL] Performance ERROR: not enough values to unpack (expected 4, got 3)
 - [FAIL] Error Recovery FAILED: System not recovering from bad events
 
 ### End-to-End Pattern Flow
 
-- [PASS] Published pattern with flow_id: d22aa1ed-d831-4882-80f3-1aeee3a47520
+- [PASS] Published pattern with flow_id: 4d1a6957-3cdd-4e5c-96e7-91b905baf331
 - [PASS] Published daily tier pattern: HeadShoulders for TSLA
 - [PASS] Published intraday tier pattern: VolumeSurge for NVDA
 - [PASS] Published combo tier pattern: SupportBreakout for AAPL
 - [PASS] Sent 40 patterns in 0.4s
-- [FAIL] Test failed: column "processing_time_ms" does not exist
+- [FAIL] Test failed: relation "integration_events" does not exist
 
 ## Expected Test Coverage
 

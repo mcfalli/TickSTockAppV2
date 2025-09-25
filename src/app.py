@@ -65,6 +65,11 @@ from src.core.exceptions.redis_exceptions import (
     RedisConfigurationError
 )
 
+# Sprint 32: Enhanced Error Handling System
+from src.core.services.enhanced_logger import create_enhanced_logger, set_enhanced_logger
+from src.core.services.error_subscriber import create_error_subscriber, set_error_subscriber
+from src.core.services.config_manager import LoggingConfig
+
 logger = logging.getLogger(__name__)
 
 # Global application components
@@ -172,10 +177,6 @@ def initialize_tickstockpl_services(config, socketio, redis_client, flask_app=No
             pattern_alert_manager = PatternAlertManager(redis_client, config)
             logger.info("TICKSTOCKPL-SERVICES: Pattern alert manager initialized")
         
-        # Initialize database integration logger
-        from src.core.services.database_integration_logger import initialize_database_integration_logger
-        db_integration_logger = initialize_database_integration_logger(config)
-        logger.info("TICKSTOCKPL-SERVICES: Database integration logger initialized")
 
         # Initialize Redis event subscriber if Redis is available
         if redis_client:
@@ -279,6 +280,84 @@ def initialize_sprint23_services(config):
         temporal_analytics_service = None
         comparison_tools_service = None
         return False
+
+
+def initialize_error_handling(config, redis_client=None):
+    """Initialize Sprint 32 Enhanced Error Handling System.
+
+    Args:
+        config: Application configuration dictionary
+        redis_client: Redis client for TickStockPL error integration
+
+    Returns:
+        tuple: (enhanced_logger, error_subscriber) or (None, None) on failure
+    """
+    try:
+        logger.info("ERROR-HANDLING: Creating logging configuration...")
+        logging_config = LoggingConfig()
+
+        # Get database connection for enhanced logger
+        db_connection = None
+        if logging_config.log_db_enabled:
+            try:
+                # Try to get database connection using existing pattern
+                if db_connection_pool:
+                    db_connection = db_connection_pool
+                else:
+                    # Fallback - create simple database connection
+                    import psycopg2
+                    db_connection = psycopg2.connect(config.get('DATABASE_URI'))
+                logger.info("ERROR-HANDLING: Database connection established for error logging")
+            except Exception as db_error:
+                logger.warning(f"ERROR-HANDLING: Database connection failed, disabling DB logging: {db_error}")
+                db_connection = None
+
+        # Create enhanced logger
+        logger.info("ERROR-HANDLING: Creating enhanced logger...")
+        enhanced_logger = create_enhanced_logger(
+            config=logging_config,
+            db_connection=db_connection
+        )
+
+        # Set as global enhanced logger
+        set_enhanced_logger(enhanced_logger)
+        logger.info("ERROR-HANDLING: Enhanced logger created and set as global")
+
+        # Create error subscriber if Redis is available
+        error_subscriber = None
+        if redis_client and logging_config.redis_error_channel:
+            try:
+                logger.info("ERROR-HANDLING: Creating Redis error subscriber...")
+                error_subscriber = create_error_subscriber(
+                    redis_client=redis_client,
+                    enhanced_logger=enhanced_logger,
+                    config=logging_config
+                )
+
+                # Start the subscriber
+                if error_subscriber.start():
+                    set_error_subscriber(error_subscriber)
+                    logger.info(f"ERROR-HANDLING: Redis error subscriber started for channel: {logging_config.redis_error_channel}")
+                else:
+                    logger.warning("ERROR-HANDLING: Failed to start Redis error subscriber")
+                    error_subscriber = None
+
+            except Exception as redis_error:
+                logger.warning(f"ERROR-HANDLING: Redis error subscriber failed: {redis_error}")
+                error_subscriber = None
+        else:
+            logger.info("ERROR-HANDLING: Redis not available, skipping error subscriber")
+
+        # Log system status
+        stats = enhanced_logger.get_stats()
+        logger.info(f"ERROR-HANDLING: System initialized - {stats}")
+
+        return enhanced_logger, error_subscriber
+
+    except Exception as e:
+        logger.error(f"ERROR-HANDLING: Initialization failed: {e}")
+        return None, None
+
 
 def register_socketio_handlers(socketio, market_service):
     """Register essential SocketIO event handlers."""
@@ -2188,6 +2267,26 @@ def main():
         else:
             logger.error("STARTUP: LOGIN-MANAGER not found when configuring unauthorized handler!")
         
+        # Sprint 32: Initialize Enhanced Error Handling System
+        logger.info("STARTUP: Initializing enhanced error handling system...")
+        try:
+            enhanced_logger, error_subscriber = initialize_error_handling(config, redis_client)
+            if enhanced_logger:
+                logger.info("STARTUP: Enhanced error handling system initialized successfully")
+                # Test the enhanced logger
+                enhanced_logger.log_error(
+                    severity='info',
+                    message='Enhanced error handling system initialized successfully',
+                    category='system',
+                    component='StartupService',
+                    context={'startup': True}
+                )
+            else:
+                logger.warning("STARTUP: Enhanced error handling system initialization incomplete")
+        except Exception as e:
+            logger.error(f"STARTUP: Enhanced error handling system failed: {e}")
+            # Don't fail startup - this is not critical for core functionality
+
         # Initialize TickStockPL integration services (Phase 2)
         logger.info("STARTUP: Initializing TickStockPL integration services...")
         try:
@@ -2280,6 +2379,16 @@ def main():
         # Stop TickStockPL integration services
         if redis_event_subscriber:
             redis_event_subscriber.stop()
+
+        # Stop Sprint 32 error handling services
+        try:
+            from src.core.services.error_subscriber import get_error_subscriber
+            error_subscriber = get_error_subscriber()
+            if error_subscriber:
+                error_subscriber.stop()
+                logger.info("SHUTDOWN: Error subscriber stopped")
+        except:
+            pass
 
         if pattern_alert_manager:
             pattern_alert_manager.cleanup_expired_data()

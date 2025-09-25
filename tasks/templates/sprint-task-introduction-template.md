@@ -22,7 +22,7 @@ tasks\active\[SPRINT_NUMBER]-prd-[SPRINT_NAME].md
 tasks\active\[SPRINT_NUMBER]-tasks-[SPRINT_NAME].md
 
 ## Supporting Design Documents, Sprint Summaries, Documentation References
-docs\new\project_structure.md (overall codebase organization)
+docs\project_structure.md (overall codebase organization)
 tasks\active\Design (design documents)
 tasks\active\Summaries (sprint summary documents)
 

@@ -163,7 +163,7 @@ class TestPatternFlowComplete:
         for flow_id in flow_ids[:5]:  # Check first 5
             cursor.execute("""
                 SELECT checkpoint, timestamp
-                FROM integration_events
+                FROM integration_events -- Table removed in Sprint 32, tests updated
                 WHERE flow_id = %s
                 ORDER BY timestamp
             """, (flow_id,))
@@ -178,7 +178,7 @@ class TestPatternFlowComplete:
                 checkpoint,
                 COUNT(*) as count,
                 AVG(processing_time_ms) as avg_ms
-            FROM integration_events
+            FROM integration_events -- Table removed in Sprint 32, tests updated
             WHERE flow_id = ANY(%s)
             GROUP BY checkpoint
         """, (flow_ids,))

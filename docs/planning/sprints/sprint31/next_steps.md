@@ -12,7 +12,13 @@
 4. **Authentication**: Admin routes properly secured
 5. **Real-Time Updates**: 5-second polling with JavaScript controller
 
-### ⚠️ What Needs Testing
+### 🔴 SPRINT ON HOLD - Integration Issue
+**Status**: Integration pathway between TickStockPL and TickStockAppV2 not functioning
+- Monitoring subscriber is active but not receiving events
+- Despite both systems running integrated, no metrics flowing
+- Need to debug why TickStockPL events aren't reaching the dashboard
+
+### ⚠️ What Needs Testing (When Resumed)
 1. **Live Data Flow**: Need to verify with actual TickStockPL monitoring events
 2. **Historical Data Import**: Redis job submission not yet tested
 3. **Pattern Cache**: Cache integration needs validation

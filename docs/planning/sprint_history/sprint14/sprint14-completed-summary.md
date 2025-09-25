@@ -255,4 +255,4 @@ The sprint establishes TickStock.ai as a fully automated, enterprise-ready finan
 - **[`data-load-maintenance-user-stories.md`](data-load-maintenance-user-stories.md)** - Foundation user stories and requirements
 - **[`../project-overview.md`](../project-overview.md)** - Complete system vision and architecture context
 - **[`../../architecture/system-architecture.md`](../../architecture/system-architecture.md)** - Updated architecture with automation services
-- **[`../../development/project_structure.md`](../../development/project_structure.md)** - Enhanced project structure with Sprint 14 additions
+- **[`../../project_structure.md`](../../project_structure.md)** - Enhanced project structure with Sprint 14 additions

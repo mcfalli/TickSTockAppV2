@@ -30,7 +30,7 @@
 - **[development/coding-practices.md](development/coding-practices.md)** - Development standards
 - **[development/unit_testing.md](development/unit_testing.md)** - Testing guidelines
 - **[development/code-documentation-standards.md](development/code-documentation-standards.md)** - Documentation standards
-- **[development/project_structure.md](development/project_structure.md)** - Folder organization
+- **[project_structure.md](project_structure.md)** - Folder organization
 
 ### Implementation Details
 - **[implementation/database_integration_logging_implementation.md](implementation/database_integration_logging_implementation.md)** - Integration logging (Sprint 25A)

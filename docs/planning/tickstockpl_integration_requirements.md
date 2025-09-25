@@ -622,15 +622,270 @@ Integration is successful when:
 4. ✅ `pattern_flow_analysis` view shows complete flows with <100ms latency
 5. ✅ Monitor script shows both systems active and patterns flowing
 
+## 11. Historical Data Import Integration (NEW - CRITICAL)
+
+### Overview
+TickStockAppV2 submits historical data import jobs via Redis pub-sub. TickStockPL must subscribe and process these jobs to populate the OHLCV tables.
+
+### 11.1 Job Subscription Required
+
+**Channel to Subscribe**: `tickstock.jobs.data_load`
+
+**Current Status**: **0 subscribers detected** - TickStockPL is NOT listening
+
+### 11.2 Job Message Format
+
+When TickStockAppV2 submits a CSV universe load job:
+
+```json
+{
+    "job_id": "job_20241030_145623_abc123",
+    "job_type": "csv_universe_load",
+    "csv_file": "sp_500.csv",
+    "universe_type": "sp_500",
+    "years": 1,
+    "include_ohlcv": true,
+    "requested_by": "admin",
+    "timestamp": "2024-10-30T14:56:23.123456"
+}
+```
+
+### 11.3 Expected Processing Workflow
+
+1. **Subscribe to Redis Channel**:
+   ```python
+   pubsub = redis_client.pubsub()
+   pubsub.subscribe('tickstock.jobs.data_load')
+   ```
+
+2. **Parse CSV Universe**:
+   - Load symbols from `csv_file` (e.g., sp_500.csv, nasdaq_100.csv)
+   - Universe files located in standard data directory
+
+3. **Fetch Historical Data from Polygon.io**:
+   - Use specified `years` parameter for timeframe
+   - Respect API rate limits (5 calls/minute for free tier)
+   - Implement exponential backoff for rate limit errors
+
+4. **Load Data into ALL Timeframe Tables**:
+   ```sql
+   -- Required tables (all must be populated):
+   ohlcv_1min    -- Minute-level data (TIMESTAMPTZ)
+   ohlcv_hourly  -- Hourly aggregations (TIMESTAMPTZ)
+   ohlcv_daily   -- Daily OHLCV (DATE)
+   ohlcv_weekly  -- Weekly aggregations (DATE for week_ending)
+   ohlcv_monthly -- Monthly aggregations (DATE for month_ending)
+   ```
+
+### 11.4 Job Status Updates
+
+Publish status updates to Redis for UI tracking:
+
+**Key Pattern**: `tickstock.jobs.status:{job_id}`
+
+```python
+status_update = {
+    "job_id": "job_20241030_145623_abc123",
+    "status": "running",  # running|completed|failed
+    "progress": 45,  # Percentage complete
+    "total_symbols": 500,
+    "processed_symbols": 225,
+    "successful_symbols": ["AAPL", "MSFT", "GOOGL"],
+    "failed_symbols": ["XYZ"],
+    "error_message": None,  # Or error details
+    "started_at": "2024-10-30T14:56:30",
+    "completed_at": None  # Set when complete
+}
+
+redis_client.set(
+    f"tickstock.jobs.status:{job_id}",
+    json.dumps(status_update),
+    ex=86400  # 24-hour TTL
+)
+```
+
+### 11.5 Database Schema Requirements
+
+```sql
+-- Minute data (market hours only)
+CREATE TABLE IF NOT EXISTS ohlcv_1min (
+    symbol VARCHAR(10),
+    timestamp TIMESTAMPTZ,
+    open NUMERIC(10,2),
+    high NUMERIC(10,2),
+    low NUMERIC(10,2),
+    close NUMERIC(10,2),
+    volume BIGINT,
+    PRIMARY KEY (symbol, timestamp)
+);
+
+-- Hourly aggregations
+CREATE TABLE IF NOT EXISTS ohlcv_hourly (
+    symbol VARCHAR(10),
+    timestamp TIMESTAMPTZ,
+    open NUMERIC(10,2),
+    high NUMERIC(10,2),
+    low NUMERIC(10,2),
+    close NUMERIC(10,2),
+    volume BIGINT,
+    PRIMARY KEY (symbol, timestamp)
+);
+
+-- Daily data (most important)
+CREATE TABLE IF NOT EXISTS ohlcv_daily (
+    symbol VARCHAR(10),
+    date DATE,
+    open NUMERIC(10,2),
+    high NUMERIC(10,2),
+    low NUMERIC(10,2),
+    close NUMERIC(10,2),
+    volume BIGINT,
+    PRIMARY KEY (symbol, date)
+);
+
+-- Weekly aggregations
+CREATE TABLE IF NOT EXISTS ohlcv_weekly (
+    symbol VARCHAR(10),
+    week_ending DATE,
+    open NUMERIC(10,2),
+    high NUMERIC(10,2),
+    low NUMERIC(10,2),
+    close NUMERIC(10,2),
+    volume BIGINT,
+    PRIMARY KEY (symbol, week_ending)
+);
+
+-- Monthly aggregations
+CREATE TABLE IF NOT EXISTS ohlcv_monthly (
+    symbol VARCHAR(10),
+    month_ending DATE,
+    open NUMERIC(10,2),
+    high NUMERIC(10,2),
+    low NUMERIC(10,2),
+    close NUMERIC(10,2),
+    volume BIGINT,
+    PRIMARY KEY (symbol, month_ending)
+);
+```
+
+### 11.6 Current Database State (NEEDS FIXING)
+
+```
+ohlcv_daily:   23,779 records (STALE - last update Sept 18)
+ohlcv_1min:    0 records (EMPTY - never populated)
+ohlcv_hourly:  0 records (EMPTY - never populated)
+ohlcv_weekly:  0 records (EMPTY - never populated)
+ohlcv_monthly: 0 records (EMPTY - never populated)
+```
+
+### 11.7 Implementation Checklist
+
+- [ ] Subscribe to `tickstock.jobs.data_load` Redis channel
+- [ ] Parse incoming job messages correctly
+- [ ] Load CSV universe files (sp_500.csv, nasdaq_100.csv, etc.)
+- [ ] Implement Polygon.io API client with rate limiting
+- [ ] Create data aggregation functions:
+  - [ ] Minute → Hourly aggregation
+  - [ ] Hourly → Daily aggregation
+  - [ ] Daily → Weekly aggregation
+  - [ ] Daily → Monthly aggregation
+- [ ] Batch insert data efficiently (use COPY or bulk inserts)
+- [ ] Publish job status updates to Redis
+- [ ] Handle errors gracefully with detailed logging
+- [ ] Respect market calendars (skip weekends/holidays)
+
+### 11.8 Performance Requirements
+
+- **Processing Speed**: ~100-200 symbols per minute (API limited)
+- **Batch Size**: Process in chunks of 50-100 symbols
+- **Database Inserts**: Use bulk operations (1000+ records at once)
+- **Memory Management**: Stream data, don't load all in memory
+- **Status Updates**: Every 10 symbols or 30 seconds
+
+### 11.9 Error Handling
+
+Handle these scenarios gracefully:
+
+1. **API Rate Limits** (429 errors):
+   ```python
+   if response.status_code == 429:
+       wait_time = int(response.headers.get('X-RateLimit-Reset', 60))
+       time.sleep(wait_time)
+   ```
+
+2. **Invalid Symbols**: Log and continue with remaining symbols
+
+3. **Network Failures**: Implement retry with exponential backoff
+
+4. **Database Errors**: Use transactions, rollback on failure
+
+5. **Memory Issues**: Process in batches, clear data after insert
+
+### 11.10 Testing the Job Processor
+
+1. **Check Redis Subscription**:
+   ```bash
+   redis-cli PUBSUB NUMSUB tickstock.jobs.data_load
+   # Should return: tickstock.jobs.data_load 1 (or more)
+   ```
+
+2. **Submit Test Job** (from TickStockAppV2):
+   - Navigate to Admin → Historical Data
+   - Select "sp_500.csv" and "1 year"
+   - Click "Load CSV Universe"
+
+3. **Monitor Job Progress**:
+   ```bash
+   # Watch for job messages
+   redis-cli SUBSCRIBE tickstock.jobs.data_load
+
+   # Check job status
+   redis-cli GET "tickstock.jobs.status:job_*"
+   ```
+
+4. **Verify Database Population**:
+   ```sql
+   -- Check record counts
+   SELECT COUNT(*) FROM ohlcv_daily WHERE date > CURRENT_DATE - INTERVAL '7 days';
+   SELECT COUNT(*) FROM ohlcv_1min WHERE timestamp > NOW() - INTERVAL '1 day';
+   SELECT COUNT(*) FROM ohlcv_hourly;
+   ```
+
+### 11.11 Expected Data Coverage
+
+For each symbol requested:
+
+| Timeframe | Records Expected | Time Range | Storage |
+|-----------|-----------------|------------|---------|
+| 1-minute | ~390 per day | Market hours only | ~100KB/symbol/day |
+| Hourly | ~7 per day | Aggregated | ~2KB/symbol/day |
+| Daily | ~252 per year | Trading days only | ~10KB/symbol/year |
+| Weekly | ~52 per year | Week endings | ~2KB/symbol/year |
+| Monthly | ~12 per year | Month endings | ~500B/symbol/year |
+
+### 11.12 Success Metrics
+
+Job processing is successful when:
+
+1. ✅ Redis subscription shows 1+ subscribers on `tickstock.jobs.data_load`
+2. ✅ Job status updates appear in Redis with progress
+3. ✅ All 5 OHLCV tables contain recent data
+4. ✅ Daily table has data within 1 business day
+5. ✅ No "0 records" in minute/hourly tables
+6. ✅ Job completes in reasonable time (~5 min for 100 symbols)
+
 ## Contact & Support
 
 **TickStockAppV2 Integration**: Ready and listening
-**Required Actions**: Implement sections 1-6 in TickStockPL
+**Required Actions**:
+- Implement sections 1-6 for pattern detection
+- **URGENT**: Implement section 11 for historical data loading
 **Testing**: Use test pattern generator to verify integration
 **Monitoring**: Use `monitor_system_health.py` for real-time status
 
 ---
 
 *Document Generated: 2025-09-17*
+*Document Updated: 2024-10-30 - Added Historical Data Import Requirements*
 *Purpose: Enable successful TickStockPL → TickStockAppV2 integration*
-*Status: Awaiting TickStockPL implementation*
+*Status: Awaiting TickStockPL implementation (Pattern Detection + Historical Data Import)*

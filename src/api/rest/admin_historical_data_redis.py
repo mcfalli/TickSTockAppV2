@@ -49,12 +49,23 @@ def register_admin_historical_routes(app):
             recent_jobs = []
             for job in job_history[-10:]:  # Last 10 jobs
                 job_id = job.get('job_id')
+                job_with_status = dict(job)  # Make a copy
+
+                # Set default values expected by template
+                job_with_status['id'] = job_id if job_id else 'Unknown'
+                job_with_status['status'] = 'pending'
+                job_with_status['completed_at'] = None
+                job_with_status['successful_symbols'] = []
+                job_with_status['failed_symbols'] = []
+
                 if job_id:
                     status_data = redis_client.get(f'job:status:{job_id}')
                     if status_data:
                         status = json.loads(status_data)
-                        job['current_status'] = status
-                recent_jobs.append(job)
+                        job_with_status['current_status'] = status
+                        job_with_status['status'] = status.get('status', 'pending')
+
+                recent_jobs.append(job_with_status)
 
             # Get available symbols (simplified - you may want to query database)
             available_symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'SPY', 'QQQ', 'DIA']
@@ -71,12 +82,21 @@ def register_admin_historical_routes(app):
             daily_summary = {}
             minute_summary = {}
 
+            # Calculate job statistics
+            job_stats = {
+                'active_jobs': len([j for j in recent_jobs if j.get('current_status', {}).get('status') == 'running']),
+                'completed_jobs': len([j for j in recent_jobs if j.get('current_status', {}).get('status') == 'completed']),
+                'failed_jobs': len([j for j in recent_jobs if j.get('current_status', {}).get('status') == 'failed']),
+                'queued_jobs': len([j for j in recent_jobs if j.get('current_status', {}).get('status') == 'queued'])
+            }
+
             return render_template('admin/historical_data_dashboard.html',
                                  symbols=available_symbols,
                                  available_universes=available_universes,
                                  recent_jobs=recent_jobs,
                                  daily_summary=daily_summary,
-                                 minute_summary=minute_summary)
+                                 minute_summary=minute_summary,
+                                 job_stats=job_stats)
         except Exception as e:
             app.logger.error(f"Error loading historical data dashboard: {str(e)}")
             flash(f'Error loading dashboard: {str(e)}', 'danger')
@@ -85,7 +105,8 @@ def register_admin_historical_routes(app):
                                  available_universes={},
                                  recent_jobs=[],
                                  daily_summary={},
-                                 minute_summary={})
+                                 minute_summary={},
+                                 job_stats={'active_jobs': 0, 'completed_jobs': 0, 'failed_jobs': 0, 'queued_jobs': 0})
 
     @app.route('/admin/historical-data/trigger-load', methods=['POST'])
     @login_required
@@ -462,5 +483,144 @@ def register_admin_historical_routes(app):
 
         except Exception as e:
             return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/admin/historical-data/jobs/status')
+    @login_required
+    @admin_required
+    def admin_jobs_status():
+        """Get all job statuses for real-time monitoring"""
+        try:
+            # Check TickStockPL job statuses
+            active_jobs = {}
+            recent_jobs = []
+
+            # Get all job keys from Redis
+            job_keys = redis_client.keys('tickstock.jobs.status:*')
+
+            for key in job_keys:
+                try:
+                    status_data = redis_client.get(key)
+                    if status_data:
+                        status = json.loads(status_data)
+                        job_id = key.split(':')[-1]
+
+                        # Check if job is active
+                        if status.get('status') in ['running', 'submitted', 'queued']:
+                            active_jobs[job_id] = status
+                        else:
+                            recent_jobs.append({
+                                'job_id': job_id,
+                                **status
+                            })
+                except Exception as e:
+                    app.logger.error(f"Error reading job {key}: {e}")
+
+            # Sort recent jobs by completion time
+            recent_jobs.sort(key=lambda x: x.get('completed_at', ''), reverse=True)
+
+            # Calculate statistics
+            stats = {
+                'active_jobs': len(active_jobs),
+                'completed_today': sum(1 for j in recent_jobs if j.get('status') == 'completed'),
+                'failed_today': sum(1 for j in recent_jobs if j.get('status') == 'failed')
+            }
+
+            return jsonify({
+                'success': True,
+                'active_jobs': active_jobs,
+                'recent_jobs': recent_jobs[:10],  # Last 10 jobs
+                'stats': stats
+            })
+
+        except Exception as e:
+            app.logger.error(f"Error getting job statuses: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/admin/historical-data/csv-universe-load', methods=['POST'])
+    @login_required
+    @admin_required
+    def admin_csv_universe_load():
+        """Handle CSV universe file loading via TickStockPL job submission"""
+        try:
+            # Test Redis connection
+            try:
+                redis_client.ping()
+            except redis.ConnectionError:
+                flash('Redis service unavailable. Please contact administrator.', 'danger')
+                return redirect(url_for('admin_historical_dashboard'))
+
+            # Get form data
+            csv_file = request.form.get('csv_file')
+            years = float(request.form.get('years', 1))
+            include_ohlcv = request.form.get('include_ohlcv', 'true') == 'true'
+
+            if not csv_file:
+                flash('Please select a CSV file to load', 'warning')
+                return redirect(url_for('admin_historical_dashboard'))
+
+            # Map CSV files to universe types
+            csv_universe_mapping = {
+                'sp_500.csv': 'SP500',
+                'nasdaq_100.csv': 'NASDAQ100',
+                'dow_30.csv': 'DOW30',
+                'curated-etfs.csv': 'ETF',
+                'russell_3000_part1.csv': 'RUSSELL3000_P1',
+                'russell_3000_part2.csv': 'RUSSELL3000_P2',
+                'russell_3000_part3.csv': 'RUSSELL3000_P3',
+                'russell_3000_part4.csv': 'RUSSELL3000_P4',
+                'russell_3000_part5.csv': 'RUSSELL3000_P5',
+                'russell_3000_part6.csv': 'RUSSELL3000_P6'
+            }
+
+            universe_type = csv_universe_mapping.get(csv_file, 'CUSTOM')
+
+            # Create job for TickStockPL
+            job_id = str(uuid.uuid4())
+            job_data = {
+                'job_id': job_id,
+                'job_type': 'csv_universe_load',
+                'csv_file': csv_file,
+                'universe_type': universe_type,
+                'years': years,
+                'include_ohlcv': include_ohlcv,
+                'requested_by': current_user.username if current_user.is_authenticated else 'admin',
+                'timestamp': datetime.now().isoformat()
+            }
+
+            # Submit job to TickStockPL via Redis
+            redis_client.publish('tickstock.jobs.data_load', json.dumps(job_data))
+
+            # Store initial status
+            initial_status = {
+                'status': 'submitted',
+                'progress': 0,
+                'message': 'CSV universe load job submitted to TickStockPL',
+                'description': f"Loading {csv_file} with {years} year(s) of {'OHLCV' if include_ohlcv else 'symbol'} data",
+                'submitted_at': datetime.now().isoformat()
+            }
+
+            redis_client.setex(
+                f'job:status:{job_id}',
+                7200,  # 2 hour TTL
+                json.dumps(initial_status)
+            )
+
+            # Track job in history
+            job_history.append({
+                'job_id': job_id,
+                'type': 'csv_universe_load',
+                'csv_file': csv_file,
+                'started_at': datetime.now()
+            })
+
+            flash(f'CSV universe load job submitted: {csv_file} ({job_id[:8]}...)', 'success')
+            app.logger.info(f"CSV universe load job submitted: {job_id} for {csv_file}")
+
+            return redirect(url_for('admin_historical_dashboard'))
+
+        except Exception as e:
+            app.logger.error(f"Error in CSV universe load: {str(e)}")
+            flash(f'Error loading CSV universe: {str(e)}', 'danger')
+            return redirect(url_for('admin_historical_dashboard'))
 
     return app

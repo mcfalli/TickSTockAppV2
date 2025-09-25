@@ -40,7 +40,7 @@ Follow these comprehensive instruction guides for all development work:
 These guides provide complete coverage of TickStock's development workflow and must be followed for all development assistance and code generation.
 
 ### Project Structure
-- See `docs/development/project_structure.md` for complete folder organization
+- See `docs/project_structure.md` for complete folder organization
 
 ### Key Components Reference
 #### Core Processing Pipeline
@@ -125,14 +125,44 @@ These guides provide complete coverage of TickStock's development workflow and m
 - **Inline Comments**: Use `# Reason:` prefix for complex logic
 - **Documentation Files**: Update date/time and sprint info when modified
 
-### Error Handling & Logging
-**Complete Implementation Guides**: See `docs/development/coding-practices.md` for comprehensive error handling patterns, logging strategies, and configuration management standards.
+### Error Handling & Logging (Sprint 32 Architecture)
+**Unified Error Management Strategy**: See `docs/planning/sprints/sprint32/error_exception_strategy.md` for the complete error handling architecture.
+
+#### Sprint 32 Error Management System
+- **Enhanced Logger**: File and database logging with configurable severity thresholds
+- **Config-Driven**: All settings in .env managed by config_manager
+- **Redis Integration**: Receives TickStockPL errors via `tickstock:errors` channel
+- **Database Storage**: `error_logs` table for errors meeting severity threshold
+- **File Logging**: Rotating file handlers when LOG_FILE_ENABLED=true
+
+#### Configuration (.env)
+```bash
+LOG_FILE_ENABLED=true
+LOG_FILE_PATH=logs/tickstock.log
+LOG_DB_ENABLED=true
+LOG_DB_SEVERITY_THRESHOLD=error  # critical|error|warning|info|debug
+REDIS_ERROR_CHANNEL=tickstock:errors
+```
+
+#### Error Handling Pattern
+```python
+try:
+    result = perform_operation()
+except SpecificException as e:
+    enhanced_logger.log_error(
+        severity='error',
+        message=f"Operation failed: {str(e)}",
+        category='pattern',
+        component='PatternDetector',
+        context={'symbol': symbol, 'user_id': user_id}
+    )
+```
 
 #### Key Patterns
-- **Custom Exceptions**: Domain-specific exception hierarchy for market data errors
-- **Context Managers**: Proper resource management for connections and external services
-- **Domain Logging**: Structured logging with performance and error tracking
-- **Pydantic Config**: Type-safe environment variable management with validation
+- **Severity Levels**: critical, error, warning, info, debug
+- **Categories**: pattern, database, network, validation, performance
+- **Cross-System**: TickStockPL publishes to Redis, AppV2 subscribes
+- **Pydantic Config**: Type-safe environment variable management
 
 ### Common Development Tasks
 **Detailed Task Guides**: See `docs/development/coding-practices.md` for complete development task workflows, database schema patterns, and implementation guidelines.
@@ -339,10 +369,16 @@ Every development task MUST follow this workflow:
 **Key Focus**: Loose coupling between TickStockApp and TickStockPL via async pub-sub
 
 #### `database-query-specialist`
-**Domain**: TimescaleDB read-only queries and health monitoring  
-**Use When**: UI data queries, health monitoring dashboards, connection pooling, database performance  
-**Expertise**: Simple performant queries (<50ms), connection management, read-only boundaries  
+**Domain**: TimescaleDB read-only queries and health monitoring
+**Use When**: UI data queries, health monitoring dashboards, connection pooling, database performance
+**Expertise**: Simple performant queries (<50ms), connection management, read-only boundaries
 **Key Focus**: TickStockAppV2 database access (read-only), UI dropdowns, basic stats
+
+#### `error-handling-specialist`
+**Domain**: Error and exception management for TickStockAppV2
+**Use When**: Implementing Sprint 32 error handling, configuring logging thresholds, Redis error integration
+**Expertise**: Enhanced logger implementation, file/database logging, severity thresholds, cross-system error flow
+**Key Focus**: Config-driven error handling, TickStockPL integration via Redis, consistent error formatting
 
 ### Quality Assurance Agents
 

@@ -55,7 +55,7 @@ Welcome to the TickStock documentation for the simplified architecture. After a 
   - [`development/technical-debt-management.md`](development/technical-debt-management.md) - Technical debt process
   - [`development/architectural-decision-process.md`](development/architectural-decision-process.md) - ADR process
   - [`development/grid-stack.md`](development/grid-stack.md) - UI development with Grid-Stack
-  - [`development/project_structure.md`](development/project_structure.md) - Project folder organization
+  - [`project_structure.md`](project_structure.md) - Project folder organization
 
 ### Project History
 - [`planning/evolution_index.md`](planning/evolution_index.md) - Documentation evolution and project history tracking

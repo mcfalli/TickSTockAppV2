@@ -97,6 +97,14 @@ class ConfigManager:
         'INTEGRATION_LOG_FILE': False,
         'INTEGRATION_LOG_LEVEL': 'INFO',
 
+        # Sprint 32: Enhanced Error Management Configuration
+        'LOG_FILE_PATH': 'logs/tickstock.log',
+        'LOG_FILE_MAX_SIZE': 10485760,  # 10MB
+        'LOG_FILE_BACKUP_COUNT': 5,
+        'LOG_DB_ENABLED': False,
+        'LOG_DB_SEVERITY_THRESHOLD': 'error',
+        'REDIS_ERROR_CHANNEL': 'tickstock:errors',
+
         # (Removed legacy tracing configuration - no longer needed after event detection cleanup)
 
         # POOL WORKERS CONFIGURATION - SPRINT 26 BASELINE
@@ -255,6 +263,14 @@ class ConfigManager:
         'LOG_CONSOLE_CONNECTION_VERBOSE': bool,
         'LOG_FILE_ENABLED': bool,
         'LOG_FILE_PRODUCTION_MODE': bool,
+
+        # Sprint 32: Enhanced Error Management Configuration Types
+        'LOG_FILE_PATH': str,
+        'LOG_FILE_MAX_SIZE': int,
+        'LOG_FILE_BACKUP_COUNT': int,
+        'LOG_DB_ENABLED': bool,
+        'LOG_DB_SEVERITY_THRESHOLD': str,
+        'REDIS_ERROR_CHANNEL': str,
 
         # (Removed legacy tracing type definitions)
 
@@ -1193,6 +1209,38 @@ class ConfigManager:
         
         return self.set_synthetic_data_intervals(
             per_second_interval=preset['per_second_interval'],
-            per_minute_interval=preset['per_minute_interval'], 
+            per_minute_interval=preset['per_minute_interval'],
             fmv_interval=preset['fmv_interval']
         )
+
+
+# Sprint 32: Enhanced Error Management Configuration
+try:
+    from pydantic import BaseModel, Field
+    from pydantic_settings import BaseSettings
+    from typing import Optional
+
+    class LoggingConfig(BaseSettings):
+        """Logging configuration from environment"""
+
+        # File logging
+        log_file_enabled: bool = Field(default=False, env='LOG_FILE_ENABLED')
+        log_file_path: str = Field(default='logs/tickstock.log', env='LOG_FILE_PATH')
+        log_file_max_size: int = Field(default=10485760, env='LOG_FILE_MAX_SIZE')
+        log_file_backup_count: int = Field(default=5, env='LOG_FILE_BACKUP_COUNT')
+
+        # Database logging
+        log_db_enabled: bool = Field(default=False, env='LOG_DB_ENABLED')
+        log_db_severity_threshold: str = Field(default='error', env='LOG_DB_SEVERITY_THRESHOLD')
+
+        # Redis integration
+        redis_error_channel: str = Field(default='tickstock:errors', env='REDIS_ERROR_CHANNEL')
+
+        class Config:
+            env_file = '.env'
+            env_file_encoding = 'utf-8'
+            extra = 'ignore'  # Ignore extra environment variables
+
+except ImportError:
+    logger.warning("Pydantic not available, LoggingConfig class not created")
+    LoggingConfig = None

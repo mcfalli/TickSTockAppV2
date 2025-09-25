@@ -368,6 +368,27 @@ STATUS BADGE SYSTEM
   color: var(--color-text-white);
 }
 
+/* Market status states */
+.status-badge.status-open {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-badge.status-closed {
+  background-color: #6c757d;
+  color: white;
+}
+
+.status-badge.status-premarket {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.status-badge.status-afterhours {
+  background-color: #fd7e14;
+  color: white;
+}
+
 /*
 ===============================================================================
 MARKET STATUS INDICATORS

@@ -30,49 +30,125 @@
         }
         .job-controls {
             background: #fff;
-            border: 1px solid #ddd;
+            border: 1px solid #e9ecef;
             border-radius: 8px;
-            padding: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .job-controls h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.4em;
+        }
+        .job-controls > p {
+            color: #666;
             margin-bottom: 20px;
         }
         .form-row {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
             align-items: end;
         }
         .form-group {
-            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+        .form-text {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #6c757d;
         }
         .form-group input, .form-group select, .form-group textarea {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
         }
         .btn {
             padding: 10px 20px;
             border: none;
-            border-radius: 4px;
+            border-radius: 5px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
         .btn-primary {
             background-color: #007bff;
             color: white;
         }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .btn-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .btn-info:hover {
+            background-color: #138496;
+        }
         .btn-danger {
             background-color: #dc3545;
             color: white;
         }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
         .btn-secondary {
             background-color: #6c757d;
             color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
         }
         .jobs-section {
             display: grid;
@@ -147,28 +223,16 @@
         <nav style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h1 style="margin: 0;">TickStock Admin</h1>
-                <div style="display: flex; gap: 15px;">
-                    <a href="{{ url_for('admin_historical_dashboard') }}" 
-                       style="padding: 8px 16px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">
-                        Historical Data
-                    </a>
-                    <a href="{{ url_for('admin_users.users_dashboard') }}" 
-                       style="padding: 8px 16px; background: #28a745; color: white; text-decoration: none; border-radius: 4px;">
-                        User Management
-                    </a>
-                    <a href="{{ url_for('admin_users.health_dashboard') }}" 
-                       style="padding: 8px 16px; background: #17a2b8; color: white; text-decoration: none; border-radius: 4px;">
-                        Health Monitor
-                    </a>
-                    <a href="/" 
-                       style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
-                        Back to App
-                    </a>
+                <div style="display: flex; gap: 10px;">
+                    <a href="{{ url_for('admin_historical_dashboard') }}" class="btn btn-primary">Historical Data</a>
+                    <a href="{{ url_for('admin_users.users_dashboard') }}" class="btn btn-success">User Management</a>
+                    <a href="{{ url_for('admin_monitoring_dashboard') }}" class="btn btn-info">Health Monitor</a>
+                    <a href="/" class="btn btn-secondary">Back to App</a>
                 </div>
             </div>
         </nav>
         
-        <h2>Historical Data Management</h2>
+        <h2>📊 Historical Data Management</h2>
         
         <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -219,7 +283,7 @@
         <div class="jobs-section">
             <!-- Active Jobs -->
             <div>
-                <h3>Active Jobs</h3>
+                <h3>🔄 Active Jobs</h3>
                 {% if active_jobs %}
                     {% for job_id, job in active_jobs.items() %}
                     <div class="job-card" id="job-{{ job_id }}">
@@ -257,7 +321,7 @@
             
             <!-- Recent Job History -->
             <div>
-                <h3>Recent Jobs</h3>
+                <h3>📜 Recent Jobs</h3>
                 {% if recent_jobs %}
                     {% for job in recent_jobs|reverse %}
                     <div class="job-card">
@@ -348,9 +412,9 @@
                     </div>
                     
                     <!-- Load Button -->
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-success" id="csvLoadBtn">
-                            <span>📋 Load CSV Universe</span>
+                    <div class="form-group" style="align-self: flex-end;">
+                        <button type="submit" class="btn btn-primary" id="csvLoadBtn">
+                            📋 Load CSV Universe
                         </button>
                     </div>
                 </div>
@@ -379,24 +443,27 @@
 
         <!-- Cache Management -->
         <div class="job-controls">
-            <h3>Cache Organization</h3>
+            <h3>🔧 Cache Organization</h3>
             <p>Rebuild cache entries to organize stocks and ETFs into logical groups (market cap, sectors, themes, etc.)</p>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="preserve_existing" name="preserve_existing" value="1">
-                        Preserve existing entries (append mode)
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="form-group" style="max-width: 500px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
+                        <input type="checkbox" id="preserve_existing" name="preserve_existing" value="1" style="margin-right: 10px; width: auto;">
+                        <span>Preserve existing entries (append mode)</span>
                     </label>
-                    <small style="color: #666; display: block; margin-top: 4px;">
+                    <small class="form-text">
                         When unchecked, will delete and rebuild all stock/ETF cache entries (preserves app_settings)
                     </small>
                 </div>
-                <div class="form-group">
-                    <button onclick="rebuildCacheEntries()" class="btn btn-primary">Update and Organize Cache</button>
+                <div>
+                    <button onclick="rebuildCacheEntries()" class="btn btn-primary">🔧 Update and Organize Cache</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Include Job Monitor JavaScript -->
+    <script src="{{ url_for('static', filename='js/admin_job_monitor.js') }}"></script>
 
     <script>
         function toggleLoadOptions() {
