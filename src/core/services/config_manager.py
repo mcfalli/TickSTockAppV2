@@ -40,7 +40,7 @@ class ConfigManager:
     # Default configuration values
     DEFAULTS = {
         'APP_VERSION': '',
-        'DATABASE_URI': 'postgresql://app_readwrite:1DfTGVBsECVtJa@localhost/marketpulse',
+        'DATABASE_URI': 'postgresql://app_readwrite:OLD_PASSWORD_LEGACY@localhost/marketpulse',
         'DATABASE_SYNCH_AGGREGATE_SECONDS': 30,    # Seconds
         'APP_ENVIRONMENT': 'development',
         'APP_DEBUG': False,
@@ -57,13 +57,18 @@ class ConfigManager:
         'REDIS_HOST': 'localhost',
         'REDIS_PORT': 6379,
         'REDIS_DB': 0,
+
+        # Sprint 36: TickStockPL API Integration Configuration
+        'TICKSTOCKPL_HOST': 'localhost',
+        'TICKSTOCKPL_PORT': 8080,
+        'TICKSTOCKPL_API_KEY': 'tickstock-cache-sync-2025',
         
         # Sprint 10: TimescaleDB Configuration
         'TICKSTOCK_DB_HOST': 'localhost',
         'TICKSTOCK_DB_PORT': 5432,
         'TICKSTOCK_DB_NAME': 'tickstock',
         'TICKSTOCK_DB_USER': 'app_readwrite',
-        'TICKSTOCK_DB_PASSWORD': 'LJI48rUEkUpe6e',
+        'TICKSTOCK_DB_PASSWORD': 'password',  # Default placeholder - must be set in .env
         'COLLECTION_INTERVAL': COLLECTION_INTERVAL,
         'EMISSION_INTERVAL': EMISSION_INTERVAL,
         'USE_POLYGON_API': False,
@@ -256,6 +261,11 @@ class ConfigManager:
         'REDIS_HOST': str,
         'REDIS_PORT': int,
         'REDIS_DB': int,
+
+        # Sprint 36: TickStockPL API Integration Configuration Types
+        'TICKSTOCKPL_HOST': str,
+        'TICKSTOCKPL_PORT': int,
+        'TICKSTOCKPL_API_KEY': str,
         
         # LOGGING CONFIGURATION TYPES
         'LOG_CONSOLE_VERBOSE': bool,

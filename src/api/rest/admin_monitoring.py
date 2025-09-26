@@ -4,12 +4,12 @@ Real-time monitoring of TickStockPL system health via Redis pub/sub
 Sprint 31 Implementation
 """
 
-import os
 import json
 import redis
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
+from src.core.services.config_manager import get_config
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
 # Note: CSRF exemption handled differently in newer Flask-WTF
@@ -20,10 +20,11 @@ logger = logging.getLogger(__name__)
 # Initialize Redis client for monitoring
 def get_monitoring_redis():
     """Get Redis client for monitoring channel"""
+    config = get_config()
     return redis.Redis(
-        host=os.getenv('REDIS_HOST', 'localhost'),
-        port=int(os.getenv('REDIS_PORT', 6379)),
-        db=int(os.getenv('REDIS_DB', 0)),
+        host=config.get('REDIS_HOST', 'localhost'),
+        port=config.get('REDIS_PORT', 6379),
+        db=config.get('REDIS_DB', 0),
         decode_responses=True
     )
 

@@ -10,12 +10,12 @@ Features:
 - Manage data quality and cleanup
 """
 
-import os
 import json
 import time
 from datetime import datetime, timedelta
 from threading import Thread
 from typing import Dict, Any, List, Optional
+from src.core.services.config_manager import get_config
 
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
@@ -69,17 +69,13 @@ def register_admin_historical_routes(app):
             available_symbols = loader.load_symbols_from_cache('top_50')
             
             # Get available bulk universes
-            try:
-                BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
-                bulk_seeder = BulkUniverseSeeder(
-                    polygon_api_key=os.getenv('POLYGON_API_KEY'),
-                    database_uri=os.getenv('DATABASE_URI')
-                )
-                available_universes = bulk_seeder.get_available_universes()
-            except Exception as e:
-                logger.warning(f"Bulk universe seeder not available: {e}")
-                available_universes = {}
-            
+            config = get_config()
+            BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
+            bulk_seeder = BulkUniverseSeeder(
+                polygon_api_key=config.get('POLYGON_API_KEY'),
+                database_uri=config.get('DATABASE_URI')
+            )
+            available_universes = bulk_seeder.get_available_universes()
             # Get job status
             job_stats = {
                 'active_jobs': len([j for j in active_jobs.values() if j['status'] == 'running']),
@@ -326,10 +322,11 @@ def register_admin_historical_routes(app):
                 return redirect(url_for('admin_historical_dashboard'))
             
             # Initialize bulk seeder
+            config = get_config()
             BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
             bulk_seeder = BulkUniverseSeeder(
-                polygon_api_key=os.getenv('POLYGON_API_KEY'),
-                database_uri=os.getenv('DATABASE_URI')
+                polygon_api_key=config.get('POLYGON_API_KEY'),
+                database_uri=config.get('DATABASE_URI')
             )
             
             # Validate universe type
@@ -462,10 +459,11 @@ def register_admin_historical_routes(app):
                     return jsonify({'error': 'Limit must be a valid number'}), 400
             
             # Initialize bulk seeder
+            config = get_config()
             BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
             bulk_seeder = BulkUniverseSeeder(
-                polygon_api_key=os.getenv('POLYGON_API_KEY'),
-                database_uri=os.getenv('DATABASE_URI')
+                polygon_api_key=config.get('POLYGON_API_KEY'),
+                database_uri=config.get('DATABASE_URI')
             )
             
             # Find universe enum
@@ -601,44 +599,94 @@ def register_admin_historical_routes(app):
     @login_required
     @admin_required
     def admin_rebuild_cache():
-        """Rebuild cache entries from current symbols table"""
+        """Trigger cache synchronization via TickStockPL API"""
         try:
-            # Import cache synchronizer
-            import sys
-            from pathlib import Path
-            sys.path.append(str(Path(__file__).parent.parent.parent))
-            from src.core.services.cache_entries_synchronizer import CacheEntriesSynchronizer
-            
-            # Get options
+            import requests
+            from flask import session
+
+            # Get options from form
             preserve_existing = request.form.get('preserve_existing') == '1'
-            
-            # Create and run synchronizer
-            synchronizer = CacheEntriesSynchronizer()
-            start_time = datetime.now()
-            
-            # Run cache rebuild (delete_existing = not preserve_existing)
-            stats = synchronizer.rebuild_stock_cache_entries(delete_existing=not preserve_existing)
-            
-            duration = datetime.now() - start_time
-            
-            # Build success message
-            success_msg = f"""Cache rebuild completed in {duration.total_seconds():.1f}s:
-* Deleted entries: {stats['deleted_entries']}
-* Market cap categories: {stats['market_cap_entries']}
-* Sector leaders: {stats['sector_leader_entries']}
-* Market leaders: {stats['market_leader_entries']}
-* Themes: {stats['theme_entries']}
-* Industries: {stats['industry_entries']}
-* ETF categories: {stats['etf_entries']}
-* Complete universes: {stats['complete_entries']}
-* Stats summaries: {stats['stats_entries']}"""
-            
-            flash(success_msg, 'success')
-            
+            mode = 'full'  # Default to full sync
+
+            # Get TickStockPL configuration
+            config = get_config()
+            tickstockpl_host = config.get('TICKSTOCKPL_HOST', 'localhost')
+            tickstockpl_port = config.get('TICKSTOCKPL_PORT', 8080)
+            api_key = config.get('TICKSTOCKPL_API_KEY', 'tickstock-cache-sync-2025')
+
+            # Make API call to TickStockPL
+            try:
+                response = requests.post(
+                    f'http://{tickstockpl_host}:{tickstockpl_port}/api/processing/cache-sync/trigger',
+                    headers={
+                        'X-API-Key': api_key,
+                        'Content-Type': 'application/json'
+                    },
+                    json={
+                        'mode': mode,
+                        'force': not preserve_existing  # Force if not preserving
+                    },
+                    timeout=10
+                )
+
+                if response.status_code == 202:
+                    result = response.json()
+                    job_id = result.get('job_id')
+
+                    # Store job ID in session for status tracking
+                    session['cache_sync_job_id'] = job_id
+
+                    flash(f'Cache synchronization started successfully (Job ID: {job_id[:8]}...)', 'success')
+                    flash('Check back in a few minutes for completion status', 'info')
+
+                else:
+                    error_msg = f'Failed to trigger cache sync: HTTP {response.status_code}'
+                    try:
+                        error_data = response.json()
+                        if 'message' in error_data:
+                            error_msg = f'Failed to trigger cache sync: {error_data["message"]}'
+                    except:
+                        pass
+                    flash(error_msg, 'error')
+
+            except requests.exceptions.RequestException as e:
+                flash(f'Failed to connect to TickStockPL API: {str(e)}', 'error')
+                logger.error(f"TickStockPL API call failed: {e}")
+
         except Exception as e:
-            flash(f'Cache rebuild failed: {str(e)}', 'error')
-            
+            flash(f'Cache sync request failed: {str(e)}', 'error')
+            logger.error(f"Cache sync error: {e}")
+
         return redirect(url_for('admin_historical_dashboard'))
+
+    @app.route('/api/admin/cache-sync/status/<job_id>')
+    @login_required
+    @admin_required
+    def get_cache_sync_status(job_id):
+        """Get cache sync job status from TickStockPL"""
+        try:
+            import requests
+
+            # Get TickStockPL configuration
+            config = get_config()
+            tickstockpl_host = config.get('TICKSTOCKPL_HOST', 'localhost')
+            tickstockpl_port = config.get('TICKSTOCKPL_PORT', 8080)
+            api_key = config.get('TICKSTOCKPL_API_KEY', 'tickstock-cache-sync-2025')
+
+            response = requests.get(
+                f'http://{tickstockpl_host}:{tickstockpl_port}/api/processing/cache-sync/status/{job_id}',
+                headers={'X-API-Key': api_key},
+                timeout=5
+            )
+
+            if response.status_code == 200:
+                return jsonify(response.json())
+            else:
+                return jsonify({'error': 'Failed to get status'}), response.status_code
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to get cache sync status: {e}")
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/admin/csv-universe-load', methods=['POST'])
     @login_required
@@ -665,6 +713,7 @@ def register_admin_historical_routes(app):
             from psycopg2.extras import RealDictCursor
             
             # Get project root and CSV path
+            import os
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
             csv_path = os.path.join(project_root, 'data', csv_file)
             
@@ -718,7 +767,8 @@ def register_admin_historical_routes(app):
             
             # Start background job
             def run_csv_universe_job(job_data):
-                database_uri = os.getenv('DATABASE_URI')
+                config = get_config()
+                database_uri = config.get('DATABASE_URI')
                 conn = None
                 
                 try:
@@ -727,6 +777,8 @@ def register_admin_historical_routes(app):
                     job_data['log_messages'].append(f"Found {len(job_data['symbols'])} symbols to process")
                     
                     # Connect to database
+                    config = get_config()
+                    database_uri = config.get('DATABASE_URI')
                     conn = psycopg2.connect(database_uri)
                     cursor = conn.cursor(cursor_factory=RealDictCursor)
                     

@@ -16,12 +16,11 @@ Usage:
 import os
 import sys
 
-# Load environment variables from .env file first
+# Load environment variables from config manager
 try:
-    from dotenv import load_dotenv
-    load_dotenv()
+    from src.core.services.config_manager import get_config
 except ImportError:
-    pass  # python-dotenv not available, continue without it
+    pass  # config manager not available, will handle below
 
 # Import other standard libraries
 import time
@@ -50,14 +49,14 @@ class PolygonHistoricalLoader:
     def __init__(self, api_key: str = None, database_uri: str = None):
         """
         Initialize historical data loader.
-        
+
         Args:
-            api_key: Polygon.io API key (defaults to env POLYGON_API_KEY)
-            database_uri: Database connection string (defaults to env DATABASE_URI)
+            api_key: Polygon.io API key (defaults to config POLYGON_API_KEY)
+            database_uri: Database connection string (defaults to config DATABASE_URI)
         """
-        self.api_key = api_key or os.getenv('POLYGON_API_KEY')
-        self.database_uri = database_uri or os.getenv('DATABASE_URI')
-        
+        config = get_config()
+        self.api_key = api_key or config.get('POLYGON_API_KEY')
+        self.database_uri = database_uri or config.get('DATABASE_URI')
         # API key only required for data fetching, not for summary/database operations
         if not self.database_uri:
             raise ValueError("DATABASE_URI environment variable or database_uri parameter required")

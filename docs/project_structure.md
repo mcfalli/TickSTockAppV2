@@ -1,9 +1,4 @@
 TickStockAppV2/
-automation/
-    services/
-        __init__.py
-        data_quality_monitor.py
-        ipo_monitor.py
 config/
     __init__.py
     app_config.py
@@ -26,11 +21,6 @@ data/
     russell_3000_part6.csv
     sp_500.csv
     test_symbols.csv
-examples/
-    README.md
-    disable_auth_temp_DANGEROUS.py
-    restore_auth_companion.py
-libs/
 requirements/
     base.txt
     dev.txt
@@ -45,6 +35,7 @@ src/
             __init__.py
         rest/
             __init__.py
+            admin_daily_processing.py
             admin_historical_data.py
             admin_historical_data_redis.py
             admin_monitoring.py
@@ -89,16 +80,17 @@ src/
             data_result.py
         models/
             __init__.py
+            error_models.py
             websocket_models.py
         services/
             __init__.py
             backtest_job_manager.py
-            cache_entries_synchronizer.py
             comparison_tools_service.py
             config_manager.py
             correlation_analyzer_service.py
-            database_integration_logger.py
             database_sync.py
+            enhanced_logger.py
+            error_subscriber.py
             fallback_pattern_detector.py
             health_monitor.py
             integration_logger.py
@@ -109,12 +101,15 @@ src/
             pattern_analytics_advanced_service.py
             pattern_discovery_service.py
             pattern_registry_service.py
+            processing_command_publisher.py
+            processing_event_subscriber.py
             redis_event_subscriber.py
             redis_performance_monitor.py
             redis_validator.py
             session_manager.py
             startup_service.py
             temporal_analytics_service.py
+            tickstockpl_api_client.py
             tier_pattern_integration_examples.py
             tier_pattern_websocket_integration.py
             universe_service.py
@@ -125,7 +120,6 @@ src/
     data/
         __init__.py
         bulk_universe_seeder.py
-        cache_entries_synchronizer.py
         eod_processor.py
         eod_processor_backup.py
         etf_universe_manager.py
@@ -185,6 +179,7 @@ src/
                 verification_email.html
                 welcome_email.html
         redis/
+            processing_subscriber.py
             redis_connection_manager.py
         websocket/
             event_router.py
@@ -231,15 +226,16 @@ src/
             validation.py
     utils/
         auth_decorators.py
-templates/
-    admin/
 tests/
     LAST_TEST_RUN.md
     README.md
     __init__.py
     conftest.py
     sprint_16_test_suite.py
+    test_enhanced_error_handling.py
+    test_error_handling_simple.py
     test_framework_verification.py
+    test_tickstockpl_error_integration.py
     api/
         __init__.py
         rest/
@@ -250,13 +246,6 @@ tests/
                 test_pattern_discovery_api_integration.py
         sprint_16/
             test_market_movers_api_refactor.py
-    automation_services/
-        sprint_14/
-            SPRINT14_PHASE2_TEST_SUMMARY.md
-            conftest.py
-            test_data_quality_monitor.py
-            test_ipo_monitor_service.py
-            test_performance_benchmarks.py
     core/
         __init__.py
         services/
@@ -331,16 +320,6 @@ tests/
         database/
             __init__.py
             test_tickstock_db_refactor.py
-            sprint_12/
-                README.md
-                TESTING_STRATEGY.md
-                __init__.py
-                conftest.py
-                run_tests.py
-                test_cache_entries_synchronizer_error_handling.py
-                test_cache_entries_synchronizer_integration.py
-                test_cache_entries_synchronizer_performance.py
-                test_cache_entries_synchronizer_unit.py
         sprint_14/
             test_equity_types_integration.py
         sprint_14_phase3/
@@ -355,11 +334,9 @@ tests/
         sprint23_test_integration.py
         sprint25_tests_README.md
         test_config_helper.py
-        test_database_integration_logging.py
         test_database_pattern_integration.py
         test_db_connection.py
         test_db_simple.py
-        test_integration_logging.py
         test_pattern_event.py
         test_pattern_event_delivery.py
         test_pattern_event_structure.py
@@ -467,6 +444,8 @@ tests/
             test_stress_and_concurrency.py
             test_subscription_index_manager_layer.py
             test_universal_websocket_manager_layer.py
+    sprint33/
+        test_processing_events.py
     sprint_26/
         README.md
         __init__.py
@@ -596,6 +575,7 @@ web/
         admin/
             base_admin.html
             bulk_universe_form.html
+            daily_processing_dashboard.html
             health_dashboard.html
             historical_data.html
             historical_data_dashboard.html

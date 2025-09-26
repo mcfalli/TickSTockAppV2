@@ -79,13 +79,13 @@ class MarketScheduleManager:
     
     def __init__(self, database_uri: str = None, redis_host: str = None):
         """Initialize market schedule manager"""
-        self.database_uri = database_uri or os.getenv(
-            'DATABASE_URL',
-            'postgresql://app_readwrite:4pp_U$3r_2024!@localhost/tickstock'
+        config = get_config()
+        self.database_uri = database_uri or config.get(
+            'DATABASE_URI',
+            'postgresql://app_readwrite:OLD_PASSWORD_2024@localhost/tickstock'
         )
-        self.redis_host = redis_host or os.getenv('REDIS_HOST', 'localhost')
-        self.redis_port = int(os.getenv('REDIS_PORT', '6379'))
-        
+        self.redis_host = redis_host or config.get('REDIS_HOST', 'localhost')
+        self.redis_port = config.get('REDIS_PORT', 6379)
         # Exchange configuration with timezones
         self.exchanges = {
             'NYSE': {

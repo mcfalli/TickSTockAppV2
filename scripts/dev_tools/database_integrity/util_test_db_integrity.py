@@ -24,6 +24,14 @@ from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from pathlib import Path
+from src.core.services.config_manager import get_config
+
+
+# Get configuration
+try:
+    config = get_config()
+except:
+    config = None
 
 @dataclass
 class IntegrityCheck:
@@ -434,13 +442,13 @@ python scripts/dev_tools/util_test_db_integrity.py --sprint 23
 def get_db_connection_params() -> Dict[str, str]:
     """Get database connection parameters from TickStockAppV2 .env file"""
     # Using hardcoded values from .env DATABASE_URI
-    # postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock
+    # config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')
     return {
         'host': 'localhost',
         'port': '5432',
         'database': 'tickstock',
         'user': 'app_readwrite',
-        'password': 'LJI48rUEkUpe6e'
+        'password': 'PASSWORD_PLACEHOLDER'
     }
 
 def main():

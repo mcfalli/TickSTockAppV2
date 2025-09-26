@@ -213,7 +213,7 @@ If issues arise after removal:
 2. Add environment flag for optional logging:
 ```python
 # In app.py
-if os.getenv('ENABLE_INTEGRATION_TRACKING', 'false').lower() == 'true':
+if config.get('ENABLE_INTEGRATION_TRACKING').lower() == 'true':
     # Only initialize in debug/test environments
     db_integration_logger = initialize_database_integration_logger(config)
 ```

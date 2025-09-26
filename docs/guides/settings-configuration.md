@@ -486,7 +486,7 @@ def load_config_with_interpolation(self, config_dict):
             def replace_var(match):
                 var_name = match.group(1)
                 default_value = match.group(2) or ''
-                return os.environ.get(var_name, default_value)
+                return config.get(var_name, default_value)
             
             return re.sub(pattern, replace_var, value)
         elif isinstance(value, dict):

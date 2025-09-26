@@ -7,6 +7,14 @@ import os
 import sys
 import pandas as pd
 from datetime import datetime, timedelta
+from src.core.services.config_manager import get_config
+
+
+# Get configuration
+try:
+    config = get_config()
+except:
+    config = None
 
 # Add src to path
 sys.path.append('src')
@@ -21,7 +29,7 @@ def test_loader_functionality():
     # Initialize loader with database only (no API key needed for testing)
     try:
         loader = PolygonHistoricalLoader(
-            database_uri='postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock'
+            database_uri='config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')'
         )
         print("Success: Loader initialized successfully")
         

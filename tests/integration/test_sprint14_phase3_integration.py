@@ -18,6 +18,7 @@ Architecture Validation:
 """
 
 import os
+from src.core.services.config_manager import get_config
 import sys
 import pytest
 import asyncio
@@ -30,6 +31,17 @@ from typing import Dict, List, Any, Optional, Tuple
 from unittest.mock import Mock, patch, AsyncMock
 import tempfile
 import subprocess
+
+# Initialize configuration with fallback
+try:
+    config = get_config()
+except Exception:
+    # Fallback if config_manager not available
+    class ConfigFallback:
+        def get(self, key, default=None):
+            return default  # Use defaults only
+    config = ConfigFallback()
+
 
 # Add project root to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../'))
@@ -62,19 +74,19 @@ class TestSprint14Phase3Integration:
     def test_database_config(self):
         """Test database configuration"""
         return {
-            'host': os.getenv('TEST_DB_HOST', 'localhost'),
-            'database': os.getenv('TEST_DB_NAME', 'tickstock_test'),
-            'user': os.getenv('TEST_DB_USER', 'app_readwrite'),
-            'password': os.getenv('TEST_DB_PASSWORD', '4pp_U$3r_2024!'),
-            'port': int(os.getenv('TEST_DB_PORT', '5432'))
+            'host': config.get('TEST_DB_HOST', 'localhost'),
+            'database': config.get('TEST_DB_NAME', 'tickstock_test'),
+            'user': config.get('TEST_DB_USER', 'app_readwrite'),
+            'password': config.get('TEST_DB_PASSWORD', 'OLD_PASSWORD_2024'),
+            'port': int(config.get('TEST_DB_PORT', '5432'))
         }
     
     @pytest.fixture(scope="class")  
     def test_redis_config(self):
         """Test Redis configuration"""
         return {
-            'host': os.getenv('TEST_REDIS_HOST', 'localhost'),
-            'port': int(os.getenv('TEST_REDIS_PORT', '6379')),
+            'host': config.get('TEST_REDIS_HOST', 'localhost'),
+            'port': int(config.get('TEST_REDIS_PORT', '6379')),
             'db': 15  # Use separate test database
         }
     
@@ -608,7 +620,7 @@ class TestSprint14Phase3Integration:
                     host=db_connection.get_dsn_parameters()['host'],
                     database=db_connection.get_dsn_parameters()['dbname'],
                     user=db_connection.get_dsn_parameters()['user'],
-                    password=os.getenv('TEST_DB_PASSWORD', '4pp_U$3r_2024!'),
+                    password=config.get('TEST_DB_PASSWORD', 'OLD_PASSWORD_2024'),
                     cursor_factory=psycopg2.extras.RealDictCursor
                 )
                 conn.autocommit = True

@@ -12,6 +12,7 @@ Provides centralized configuration management and environment validation for Pha
 """
 
 import os
+from src.core.services.config_manager import get_config
 import sys
 import json
 import time
@@ -20,6 +21,17 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 import subprocess
+
+# Initialize configuration with fallback
+try:
+    config = get_config()
+except Exception:
+    # Fallback if config_manager not available
+    class ConfigFallback:
+        def get(self, key, default=None):
+            return default  # Use defaults only - no environment variables
+    config = ConfigFallback()
+
 
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../'))
@@ -71,15 +83,15 @@ class Phase3IntegrationTestHelper:
         # Base configuration
         base_config = {
             'database': {
-                'host': os.getenv('TEST_DB_HOST', 'localhost'),
-                'database': os.getenv('TEST_DB_NAME', 'tickstock_test'),
-                'user': os.getenv('TEST_DB_USER', 'app_readwrite'),
-                'password': os.getenv('TEST_DB_PASSWORD', '4pp_U$3r_2024!'),
-                'port': int(os.getenv('TEST_DB_PORT', '5432'))
+                'host': config.get('TEST_DB_HOST', 'localhost'),
+                'database': config.get('TEST_DB_NAME', 'tickstock_test'),
+                'user': config.get('TEST_DB_USER', 'app_readwrite'),
+                'password': config.get('TEST_DB_PASSWORD', 'OLD_PASSWORD_2024'),
+                'port': int(config.get('TEST_DB_PORT', '5432'))
             },
             'redis': {
-                'host': os.getenv('TEST_REDIS_HOST', 'localhost'),
-                'port': int(os.getenv('TEST_REDIS_PORT', '6379')),
+                'host': config.get('TEST_REDIS_HOST', 'localhost'),
+                'port': int(config.get('TEST_REDIS_PORT', '6379')),
                 'db_integration': 15,
                 'db_flows': 14,
                 'db_resilience': 13

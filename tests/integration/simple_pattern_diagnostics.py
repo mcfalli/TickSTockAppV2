@@ -7,11 +7,14 @@ import sys
 import os
 import time
 import json
+import re
 from datetime import datetime
 
 # Add project root to Python path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, project_root)
+
+from src.core.services.config_manager import get_config
 
 def test_redis_connectivity():
     """Test basic Redis connectivity."""
@@ -30,15 +33,27 @@ def test_redis_connectivity():
 def test_database_connectivity():
     """Test database connectivity."""
     print("Testing Database connectivity...")
-    
+
     try:
         import psycopg2
+        # Database connection using config_manager
+        config = get_config()
+        db_uri = config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')
+        # Parse URI to extract components
+        match = re.match(r'postgresql://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/(.+)', db_uri)
+        if match:
+            user, password, host, port, database = match.groups()
+            port = port or '5432'
+        else:
+            # Fallback values
+            host, port, database, user, password = 'localhost', 5432, 'tickstock', 'app_readwrite', 'password'
+
         conn = psycopg2.connect(
-            host='localhost',
-            port=5432,
-            database='tickstock',
-            user='app_readwrite',
-            password='LJI48rUEkUpe6e'
+            host=host,
+            port=int(port),
+            database=database,
+            user=user,
+            password=password
         )
         
         cursor = conn.cursor()
@@ -57,15 +72,27 @@ def test_database_connectivity():
 def test_pattern_tables():
     """Test pattern table data."""
     print("Testing pattern table data...")
-    
+
     try:
         import psycopg2
+        # Database connection using config_manager
+        config = get_config()
+        db_uri = config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')
+        # Parse URI to extract components
+        match = re.match(r'postgresql://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/(.+)', db_uri)
+        if match:
+            user, password, host, port, database = match.groups()
+            port = port or '5432'
+        else:
+            # Fallback values
+            host, port, database, user, password = 'localhost', 5432, 'tickstock', 'app_readwrite', 'password'
+
         conn = psycopg2.connect(
-            host='localhost',
-            port=5432,
-            database='tickstock',
-            user='app_readwrite',
-            password='LJI48rUEkUpe6e'
+            host=host,
+            port=int(port),
+            database=database,
+            user=user,
+            password=password
         )
         
         cursor = conn.cursor()

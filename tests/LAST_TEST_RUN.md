@@ -1,25 +1,25 @@
 # Last Test Run Report
 
-**Generated**: 2025-09-25 08:28:11
+**Generated**: 2025-09-26 12:55:55
 **Command**: `python run_tests.py`
-**Total Duration**: 13.40 seconds
+**Total Duration**: 18.32 seconds
 **Status**: [FAILED]
 
 ## Summary Statistics
 
 - **Test Suites Run**: 2
-- **Test Suites Passed**: 0
-- **Test Suites Failed**: 2
-- **Individual Tests Passed**: 6
-- **Individual Tests Failed**: 10
+- **Test Suites Passed**: 1
+- **Test Suites Failed**: 1
+- **Individual Tests Passed**: 19
+- **Individual Tests Failed**: 6
 - **Performance Target (<10s)**: [MISSED]
 
 ## Test Suite Results
 
 | Suite | Status | Duration | Tests |
 |-------|--------|----------|-------|
-| Core Integration Tests | [FAIL] | 9.74s | 10 |
-| End-to-End Pattern Flow | [FAIL] | 3.66s | 6 |
+| Core Integration Tests | [FAIL] | 8.91s | 15 |
+| End-to-End Pattern Flow | [PASS] | 9.40s | 10 |
 
 ## Individual Test Results
 
@@ -28,23 +28,32 @@
 
 - [FAIL] Redis Subscription FAILED: No subscribers on tickstock.events.patterns channel
 - [FAIL] Event Structure FAILED: Failed to publish test event
-- [FAIL] Database Logging ERROR: relation "integration_events" does not exist
-- [FAIL] Pattern Flow ERROR: relation "integration_events" does not exist
-- [FAIL] Heartbeat Monitor ERROR: relation "integration_events" does not exist
-- [FAIL] Redis->DB Flow ERROR: relation "integration_events" does not exist
+- [PASS] Database access working: 2 error log entries in last 24 hours
+- [PASS] Database write access confirmed via error_logs table
+- [FAIL] Pattern Flow FAILED: Failed to publish test pattern
+- [PASS] Redis heartbeat: 0.4ms latency
+- [PASS] Database heartbeat: 0.1ms latency
+- [PASS] Error logging active: 2 entries in last 24 hours
+- [FAIL] Redis->DB Flow FAILED: Failed to publish to Redis channel
 - [PASS] Pattern cache contains 0 entries
 - [FAIL] WebSocket Config FAILED: No pattern event handlers registered
-- [FAIL] Performance ERROR: not enough values to unpack (expected 4, got 3)
+- [PASS] Redis performance: 0.4ms avg latency
+- [PASS] Database performance: 1.6ms avg query latency
+- [PASS] Error logging performance: 13.2ms write+delete latency
 - [FAIL] Error Recovery FAILED: System not recovering from bad events
 
 ### End-to-End Pattern Flow
 
-- [PASS] Published pattern with flow_id: 4d1a6957-3cdd-4e5c-96e7-91b905baf331
+- [PASS] Published pattern with flow_id: f66b14f3-c614-4a0a-aa89-5e9ebaaeaf66
 - [PASS] Published daily tier pattern: HeadShoulders for TSLA
 - [PASS] Published intraday tier pattern: VolumeSurge for NVDA
 - [PASS] Published combo tier pattern: SupportBreakout for AAPL
 - [PASS] Sent 40 patterns in 0.4s
-- [FAIL] Test failed: relation "integration_events" does not exist
+- [PASS] Database logging verified: 5/5 flows tested successfully
+- [PASS] Redis cache status:
+- [PASS] Pattern-related tables available: 12
+- [PASS] Database analysis baseline: 6359 symbols available
+- [PASS] PATTERN FLOW TESTS COMPLETE
 
 ## Expected Test Coverage
 

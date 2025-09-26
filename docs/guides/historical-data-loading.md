@@ -42,7 +42,7 @@ from polygon import RESTClient
 from sqlalchemy import create_engine
 from datetime import datetime, timedelta
 
-API_KEY = os.getenv('POLYGON_API_KEY')
+API_KEY = config.get('POLYGON_API_KEY')
 DB_URL = 'postgresql://user:pass@localhost/tickstock_db'
 engine = create_engine(DB_URL)
 client = RESTClient(API_KEY)

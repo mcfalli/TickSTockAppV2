@@ -146,7 +146,7 @@ socket\.on\(.*eval.*\)
 ```
 
 ### Secure Pattern Validation
-- **Environment Variables**: `os.getenv()` vs hardcoded credentials
+- **Environment Variables**: `config_manager.get_config()` vs hardcoded credentials
 - **Parameterized Queries**: SQLAlchemy ORM usage vs raw SQL construction
 - **WebSocket Authentication**: Proper session validation and user authorization
 - **Frontend Sanitization**: HTML encoding, CSP headers, secure JavaScript patterns
@@ -295,6 +295,8 @@ socket\.on\(.*eval.*\)
 2. **Flask Security Headers**:
    ```python
    # Add security headers for API responses
+   from src.core.services.config_manager import get_config
+
    @app.after_request
    def add_security_headers(response):
        response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -306,12 +308,16 @@ socket\.on\(.*eval.*\)
 3. **Redis Security**:
    ```python
    # Secure Redis connection for TickStockPL integration
+   from src.core.services.config_manager import get_config
+   import ssl
+
+   config = get_config()
    redis_client = redis.Redis(
-       host=os.getenv('REDIS_HOST'),
-       port=int(os.getenv('REDIS_PORT')),
-       password=os.getenv('REDIS_PASSWORD'),
-       ssl=True,
-       ssl_cert_reqs=ssl.CERT_REQUIRED
+       host=config.get('REDIS_HOST', 'localhost'),
+       port=int(config.get('REDIS_PORT', 6379)),
+       password=config.get('REDIS_PASSWORD'),
+       ssl=config.get('REDIS_SSL_ENABLED', False),
+       ssl_cert_reqs=ssl.CERT_REQUIRED if config.get('REDIS_SSL_ENABLED') else None
    )
    ```
 

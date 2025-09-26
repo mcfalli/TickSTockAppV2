@@ -12,18 +12,30 @@ import pytest
 import redis
 import psycopg2
 import os
+from src.core.services.config_manager import get_config
 import time
 import asyncio
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
+# Initialize configuration with fallback
+try:
+    config = get_config()
+except Exception:
+    # Fallback if config_manager not available
+    class ConfigFallback:
+        def get(self, key, default=None):
+            return default  # Use defaults only
+    config = ConfigFallback()
+
+
 # Test environment configuration
-TEST_REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
-TEST_REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
+TEST_REDIS_HOST = config.get('REDIS_HOST', 'localhost')
+TEST_REDIS_PORT = int(config.get('REDIS_PORT', 6379))
 TEST_REDIS_DB = 15  # Dedicated test database
-TEST_DATABASE_URI = os.getenv(
+TEST_DATABASE_URI = config.get(
     'TEST_DATABASE_URI',
-    'postgresql://app_readwrite:4pp_U$3r_2024!@localhost/tickstock'
+    'postgresql://app_readwrite:password@localhost:5432/tickstock_test'
 )
 
 @dataclass

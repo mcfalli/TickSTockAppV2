@@ -38,9 +38,11 @@ You are a TickStockAppV2 integration specialist with deep expertise in the simpl
 ```python
 # Database connection pattern for AppV2
 from sqlalchemy import create_engine
-import os
+from src.core.services.config_manager import get_config
 
-DB_URL = f"postgresql://readonly_user:{os.getenv('DB_PASSWORD')}@localhost:5432/tickstock"
+config = get_config()
+# Use DATABASE_URI from .env for centralized configuration
+DB_URL = config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')
 engine = create_engine(DB_URL, pool_size=5, echo=False)
 
 def get_symbols_for_dropdown():
@@ -63,8 +65,15 @@ def get_symbols_for_dropdown():
 import redis
 import json
 from flask_socketio import emit
+from src.core.services.config_manager import get_config
 
-redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+config = get_config()
+redis_client = redis.Redis(
+    host=config.get('REDIS_HOST', 'localhost'),
+    port=int(config.get('REDIS_PORT', 6379)),
+    password=config.get('REDIS_PASSWORD'),
+    decode_responses=True
+)
 pubsub = redis_client.pubsub()
 
 # Subscribe to TickStockPL event channels

@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 from typing import Dict, List, Set, Any, Optional
 from threading import Lock
@@ -7,10 +6,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import json
 from urllib.parse import urlparse
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+from src.core.services.config_manager import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -69,10 +65,11 @@ class CacheControl:
             bool: True if loading succeeded, False otherwise.
         """
         try:
-            # Get database connection using environment variables
-            database_url = os.getenv('DATABASE_URI')
+            # Get database connection using config manager
+            config = get_config()
+            database_url = config.get('DATABASE_URI')
             if not database_url:
-                raise ValueError("DATABASE_URI not found in environment variables")
+                raise ValueError("DATABASE_URI not found in configuration")
                 
             parsed = urlparse(database_url)
             conn = psycopg2.connect(

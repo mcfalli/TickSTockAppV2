@@ -21,6 +21,12 @@ import sys
 import json
 import logging
 import numpy as np
+
+# Load environment variables from config manager
+try:
+    from src.core.services.config_manager import get_config
+except ImportError:
+    pass  # config manager not available, will handle below
 import pandas as pd
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Any, Optional, Tuple
@@ -67,11 +73,11 @@ class TestScenarioGenerator:
     
     def __init__(self, database_uri: str = None):
         """Initialize test scenario generator"""
-        self.database_uri = database_uri or os.getenv(
-            'DATABASE_URL',
-            'postgresql://app_readwrite:4pp_U$3r_2024!@localhost/tickstock'
+        config = get_config()
+        self.database_uri = database_uri or config.get(
+            'DATABASE_URI',
+            'postgresql://app_readwrite:OLD_PASSWORD_2024@localhost/tickstock'
         )
-        
         # Scenario configurations
         self.scenarios = self._initialize_scenario_configs()
         

@@ -13,12 +13,11 @@ from datetime import datetime, timedelta, time as dt_time
 from typing import List, Dict, Any, Optional, Set
 # import schedule  # Optional dependency for scheduled jobs
 
-# Load environment variables
+# Load configuration
 try:
-    from dotenv import load_dotenv
-    load_dotenv()
+    from src.core.services.config_manager import get_config
 except ImportError:
-    pass
+    pass  # config manager not available, will handle below
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -36,10 +35,10 @@ class EODProcessor:
     """End-of-Day market data processing with automation and notifications"""
     
     def __init__(self, database_uri: str = None, redis_host: str = None):
-        self.database_uri = database_uri or os.getenv('DATABASE_URI')
-        self.redis_host = redis_host or os.getenv('REDIS_HOST', 'localhost')
-        self.redis_port = int(os.getenv('REDIS_PORT', 6379))
-        
+        config = get_config()
+        self.database_uri = database_uri or config.get('DATABASE_URI')
+        self.redis_host = redis_host or config.get('REDIS_HOST', 'localhost')
+        self.redis_port = config.get('REDIS_PORT', 6379)
         if not self.database_uri:
             raise ValueError("DATABASE_URI required for EOD processing")
             

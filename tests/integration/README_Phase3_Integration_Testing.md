@@ -33,6 +33,8 @@ This comprehensive integration testing suite validates the advanced features imp
 
 **Performance Targets Validated**:
 ```python
+from src.core.services.config_manager import get_config
+config = get_config()
 # ETF Universe Operations
 ETF_EXPANSION_TIME_TARGET = 2.0  # seconds
 ETF_UNIVERSE_QUERY_TARGET = 2.0  # seconds
@@ -114,11 +116,11 @@ SUCCESS_RATE_UNDER_CONSTRAINTS = 70.0  # percentage minimum
 ```python
 # Test Database Setup
 TEST_DATABASE_CONFIG = {
-    'host': os.getenv('TEST_DB_HOST', 'localhost'),
-    'database': os.getenv('TEST_DB_NAME', 'tickstock_test'),
-    'user': os.getenv('TEST_DB_USER', 'app_readwrite'),
-    'password': os.getenv('TEST_DB_PASSWORD', '4pp_U$3r_2024!'),
-    'port': int(os.getenv('TEST_DB_PORT', '5432'))
+    'host': config.get('TEST_DB_HOST', 'localhost'),
+    'database': config.get('TEST_DB_NAME', 'tickstock_test'),
+    'user': config.get('TEST_DB_USER', 'app_readwrite'),
+    'password': config.get('TEST_DB_PASSWORD', 'password'),
+    'port': int(config.get('TEST_DB_PORT', '5432'))
 }
 
 # Required Schema Enhancements
@@ -142,8 +144,8 @@ REQUIRED_DATABASE_FUNCTIONS = [
 ```python
 # Test Redis Setup
 TEST_REDIS_CONFIG = {
-    'host': os.getenv('TEST_REDIS_HOST', 'localhost'),
-    'port': int(os.getenv('TEST_REDIS_PORT', '6379')),
+    'host': config.get('TEST_REDIS_HOST', 'localhost'),
+    'port': int(config.get('TEST_REDIS_PORT', '6379')),
     'db_main': 13,      # System resilience tests
     'db_flows': 14,     # Message flow tests  
     'db_integration': 15 # Primary integration tests

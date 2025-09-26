@@ -102,14 +102,14 @@ class ErrorMonitorLogger:
         self.logger.setLevel(logging.INFO)
 
         # Add file handler if LOG_FILE_ENABLED
-        if os.getenv('LOG_FILE_ENABLED', 'false').lower() == 'true':
+        if config.get('LOG_FILE_ENABLED').lower() == 'true':
             self._setup_file_handler()
 
     def _setup_file_handler(self):
         """Setup rotating file handler for error logging"""
-        log_file = os.getenv('LOG_FILE_PATH', 'logs/tickstock_errors.log')
-        max_size = int(os.getenv('LOG_FILE_MAX_SIZE', 10485760))  # 10MB
-        backup_count = int(os.getenv('LOG_FILE_BACKUP_COUNT', 5))
+        log_file = config.get('LOG_FILE_PATH')
+        max_size = int(config.get('LOG_FILE_MAX_SIZE', 10485760))  # 10MB
+        backup_count = int(config.get('LOG_FILE_BACKUP_COUNT', 5))
 
         # Create logs directory if doesn't exist
         os.makedirs(os.path.dirname(log_file), exist_ok=True)

@@ -7,18 +7,26 @@ Configuration settings for database integrity checker and other dev tools.
 
 import os
 from typing import Dict, Any
+from src.core.services.config_manager import get_config
+
+
+# Get configuration
+try:
+    config = get_config()
+except:
+    config = None
 
 def get_database_config() -> Dict[str, Any]:
     """Get database configuration from TickStockAppV2 .env file values"""
     
     return {
         # Connection parameters from .env DATABASE_URI
-        # postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock
+        # config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')
         'host': 'localhost',
         'port': '5432',
         'database': 'tickstock',
         'user': 'app_readwrite',
-        'password': 'LJI48rUEkUpe6e',
+        'password': 'PASSWORD_PLACEHOLDER',
         
         # Connection pool settings
         'minconn': 1,

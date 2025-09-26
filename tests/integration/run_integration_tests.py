@@ -8,6 +8,11 @@ These tests validate REAL integration points, not mocks.
 import sys
 import os
 from pathlib import Path
+
+# Add project root to Python path to import src modules
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 import time
 import subprocess
 from datetime import datetime
@@ -212,18 +217,34 @@ def check_prerequisites():
     # Check PostgreSQL
     try:
         import psycopg2
+        from src.core.services.config_manager import get_config
+        config = get_config()
+
+        # Parse DATABASE_URI to get connection parameters
+        db_uri = config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')
+        # Extract password from URI
+        import re
+        match = re.match(r'postgresql://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/(.+)', db_uri)
+        if match:
+            user, password, host, port, database = match.groups()
+            port = port or '5432'
+        else:
+            # Fallback values
+            host, port, database, user, password = 'localhost', 5432, 'tickstock', 'app_readwrite', 'password'
+
         conn = psycopg2.connect(
-            host='localhost',
-            port=5432,
-            database='tickstock',
-            user='app_readwrite',
-            password='LJI48rUEkUpe6e'
+            host=host,
+            port=int(port),
+            database=database,
+            user=user,
+            password=password
         )
         conn.close()
         print(f"{GREEN}[OK]{RESET} PostgreSQL is running")
         checks.append(True)
-    except:
+    except Exception as e:
         print(f"{RED}[X]{RESET} PostgreSQL is not running - start it first")
+        print(f"  Debug: {str(e)}")
         checks.append(False)
 
     # Check if TickStockAppV2 is running

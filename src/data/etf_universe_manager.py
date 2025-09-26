@@ -60,14 +60,14 @@ class ETFUniverseManager:
     
     def __init__(self, database_uri: str = None, polygon_api_key: str = None, redis_host: str = None):
         """Initialize ETF universe manager with database, API, and Redis connections"""
-        self.database_uri = database_uri or os.getenv(
-            'DATABASE_URL',
-            'postgresql://app_readwrite:4pp_U$3r_2024!@localhost/tickstock'
+        config = get_config()
+        self.database_uri = database_uri or config.get(
+            'DATABASE_URI',
+            'postgresql://app_readwrite:OLD_PASSWORD_2024@localhost/tickstock'
         )
-        self.polygon_api_key = polygon_api_key or os.getenv('POLYGON_API_KEY')
-        self.redis_host = redis_host or os.getenv('REDIS_HOST', 'localhost')
-        self.redis_port = int(os.getenv('REDIS_PORT', '6379'))
-        
+        self.polygon_api_key = polygon_api_key or config.get('POLYGON_API_KEY')
+        self.redis_host = redis_host or config.get('REDIS_HOST', 'localhost')
+        self.redis_port = config.get('REDIS_PORT', 6379)
         # ETF filtering criteria
         self.min_aum_threshold = 1e9      # $1B minimum AUM
         self.min_volume_threshold = 5e6   # 5M daily volume minimum

@@ -24,7 +24,12 @@ from datetime import datetime, timedelta, time as dt_time
 from typing import List, Dict, Any, Optional, Set
 import schedule
 
-# Load environment variables
+# Load environment variables from config manager
+try:
+    from src.core.services.config_manager import get_config
+except ImportError:
+    pass  # config manager not available, will handle below
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -54,10 +59,10 @@ class EODProcessor:
             database_uri: Database connection string (defaults to env)
             redis_host: Redis host (defaults to env)
         """
-        self.database_uri = database_uri or os.getenv('DATABASE_URI')
-        self.redis_host = redis_host or os.getenv('REDIS_HOST', 'localhost')
-        self.redis_port = int(os.getenv('REDIS_PORT', 6379))
-        
+        config = get_config()
+        self.database_uri = database_uri or config.get('DATABASE_URI')
+        self.redis_host = redis_host or config.get('REDIS_HOST', 'localhost')
+        self.redis_port = config.get('REDIS_PORT', 6379)
         if not self.database_uri:
             raise ValueError("DATABASE_URI required for EOD processing")
             

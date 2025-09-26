@@ -22,6 +22,12 @@ import sys
 import json
 import logging
 import time
+
+# Load environment variables from config manager
+try:
+    from src.core.services.config_manager import get_config
+except ImportError:
+    pass  # config manager not available, will handle below
 import shutil
 import subprocess
 from datetime import datetime, timedelta, date
@@ -67,11 +73,11 @@ class RapidDevelopmentRefresh:
     
     def __init__(self, database_uri: str = None, docker_client=None):
         """Initialize rapid development refresh system"""
-        self.database_uri = database_uri or os.getenv(
-            'DATABASE_URL',
-            'postgresql://app_readwrite:4pp_U$3r_2024!@localhost/tickstock'
+        config = get_config()
+        self.database_uri = database_uri or config.get(
+            'DATABASE_URI',
+            'postgresql://app_readwrite:OLD_PASSWORD_2024@localhost/tickstock'
         )
-        
         # Docker integration
         if DOCKER_AVAILABLE:
             self.docker_client = docker_client or docker.from_env()

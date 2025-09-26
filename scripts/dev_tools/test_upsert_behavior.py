@@ -7,6 +7,14 @@ import os
 import sys
 import pandas as pd
 from datetime import datetime, timedelta
+from src.core.services.config_manager import get_config
+
+
+# Get configuration
+try:
+    config = get_config()
+except:
+    config = None
 
 # Add src to path
 sys.path.append('src')
@@ -20,14 +28,14 @@ def test_upsert_behavior():
     
     try:
         loader = PolygonHistoricalLoader(
-            database_uri='postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock'
+            database_uri='config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')'
         )
         
         print("1. Current AAPL data before update:")
         # Show current data first
         import psycopg2
         from psycopg2.extras import RealDictCursor
-        conn = psycopg2.connect('postgresql://app_readwrite:LJI48rUEkUpe6e@localhost:5432/tickstock')
+        conn = psycopg2.connect('config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')')
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         cursor.execute("""

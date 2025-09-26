@@ -23,6 +23,12 @@ import asyncio
 import json
 import logging
 import time
+
+# Load environment variables from config manager
+try:
+    from src.core.services.config_manager import get_config
+except ImportError:
+    pass  # config manager not available, will handle below
 import psutil
 import redis.asyncio as redis
 from datetime import datetime, timedelta, time as dt_time
@@ -87,14 +93,14 @@ class EnterpriseProductionScheduler:
     
     def __init__(self, database_uri: str = None, redis_host: str = None, polygon_api_key: str = None):
         """Initialize enterprise production scheduler"""
-        self.database_uri = database_uri or os.getenv(
-            'DATABASE_URL',
-            'postgresql://app_readwrite:4pp_U$3r_2024!@localhost/tickstock'
+        config = get_config()
+        self.database_uri = database_uri or config.get(
+            'DATABASE_URI',
+            'postgresql://app_readwrite:OLD_PASSWORD_2024@localhost/tickstock'
         )
-        self.redis_host = redis_host or os.getenv('REDIS_HOST', 'localhost')
-        self.redis_port = int(os.getenv('REDIS_PORT', '6379'))
-        self.polygon_api_key = polygon_api_key or os.getenv('POLYGON_API_KEY')
-        
+        self.redis_host = redis_host or config.get('REDIS_HOST', 'localhost')
+        self.redis_port = config.get('REDIS_PORT', 6379)
+        self.polygon_api_key = polygon_api_key or config.get('POLYGON_API_KEY')
         # Enterprise configuration
         self.max_concurrent_jobs = 10
         self.max_threads_per_job = 5

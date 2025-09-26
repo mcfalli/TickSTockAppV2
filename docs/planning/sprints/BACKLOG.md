@@ -60,7 +60,7 @@ if enhanced_logger:
 **Implementation**:
 ```python
 # Add to app.py after enhanced logger initialization
-if os.getenv('AUTO_DB_LOGGING', 'false').lower() == 'true':
+if config.get('AUTO_DB_LOGGING').lower() == 'true':
     class DatabaseLogHandler(logging.Handler):
         def emit(self, record):
             if record.levelno >= logging.ERROR:

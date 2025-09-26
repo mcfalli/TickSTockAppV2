@@ -15,9 +15,11 @@ from sqlalchemy import create_engine, text
 from contextlib import contextmanager
 from typing import Dict, List, Any, Optional
 import os
+from src.core.services.config_manager import get_config
 
 # Test Database Configuration
-TEST_DB_URL = os.getenv('TEST_DATABASE_URL', 'postgresql://app_readwrite:password@localhost:5432/tickstock_test')
+config = get_config()
+TEST_DB_URL = config.get('TEST_DATABASE_URL', 'postgresql://app_readwrite:password@localhost:5432/tickstock_test')
 TEST_REDIS_DB = 15  # Use dedicated test Redis database
 
 

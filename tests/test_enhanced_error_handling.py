@@ -13,6 +13,14 @@ import psycopg2
 import redis
 from datetime import datetime
 from pathlib import Path
+from src.core.services.config_manager import get_config
+
+
+# Get configuration
+try:
+    config = get_config()
+except:
+    config = None
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -103,7 +111,7 @@ def test_3_database_threshold():
     """Test 3: Database only stores errors at or above threshold"""
     try:
         # Get database connection
-        db_conn = psycopg2.connect(os.getenv('DATABASE_URI'))
+        db_conn = psycopg2.connect(config.get('DATABASE_URI'))
         cursor = db_conn.cursor()
 
         # Clear test data
@@ -175,7 +183,7 @@ def test_4_redis_error_subscriber():
 
         # Create config and logger
         config = LoggingConfig()
-        db_conn = psycopg2.connect(os.getenv('DATABASE_URI'))
+        db_conn = psycopg2.connect(config.get('DATABASE_URI'))
         logger = create_enhanced_logger(config, db_conn)
 
         # Clear test data
@@ -285,7 +293,7 @@ def test_6_performance():
     try:
         # Create logger
         config = LoggingConfig()
-        db_conn = psycopg2.connect(os.getenv('DATABASE_URI'))
+        db_conn = psycopg2.connect(config.get('DATABASE_URI'))
         logger = create_enhanced_logger(config, db_conn)
 
         # Time error logging

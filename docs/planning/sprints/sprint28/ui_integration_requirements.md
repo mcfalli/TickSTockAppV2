@@ -174,7 +174,7 @@ Since the existing template (`historical_data_dashboard.html`) has complex featu
 
 ```python
 # In admin_historical_data_redis.py
-USE_REDIS_QUEUE = os.getenv('USE_REDIS_QUEUE', 'true').lower() == 'true'
+USE_REDIS_QUEUE = config.get('USE_REDIS_QUEUE').lower() == 'true'
 
 if USE_REDIS_QUEUE:
     # Redis job submission

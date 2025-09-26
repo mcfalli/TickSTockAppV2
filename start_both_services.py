@@ -86,22 +86,19 @@ def check_postgres():
         return False
 
 def start_tickstockpl():
-    """Start TickStockPL pattern detection service."""
-    print("\n[TickStockPL] Starting pattern detection service...")
+    """Start TickStockPL HTTP API server."""
+    print("\n[TickStockPL] Starting HTTP API server...")
 
     if not TICKSTOCKPL_PATH.exists():
         print(f"[TickStockPL] ERROR: Path not found: {TICKSTOCKPL_PATH}")
         return None
 
-    # Use the production pattern detection service from src/services
-    service_script = TICKSTOCKPL_PATH / "src" / "services" / "pattern_detection_service.py"
-
-    # Fallback to launcher script if main script not found
-    if not service_script.exists():
-        service_script = TICKSTOCKPL_PATH / "src" / "services" / "launch_pattern_detection_service.py"
+    # Use the new HTTP API server (Sprint 33 Phase 4)
+    service_script = TICKSTOCKPL_PATH / "start_api_server.py"
 
     if not service_script.exists():
-        print(f"[TickStockPL] ERROR: Service script not found at {service_script}")
+        print(f"[TickStockPL] ERROR: API server script not found at {service_script}")
+        print("Please ensure TickStockPL has been updated with Sprint 33 Phase 4 HTTP API implementation")
         return None
 
     try:
@@ -200,7 +197,7 @@ def main():
     print("="*60)
     print("This will start both:")
     print("  1. TickStockAppV2 (Consumer) - Web UI on port 5000")
-    print("  2. TickStockPL (Producer) - Pattern detection service")
+    print("  2. TickStockPL (Producer) - HTTP API server on port 8080")
     print("="*60)
 
     # Register shutdown handler
@@ -259,7 +256,7 @@ def main():
     print("SERVICES RUNNING")
     print("="*60)
     print("[OK] TickStockAppV2: http://localhost:5000")
-    print("[OK] Pattern Detection: Active" if pl_process else "[WARNING] Pattern Detection: Fallback mode")
+    print("[OK] TickStockPL API: http://localhost:8080" if pl_process else "[WARNING] TickStockPL API: Offline (fallback mode)")
     print("\nPress Ctrl+C to stop all services")
     print("="*60)
 
@@ -267,12 +264,19 @@ def main():
     try:
         while True:
             # Check if processes are still running
-            for i, process in enumerate(processes):
+            for i, process in enumerate(processes[:]):  # Copy list to avoid modification during iteration
                 if process and process.poll() is not None:
+                    # Process has actually stopped (poll() returns exit code)
+                    exit_code = process.poll()
                     if i == 0:
-                        print("\nERROR: TickStockAppV2 stopped unexpectedly")
+                        print(f"\nERROR: TickStockAppV2 stopped unexpectedly (exit code: {exit_code})")
+                        print("Shutting down remaining services...")
+                        shutdown_handler(None, None)
                     else:
-                        print("\nWARNING: TickStockPL stopped unexpectedly")
+                        print(f"\nWARNING: TickStockPL stopped unexpectedly (exit code: {exit_code})")
+                        print("Removing from monitoring list...")
+                        processes.remove(process)
+                        break  # Exit loop after removing to avoid index issues
             time.sleep(5)
     except KeyboardInterrupt:
         shutdown_handler(None, None)

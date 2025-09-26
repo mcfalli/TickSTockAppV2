@@ -64,25 +64,28 @@ def register_pattern_discovery_apis(app: Flask) -> bool:
 
 def _load_pattern_discovery_config() -> Dict[str, Any]:
     """Load configuration for Pattern Discovery components."""
+    from src.core.services.config_manager import get_config
+    config = get_config()
+
     return {
         # Redis configuration
-        'redis_host': os.getenv('REDIS_HOST', 'localhost'),
-        'redis_port': int(os.getenv('REDIS_PORT', 6379)),
-        'redis_db': int(os.getenv('REDIS_DB', 0)),
-        'redis_password': os.getenv('REDIS_PASSWORD'),
-        'redis_max_connections': int(os.getenv('REDIS_MAX_CONNECTIONS', 20)),
-        
+        'redis_host': config.get('REDIS_HOST', 'localhost'),
+        'redis_port': config.get('REDIS_PORT', 6379),
+        'redis_db': config.get('REDIS_DB', 0),
+        'redis_password': config.get('REDIS_PASSWORD'),
+        'redis_max_connections': config.get('REDIS_MAX_CONNECTIONS', 20),
+
         # Pattern cache configuration
-        'pattern_cache_ttl': int(os.getenv('PATTERN_CACHE_TTL', 3600)),  # 1 hour
-        'api_response_cache_ttl': int(os.getenv('API_RESPONSE_CACHE_TTL', 30)),  # 30 seconds
-        'index_cache_ttl': int(os.getenv('INDEX_CACHE_TTL', 3600)),  # 1 hour
-        
+        'pattern_cache_ttl': config.get('PATTERN_CACHE_TTL', 3600),  # 1 hour
+        'api_response_cache_ttl': config.get('API_RESPONSE_CACHE_TTL', 30),  # 30 seconds
+        'index_cache_ttl': config.get('INDEX_CACHE_TTL', 3600),  # 1 hour
+
         # Database configuration (from existing environment)
-        'database_host': os.getenv('TICKSTOCK_DB_HOST', 'localhost'),
-        'database_port': int(os.getenv('TICKSTOCK_DB_PORT', 5432)),
+        'database_host': config.get('TICKSTOCK_DB_HOST', 'localhost'),
+        'database_port': config.get('TICKSTOCK_DB_PORT', 5432),
         'database_name': 'tickstock',
-        'database_user': os.getenv('TICKSTOCK_DB_USER', 'app_readwrite'),
-        'database_password': os.getenv('TICKSTOCK_DB_PASSWORD', 'LJI48rUEkUpe6e'),
+        'database_user': config.get('TICKSTOCK_DB_USER', 'app_readwrite'),
+        'database_password': config.get('TICKSTOCK_DB_PASSWORD', 'PASSWORD_PLACEHOLDER'),
         
         # TickStockPL integration channels
         'tickstock_channels': [

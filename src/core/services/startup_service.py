@@ -8,6 +8,7 @@ import sys
 import logging
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
+from src.core.services.config_manager import get_config
 
 # Configure basic logging first
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +22,8 @@ def detect_environment():
     """
     
     # Method 1: Explicit environment variable (highest priority)
-    env_from_var = os.getenv('APP_ENVIRONMENT')
+    config = get_config()
+    env_from_var = config.get('APP_ENVIRONMENT')
     if env_from_var:
         logger.info(f"Environment detected from APP_ENVIRONMENT variable: {env_from_var}")
         return env_from_var.upper()
@@ -63,15 +65,16 @@ def load_environment_config():
     # Step 1: Detect environment
     app_environment = detect_environment()
     
-    # Step 2: Try to get DATABASE_URI from environment variable first (production/security)
-    database_uri = os.getenv('DATABASE_URI')
-    config_source = "environment variable"
-    
+    # Step 2: Try to get DATABASE_URI from config first
+    config = get_config()
+    database_uri = config.get('DATABASE_URI')
+    config_source = "config manager"
+
     if not database_uri:
         # Try environment-specific variable
-        database_uri = os.getenv(f'DATABASE_URI_{app_environment}')
+        database_uri = config.get(f'DATABASE_URI_{app_environment}')
         if database_uri:
-            config_source = f"environment variable (DATABASE_URI_{app_environment})"
+            config_source = f"config manager (DATABASE_URI_{app_environment})"
     
     if not database_uri:
         # Step 3: Fall back to ConfigManager (development convenience)
@@ -123,13 +126,14 @@ def load_environment_config():
         logger.error("Example: DATABASE_URI=postgresql://user:pass@localhost:5432/tickstock")
         sys.exit(1)
     
-    # Step 5: Build environment config (prioritize env vars, fall back to defaults)
+    # Step 5: Build environment config (use config manager)
+    config = get_config()
     env_config = {
         'APP_ENVIRONMENT': app_environment,
         'DATABASE_URI': database_uri,
-        'APP_HOST': os.getenv('APP_HOST', '0.0.0.0'),
-        'APP_PORT': int(os.getenv('APP_PORT', 5000)),
-        'APP_DEBUG': os.getenv('APP_DEBUG', 'false').lower() == 'true'
+        'APP_HOST': config.get('APP_HOST', '0.0.0.0'),
+        'APP_PORT': config.get('APP_PORT', 5000),
+        'APP_DEBUG': config.get('APP_DEBUG', False)
     }
     
     logger.info("Environment configuration loaded for: %s (DATABASE_URI from %s)", app_environment, config_source)

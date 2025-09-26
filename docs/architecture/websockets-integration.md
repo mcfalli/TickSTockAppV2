@@ -65,7 +65,7 @@ def start_websockets(symbols):
     ws = websocket.WebSocketApp(
         'wss://socket.polygon.io/stocks',
         on_message=on_message,
-        header={'Authorization': f'Bearer {os.getenv("POLYGON_API_KEY")}'}
+        header={'Authorization': f'Bearer {config.get('POLYGON_API_KEY')}'}
     )
     ws.send(json.dumps({'action': 'subscribe', 'params': f'A.{",".join(symbols)}'}))  # Aggregate bars
     ws.run_forever()

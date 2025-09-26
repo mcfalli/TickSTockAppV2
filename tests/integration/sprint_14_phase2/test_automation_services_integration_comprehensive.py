@@ -1,3 +1,4 @@
+from src.core.services.config_manager import get_config
 """
 Comprehensive Integration Tests - Sprint 14 Phase 2 Automation Services
 Validates cross-system integration patterns for TickStockApp ↔ Automation Services communication.
@@ -33,11 +34,14 @@ from unittest.mock import patch, MagicMock
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
+from src.core.services.config_manager import get_config
+
 # Test configuration
+config = get_config()
 TEST_REDIS_DB = 15  # Separate database for testing
-TEST_DATABASE_URI = os.getenv(
-    'TEST_DATABASE_URI', 
-    'postgresql://app_readwrite:4pp_U$3r_2024!@localhost/tickstock'
+TEST_DATABASE_URI = config.get(
+    'TEST_DATABASE_URI',
+    'postgresql://app_readwrite:password@localhost:5432/tickstock_test'
 )
 
 @dataclass

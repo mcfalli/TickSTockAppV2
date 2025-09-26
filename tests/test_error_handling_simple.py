@@ -11,6 +11,14 @@ import time
 import psycopg2
 import redis
 from datetime import datetime
+from src.core.services.config_manager import get_config
+
+
+# Get configuration
+try:
+    config = get_config()
+except:
+    config = None
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -39,7 +47,7 @@ except Exception as e:
 # Test 2: Enhanced Logger Creation
 print("\n[TEST 2] Creating enhanced logger with database...")
 try:
-    db_conn = psycopg2.connect(os.getenv('DATABASE_URI'))
+    db_conn = psycopg2.connect(config.get('DATABASE_URI'))
     logger = create_enhanced_logger(config, db_conn)
     set_enhanced_logger(logger)
     print(f"  [PASS] Logger created with file and database support")

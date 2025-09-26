@@ -4,7 +4,6 @@ Subscribes to TickStockPL monitoring events and forwards to dashboard
 Sprint 31 Implementation
 """
 
-import os
 import json
 import redis
 import threading
@@ -12,6 +11,7 @@ import logging
 import requests
 from datetime import datetime
 from typing import Dict, Any, Optional
+from src.core.services.config_manager import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +34,11 @@ class MonitoringSubscriber:
         self.channel = 'tickstock:monitoring'
 
         # Redis connection parameters
+        config = get_config()
         self.redis_config = {
-            'host': os.getenv('REDIS_HOST', 'localhost'),
-            'port': int(os.getenv('REDIS_PORT', 6379)),
-            'db': int(os.getenv('REDIS_DB', 0)),
+            'host': config.get('REDIS_HOST', 'localhost'),
+            'port': config.get('REDIS_PORT', 6379),
+            'db': config.get('REDIS_DB', 0),
             'decode_responses': True
         }
 

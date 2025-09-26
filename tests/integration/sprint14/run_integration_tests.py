@@ -53,11 +53,10 @@ class Sprint14IntegrationTestRunner:
         
         # Set test environment variables
         os.environ['TESTING'] = 'true'
-        os.environ['TEST_DATABASE_URL'] = os.getenv(
-            'TEST_DATABASE_URL', 
-            'postgresql://app_readwrite:password@localhost:5432/tickstock_test'
-        )
-        os.environ['REDIS_URL'] = os.getenv('REDIS_URL', 'redis://localhost:6379/15')
+        # Test database URL is now managed by config_manager
+        pass  # Configuration handled by config_manager
+        # Redis URL is now managed by config_manager
+        pass  # Configuration handled by config_manager
         
         print("✓ Test environment configured")
         

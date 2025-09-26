@@ -50,6 +50,9 @@
                         <span class="settings-text">Admin</span>
                     </button>
                     <div class="dropdown-content admin-dropdown-content" id="adminDropdownContent">
+                        <a href="{{ url_for('admin_daily_processing_dashboard') }}">
+                            <i class="fas fa-clock me-1"></i> Daily Processing
+                        </a>
                         <a href="{{ url_for('admin_historical_dashboard') }}">
                             <i class="fas fa-chart-line me-1"></i> Historical Data
                         </a>

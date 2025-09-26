@@ -18,6 +18,7 @@ Performance Targets:
 """
 
 import os
+from src.core.services.config_manager import get_config
 import sys
 import pytest
 import asyncio
@@ -30,6 +31,17 @@ from typing import Dict, List, Any, Optional
 from unittest.mock import Mock, patch, AsyncMock
 import concurrent.futures
 
+# Initialize configuration with fallback
+try:
+    config = get_config()
+except Exception:
+    # Fallback if config_manager not available
+    class ConfigFallback:
+        def get(self, key, default=None):
+            return default  # Use defaults only
+    config = ConfigFallback()
+
+
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../'))
 
@@ -38,7 +50,7 @@ import redis.asyncio as async_redis
 
 # Import Phase 3 modules  
 from src.data.etf_universe_manager import ETFUniverseManager
-from src.data.cache_entries_synchronizer import CacheEntriesSynchronizer
+from archive.sprint36_migration.cache_entries_synchronizer import CacheEntriesSynchronizer
 
 class TestPhase3RedisMessageFlows:
     """
@@ -57,8 +69,8 @@ class TestPhase3RedisMessageFlows:
     def redis_config(self):
         """Redis configuration for testing"""
         return {
-            'host': os.getenv('TEST_REDIS_HOST', 'localhost'),
-            'port': int(os.getenv('TEST_REDIS_PORT', '6379')),
+            'host': config.get('TEST_REDIS_HOST', 'localhost'),
+            'port': int(config.get('TEST_REDIS_PORT', '6379')),
             'db': 14  # Dedicated test database for message flow tests
         }
     

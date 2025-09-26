@@ -163,10 +163,11 @@ def get_pattern_performance_summary(symbol: str = None, days: int = 30):
 ```python
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import QueuePool
-import os
+from src.core.services.config_manager import get_config
 
 class DatabaseManager:
     def __init__(self):
+        self.config = get_config()
         self.db_url = self._build_connection_url()
         self.engine = create_engine(
             self.db_url,
@@ -177,18 +178,24 @@ class DatabaseManager:
             pool_recycle=1800,  # Recycle connections after 30 minutes
             echo=False  # Set to True for query debugging
         )
-    
+
     def _build_connection_url(self):
-        """Build database URL from environment variables"""
-        host = os.getenv('DB_HOST', 'localhost')
-        port = os.getenv('DB_PORT', '5432')
-        database = os.getenv('DB_NAME', 'tickstock')
-        username = os.getenv('DB_READONLY_USER', 'readonly_user')
-        password = os.getenv('DB_READONLY_PASSWORD')
-        
+        """Build database URL from config manager"""
+        # Primary: Use DATABASE_URI from .env
+        database_uri = self.config.get('DATABASE_URI')
+        if database_uri:
+            return database_uri
+
+        # Fallback: Build from individual components
+        host = self.config.get('DB_HOST', 'localhost')
+        port = self.config.get('DB_PORT', '5432')
+        database = self.config.get('DB_NAME', 'tickstock')
+        username = self.config.get('DB_USER', 'app_readwrite')
+        password = self.config.get('DB_PASSWORD')
+
         if not password:
-            raise ValueError("DB_READONLY_PASSWORD environment variable required")
-            
+            raise ValueError("DB_PASSWORD not configured in .env file")
+
         return f"postgresql://{username}:{password}@{host}:{port}/{database}"
     
     def test_connection(self):

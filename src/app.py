@@ -101,23 +101,23 @@ APP_VERSION = "2.0.0-simplified"
 def initialize_redis(config):
     """
     Initialize Redis connection for TickStockPL integration.
-    
+
     DEPRECATED: Use initialize_redis_mandatory() for new code.
     This function is kept for backward compatibility only.
     """
     global redis_client
-    
+
     # Check if Redis is configured (try config first, then environment)
-    redis_url = config.get('REDIS_URL') or os.getenv('REDIS_URL', '')
-    
+    redis_url = config.get('REDIS_URL') or config.get('REDIS_URL', '')
+
     if not redis_url or redis_url.strip() == '':
         logger.info("REDIS: No Redis URL configured, skipping Redis initialization")
         redis_client = None
         return False
-    
-    redis_host = config.get('REDIS_HOST') or os.getenv('REDIS_HOST', 'localhost')
-    redis_port = int(config.get('REDIS_PORT') or os.getenv('REDIS_PORT', 6379))
-    redis_db = int(config.get('REDIS_DB') or os.getenv('REDIS_DB', 0))
+
+    redis_host = config.get('REDIS_HOST') or config.get('REDIS_HOST', 'localhost')
+    redis_port = int(config.get('REDIS_PORT') or config.get('REDIS_PORT', 6379))
+    redis_db = int(config.get('REDIS_DB') or config.get('REDIS_DB', 0))
     
     logger.info(f"REDIS: Attempting to connect to {redis_host}:{redis_port} db={redis_db}")
     
@@ -2075,12 +2075,12 @@ def main():
         # Initialize integration logging from environment
         try:
             from src.core.services.integration_logger import configure_integration_logging
-            import os
+            from src.core.services.config_manager import get_config
 
-            # Get settings from environment variables (via .env)
-            integration_enabled = os.getenv('INTEGRATION_LOGGING_ENABLED', 'true').lower() == 'true'
-            integration_log_file = os.getenv('INTEGRATION_LOG_FILE', 'false').lower() == 'true'
-            integration_log_level = os.getenv('INTEGRATION_LOG_LEVEL', 'INFO')
+            config = get_config()
+            integration_enabled = config.get('INTEGRATION_LOGGING_ENABLED', True)
+            integration_log_file = config.get('INTEGRATION_LOG_FILE', False)
+            integration_log_level = config.get('INTEGRATION_LOG_LEVEL', 'INFO')
 
             flow_logger = configure_integration_logging(
                 enabled=integration_enabled,
@@ -2222,6 +2222,21 @@ def main():
             except Exception as monitoring_error:
                 logger.warning(f"STARTUP: Admin monitoring routes registration failed: {monitoring_error}")
                 # Don't fail startup for monitoring - it's optional
+
+            logger.info("STARTUP: Registering admin daily processing routes...")
+            try:
+                from src.api.rest.admin_daily_processing import register_admin_daily_processing_routes
+                from src.infrastructure.redis.processing_subscriber import create_processing_subscriber
+
+                register_admin_daily_processing_routes(app)
+                logger.info("STARTUP: Admin daily processing routes registered successfully")
+
+                # Start the processing event subscriber
+                processing_subscriber = create_processing_subscriber(app)
+                logger.info("STARTUP: Processing event subscriber started")
+            except Exception as processing_error:
+                logger.warning(f"STARTUP: Admin daily processing routes registration failed: {processing_error}")
+                # Don't fail startup for processing dashboard - it's optional
 
             logger.info("STARTUP: Registering admin user management routes...")
             from src.api.rest.admin_users import admin_users_bp

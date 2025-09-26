@@ -3,24 +3,21 @@ Redis Configuration Module
 Provides Redis connection management for TickStock services
 """
 
-import os
 import redis
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+from src.core.services.config_manager import get_config
 
 def get_redis_client():
     """
     Get a Redis client connection.
-    
+
     Returns:
         redis.Redis client object
     """
-    redis_host = os.getenv('REDIS_HOST', 'localhost')
-    redis_port = int(os.getenv('REDIS_PORT', 6379))
-    redis_db = int(os.getenv('REDIS_DB', 0))
-    redis_password = os.getenv('REDIS_PASSWORD')
+    config = get_config()
+    redis_host = config.get('REDIS_HOST', 'localhost')
+    redis_port = config.get('REDIS_PORT', 6379)
+    redis_db = config.get('REDIS_DB', 0)
+    redis_password = config.get('REDIS_PASSWORD')
     
     connection_params = {
         'host': redis_host,
@@ -37,13 +34,14 @@ def get_redis_client():
 def get_redis_config():
     """
     Get Redis configuration dictionary.
-    
+
     Returns:
         Dict with Redis connection parameters
     """
+    config = get_config()
     return {
-        'host': os.getenv('REDIS_HOST', 'localhost'),
-        'port': int(os.getenv('REDIS_PORT', 6379)),
-        'db': int(os.getenv('REDIS_DB', 0)),
-        'password': os.getenv('REDIS_PASSWORD')
+        'host': config.get('REDIS_HOST', 'localhost'),
+        'port': config.get('REDIS_PORT', 6379),
+        'db': config.get('REDIS_DB', 0),
+        'password': config.get('REDIS_PASSWORD')
     }

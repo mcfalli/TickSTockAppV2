@@ -3,9 +3,17 @@ Final Pattern Data Analysis
 Complete analysis of the pattern data communication failure.
 """
 
+import sys
+import os
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 import psycopg2
 import json
+import re
 from datetime import datetime
+
+from src.core.services.config_manager import get_config
 
 def analyze_pattern_detections_correct():
     """Analyze pattern_detections table with correct column names."""
@@ -13,12 +21,24 @@ def analyze_pattern_detections_correct():
     print("=" * 50)
     
     try:
+        # Database connection using config_manager
+        config = get_config()
+        db_uri = config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')
+        # Parse URI to extract components
+        match = re.match(r'postgresql://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/(.+)', db_uri)
+        if match:
+            user, password, host, port, database = match.groups()
+            port = port or '5432'
+        else:
+            # Fallback values
+            host, port, database, user, password = 'localhost', 5432, 'tickstock', 'app_readwrite', 'password'
+
         conn = psycopg2.connect(
-            host='localhost',
-            port=5432,
-            database='tickstock',
-            user='app_readwrite',
-            password='LJI48rUEkUpe6e'
+            host=host,
+            port=int(port),
+            database=database,
+            user=user,
+            password=password
         )
         
         cursor = conn.cursor()
@@ -101,12 +121,24 @@ def check_daily_intraday_data():
     print("=" * 50)
     
     try:
+        # Database connection using config_manager
+        config = get_config()
+        db_uri = config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')
+        # Parse URI to extract components
+        match = re.match(r'postgresql://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/(.+)', db_uri)
+        if match:
+            user, password, host, port, database = match.groups()
+            port = port or '5432'
+        else:
+            # Fallback values
+            host, port, database, user, password = 'localhost', 5432, 'tickstock', 'app_readwrite', 'password'
+
         conn = psycopg2.connect(
-            host='localhost',
-            port=5432,
-            database='tickstock',
-            user='app_readwrite',
-            password='LJI48rUEkUpe6e'
+            host=host,
+            port=int(port),
+            database=database,
+            user=user,
+            password=password
         )
         
         cursor = conn.cursor()

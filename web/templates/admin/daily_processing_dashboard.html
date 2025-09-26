@@ -1,0 +1,918 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Daily Processing Dashboard - TickStock Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h2">
+                <i class="fas fa-clock"></i> Daily Processing Dashboard
+                <span class="badge {% if redis_connected %}bg-success{% else %}bg-danger{% endif %} ms-2">
+                    {% if redis_connected %}Connected{% else %}Disconnected{% endif %}
+                </span>
+            </h1>
+            <p class="text-muted">Sprint 33 - Phase 1, 2 & 3 Integration</p>
+        </div>
+    </div>
+
+    <!-- Processing Status Section -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cogs"></i> Current Processing Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="processingStatus">
+                        {% if processing_status.is_running %}
+                        <div class="alert alert-info">
+                            <strong>Processing Active</strong> - Phase: {{ processing_status.phase }}
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Progress</span>
+                                <span id="progressPercent">{{ processing_status.progress|default(0) }}%</span>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                     role="progressbar"
+                                     id="progressBar"
+                                     style="width: {{ processing_status.progress|default(0) }}%"
+                                     aria-valuenow="{{ processing_status.progress|default(0) }}"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100">
+                                    {{ processing_status.progress|default(0) }}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Current Symbol -->
+                        {% if processing_status.current_symbol %}
+                        <div class="mb-2">
+                            <strong>Current Symbol:</strong> <span id="currentSymbol">{{ processing_status.current_symbol }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Symbols Progress -->
+                        {% if processing_status.symbols_completed %}
+                        <div class="mb-2">
+                            <strong>Symbols:</strong>
+                            <span id="symbolsProgress">
+                                {{ processing_status.symbols_completed }} / {{ processing_status.symbols_total }}
+                            </span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Estimated Completion -->
+                        {% if processing_status.estimated_completion %}
+                        <div class="mb-2">
+                            <strong>ETA:</strong>
+                            <span id="estimatedCompletion">{{ processing_status.estimated_completion }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Cancel Button -->
+                        <button class="btn btn-danger mt-3" onclick="cancelProcessing()">
+                            <i class="fas fa-stop"></i> Cancel Processing
+                        </button>
+
+                        {% else %}
+                        <div class="alert alert-secondary">
+                            <strong>No Processing Active</strong> - System is idle
+                        </div>
+
+                        <!-- Manual Trigger Button -->
+                        <button class="btn btn-primary" onclick="triggerManualProcessing()">
+                            <i class="fas fa-play"></i> Trigger Manual Processing
+                        </button>
+
+                        <!-- Data Import Button (Phase 2) -->
+                        <button class="btn btn-info ms-2" onclick="triggerDataImport()">
+                            <i class="fas fa-download"></i> Trigger Data Import
+                        </button>
+
+                        <!-- Indicator Processing Button (Phase 3) -->
+                        <button class="btn btn-warning ms-2" onclick="triggerIndicatorProcessing()">
+                            <i class="fas fa-chart-line"></i> Trigger Indicators
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- Phase 2: Import Status -->
+                    <div id="importStatus" class="mt-4" style="display: none;">
+                        <hr>
+                        <h6><i class="fas fa-database"></i> Data Import Status</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted">Symbols Processed:</small>
+                                <p id="importSymbolsProcessed">0</p>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Failed Symbols:</small>
+                                <p id="importFailedCount">0</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-warning btn-sm" onclick="retryFailedImports()" id="retryButton" style="display: none;">
+                            <i class="fas fa-redo"></i> Retry Failed Imports
+                        </button>
+                    </div>
+
+                    <!-- Phase 3: Indicator Processing Status -->
+                    <div id="indicatorStatus" class="mt-4" style="display: none;">
+                        <hr>
+                        <h6><i class="fas fa-chart-line"></i> Indicator Processing Status</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <small class="text-muted">Progress:</small>
+                                <p id="indicatorProgress">0%</p>
+                                <div class="progress mb-2" style="height: 20px;">
+                                    <div class="progress-bar bg-info progress-bar-striped progress-bar-animated"
+                                         role="progressbar"
+                                         id="indicatorProgressBar"
+                                         style="width: 0%"
+                                         aria-valuenow="0"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100">
+                                        0%
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Current Symbol:</small>
+                                <p id="indicatorCurrentSymbol">-</p>
+                                <small class="text-muted">ETA:</small>
+                                <p id="indicatorEta">-</p>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Symbols Progress:</small>
+                                <p id="indicatorSymbolsProgress">0 / 0</p>
+                                <small class="text-muted">Total Indicators:</small>
+                                <p id="indicatorTotal">0</p>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Success Rate:</small>
+                                <p id="indicatorSuccessRate">-</p>
+                                <small class="text-muted">Timeframes:</small>
+                                <p id="indicatorTimeframes">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Indicator Processing Completed Status -->
+                    <div id="indicatorCompletedStatus" class="mt-3" style="display: none;">
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle"></i> Indicator Processing Completed</h6>
+                            <div class="row mt-2">
+                                <div class="col-md-4">
+                                    <strong>Success Rate:</strong>
+                                    <span id="completedSuccessRate" class="badge bg-success ms-1">0%</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Total Indicators:</strong>
+                                    <span id="completedTotalIndicators" class="badge bg-info ms-1">0</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Duration:</strong>
+                                    <span id="completedDuration" class="badge bg-secondary ms-1">0 min</span>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>Successful:</strong>
+                                    <span id="completedSuccessful" class="text-success">0</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Failed:</strong>
+                                    <span id="completedFailed" class="text-danger">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule Control -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt"></i> Schedule Control
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="scheduleForm">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="scheduleEnabled"
+                                   {% if schedule.enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="scheduleEnabled">
+                                Schedule Enabled
+                            </label>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="triggerTime" class="form-label">Trigger Time (ET)</label>
+                            <input type="time" class="form-control" id="triggerTime"
+                                   value="{{ schedule.trigger_time }}">
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="marketCheck"
+                                   {% if schedule.market_check %}checked{% endif %}>
+                            <label class="form-check-label" for="marketCheck">
+                                Check Market Status
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Update Schedule
+                        </button>
+                    </form>
+
+                    <hr class="my-3">
+
+                    <!-- Market Status -->
+                    <h6>Market Status</h6>
+                    <div id="marketStatus" class="small">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicator Statistics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar"></i> Today's Indicator Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="indicatorStats" class="table-responsive">
+                        <div class="text-center text-muted py-3">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            Loading indicator statistics...
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary btn-sm mt-2" onclick="loadIndicatorStats()">
+                        <i class="fas fa-sync"></i> Refresh Stats
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing History -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i> Processing History
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Run Date</th>
+                                    <th>Trigger Type</th>
+                                    <th>Status</th>
+                                    <th>Duration</th>
+                                    <th>Symbols Processed</th>
+                                    <th>Failed</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTable">
+                                {% for run in history %}
+                                <tr>
+                                    <td>{{ run.start_time }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if run.trigger_type == 'automatic' %}primary{% else %}info{% endif %}">
+                                            {{ run.trigger_type }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if run.status == 'success' %}success{% elif run.status == 'running' %}warning{% else %}danger{% endif %}">
+                                            {{ run.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if run.duration_seconds %}
+                                            {{ (run.duration_seconds / 60)|round(1) }} min
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ run.symbols_processed|default('-') }}</td>
+                                    <td>{{ run.symbols_failed|default(0) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">No processing history available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <button class="btn btn-secondary mt-2" onclick="loadMoreHistory()">
+                        <i class="fas fa-clock"></i> Load More History
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Processing Event Handler Script -->
+<script>
+// Processing Event Handler Class
+class ProcessingEventHandler {
+    constructor() {
+        this.statusPoller = null;
+        this.isProcessing = false;
+        this.setupEventListeners();
+        this.startStatusPolling();
+        this.updateMarketStatus();
+    }
+
+    setupEventListeners() {
+        // Schedule form submission
+        document.getElementById('scheduleForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.updateSchedule();
+        });
+    }
+
+    startStatusPolling() {
+        // Poll status every 5 seconds when processing is active
+        this.statusPoller = setInterval(() => {
+            this.fetchProcessingStatus();
+        }, 5000);
+
+        // Initial fetch
+        this.fetchProcessingStatus();
+    }
+
+    async fetchProcessingStatus() {
+        try {
+            const response = await fetch('/api/processing/daily/status');
+            const data = await response.json();
+
+            if (data.success) {
+                this.updateStatusDisplay(data.status);
+            }
+        } catch (error) {
+            console.error('Error fetching status:', error);
+        }
+    }
+
+    updateStatusDisplay(status) {
+        const statusDiv = document.getElementById('processingStatus');
+
+        if (status.is_running) {
+            // Update progress bar
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            if (progressBar) {
+                progressBar.style.width = `${status.progress}%`;
+                progressBar.setAttribute('aria-valuenow', status.progress);
+                progressBar.textContent = `${status.progress}%`;
+                progressPercent.textContent = `${status.progress}%`;
+            }
+
+            // Update current symbol
+            const currentSymbol = document.getElementById('currentSymbol');
+            if (currentSymbol && status.current_symbol) {
+                currentSymbol.textContent = status.current_symbol;
+            }
+
+            // Update symbols progress
+            const symbolsProgress = document.getElementById('symbolsProgress');
+            if (symbolsProgress && status.symbols_completed !== undefined) {
+                symbolsProgress.textContent = `${status.symbols_completed} / ${status.symbols_total}`;
+            }
+
+            // Update ETA
+            const eta = document.getElementById('estimatedCompletion');
+            if (eta && status.estimated_completion) {
+                const etaDate = new Date(status.estimated_completion);
+                eta.textContent = etaDate.toLocaleTimeString();
+            }
+
+            // Show import status if active (Phase 2)
+            if (status.import_status && status.import_status.import_active) {
+                this.updateImportStatus(status.import_status);
+            }
+
+            // Show indicator status if active (Phase 3)
+            if (status.indicator_status && status.indicator_status.indicator_processing_active) {
+                this.updateIndicatorStatus(status.indicator_status);
+            }
+
+            this.isProcessing = true;
+        } else {
+            this.isProcessing = false;
+
+            // Reload page to show idle state if we were processing
+            if (document.querySelector('.progress-bar')) {
+                setTimeout(() => location.reload(), 2000);
+            }
+        }
+    }
+
+    updateImportStatus(importStatus) {
+        const importDiv = document.getElementById('importStatus');
+        if (importDiv) {
+            importDiv.style.display = 'block';
+
+            document.getElementById('importSymbolsProcessed').textContent =
+                importStatus.symbols_processed || 0;
+
+            const failedCount = importStatus.symbols_failed?.length || 0;
+            document.getElementById('importFailedCount').textContent = failedCount;
+
+            // Show retry button if there are failures
+            const retryButton = document.getElementById('retryButton');
+            if (failedCount > 0) {
+                retryButton.style.display = 'inline-block';
+            }
+        }
+    }
+
+    updateIndicatorStatus(indicatorStatus) {
+        const indicatorDiv = document.getElementById('indicatorStatus');
+        if (indicatorDiv) {
+            indicatorDiv.style.display = 'block';
+
+            // Update progress
+            const progressBar = document.getElementById('indicatorProgressBar');
+            const progressText = document.getElementById('indicatorProgress');
+            if (progressBar && progressText) {
+                const progress = indicatorStatus.percent_complete || 0;
+                progressBar.style.width = `${progress}%`;
+                progressBar.setAttribute('aria-valuenow', progress);
+                progressBar.textContent = `${progress.toFixed(1)}%`;
+                progressText.textContent = `${progress.toFixed(1)}%`;
+            }
+
+            // Update current symbol
+            const currentSymbol = document.getElementById('indicatorCurrentSymbol');
+            if (currentSymbol) {
+                currentSymbol.textContent = indicatorStatus.current_symbol || '-';
+            }
+
+            // Update ETA
+            const eta = document.getElementById('indicatorEta');
+            if (eta && indicatorStatus.eta_seconds > 0) {
+                const minutes = Math.floor(indicatorStatus.eta_seconds / 60);
+                const seconds = indicatorStatus.eta_seconds % 60;
+                eta.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            } else if (eta) {
+                eta.textContent = '-';
+            }
+
+            // Update symbols progress
+            const symbolsProgress = document.getElementById('indicatorSymbolsProgress');
+            if (symbolsProgress) {
+                symbolsProgress.textContent = `${indicatorStatus.completed_symbols || 0} / ${indicatorStatus.total_symbols || 0}`;
+            }
+
+            // Update total indicators
+            const indicatorTotal = document.getElementById('indicatorTotal');
+            if (indicatorTotal) {
+                indicatorTotal.textContent = indicatorStatus.total_indicators || 0;
+            }
+
+            // Update success rate (if available)
+            const successRate = document.getElementById('indicatorSuccessRate');
+            if (successRate && indicatorStatus.success_rate !== undefined) {
+                successRate.textContent = `${indicatorStatus.success_rate.toFixed(1)}%`;
+            }
+
+            // Update timeframes
+            const timeframes = document.getElementById('indicatorTimeframes');
+            if (timeframes && indicatorStatus.timeframes) {
+                timeframes.textContent = indicatorStatus.timeframes.join(', ') || '-';
+            }
+        }
+    }
+
+    showIndicatorCompleted(completedData) {
+        const completedDiv = document.getElementById('indicatorCompletedStatus');
+        if (completedDiv) {
+            completedDiv.style.display = 'block';
+
+            document.getElementById('completedSuccessRate').textContent = `${completedData.success_rate.toFixed(1)}%`;
+            document.getElementById('completedTotalIndicators').textContent = completedData.successful_indicators + completedData.failed_indicators;
+            document.getElementById('completedSuccessful').textContent = completedData.successful_indicators;
+            document.getElementById('completedFailed').textContent = completedData.failed_indicators;
+
+            // Calculate duration in minutes
+            const durationMinutes = Math.round(completedData.duration_seconds / 60);
+            document.getElementById('completedDuration').textContent = `${durationMinutes} min`;
+
+            // Hide processing status after a delay
+            setTimeout(() => {
+                const indicatorDiv = document.getElementById('indicatorStatus');
+                if (indicatorDiv) {
+                    indicatorDiv.style.display = 'none';
+                }
+            }, 3000);
+        }
+    }
+
+    async updateMarketStatus() {
+        try {
+            const response = await fetch('/api/processing/market/status');
+            const data = await response.json();
+
+            if (data.success) {
+                const marketDiv = document.getElementById('marketStatus');
+                const status = data.market_status;
+
+                marketDiv.innerHTML = `
+                    <div class="mb-2">
+                        <strong>Market:</strong>
+                        <span class="badge bg-${status.is_open ? 'success' : 'secondary'}">
+                            ${status.is_open ? 'Open' : 'Closed'}
+                        </span>
+                    </div>
+                    <div><strong>Current Time:</strong> ${status.current_time}</div>
+                    ${status.next_open ? `<div><strong>Next Open:</strong> ${status.next_open}</div>` : ''}
+                    ${status.next_close ? `<div><strong>Next Close:</strong> ${status.next_close}</div>` : ''}
+                `;
+            }
+        } catch (error) {
+            console.error('Error fetching market status:', error);
+        }
+    }
+
+    async updateSchedule() {
+        const scheduleData = {
+            enabled: document.getElementById('scheduleEnabled').checked,
+            trigger_time: document.getElementById('triggerTime').value,
+            market_check: document.getElementById('marketCheck').checked
+        };
+
+        try {
+            const response = await fetch('/api/processing/daily/schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(scheduleData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showNotification('Schedule updated successfully', 'success');
+            } else {
+                showNotification('Failed to update schedule', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating schedule:', error);
+            showNotification('Error updating schedule', 'error');
+        }
+    }
+
+    async loadIndicatorStats() {
+        try {
+            const response = await fetch('/api/processing/indicators/stats');
+            const data = await response.json();
+
+            if (data.success) {
+                this.displayIndicatorStats(data.stats, data.summary);
+            }
+        } catch (error) {
+            console.error('Error loading indicator stats:', error);
+        }
+    }
+
+    displayIndicatorStats(stats, summary) {
+        const statsDiv = document.getElementById('indicatorStats');
+        if (!statsDiv) return;
+
+        if (!stats || stats.length === 0) {
+            statsDiv.innerHTML = `
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-info-circle"></i> No indicator data available for today
+                </div>
+            `;
+            return;
+        }
+
+        let tableHtml = `
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5 class="text-primary">${summary.total_indicators}</h5>
+                            <small>Indicator Types</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5 class="text-success">${summary.total_calculations}</h5>
+                            <small>Total Calculations</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5 class="text-info">${summary.unique_symbols}</h5>
+                            <small>Unique Symbols</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Indicator</th>
+                        <th>Symbol Count</th>
+                        <th>Calculations</th>
+                        <th>Last Calculated</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        stats.forEach(stat => {
+            const lastCalculated = stat.last_calculated
+                ? new Date(stat.last_calculated).toLocaleTimeString()
+                : 'Never';
+
+            tableHtml += `
+                <tr>
+                    <td><strong>${stat.indicator}</strong></td>
+                    <td><span class="badge bg-primary">${stat.symbol_count}</span></td>
+                    <td><span class="badge bg-success">${stat.calculations}</span></td>
+                    <td><small class="text-muted">${lastCalculated}</small></td>
+                </tr>
+            `;
+        });
+
+        tableHtml += `
+                </tbody>
+            </table>
+        `;
+
+        statsDiv.innerHTML = tableHtml;
+    }
+}
+
+// Initialize event handler
+let eventHandler;
+document.addEventListener('DOMContentLoaded', () => {
+    eventHandler = new ProcessingEventHandler();
+    // Load indicator stats on page load
+    setTimeout(() => {
+        eventHandler.loadIndicatorStats();
+    }, 1000);
+});
+
+// Global functions for button clicks
+async function triggerManualProcessing() {
+    const skipMarketCheck = !confirm('Check market status before processing?');
+
+    try {
+        const response = await fetch('/api/processing/daily/trigger', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ skip_market_check: skipMarketCheck })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showNotification('Processing triggered successfully', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message || 'Failed to trigger processing', 'error');
+        }
+    } catch (error) {
+        console.error('Error triggering processing:', error);
+        showNotification('Error triggering processing', 'error');
+    }
+}
+
+async function triggerDataImport() {
+    const universes = prompt('Enter universes (comma-separated, e.g., sp500,dow30):', 'sp500');
+    if (!universes) return;
+
+    const lookbackDays = prompt('Enter lookback days:', '30');
+    if (!lookbackDays) return;
+
+    try {
+        const response = await fetch('/api/processing/import/trigger', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                universes: universes.split(',').map(u => u.trim()),
+                timeframes: ['daily', 'weekly'],
+                lookback_days: parseInt(lookbackDays)
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showNotification('Data import triggered successfully', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification('Failed to trigger import', 'error');
+        }
+    } catch (error) {
+        console.error('Error triggering import:', error);
+        showNotification('Error triggering import', 'error');
+    }
+}
+
+async function triggerIndicatorProcessing() {
+    const symbols = prompt('Enter symbols (comma-separated, leave empty for all):', '');
+    const indicators = prompt('Enter indicators (comma-separated, leave empty for all):', '');
+
+    if (!confirm('Trigger indicator processing? This may take 10-20 minutes.')) {
+        return;
+    }
+
+    try {
+        const requestData = {
+            timeframe: 'daily'
+        };
+
+        if (symbols && symbols.trim()) {
+            requestData.symbols = symbols.split(',').map(s => s.trim().toUpperCase());
+        }
+
+        if (indicators && indicators.trim()) {
+            requestData.indicators = indicators.split(',').map(i => i.trim());
+        }
+
+        const response = await fetch('/api/processing/indicators/trigger', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showNotification('Indicator processing triggered successfully', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.message || 'Failed to trigger indicator processing', 'error');
+        }
+    } catch (error) {
+        console.error('Error triggering indicator processing:', error);
+        showNotification('Error triggering indicator processing', 'error');
+    }
+}
+
+async function cancelProcessing() {
+    if (!confirm('Are you sure you want to cancel the current processing?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/processing/daily/cancel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showNotification('Processing cancellation requested', 'warning');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showNotification(data.message || 'Failed to cancel processing', 'error');
+        }
+    } catch (error) {
+        console.error('Error cancelling processing:', error);
+        showNotification('Error cancelling processing', 'error');
+    }
+}
+
+async function retryFailedImports() {
+    if (!confirm('Retry all failed imports?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/processing/import/retry', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showNotification(`Retrying ${data.retry_count} failed imports`, 'info');
+        } else {
+            showNotification(data.message || 'Failed to retry imports', 'error');
+        }
+    } catch (error) {
+        console.error('Error retrying imports:', error);
+        showNotification('Error retrying imports', 'error');
+    }
+}
+
+async function loadMoreHistory() {
+    try {
+        const response = await fetch('/api/processing/daily/history?days=30');
+        const data = await response.json();
+
+        if (data.success && data.history) {
+            const tbody = document.getElementById('historyTable');
+            tbody.innerHTML = '';
+
+            data.history.forEach(run => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${new Date(run.start_time).toLocaleString()}</td>
+                    <td>
+                        <span class="badge bg-${run.trigger_type === 'automatic' ? 'primary' : 'info'}">
+                            ${run.trigger_type}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-${run.status === 'success' ? 'success' : run.status === 'running' ? 'warning' : 'danger'}">
+                            ${run.status}
+                        </span>
+                    </td>
+                    <td>${run.duration_seconds ? (run.duration_seconds / 60).toFixed(1) + ' min' : '-'}</td>
+                    <td>${run.symbols_processed || '-'}</td>
+                    <td>${run.symbols_failed || 0}</td>
+                `;
+            });
+        }
+    } catch (error) {
+        console.error('Error loading history:', error);
+        showNotification('Error loading history', 'error');
+    }
+}
+
+async function loadIndicatorStats() {
+    if (eventHandler) {
+        await eventHandler.loadIndicatorStats();
+    }
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    notification.style.zIndex = '9999';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+// Update market status every minute
+setInterval(() => {
+    if (eventHandler) {
+        eventHandler.updateMarketStatus();
+    }
+}, 60000);
+</script>
+{% endblock %}
