@@ -57,8 +57,27 @@ python start_both_services.py
 
 
 
-### Core Patterns (MUST MAINTAIN)
-**TO DO** 
+### Code Quality Standards
+
+#### Structure Limits (ENFORCE)
+- **Files**: Max 500 lines per file
+- **Functions**: Max 50 lines per function
+- **Classes**: Max 500 lines per class
+- **Line Length**: Max 100 characters
+- **Complexity**: Cyclomatic complexity <10
+
+#### Naming Conventions
+- **Variables/Functions**: snake_case (e.g., `process_pattern`)
+- **Classes**: PascalCase (e.g., `PatternProcessor`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `MAX_RETRIES`)
+- **Private**: Prefix with underscore (e.g., `_internal_method`)
+
+#### Development Principles
+- **KISS**: Keep It Simple - choose straightforward solutions
+- **YAGNI**: You Aren't Gonna Need It - avoid speculative features
+- **DRY**: Don't Repeat Yourself - abstract common functionality
+- **Fail Fast**: Check errors early, raise exceptions immediately
+- **Single Responsibility**: Each component has one clear purpose
 
 ### Performance Targets (NON-NEGOTIABLE)
 
@@ -104,15 +123,22 @@ ALWAYS END WITH → integration-testing-specialist (MANDATORY)
 
 ### Critical Paths
 ```
-config/
-web/
-src/
-tests/
-docs/
+config/          # Application configuration
+web/            # Flask templates and static files
+src/            # Core application code
+tests/          # Test suites
+docs/           # Documentation (streamlined)
+.claude/agents/ # Specialized AI agents
 ```
 
-### Key Files to Know
-**TO DO**
+### Key Documentation
+- `docs/README.md` - Documentation overview
+- `docs/about_tickstock.md` - Platform capabilities
+- `docs/architecture/README.md` - System architecture
+- `docs/guides/quickstart.md` - Getting started
+- `docs/guides/configuration.md` - Configuration reference
+- `docs/guides/testing.md` - Testing guide
+- `docs/api/endpoints.md` - API documentation
 
 ## Sprint Development 
 ### Phase 1: Analysis (REQUIRED)
@@ -143,11 +169,8 @@ docs/
 - Track remaining tasks for next sprint
 
 ## Current Sprint Context
-- docs\planning\sprint_summaries\*.md
-
-### Active Development
-- docs\planning\sprints\[sprintX]
-
+- `docs/planning/sprints/` - Sprint documentation (user-managed)
+- `docs/planning/sprints/BACKLOG.md` - Future work items
 
 ## 📊 Database & Configuration
 
@@ -197,10 +220,6 @@ TRACE_LEVEL=VERBOSE
 - ✅ Performance targets achieved (<1ms tick, <100ms WebSocket)
 - ✅ Security scan completed (no hardcoded passwords)
 - ✅ 90%+ test coverage on critical components
-
-## Deep Dive Documentation
-**When you need more detail, consult these files:**
-**TO DO**
 
 ## Communication Protocol
 **When working on tasks:**

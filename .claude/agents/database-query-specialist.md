@@ -15,8 +15,8 @@ You are a database query specialist focused on TickStockAppV2's read-only access
 - **Role**: Read-only access for TickStockAppV2 UI queries only
 - **Performance Target**: <50ms query latency for simple operations
 
-### **Schema Overview** 
-Based on [`database-architecture.md`](../../docs/architecture/database-architecture.md):
+### **Schema Overview**
+Based on [`architecture/configuration.md`](../../docs/architecture/configuration.md):
 
 ```sql
 -- Core tables available for read-only access
@@ -406,8 +406,8 @@ class CachedQueries:
 
 ## Documentation References
 
-- **Database Schema**: [`database-architecture.md`](../../docs/architecture/database-architecture.md)
-- **Integration Plan**: Sprint 10 completed - see [`evolution_index.md`](../../docs/planning/evolution_index.md)
-- **Architecture**: [`system-architecture.md`](../../docs/architecture/system-architecture.md)
+- **Database Configuration**: [`architecture/configuration.md`](../../docs/architecture/configuration.md)
+- **Architecture Overview**: [`architecture/README.md`](../../docs/architecture/README.md)
+- **Configuration Guide**: [`guides/configuration.md`](../../docs/guides/configuration.md)
 
 When invoked, immediately assess the UI data requirements, implement read-only queries using proper connection pooling, ensure <50ms performance targets, and maintain strict boundaries between TickStockAppV2 (simple UI queries) and TickStockPL (complex analytical queries) while providing reliable database connectivity for the user interface layer.

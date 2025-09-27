@@ -344,3 +344,93 @@ python -c "from src.infrastructure.database.tickstock_db import test_connection;
 # Test Redis connection
 redis-cli ping
 ```
+
+## Administration Configuration
+
+### User Roles & Access Control
+
+Configure role-based access control for the admin system:
+
+```bash
+# User role configuration in .env
+DEFAULT_USER_ROLE=user           # New user default role
+ADMIN_REGISTRATION_ENABLED=false # Allow admin self-registration
+SUPER_USER_EMAIL=admin@example.com # Initial super user
+```
+
+#### Available Roles
+| Role | Access Level | Description |
+|------|-------------|-------------|
+| `user` | Regular Pages | Dashboard, account, market data |
+| `moderator` | Regular Pages | Future use - same as user |
+| `admin` | Admin Pages Only | User management, data loading, monitoring |
+| `super` | **Full Access** | Both regular and admin functionality |
+
+### Admin Features Configuration
+
+#### Historical Data Management
+```bash
+# Historical data loading settings
+HISTORICAL_DATA_BATCH_SIZE=100   # Symbols per batch
+HISTORICAL_DATA_WORKERS=4         # Parallel workers
+HISTORICAL_DATA_RETRY_COUNT=3    # API retry attempts
+HISTORICAL_DATA_CACHE_DAYS=30    # Cache retention
+
+# Scheduler configuration
+SCHEDULER_ENABLED=false          # Enable automated loading
+SCHEDULER_CRON_DAILY="0 16 * * *"  # Daily at 4 PM
+SCHEDULER_UNIVERSE=sp500          # Default universe to load
+```
+
+#### User Management
+```bash
+# User management settings
+USER_SESSION_TIMEOUT=3600        # 1 hour timeout
+USER_MAX_SESSIONS=5              # Max concurrent sessions
+USER_REGISTRATION_ENABLED=true   # Allow new registrations
+USER_EMAIL_VERIFICATION=false    # Require email verification
+USER_PASSWORD_MIN_LENGTH=8       # Minimum password length
+```
+
+#### Health Monitoring
+```bash
+# Health monitor configuration
+HEALTH_CHECK_ENABLED=true
+HEALTH_CHECK_INTERVAL=60         # Seconds
+HEALTH_DB_TIMEOUT=5              # Database check timeout
+HEALTH_REDIS_TIMEOUT=2           # Redis check timeout
+HEALTH_ALERT_THRESHOLD=3         # Failed checks before alert
+```
+
+### Admin Endpoints
+
+All admin routes require authentication and appropriate role:
+
+- `/admin/` - Admin dashboard (requires admin/super role)
+- `/admin/users` - User management interface
+- `/admin/historical-data` - Historical data loading
+- `/admin/health` - System health monitoring
+
+### Setting Up Admin Access
+
+1. **Create Initial Super User**:
+```bash
+python scripts/admin/create_admin_user.py \
+  --username admin@example.com \
+  --password SecurePassword123 \
+  --role super
+```
+
+2. **Upgrade Existing User**:
+```bash
+python scripts/admin/upgrade_to_super.py --username user@example.com
+```
+
+3. **Configure Admin Features**:
+```bash
+# Enable all admin features
+ADMIN_FEATURES_ENABLED=true
+ADMIN_HISTORICAL_DATA=true
+ADMIN_USER_MANAGEMENT=true
+ADMIN_HEALTH_MONITOR=true
+```

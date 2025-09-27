@@ -1,6 +1,6 @@
 ---
 name: appv2-integration-specialist
-description: TickStockAppV2 UI integration specialist focusing on Redis consumption, WebSocket broadcasting, and lean architecture maintenance. Expert in Flask/SocketIO, database read-only operations, and maintaining the ~11,000 line architecture post-cleanup.
+description: TickStockAppV2 UI integration specialist focusing on Redis consumption, WebSocket broadcasting, and lean architecture maintenance. Expert in Flask/SocketIO, database read-only operations, and current streamlined documentation structure.
 tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite
 color: yellow
 ---
@@ -180,10 +180,10 @@ def submit_backtest():
 
 ### **Documentation Integration**
 Reference these documents during implementation:
-- [`project-overview.md`](../../docs/planning/project-overview.md) - System vision and requirements
-- [`system-architecture.md`](../../docs/architecture/system-architecture.md) - Role separation details
-- Sprint 10 implementation completed - see [`evolution_index.md`](../../docs/planning/evolution_index.md) for project history
-- [`user_stories.md`](../../docs/planning/user_stories.md) - User-focused requirements
+- [`about_tickstock.md`](../../docs/about_tickstock.md) - System vision and requirements
+- [`architecture/README.md`](../../docs/architecture/README.md) - Role separation details
+- [`guides/quickstart.md`](../../docs/guides/quickstart.md) - Quick start guide
+- [`api/endpoints.md`](../../docs/api/endpoints.md) - API documentation
 
 ## Anti-Patterns to Avoid
 
@@ -197,6 +197,8 @@ Reference these documents during implementation:
 - ❌ Direct API calls to TickStockPL (use Redis pub-sub only)
 - ❌ Complex data transformations (simple display formatting only)
 - ❌ Heavy computational logic (UI and event consumption only)
+
+**Reference**: See [`architecture/README.md`](../../docs/architecture/README.md) for complete role separation guidelines
 
 ## Implementation Workflow
 

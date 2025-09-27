@@ -140,10 +140,65 @@ python scripts/admin/reset_password.py --username=user@example.com
 ```
 
 ### Data Loading
-```bash
-# Load historical data
-python src/api/rest/admin_historical_data.py
 
+#### Quick Data Load
+```bash
+# Load historical data via admin UI
+# Navigate to: http://localhost:8501/admin/historical-data
+
+# Or use command line
+python src/api/rest/admin_historical_data.py
+```
+
+#### Historical Data Loading Options
+
+**1. Load via Admin Interface** (Recommended)
+- Navigate to `/admin/historical-data`
+- Select universe (top_50, sp500, etc.)
+- Choose timeframe and date range
+- Click "Load Data" and monitor progress
+
+**2. Command Line Loading**
+```bash
+# Load specific symbols
+python scripts/load_historical.py --symbols AAPL,GOOGL,MSFT --years 1
+
+# Load universe
+python scripts/load_historical.py --universe sp500 --years 2
+
+# Load with specific dates
+python scripts/load_historical.py \
+  --symbols AAPL \
+  --start-date 2024-01-01 \
+  --end-date 2024-12-31 \
+  --timeframe daily
+```
+
+**3. Programmatic Loading**
+```python
+from src.data.historical_loader import HistoricalLoader
+
+loader = HistoricalLoader()
+
+# Load daily data
+loader.load_daily_data(
+    symbols=['AAPL', 'GOOGL'],
+    start_date='2024-01-01',
+    end_date='2024-12-31'
+)
+
+# Load intraday (1-minute) data
+loader.load_intraday_data(
+    symbols=['AAPL'],
+    days=30,  # Last 30 days
+    timeframe='1min'
+)
+```
+
+#### Data Sources
+- **Primary**: Polygon.io API (requires API key in .env)
+- **Test Data**: Synthetic generator for development
+```bash
 # Generate test data
 python src/data/test_scenario_generator.py
 ```

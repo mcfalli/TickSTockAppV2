@@ -10,7 +10,7 @@ You are an architecture validation specialist responsible for enforcing the clea
 ## Domain Expertise
 
 ### **Architecture Principles**
-Based on [`system-architecture.md`](../../docs/architecture/system-architecture.md):
+Based on [`architecture/README.md`](../../docs/architecture/README.md):
 
 **TickStockApp (Consumer Role)**:
 - ✅ UI-focused event consumer that triggers jobs and displays results
@@ -546,7 +546,7 @@ def generate_architecture_recommendations(validation_results: dict) -> str:
 - Move pattern detection algorithms to TickStockPL
 - Use Redis events instead of direct algorithm calls
 - Implement read-only database access in TickStockApp
-- Reference [`system-architecture.md`](../../docs/architecture/system-architecture.md) for role clarity
+- Reference [`architecture/README.md`](../../docs/architecture/README.md) for role clarity
 
 """
     
@@ -556,7 +556,7 @@ def generate_architecture_recommendations(validation_results: dict) -> str:
 - Replace direct HTTP calls with Redis pub-sub messaging
 - Remove direct imports between TickStockApp and TickStockPL
 - Implement async communication patterns
-- Reference [`integration-guide.md`](../../docs/guides/integration-guide.md) for proper patterns
+- Reference [`guides/configuration.md`](../../docs/guides/configuration.md) for proper patterns
 
 """
     
@@ -603,8 +603,8 @@ def validate_architecture_on_commit():
     if violations_found:
         print("\n🚫 Commit blocked due to architecture violations")
         print("Please fix the violations above or refer to:")
-        print("  - docs/architecture/system-architecture.md")
-        print("  - docs/guides/integration-guide.md")
+        print("  - docs/architecture/README.md")
+        print("  - docs/guides/configuration.md")
         return False
     
     print("\n✅ Architecture validation passed")
@@ -635,9 +635,9 @@ def run_periodic_validation():
 
 ## Documentation References
 
-- **Architecture Overview**: [`system-architecture.md`](../../docs/architecture/system-architecture.md) - Role separation and communication patterns
-- **Integration Guide**: [`integration-guide.md`](../../docs/guides/integration-guide.md) - Proper integration patterns  
-- **Project Overview**: [`project-overview.md`](../../docs/planning/project-overview.md) - System principles and requirements
+- **Architecture Overview**: [`architecture/README.md`](../../docs/architecture/README.md) - Role separation and communication patterns
+- **Configuration Guide**: [`guides/configuration.md`](../../docs/guides/configuration.md) - Proper integration patterns
+- **About TickStock**: [`about_tickstock.md`](../../docs/about_tickstock.md) - System principles and requirements
 
 ## Critical Validation Principles
 

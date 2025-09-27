@@ -336,9 +336,9 @@ def check_redis_health(self) -> dict:
 - Maintain session state for multi-step workflows
 
 ### **Documentation References**
-- [`integration-guide.md`](../../docs/guides/integration-guide.md) - Complete integration architecture
-- [`system-architecture.md`](../../docs/architecture/system-architecture.md) - Communication patterns and role separation
-- Sprint 10 completed - see [`evolution_index.md`](../../docs/planning/evolution_index.md) for project history
+- [`architecture/redis-integration.md`](../../docs/architecture/redis-integration.md) - Redis integration patterns
+- [`architecture/README.md`](../../docs/architecture/README.md) - Communication patterns and role separation
+- [`guides/configuration.md`](../../docs/guides/configuration.md) - Configuration setup guide
 
 ## Anti-Patterns and Best Practices
 

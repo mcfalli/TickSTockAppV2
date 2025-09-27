@@ -537,10 +537,10 @@ def run_integration_test_suite():
 
 ## Documentation References
 
-- **Architecture**: [`system-architecture.md`](../../docs/architecture/system-architecture.md) - Role separation and communication patterns
-- **Integration Guide**: [`integration-guide.md`](../../docs/guides/integration-guide.md) - Technical integration details
-- **Sprint Plan**: Sprint 10 completed - see [`evolution_index.md`](../../docs/planning/evolution_index.md) for project history
-- **Database**: [`database-architecture.md`](../../docs/architecture/database-architecture.md) - Shared database schema
+- **Architecture**: [`architecture/README.md`](../../docs/architecture/README.md) - Role separation and communication patterns
+- **Testing Guide**: [`guides/testing.md`](../../docs/guides/testing.md) - Testing strategies and execution
+- **Configuration**: [`guides/configuration.md`](../../docs/guides/configuration.md) - Configuration patterns
+- **API Reference**: [`api/endpoints.md`](../../docs/api/endpoints.md) - REST API documentation
 
 ## Critical Testing Principles
 

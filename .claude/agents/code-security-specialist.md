@@ -1,6 +1,6 @@
 ---
 name: code-security-specialist
-description: Security analysis specialist for TickStockAppV2 real-time market data system. Performs comprehensive security scanning, vulnerability assessment, and secure coding guidance. Use proactively for security reviews, threat analysis, and defensive security implementations.
+description: Security analysis specialist for TickStockAppV2 real-time market data system. Performs comprehensive security scanning, vulnerability assessment, and secure coding guidance aligned with streamlined documentation structure. Use proactively for security reviews, threat analysis, and defensive security implementations.
 color: red
 tools: Read, Grep, Glob, Write, Edit, MultiEdit, Bash, TodoWrite
 ---

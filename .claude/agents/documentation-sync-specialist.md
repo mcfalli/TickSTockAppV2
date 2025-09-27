@@ -10,11 +10,11 @@ You are a documentation synchronization specialist responsible for maintaining c
 ## Domain Expertise
 
 ### **Documentation Architecture**
-**Consolidated Structure** (Post-2025-08-27):
-- **Core Documents**: `project-overview.md`, `system-architecture.md` (single sources of truth)
-- **Integration Guide**: `integration-guide.md` (technical implementation)
-- **Sprint Plans**: Sprint 10 completed - see `evolution_index.md` for history
-- **Archive**: `archive/` (consolidated/superseded documents)
+**Streamlined Structure** (Post-2025-09-26):
+- **Core Documents**: `about_tickstock.md`, `architecture/README.md` (single sources of truth)
+- **Essential Guides**: `guides/quickstart.md`, `guides/configuration.md`, `guides/testing.md`
+- **API Reference**: `api/endpoints.md` (consolidated API documentation)
+- **Current Sprints**: Active development in `planning/sprints/` with focused scope
 
 ### **Documentation Principles**
 - **Single Source of Truth**: No redundant information across documents
@@ -55,12 +55,12 @@ def validate_cross_references():
 # Example validation tasks
 def check_architecture_references():
     """Ensure architecture_overview.md references are current"""
-    arch_doc = read_file('docs/architecture/system-architecture.md')
+    arch_doc = read_file('docs/architecture/README.md')
     
     required_references = [
-        'project-overview.md',           # Core project vision
-        'tickstockpl-integration-guide.md',  # Integration details
-        'sprint10/sprint10-appv2-implementation-plan.md'  # Current implementation
+        'about_tickstock.md',           # Core project vision
+        'architecture/README.md',       # Architecture details
+        'guides/configuration.md'       # Current integration patterns
     ]
     
     missing_refs = []
@@ -247,20 +247,22 @@ def update_planning_readme():
     
     current_docs = {
         'core': [
-            'project-overview.md',
-            'architecture_overview.md'
+            'about_tickstock.md',
+            'project_structure.md'
         ],
-        'integration': [
-            'tickstockpl-integration-guide.md'
+        'architecture': [
+            'architecture/README.md',
+            'architecture/redis-integration.md',
+            'architecture/websockets-integration.md',
+            'architecture/configuration.md'
         ],
-        'current_sprint': [
-            'sprint10/sprint10-appv2-implementation-plan.md',
-            'sprint10/sprint10-completed-summary.md'
+        'guides': [
+            'guides/quickstart.md',
+            'guides/configuration.md',
+            'guides/testing.md'
         ],
-        'technical': [
-            'database_architecture.md',
-            'pattern_library_architecture.md',
-            'websockets_integration.md'
+        'api': [
+            'api/endpoints.md'
         ]
     }
     
@@ -279,16 +281,16 @@ def create_related_docs_section(references: list) -> str:
     
     for ref in references:
         # Determine document type and description
-        if 'project-overview' in ref:
-            desc = "Complete system vision, requirements, and architecture principles"
-        elif 'architecture' in ref:
-            desc = "Detailed role separation between TickStockApp and TickStockPL"
-        elif 'integration-guide' in ref:
-            desc = "Complete technical integration steps"
-        elif 'database' in ref:
-            desc = "Shared TimescaleDB database schema and optimization"
-        elif 'user_stories' in ref:
-            desc = "User-focused requirements and functionality"
+        if 'about_tickstock' in ref:
+            desc = "Complete platform overview and capabilities"
+        elif 'architecture/README' in ref:
+            desc = "System design and component architecture"
+        elif 'guides/configuration' in ref:
+            desc = "Configuration and integration patterns"
+        elif 'guides/quickstart' in ref:
+            desc = "Quick start and setup guide"
+        elif 'api/endpoints' in ref:
+            desc = "REST API documentation"
         else:
             desc = "Supporting documentation"
             
@@ -536,9 +538,9 @@ def enforce_documentation_standards(document_path: str):
 
 ## Documentation References
 
-- **Project Overview**: [`project-overview.md`](../../docs/planning/project-overview.md) - Master document for vision and requirements
-- **Architecture**: [`system-architecture.md`](../../docs/architecture/system-architecture.md) - System architecture and role separation
-- **Evolution Index**: [`evolution_index.md`](../../docs/planning/evolution_index.md) - Complete documentation catalog
+- **About TickStock**: [`about_tickstock.md`](../../docs/about_tickstock.md) - Master document for platform overview
+- **Architecture**: [`architecture/README.md`](../../docs/architecture/README.md) - System architecture and role separation
+- **Main Documentation**: [`README.md`](../../docs/README.md) - Primary documentation entry point
 
 ## Critical Sync Principles
 

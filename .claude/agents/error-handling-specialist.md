@@ -347,10 +347,10 @@ for severity in ['debug', 'info', 'warning', 'error', 'critical']:
 
 ## Documentation References
 
-- **Main Strategy**: `docs/planning/sprints/sprint32/error_exception_strategy.md`
-- **Integration Plan**: `docs/planning/sprints/sprint32/error_integration_plan.md`
-- **TickStockPL Instructions**: `docs/planning/sprints/sprint32/tickstockpl_error_integration.md`
-- **Config Manager**: `src/core/services/config_manager.py`
+- **Configuration Guide**: [`guides/configuration.md`](../../docs/guides/configuration.md) - Configuration patterns
+- **Architecture Overview**: [`architecture/README.md`](../../docs/architecture/README.md) - System architecture
+- **Testing Guide**: [`guides/testing.md`](../../docs/guides/testing.md) - Testing error handling
+- **About TickStock**: [`about_tickstock.md`](../../docs/about_tickstock.md) - Platform overview
 
 ## Common Issues & Solutions
 
