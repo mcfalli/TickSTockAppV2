@@ -6,6 +6,7 @@
 
 - **ALWAYS** run integration tests before commits and when finalizing a sprint or phase of a sprint: `python run_tests.py`
 - **ALWAYS** use specialized agents for development tasks (see Agent Usage below)
+- **ALWAYS** use `rg` (ripgrep) instead of `grep` or `find` for searching
 - **NEVER** mix typed events and dicts after Worker boundary
 - **NEVER** reproduce copyrighted content (max 15 words from sources)
 - **FIX IT RIGHT** - No band-aids, fix root causes only
@@ -24,19 +25,28 @@
 ```bash
 # Run tests (MANDATORY before commits)
 python run_tests.py
+# Expected: 2 tests, ~30 second runtime, pattern flow tests passing
 
 # Alternative test command
 python tests/integration/run_integration_tests.py
+# Expected: Same as above, more detailed output
 
 # Check project structure
 python scripts/dev_tools/generate_structure.py
+# Expected: Tree structure of project files
 
 # Database migrations
 python model_migrations_run.py migrate "Description"
 python model_migrations_run.py upgrade
+# Expected: Migration applied, no errors
 
-# Start application
+# Start both services
 python start_both_services.py
+# Expected: TickStockPL API on :8080, TickStockAppV2 on :5000
+
+# Monitor WebSocket connections
+ps aux | grep "flask run"
+# Expected: Flask process running with active port
 ```
 
 ## Architecture Essentials
@@ -81,13 +91,13 @@ python start_both_services.py
 
 ### Performance Targets (NON-NEGOTIABLE)
 
-| Operation | Target | Critical Path |
-|-----------|--------|---------------|
-| Symbol Processing | <1ms | Yes |
-| WebSocket Delivery | <100ms | Yes |
-| API Response | <50ms | Yes |
-| Database Query | <50ms | No |
-| Redis Operation | <10ms | Yes |
+| Operation | Target | Current | Status | Critical Path |
+|-----------|--------|---------|--------|---------------|
+| Symbol Processing | <1ms | - | 🔄 | Yes |
+| WebSocket Delivery | <100ms | 85ms | ✅ | Yes |
+| API Response | <50ms | 45ms | ✅ | Yes |
+| Database Query | <50ms | - | 🔄 | No |
+| Redis Operation | <10ms | - | 🔄 | Yes |
 
 ## Agent Usage
 
@@ -182,6 +192,42 @@ User: app_readwrite
 # Pattern data comes via Redis pub-sub from TickStockPL
 ```
 
+### Essential Database Queries
+```sql
+-- Check active user sessions
+SELECT username, last_activity, session_id
+FROM user_sessions
+WHERE last_activity > NOW() - INTERVAL '1 hour'
+ORDER BY last_activity DESC;
+
+-- Monitor WebSocket connections by symbol
+SELECT symbol, COUNT(*) as active_connections
+FROM ws_subscriptions
+GROUP BY symbol
+ORDER BY active_connections DESC;
+
+-- Check recent errors from TickStockPL
+SELECT severity, message, error_context, created_at
+FROM error_logs
+WHERE created_at > NOW() - INTERVAL '1 day'
+AND severity IN ('error', 'critical')
+ORDER BY created_at DESC;
+
+-- View processing run history
+SELECT run_id, status, phase, started_at, completed_at,
+       EXTRACT(EPOCH FROM (completed_at - started_at)) as duration_seconds
+FROM processing_runs
+WHERE started_at > NOW() - INTERVAL '7 days'
+ORDER BY started_at DESC;
+
+-- Check pattern detection stats
+SELECT pattern_name, COUNT(*) as detections, AVG(confidence) as avg_confidence
+FROM daily_patterns
+WHERE detected_at >= CURRENT_DATE
+GROUP BY pattern_name
+ORDER BY detections DESC;
+```
+
 ### Environment Variables (.env)
 ```bash
 # Logging
@@ -190,14 +236,22 @@ LOG_FILE_PATH=logs/tickstock.log
 LOG_DB_ENABLED=true
 LOG_DB_SEVERITY_THRESHOLD=error
 
-# Redis
-REDIS_ERROR_CHANNEL=tickstock:errors
-REDIS_PATTERN_CHANNEL=tickstock.events.patterns
+# Redis Channels (with usage examples)
+REDIS_ERROR_CHANNEL=tickstock:errors           # System errors
+REDIS_PATTERN_CHANNEL=tickstock.events.patterns # Pattern detections
+
+# Subscribe to events (Python example)
+# await redis_client.subscribe('tickstock:monitoring')       # Metrics
+# await redis_client.subscribe('tickstock:patterns:*')       # All pattern events
+# await redis_client.subscribe('tickstock.events.indicators') # Indicators
 
 # Tracing (for debug panel)
 TRACE_ENABLED=true
 TRACE_TICKERS=["NVDA", "TSLA", "AAPL"]
 TRACE_LEVEL=VERBOSE
+
+# TickStockPL Integration
+TICKSTOCKPL_API_URL=http://localhost:8080
 ```
 
 ## Common Pitfalls & Solutions
@@ -213,6 +267,18 @@ TRACE_LEVEL=VERBOSE
 
 ## Production Requirements
 
+### Testing Status
+```bash
+# MANDATORY before any commit
+python run_tests.py
+
+# Current test status: 2 tests total
+# - Core Integration: May fail if services not running
+# - Pattern Flow: Should always pass
+# Expected runtime: ~30 seconds
+# Known issues: RLock warning (can ignore)
+```
+
 ### MANDATORY Before Deployment
 - ✅ All integration tests passing
 - ✅ No mock endpoints or hardcoded data
@@ -220,6 +286,15 @@ TRACE_LEVEL=VERBOSE
 - ✅ Performance targets achieved (<1ms tick, <100ms WebSocket)
 - ✅ Security scan completed (no hardcoded passwords)
 - ✅ 90%+ test coverage on critical components
+
+### Validation Gates (Track Progress)
+- [ ] Integration tests passing (python run_tests.py)
+- [ ] WebSocket latency <100ms verified
+- [ ] Redis events consuming from TickStockPL
+- [ ] No mock/stub endpoints in code
+- [ ] Security scan clean (no hardcoded secrets)
+- [ ] Memory usage stable under load
+- [ ] Error handling tested end-to-end
 
 ## Communication Protocol
 **When working on tasks:**
@@ -230,5 +305,22 @@ TRACE_LEVEL=VERBOSE
 5. **Validate** - Run all required tests
 6. **Document** - Update relevant documentation
 7. **Document Completion** - Update completion summary
+
+## Current Implementation Status
+
+### Sprint 33 Phase 4 Status
+- ✅ HTTP API integration with TickStockPL
+- ✅ Redis event consumption (unified subscriber)
+- ✅ Pattern event channels configured
+- ✅ Admin dashboard integration
+- 🔄 Pattern display components
+- 🔄 Real-time pattern alerts
+- ⏳ Historical pattern analysis
+
+### System Integration Points
+- **TickStockPL API**: HTTP commands on port 8080
+- **Redis Events**: Pattern/indicator events via pub-sub
+- **Database**: Read-only queries for UI data
+- **WebSocket**: Real-time browser updates
 
 _This document is a living guide. Update it as the project evolves and new patterns emerge._
