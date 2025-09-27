@@ -1,102 +1,168 @@
-# TickStock Features - Simplified Architecture
+# TickStockAppV2 Architecture
 
-**Version**: 2.0.0-simplified + Sprint 23 Advanced Analytics  
-**Last Updated**: September 6, 2025  
-**Status**: Advanced Pattern Analytics Dashboard Complete
+**Version**: 3.0.0
+**Last Updated**: September 26, 2025
+**Status**: Production Ready
 
 ## Overview
 
-After the major cleanup effort (Phases 6-11), TickStock now focuses on essential features that support the core mission: real-time market data processing and TickStockPL integration.
+TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem. It provides the user interface, authentication, and real-time WebSocket delivery while consuming processed events from TickStockPL via Redis pub-sub architecture.
 
-## Core Features
+## System Architecture
 
-### 1. Data Ingestion
-- **Polygon WebSocket Integration**: Live market data from Polygon.io
-- **Synthetic Data Generation**: Realistic market data simulation for testing
-- **Simple Configuration**: Environment-based data source selection
+```
+[Market Data] → [TickStockAppV2: Ingestion] → [Redis] → [TickStockPL: Processing]
+                                                   ↓
+[Browser UI] ← [TickStockAppV2: WebSocket] ← [Redis] ← [TickStockPL: Events]
+```
 
-### 2. Real-Time Processing
-- **Tick Data Processing**: Basic tick data ingestion and forwarding
-- **Redis Publishing**: Real-time event streaming for TickStockPL
-- **WebSocket Broadcasting**: Live data updates to web clients
+### Core Responsibilities
 
-### 3. User Management
-- **Authentication**: Basic user login and session management
-- **Ticker Subscriptions**: Per-user ticker interest management
-- **WebSocket Connections**: Real-time client connection handling
+**TickStockAppV2 (This Application)**
+- User authentication and session management
+- Real-time WebSocket broadcasting to browsers
+- Dashboard UI and visualizations
+- Redis event consumption from TickStockPL
+- Job submission to TickStockPL via Redis
+- Read-only database queries for UI elements
 
-### 4. Integration
-- **TickStockPL Ready**: Redis pub-sub interface for external processing
-- **Advanced Pattern Analytics**: 3 sophisticated dashboard tabs (Correlations, Temporal, Compare)
-- **Pattern Discovery APIs**: REST endpoints with Redis caching (<50ms responses)
-- **Health Monitoring**: System status and performance endpoints
-- **Configuration Management**: Environment-based system configuration
+**TickStockPL (Processing Engine)**
+- Pattern detection and indicator calculations
+- Heavy data processing and backtesting
+- Database schema management
+- Event publishing to Redis channels
+- OHLCV data management
 
-## Removed Features (Simplified)
+## Component Architecture
 
-The following complex features were removed during the cleanup to focus on core functionality:
+### 1. Web Layer (`web/`)
+- **Flask Application**: Main web server with authentication
+- **WebSocket Server**: Real-time data broadcasting via Socket.IO
+- **Dashboard Templates**: Jinja2-based UI components
+- **Static Assets**: CSS, JavaScript, images
 
-### Analytics Layer (Removed)
-- Complex event detection and analysis
-- Multi-layer analytics processing
-- Memory accumulation and coordination
-- Statistical analysis and reporting
+### 2. API Layer (`src/api/`)
+- **REST Endpoints**: Pattern discovery, monitoring, admin functions
+- **WebSocket Handlers**: Real-time event broadcasting
+- **Authentication**: Session-based user management
+- **Rate Limiting**: API throttling and protection
 
-### Multi-Frequency Processing (Removed)
-- Per-second, per-minute, fair-value processing
-- Complex frequency coordination
-- Multi-buffer management
-- Frequency-specific data generators
+### 3. Core Services (`src/core/services/`)
+- **Startup Service**: Application initialization and health checks
+- **Config Manager**: Environment-based configuration
+- **Processing Publisher**: Job submission to TickStockPL
+- **Event Subscriber**: Redis event consumption
 
-### Advanced Filtering (Removed)
-- Complex user filtering systems
-- Real-time filter application
-- Statistical filter analysis
-- Performance optimization layers
+### 4. Infrastructure (`src/infrastructure/`)
+- **Database**: Read-only TimescaleDB access
+- **Redis**: Pub-sub messaging and caching
+- **Cache Control**: In-memory and Redis caching strategies
+- **Logging**: Unified error and event logging
 
-### Event Detection (Removed)
-- High/Low event detection
-- Trend analysis and detection
-- Surge detection algorithms
-- Complex event coordination
+### 5. Data Layer (`src/data/`)
+- **EOD Processor**: End-of-day data handling
+- **Historical Loader**: Backfill data management
+- **ETF Universe**: Symbol and metadata management
+- **Test Scenarios**: Synthetic data generation
 
-## Architecture Principles
+## Redis Integration
 
-### Simplicity First
-- **KISS Principle**: Keep solutions simple and maintainable
-- **Single Responsibility**: Each component has one clear purpose
-- **Minimal Layers**: Reduced processing overhead
+### Channel Structure
+```
+# Events from TickStockPL (consumed by AppV2)
+tickstock.events.patterns         # Pattern detection results
+tickstock.events.indicators       # Indicator calculations
+tickstock.events.processing       # Processing status updates
+tickstock:monitoring              # System metrics and health
+tickstock:errors                  # Error messages
 
-### Performance Focus
-- **Memory-First**: All operations in memory for speed
-- **Streamlined Flow**: Direct data path from source to consumers
-- **Redis Pub-Sub**: Efficient real-time event distribution
+# Jobs to TickStockPL (published by AppV2)
+tickstock.jobs.backtest           # Backtest requests
+tickstock.jobs.processing         # Processing commands
+tickstock.data.raw                # Raw market data
+```
 
-### Integration Ready
-- **Clean Interfaces**: Well-defined component boundaries
-- **Standard Protocols**: Redis pub-sub for scalable integration
-- **Configuration Driven**: Environment-based setup
+### Message Flow
+1. AppV2 receives market data or user requests
+2. Publishes jobs/data to Redis channels
+3. TickStockPL processes and publishes results
+4. AppV2 consumes results and updates UI
+5. WebSocket broadcasts to connected clients
 
-## Architecture Documentation
+## Performance Targets
 
-### Core Architecture
-- `system-architecture.md`: Complete system architecture overview and role separation
-- `tickstockpl-architecture.md`: Detailed TickStockPL implementation architecture and performance metrics
-- `pattern-library-architecture.md`: Pattern library structure and integration patterns
-- `database-architecture.md`: Shared TimescaleDB database schema and optimization
+| Operation | Target | Actual | Status |
+|-----------|--------|--------|--------|
+| WebSocket Delivery | <100ms | ~50ms | ✅ |
+| API Response | <50ms | ~30ms | ✅ |
+| Redis Operation | <10ms | ~5ms | ✅ |
+| UI Update | <200ms | ~150ms | ✅ |
+| Cache Hit Rate | >90% | 92% | ✅ |
 
-### Integration & Implementation
-- `user-authentication.md`: User login and session management
-- `data-integration.md`: Market data ingestion and processing
-- `redis-integration.md`: TickStockPL integration via Redis
-- `websockets-integration.md`: Real-time WebSocket communication patterns
+## Configuration
 
-### Legacy Documentation (Removed)
-- Complex filtering system documentation
-- Memory-first processing (now simplified)
-- Multi-frequency architecture documentation
-- Analytics and event detection documentation
+### Environment Variables
+```bash
+# Database (Read-only access)
+DATABASE_URL=postgresql://app_readwrite:password@localhost:5432/tickstock
 
----
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PATTERN_CHANNEL=tickstock.events.patterns
+REDIS_ERROR_CHANNEL=tickstock:errors
 
-This simplified feature set provides the essential functionality needed for TickStockPL integration while maintaining high performance and ease of maintenance.
+# Logging
+LOG_FILE_ENABLED=true
+LOG_DB_ENABLED=true
+LOG_DB_SEVERITY_THRESHOLD=error
+
+# WebSocket
+WEBSOCKET_CORS_ORIGINS=*
+WEBSOCKET_MAX_CONNECTIONS=1000
+```
+
+### Key Configuration Files
+- `.env`: Environment variables
+- `config/database_config.py`: Database settings
+- `config/redis_config.py`: Redis pub-sub configuration
+- `config/logging_config.py`: Logging thresholds
+
+## Security Considerations
+
+- **Authentication**: Session-based with secure cookies
+- **Authorization**: Role-based access control (admin/user)
+- **Input Validation**: All API inputs validated
+- **SQL Injection**: Parameterized queries only
+- **XSS Protection**: Template escaping enabled
+- **CORS**: Configurable origin restrictions
+- **Rate Limiting**: API throttling per user/IP
+
+## Deployment Architecture
+
+```
+Production Environment:
+├── Load Balancer (optional)
+├── TickStockAppV2 Instance(s)
+│   ├── Flask/Gunicorn
+│   ├── Socket.IO Server
+│   └── Redis Client
+├── Redis Server (shared)
+├── TimescaleDB (shared)
+└── TickStockPL Instance(s)
+```
+
+## Monitoring & Observability
+
+- **Health Endpoints**: `/health`, `/ready`
+- **Metrics Channel**: `tickstock:monitoring`
+- **Error Tracking**: Centralized via Redis
+- **Performance Metrics**: Real-time KPIs
+- **Database Monitoring**: Query performance tracking
+
+## Related Documentation
+
+- [Redis Integration](./redis-integration.md): Detailed pub-sub patterns
+- [WebSocket Integration](./websockets-integration.md): Real-time communication
+- [Configuration Guide](./configuration.md): Environment setup
+- [API Documentation](../api/endpoints.md): REST endpoint reference

@@ -1,136 +1,122 @@
-# TickStock Documentation - Simplified Architecture
+# TickStockAppV2 Documentation
 
-**Version**: 2.0.0-simplified + Sprint 26 Pattern Flow Complete
-**Last Updated**: September 21, 2025
-**Status**: Real-Time Pattern Flow Display Active, Integration Verified ✅
+**Version**: 3.0.0
+**Last Updated**: September 26, 2025
 
 ## Overview
 
-Welcome to the TickStock documentation for the simplified architecture. After a major cleanup effort (Phases 6-11), TickStock has been transformed from a complex system into a streamlined, maintainable application optimized for TickStockPL integration.
-
-## Quick Start
-
-- **📊 Current Status**: [`CURRENT_STATUS.md`](CURRENT_STATUS.md) - **Live system status and sprint progress**
-- **🎯 Project Overview**: [`planning/project-overview.md`](planning/project-overview.md) - Vision, requirements, system architecture
-- **🏗️ Architecture Details**: [`architecture/system-architecture.md`](architecture/system-architecture.md) - Role separation and communication
-- **🚀 Integration Guide**: [`guides/integration-guide.md`](guides/integration-guide.md) - Complete TickStockPL integration guide
-- **⚙️ Development Setup**: [`development/coding-practices.md`](development/coding-practices.md) - Development standards and practices
+TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem, providing user interface, authentication, and real-time data delivery while consuming processed events from TickStockPL.
 
 ## Documentation Structure
 
-### Essential Documentation
+### Core Documentation
+- **[About TickStock](./about_tickstock.md)** - Complete platform overview and capabilities
+- **[Project Structure](./project_structure.md)** - Codebase organization and file structure
 
-#### Project Planning & Vision
-- [`planning/`](planning/) - **Project vision, requirements, and user stories**
-  - [`planning/project-overview.md`](planning/project-overview.md) - Complete project overview with vision and requirements
-  - [`planning/user_stories.md`](planning/user_stories.md) - Development requirements in user story format
+### Architecture
+- **[Architecture Overview](./architecture/README.md)** - System design and components
+- **[Redis Integration](./architecture/redis-integration.md)** - Pub-sub messaging patterns
+- **[WebSocket Integration](./architecture/websockets-integration.md)** - Real-time communication
+- **[Configuration](./architecture/configuration.md)** - Environment and settings
 
-#### System Architecture & Design  
-- [`architecture/`](architecture/) - **Technical architecture specifications**
-  - [`architecture/system-architecture.md`](architecture/system-architecture.md) - Complete system architecture with role separation
-  - [`architecture/database-architecture.md`](architecture/database-architecture.md) - Database design and optimization
-  - [`architecture/pattern-library-architecture.md`](architecture/pattern-library-architecture.md) - Pattern detection framework
-  - [`architecture/websockets-integration.md`](architecture/websockets-integration.md) - Real-time communication architecture
-  - [`architecture/data-integration.md`](architecture/data-integration.md) - Data source integration architecture
-  - [`architecture/redis-integration.md`](architecture/redis-integration.md) - Redis pub-sub architecture details
-  - [`architecture/user-authentication.md`](architecture/user-authentication.md) - User authentication architecture
-  - [`architecture/project-overview.md`](architecture/project-overview.md) - Complete project overview
-  - [`architecture/simplified-technical-overview.md`](architecture/simplified-technical-overview.md) - Technical system overview
+### Guides
+- **[Quick Start](./guides/quickstart.md)** - Get up and running quickly
+- **[Configuration Guide](./guides/configuration.md)** - Detailed configuration options
+- **[Testing Guide](./guides/testing.md)** - Testing strategies and execution
 
-#### Operational Guides
-- [`guides/`](guides/) - **Setup, integration, and operational procedures**
-  - [`guides/startup-guide.md`](guides/startup-guide.md) - TickStockAppV2 startup instructions
-  - [`guides/integration-guide.md`](guides/integration-guide.md) - TickStockPL integration guide
-  - [`guides/historical-data-loading.md`](guides/historical-data-loading.md) - Historical data procedures
-  - [`guides/administration-system.md`](guides/administration-system.md) - System administration guide
-  - [`guides/data-source-configuration.md`](guides/data-source-configuration.md) - Data source configuration
-  - [`guides/settings-configuration.md`](guides/settings-configuration.md) - Settings management
-  - [`guides/maintenance/`](guides/maintenance/) - System maintenance procedures
+### API Reference
+- **[API Endpoints](./api/endpoints.md)** - Complete REST API documentation
 
-#### Development Guidelines
-- [`development/`](development/) - **Development standards, practices, and guidelines**
-  - [`development/coding-practices.md`](development/coding-practices.md) - Development standards and philosophy
-  - [`development/code-documentation-standards.md`](development/code-documentation-standards.md) - Documentation standards
-  - [`development/unit_testing.md`](development/unit_testing.md) - Testing guidelines and organization
-  - [`development/technical-debt-management.md`](development/technical-debt-management.md) - Technical debt process
-  - [`development/architectural-decision-process.md`](development/architectural-decision-process.md) - ADR process
-  - [`development/grid-stack.md`](development/grid-stack.md) - UI development with Grid-Stack
-  - [`project_structure.md`](project_structure.md) - Project folder organization
+### Data Sources
+- **[Polygon Configuration](./data-sources/polygon/)** - Market data provider setup
 
-### Project History
-- [`planning/evolution_index.md`](planning/evolution_index.md) - Documentation evolution and project history tracking
+### Planning & Sprints
+- **[Sprint Documentation](./planning/sprints/)** - Current and past sprint plans
+- **[Backlog](./planning/sprints/BACKLOG.md)** - Future development items
 
-### Supporting Documentation
-- [`agents/`](agents/) - AI agent specifications for development workflow
-- [`guides/maintenance/`](guides/maintenance/) - System maintenance procedures
+## Quick Links
 
-## System Summary
+### Essential Commands
+```bash
+# Start application
+python start_both_services.py
 
-### What Changed
-- **60%+ Code Reduction**: 14,300+ lines removed/simplified
-- **Architecture Simplification**: 6+ layers → 3 components
-- **Performance Improvements**: Eliminated processing overhead
-- **Integration Ready**: Clean Redis interface for TickStockPL
+# Run tests
+python run_tests.py
 
-### Current System (Sprint 26 Pattern Flow Complete)
-- **Real-time Data Processing**: Polygon.io + Synthetic data sources
-- **TickStockPL Integration**: ✅ VERIFIED - Single subscriber pattern with comprehensive monitoring
-- **Pattern Flow Display**: 4-column real-time pattern stream with 15-second refresh (Sprint 26) ✨
-- **Multi-Tier Pattern Dashboard**: Daily/Intraday/Combo tier visualization (Sprint 25)
-- **Integration Logging**: Complete audit trail with flow tracking (Sprint 25A)
-- **Pattern Discovery APIs**: REST endpoints with Redis caching (<50ms responses)
-- **Advanced Analytics Dashboard**: 3 sophisticated analytics tabs (Correlations, Temporal, Compare)
-- **Backtesting Platform**: Full UI for job creation, management, and results visualization
-- **Pattern Alert System**: Personalized notifications with comprehensive management
-- **Health Monitoring**: Real-time system status with heartbeat monitoring (60s intervals)
-- **WebSocket Broadcasting**: <100ms real-time updates with shared event handlers
+# Check health
+curl http://localhost:8501/health
+```
 
-### Core Components
-1. **Market Data Service** (232 lines) - Central tick processing
-2. **Data Publisher** (181 lines) - Redis event publishing  
-3. **WebSocket Publisher** (243 lines) - Real-time client updates
-4. **Sprint 10 Integration Services**:
-   - **TickStockDatabase Service** - Read-only TimescaleDB integration
-   - **RedisEventSubscriber** - TickStockPL event consumption
-   - **WebSocketBroadcaster** - Real-time browser updates
-   - **BacktestJobManager** - Backtesting job lifecycle management
-   - **PatternAlertManager** - User alert subscription and preferences
+### Key Endpoints
+- Web UI: http://localhost:8501
+- Health Check: http://localhost:8501/health
+- API Base: http://localhost:8501/api
+- WebSocket: ws://localhost:8501/socket.io/
 
-## Getting Started
+### Environment Variables
+```bash
+DATABASE_URL=postgresql://user:pass@localhost:5432/tickstock
+REDIS_HOST=localhost
+REDIS_PORT=6379
+FLASK_SECRET_KEY=your-secret-key
+```
 
-### For TickStockPL Integration
-1. Read: [`planning/project-overview.md`](planning/project-overview.md) - Understand the complete system vision
-2. Study: [`architecture/system-architecture.md`](architecture/system-architecture.md) - Learn role separation and communication
-3. Follow: [`guides/integration-guide.md`](guides/integration-guide.md) - Complete integration steps
-4. Implement: Set up Redis connection and subscribe to `tickstock.all_ticks`
+## Architecture Summary
 
-### For Development
-1. Start: [`planning/project-overview.md`](planning/project-overview.md) - Project vision and requirements
-2. Review: [`architecture/system-architecture.md`](architecture/system-architecture.md) - System architecture and boundaries  
-3. Check: [`development/coding-practices.md`](development/coding-practices.md) - Development standards
-4. Understand: [`architecture/data-integration.md`](architecture/data-integration.md) - Data flow implementation
+```
+TickStockAppV2 (This Repository)
+├── Web Interface (Flask/Jinja2)
+├── WebSocket Server (Socket.IO)
+├── REST API (Pattern Discovery, Admin)
+├── Redis Subscriber (Event Consumption)
+└── Read-Only Database Access
 
-### For System Administration
-1. Monitor: Use `/health` and `/stats` endpoints
-2. Configure: Environment variables for data sources and Redis
-3. Deploy: Simple Docker/traditional deployment with Redis dependency
+    ↕ Redis Pub-Sub ↕
 
-## Documentation Status
+TickStockPL (Processing Engine)
+├── Pattern Detection
+├── Indicator Calculations
+├── Data Processing
+├── Database Management
+└── Event Publishing
+```
 
-### Updated for Simplified System ✅
-- Architecture documentation
-- Feature documentation  
-- Integration guides
-- Technical specifications
-- Development instructions
+## Performance Targets
 
-### Removed/Deprecated ❌
-- Complex sprint documentation
-- Multi-frequency processing docs
-- Advanced analytics documentation
-- Complex design pattern docs
-- Event detection system docs
+| Component | Target | Status |
+|-----------|--------|--------|
+| API Response | <50ms | ✅ |
+| WebSocket Delivery | <100ms | ✅ |
+| Redis Operation | <10ms | ✅ |
+| Cache Hit Rate | >90% | ✅ |
 
----
+## Getting Help
 
-**For the most current information**, refer to documents in the [`evolution/`](evolution/) folder, which contain the latest post-cleanup documentation.
+### Documentation
+1. Start with [Quick Start Guide](./guides/quickstart.md)
+2. Review [Architecture Overview](./architecture/README.md)
+3. Check [API Documentation](./api/endpoints.md)
+
+### Troubleshooting
+- Check logs: `logs/tickstock.log`
+- Run tests: `python run_tests.py`
+- Verify config: `.env` settings
+- Monitor health: `/health` endpoint
+
+### Development
+- See [CLAUDE.md](../CLAUDE.md) for AI assistant instructions
+- Review [Testing Guide](./guides/testing.md) for quality assurance
+- Check [Sprint Plans](./planning/sprints/) for current work
+
+## Migration Notes
+
+**Documentation Cleanup (Sept 2025)**
+- Consolidated from 262 files to ~15 focused documents
+- Removed outdated sprint artifacts
+- Merged redundant guides
+- See [ARCHIVE_MAP.md](./ARCHIVE_MAP.md) for migration details
+
+## License & Support
+
+This is the UI/consumer component of TickStock.ai. For processing engine documentation, see the TickStockPL repository.
