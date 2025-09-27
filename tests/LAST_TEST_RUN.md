@@ -1,8 +1,8 @@
 # Last Test Run Report
 
-**Generated**: 2025-09-26 12:55:55
+**Generated**: 2025-09-27 07:36:07
 **Command**: `python run_tests.py`
-**Total Duration**: 18.32 seconds
+**Total Duration**: 18.67 seconds
 **Status**: [FAILED]
 
 ## Summary Statistics
@@ -18,8 +18,8 @@
 
 | Suite | Status | Duration | Tests |
 |-------|--------|----------|-------|
-| Core Integration Tests | [FAIL] | 8.91s | 15 |
-| End-to-End Pattern Flow | [PASS] | 9.40s | 10 |
+| Core Integration Tests | [FAIL] | 8.98s | 15 |
+| End-to-End Pattern Flow | [PASS] | 9.69s | 10 |
 
 ## Individual Test Results
 
@@ -28,23 +28,23 @@
 
 - [FAIL] Redis Subscription FAILED: No subscribers on tickstock.events.patterns channel
 - [FAIL] Event Structure FAILED: Failed to publish test event
-- [PASS] Database access working: 2 error log entries in last 24 hours
+- [PASS] Database access working: 0 error log entries in last 24 hours
 - [PASS] Database write access confirmed via error_logs table
 - [FAIL] Pattern Flow FAILED: Failed to publish test pattern
-- [PASS] Redis heartbeat: 0.4ms latency
+- [PASS] Redis heartbeat: 0.3ms latency
 - [PASS] Database heartbeat: 0.1ms latency
-- [PASS] Error logging active: 2 entries in last 24 hours
+- [PASS] Error logging active: 0 entries in last 24 hours
 - [FAIL] Redis->DB Flow FAILED: Failed to publish to Redis channel
 - [PASS] Pattern cache contains 0 entries
 - [FAIL] WebSocket Config FAILED: No pattern event handlers registered
 - [PASS] Redis performance: 0.4ms avg latency
-- [PASS] Database performance: 1.6ms avg query latency
+- [PASS] Database performance: 1.5ms avg query latency
 - [PASS] Error logging performance: 13.2ms write+delete latency
 - [FAIL] Error Recovery FAILED: System not recovering from bad events
 
 ### End-to-End Pattern Flow
 
-- [PASS] Published pattern with flow_id: f66b14f3-c614-4a0a-aa89-5e9ebaaeaf66
+- [PASS] Published pattern with flow_id: c9f555af-1c60-4542-9a76-a1e99dab9cab
 - [PASS] Published daily tier pattern: HeadShoulders for TSLA
 - [PASS] Published intraday tier pattern: VolumeSurge for NVDA
 - [PASS] Published combo tier pattern: SupportBreakout for AAPL
