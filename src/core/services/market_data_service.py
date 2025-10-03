@@ -254,7 +254,7 @@ class MarketDataService:
     
     def _handle_status_update(self, status: str, data: Dict[str, Any] = None):
         """Handle status updates from data sources."""
-        logger.info(f"MARKET-DATA-SERVICE: Status update: {status}")
+        #logger.info(f"MARKET-DATA-SERVICE: Status update: {status}")
         if data:
             logger.debug(f"MARKET-DATA-SERVICE: Status data: {data}")
     

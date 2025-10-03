@@ -18,8 +18,11 @@ TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem,
 - **[Redis Integration](./architecture/redis-integration.md)** - Pub-sub messaging patterns
 - **[WebSocket Integration](./architecture/websockets-integration.md)** - Real-time communication
 - **[Configuration](./architecture/configuration.md)** - Environment and settings
+- **[Streaming Integration Verified](./architecture/streaming-integration-verified.md)** - Phase 5 streaming verification
+- **[TickStockPL Integration Compliance](./architecture/tickstockpl-integration-compliance.md)** - Redis integration compliance
 
 ### Guides
+- **[Startup Guide](./guides/startup.md)** - Complete startup instructions for all services
 - **[Quick Start](./guides/quickstart.md)** - Get up and running quickly
 - **[Configuration Guide](./guides/configuration.md)** - Detailed configuration options
 - **[Testing Guide](./guides/testing.md)** - Testing strategies and execution
@@ -45,14 +48,16 @@ python start_all_services.py
 python run_tests.py
 
 # Check health
-curl http://localhost:8501/health
+curl http://localhost:5000/health
 ```
 
 ### Key Endpoints
-- Web UI: http://localhost:8501
-- Health Check: http://localhost:8501/health
-- API Base: http://localhost:8501/api
-- WebSocket: ws://localhost:8501/socket.io/
+- Web UI: http://localhost:5000
+- Streaming Dashboard: http://localhost:5000/streaming
+- Health Check: http://localhost:5000/health
+- API Base: http://localhost:5000/api
+- TickStockPL API: http://localhost:8080
+- WebSocket: ws://localhost:5000/socket.io/
 
 ### Environment Variables
 ```bash

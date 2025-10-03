@@ -1,12 +1,19 @@
 # TickStockAppV2 Architecture
 
 **Version**: 3.0.0
-**Last Updated**: September 26, 2025
+**Last Updated**: October 3, 2025
 **Status**: Production Ready
 
 ## Overview
 
 TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem. It provides the user interface, authentication, and real-time WebSocket delivery while consuming processed events from TickStockPL via Redis pub-sub architecture.
+
+## Quick Links
+
+- **[Service Dependencies & Startup](service-dependencies.md)** - Critical startup requirements, virtual environment setup, and inter-service communication
+- **[Redis Integration](redis-integration.md)** - Pub-sub messaging patterns
+- **[WebSocket Integration](websockets-integration.md)** - Real-time browser communication
+- **[Configuration](configuration.md)** - Environment variables and settings
 
 ## System Architecture
 

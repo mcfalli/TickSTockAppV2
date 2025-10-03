@@ -5,6 +5,10 @@ Tests ACTUAL Redis consumption, database logging, and event processing.
 No mocks - these tests validate real integration points.
 """
 
+# CRITICAL: eventlet monkey patch must be FIRST
+import eventlet
+eventlet.monkey_patch()
+
 import sys
 import os
 from pathlib import Path

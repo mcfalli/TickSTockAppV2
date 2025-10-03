@@ -4,6 +4,10 @@ End-to-End Pattern Flow Test Suite
 Validates complete pattern journey from TickStockPL to UI readiness.
 """
 
+# CRITICAL: eventlet monkey patch must be FIRST
+import eventlet
+eventlet.monkey_patch()
+
 import sys
 import os
 from pathlib import Path
