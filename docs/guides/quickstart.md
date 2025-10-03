@@ -68,8 +68,8 @@ python scripts/dev_tools/database_integrity/util_test_db_integrity.py
 
 ### Option 1: Development Mode
 ```bash
-# Start both Flask and background services
-python start_both_services.py
+# Start all services (TickStockAppV2, TickStockPL API, TickStockPL DataLoader)
+python start_all_services.py
 ```
 
 ### Option 2: Production Mode

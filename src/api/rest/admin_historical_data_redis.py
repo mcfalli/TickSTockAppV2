@@ -21,6 +21,7 @@ from src.core.services.config_manager import get_config
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
 from src.utils.auth_decorators import admin_required
+from src.core.services.tickstockpl_api_client import get_tickstockpl_client
 
 # Initialize Redis client
 def get_redis_client():
@@ -155,18 +156,23 @@ def register_admin_historical_routes(app):
                 job_description = f"Loading {len(symbols)} symbols for {years} year(s) ({timespan})"
 
             elif load_type == 'universe':
-                # Universe load
-                universe_type = request.form.get('universe_type', 'SP500')
-                years = int(request.form.get('universe_years', 1))
+                # CSV Universe load - TickStockPL format
+                csv_file = request.form.get('csv_file', 'sp_500.csv')
+                universe_type = request.form.get('universe_type', 'sp_500')
+                years = float(request.form.get('universe_years', 1))
+                include_ohlcv = request.form.get('include_ohlcv', 'true').lower() == 'true'
 
                 job_data = {
-                    **base_job,
-                    'job_type': 'universe_seed',
+                    'job_id': job_id,
+                    'job_type': 'csv_universe_load',  # TickStockPL expects this
+                    'csv_file': csv_file,
                     'universe_type': universe_type,
-                    'years': years
+                    'years': years,
+                    'include_ohlcv': include_ohlcv,
+                    'requested_by': current_user.username if current_user.is_authenticated else 'admin'
                 }
 
-                job_description = f"Loading {universe_type} universe for {years} year(s)"
+                job_description = f"Loading {universe_type} universe from {csv_file} ({years} year(s), OHLCV: {include_ohlcv})"
 
             elif load_type == 'multi_timeframe':
                 # Multi-timeframe load
@@ -210,8 +216,8 @@ def register_admin_historical_routes(app):
                 }
 
                 redis_client.setex(
-                    f'job:status:{job_id}',
-                    7200,  # 2 hour TTL
+                    f'tickstock.jobs.status:{job_id}',  # TickStockPL format
+                    86400,  # 24 hour TTL (matches TickStockPL)
                     json.dumps(initial_status)
                 )
 
@@ -242,12 +248,63 @@ def register_admin_historical_routes(app):
             flash(f'Error triggering load: {str(e)}', 'danger')
             return redirect(url_for('admin_historical_dashboard'))
 
+    @app.route('/api/admin/historical-data/load', methods=['POST'])
+    @login_required
+    @admin_required
+    def trigger_tickstockpl_processing():
+        """
+        Trigger historical data processing via TickStockPL HTTP API.
+        This is the proper integration method for Sprint 33 Phase 4+.
+        """
+        try:
+            # Get parameters from request
+            data = request.get_json() or {}
+            skip_market_check = data.get('skip_market_check', True)  # Default True for admin
+            phases = data.get('phases', ['all'])
+            universe = data.get('universe')
+
+            # Get TickStockPL API client
+            api_client = get_tickstockpl_client()
+
+            # Trigger processing
+            result = api_client.trigger_processing(
+                skip_market_check=skip_market_check,
+                phases=phases,
+                universe=universe
+            )
+
+            if result['success']:
+                # Log the successful trigger
+                app.logger.info(
+                    f"Admin {current_user.username if current_user.is_authenticated else 'unknown'} "
+                    f"triggered processing: run_id={result.get('run_id')}"
+                )
+
+                return jsonify({
+                    'success': True,
+                    'run_id': result.get('run_id'),
+                    'message': result.get('message', 'Processing triggered successfully'),
+                    'status': result.get('status')
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': result.get('message', 'Failed to trigger processing')
+                }), 500
+
+        except Exception as e:
+            app.logger.error(f"Error triggering TickStockPL processing: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }), 500
+
     @app.route('/admin/historical-data/job/<job_id>/status')
     @login_required
     def admin_job_status(job_id):
-        """Get job status from Redis"""
+        """Get job status from Redis (TickStockPL format)"""
         try:
-            status_data = redis_client.get(f'job:status:{job_id}')
+            status_data = redis_client.get(f'tickstock.jobs.status:{job_id}')
 
             if status_data:
                 status = json.loads(status_data)

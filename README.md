@@ -15,8 +15,8 @@
 ## Quick Start
 
 ```bash
-# Start both services
-python start_both_services.py
+# Start all services
+python start_all_services.py
 
 # Run Integration Test Suite (<10 seconds)
 python run_tests.py

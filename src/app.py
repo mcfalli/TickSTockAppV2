@@ -183,7 +183,20 @@ def initialize_tickstockpl_services(config, socketio, redis_client, flask_app=No
             # The backtest manager will be injected later when the API routes are registered
             # Pass Flask app for app context in Redis subscriber thread
             redis_event_subscriber = RedisEventSubscriber(redis_client, socketio, config, flask_app=flask_app)
-            
+
+            # Sprint 33 Phase 5: Initialize Streaming Buffer for smart event batching
+            from src.core.services.streaming_buffer import StreamingBuffer
+            streaming_buffer = StreamingBuffer(socketio, config)
+            redis_event_subscriber.streaming_buffer = streaming_buffer
+
+            # Start streaming buffer if enabled
+            if config.get('STREAMING_BUFFER_ENABLED', True):
+                streaming_buffer.start()
+                logger.info("STARTUP: Streaming buffer initialized for Phase 5 integration")
+
+            # Attach redis_subscriber to app for API access
+            app.redis_subscriber = redis_event_subscriber
+
             # Connect event subscriber to broadcaster
             from src.core.services.redis_event_subscriber import EventType
             
@@ -2242,6 +2255,11 @@ def main():
             from src.api.rest.admin_users import admin_users_bp
             app.register_blueprint(admin_users_bp)
             logger.info("STARTUP: Admin user management routes registered successfully")
+
+            # Sprint 33 Phase 5: Register streaming dashboard and API endpoints
+            from src.api.streaming_routes import streaming_bp
+            app.register_blueprint(streaming_bp)
+            logger.info("STARTUP: Streaming dashboard routes registered successfully")
             
             # Register Real Pattern Discovery APIs (Sprint 10 Complete)
             logger.info("STARTUP: Registering real pattern discovery APIs...")

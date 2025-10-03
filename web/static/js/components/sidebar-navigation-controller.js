@@ -50,6 +50,14 @@ class SidebarNavigationController {
                 description: 'Real-Time Pattern Flow Display with 4-Column Layout',
                 isNew: true
             },
+            'streaming': {
+                title: 'Live Streaming',
+                icon: 'fas fa-broadcast-tower',
+                hasFilters: false,
+                component: 'StreamingDashboardService',
+                description: 'Real-time market data streaming dashboard',
+                isNew: true
+            },
             'overview': {
                 title: 'Overview',
                 icon: 'fas fa-chart-line',
@@ -370,29 +378,30 @@ class SidebarNavigationController {
             console.warn(`Section '${sectionKey}' not found`);
             return;
         }
-        
-        
+
+        const section = this.sections[sectionKey];
+
         // Update current section
         this.currentSection = sectionKey;
-        
+
         // Update active states
         this.updateActiveNavItem(sectionKey);
-        
+
         // Handle filters for Pattern Discovery
         if (sectionKey === 'pattern-discovery' && !this.isMobile) {
             this.openFilters();
         } else {
             this.closeFilters();
         }
-        
+
         // Load content for the section
         this.loadSectionContent(sectionKey);
-        
+
         // Close mobile sidebar if open
         if (this.isMobile) {
             this.closeMobileSidebar();
         }
-        
+
         // Save state
         this.saveState();
     }
@@ -518,9 +527,12 @@ class SidebarNavigationController {
      * Initialize analytics tab content (from original implementation)
      */
     initializeAnalyticsTab(sectionKey, section, contentArea) {
-        
+
         // Special handling for different section types
-        if (sectionKey === 'sprint25') {
+        if (sectionKey === 'streaming') {
+            this.initializeStreamingSection(contentArea, section);
+            return;
+        } else if (sectionKey === 'sprint25') {
             this.initializeSprint25Section(contentArea, section);
             return;
         } else if (sectionKey === 'compare') {
@@ -1762,6 +1774,98 @@ class SidebarNavigationController {
         }, 1000); // Increased delay to 1 second
     }
     
+    /**
+     * Initialize Streaming Dashboard section - Sprint 33 Phase 5
+     */
+    initializeStreamingSection(contentArea, section) {
+        if (SIDEBAR_DEBUG) console.log('[SidebarNavigation] Initializing Streaming Dashboard');
+
+        // Check if StreamingDashboardService is available
+        if (typeof window.StreamingDashboardService !== 'undefined') {
+            try {
+                // Clean up existing instance if present
+                if (window.streamingDashboard) {
+                    if (window.streamingDashboard.cleanup) {
+                        window.streamingDashboard.cleanup();
+                    }
+                    window.streamingDashboard = null;
+                }
+
+                // Set the content area as the main content
+                contentArea.id = 'main-content';
+
+                // Create new streaming dashboard instance
+                window.streamingDashboard = new window.StreamingDashboardService();
+
+                // Initialize the dashboard
+                window.streamingDashboard.initialize('main-content');
+
+                if (SIDEBAR_DEBUG) {
+                    console.log('[SidebarNavigation] Streaming Dashboard initialized successfully');
+                }
+            } catch (error) {
+                console.error('[SidebarNavigation] Error initializing Streaming Dashboard:', error);
+                this.showStreamingErrorState(contentArea, section);
+            }
+        } else {
+            // StreamingDashboardService not loaded yet - show loading and retry
+            this.showStreamingLoadingState(contentArea, section);
+
+            setTimeout(() => {
+                if (typeof window.StreamingDashboardService !== 'undefined' && this.currentSection === 'streaming') {
+                    this.initializeStreamingSection(contentArea, section);
+                } else {
+                    this.showStreamingErrorState(contentArea, section);
+                }
+            }, 1000);
+        }
+    }
+
+    /**
+     * Show Streaming Dashboard loading state
+     */
+    showStreamingLoadingState(contentArea, section) {
+        contentArea.innerHTML = `
+            <div id="streaming-dashboard" class="p-4">
+                <h4><i class="${section.icon} me-2"></i>${section.title}</h4>
+                <div class="d-flex align-items-center justify-content-center py-5">
+                    <div class="spinner-border text-primary me-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="text-muted">Initializing Streaming Dashboard...</div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Show Streaming Dashboard error state
+     */
+    showStreamingErrorState(contentArea, section) {
+        contentArea.innerHTML = `
+            <div id="streaming-dashboard" class="p-4">
+                <h4><i class="${section.icon} me-2"></i>${section.title}</h4>
+                <div class="alert alert-warning d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-3 fa-2x"></i>
+                    <div>
+                        <h5 class="alert-heading mb-1">Streaming Dashboard Unavailable</h5>
+                        <p class="mb-2">The streaming dashboard could not be loaded. This may be due to:</p>
+                        <ul class="mb-2">
+                            <li>WebSocket connection not established</li>
+                            <li>Streaming service components not loaded</li>
+                            <li>Redis event subscriber not active</li>
+                        </ul>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh Page
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     /**
      * Show Pattern Dashboard error state
      */

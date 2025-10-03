@@ -87,17 +87,17 @@ def check_postgres():
 
 def start_tickstockpl():
     """Start TickStockPL HTTP API server."""
-    print("\n[TickStockPL] Starting HTTP API server...")
+    print("\n[TickStockPL API] Starting HTTP API server...")
 
     if not TICKSTOCKPL_PATH.exists():
-        print(f"[TickStockPL] ERROR: Path not found: {TICKSTOCKPL_PATH}")
+        print(f"[TickStockPL API] ERROR: Path not found: {TICKSTOCKPL_PATH}")
         return None
 
     # Use the new HTTP API server (Sprint 33 Phase 4)
     service_script = TICKSTOCKPL_PATH / "start_api_server.py"
 
     if not service_script.exists():
-        print(f"[TickStockPL] ERROR: API server script not found at {service_script}")
+        print(f"[TickStockPL API] ERROR: API server script not found at {service_script}")
         print("Please ensure TickStockPL has been updated with Sprint 33 Phase 4 HTTP API implementation")
         return None
 
@@ -116,18 +116,61 @@ def start_tickstockpl():
         def monitor_output():
             for line in iter(process.stdout.readline, ''):
                 if line:
-                    print(f"[TickStockPL] {line.rstrip()}")
+                    print(f"[TickStockPL API] {line.rstrip()}")
                 if stop_event.is_set():
                     break
 
         monitor_thread = threading.Thread(target=monitor_output, daemon=True)
         monitor_thread.start()
 
-        print("[TickStockPL] Service started successfully")
+        print("[TickStockPL API] Service started successfully")
         return process
 
     except Exception as e:
-        print(f"[TickStockPL] ERROR: Failed to start service: {e}")
+        print(f"[TickStockPL API] ERROR: Failed to start service: {e}")
+        return None
+
+def start_data_load_handler():
+    """Start TickStockPL Data Load Job Handler (for admin historical imports)."""
+    print("\n[TickStockPL DataLoader] Starting Data Load Job Handler...")
+
+    if not TICKSTOCKPL_PATH.exists():
+        print(f"[TickStockPL DataLoader] ERROR: Path not found: {TICKSTOCKPL_PATH}")
+        return None
+
+    try:
+        process = subprocess.Popen(
+            [sys.executable, "-m", "src.jobs.data_load_handler"],
+            cwd=str(TICKSTOCKPL_PATH),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Merge stderr into stdout
+            text=True,
+            bufsize=1,
+            universal_newlines=True
+        )
+
+        # Monitor output in a separate thread
+        def monitor_output():
+            for line in iter(process.stdout.readline, ''):
+                if line:
+                    print(f"[TickStockPL DataLoader] {line.rstrip()}")
+                if stop_event.is_set():
+                    break
+
+        monitor_thread = threading.Thread(target=monitor_output, daemon=True)
+        monitor_thread.start()
+
+        # Wait a moment and check if process started successfully
+        time.sleep(0.5)
+        if process.poll() is not None:
+            print(f"[TickStockPL DataLoader] ERROR: Process exited immediately with code {process.poll()}")
+            return None
+
+        print("[TickStockPL DataLoader] Service started successfully")
+        return process
+
+    except Exception as e:
+        print(f"[TickStockPL DataLoader] ERROR: Failed to start service: {e}")
         return None
 
 def start_tickstockapp():
@@ -195,9 +238,10 @@ def main():
     print("="*60)
     print("TICKSTOCK COMBINED SERVICE LAUNCHER")
     print("="*60)
-    print("This will start both:")
+    print("This will start all services:")
     print("  1. TickStockAppV2 (Consumer) - Web UI on port 5000")
-    print("  2. TickStockPL (Producer) - HTTP API server on port 8080")
+    print("  2. TickStockPL API (Producer) - HTTP API server on port 8080")
+    print("  3. TickStockPL DataLoader - Historical import job handler")
     print("="*60)
 
     # Register shutdown handler
@@ -245,17 +289,27 @@ def main():
         print("ERROR: Failed to start TickStockAppV2")
         return 1
 
-    # Start TickStockPL pattern detection
+    # Start TickStockPL Data Load Handler (for admin historical imports)
+    dataloader_process = start_data_load_handler()
+    if dataloader_process:
+        processes.append(dataloader_process)
+        print("[TickStockPL DataLoader] Waiting for initialization...")
+        time.sleep(2)  # Give it time to subscribe to Redis channels
+    else:
+        print("WARNING: TickStockPL DataLoader not started. Admin historical imports will not work.")
+
+    # Start TickStockPL API server
     pl_process = start_tickstockpl()
     if pl_process:
         processes.append(pl_process)
     else:
-        print("WARNING: TickStockPL not started. Pattern detection will use fallback mode.")
+        print("WARNING: TickStockPL API not started. Pattern detection will use fallback mode.")
 
     print("\n" + "="*60)
     print("SERVICES RUNNING")
     print("="*60)
     print("[OK] TickStockAppV2: http://localhost:5000")
+    print("[OK] TickStockPL DataLoader: Listening on tickstock.jobs.data_load" if dataloader_process else "[WARNING] TickStockPL DataLoader: Offline")
     print("[OK] TickStockPL API: http://localhost:8080" if pl_process else "[WARNING] TickStockPL API: Offline (fallback mode)")
     print("\nPress Ctrl+C to stop all services")
     print("="*60)
@@ -269,11 +323,21 @@ def main():
                     # Process has actually stopped (poll() returns exit code)
                     exit_code = process.poll()
                     if i == 0:
+                        # TickStockAppV2 (critical) stopped
                         print(f"\nERROR: TickStockAppV2 stopped unexpectedly (exit code: {exit_code})")
                         print("Shutting down remaining services...")
                         shutdown_handler(None, None)
+                    elif i == 1:
+                        # TickStockPL DataLoader stopped
+                        print(f"\nWARNING: TickStockPL DataLoader stopped unexpectedly (exit code: {exit_code})")
+                        print("Admin historical imports will not work until restarted")
+                        print("Removing from monitoring list...")
+                        processes.remove(process)
+                        break  # Exit loop after removing to avoid index issues
                     else:
-                        print(f"\nWARNING: TickStockPL stopped unexpectedly (exit code: {exit_code})")
+                        # TickStockPL API stopped
+                        print(f"\nWARNING: TickStockPL API stopped unexpectedly (exit code: {exit_code})")
+                        print("Pattern detection will use fallback mode")
                         print("Removing from monitoring list...")
                         processes.remove(process)
                         break  # Exit loop after removing to avoid index issues

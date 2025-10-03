@@ -34,6 +34,14 @@ class EventType(Enum):
     BACKTEST_PROGRESS = "backtest_progress"
     BACKTEST_RESULT = "backtest_result"
     SYSTEM_HEALTH = "system_health"
+    # Phase 5 Streaming events
+    STREAMING_SESSION_STARTED = "streaming_session_started"
+    STREAMING_SESSION_STOPPED = "streaming_session_stopped"
+    STREAMING_HEALTH = "streaming_health"
+    STREAMING_PATTERN = "streaming_pattern"
+    STREAMING_INDICATOR = "streaming_indicator"
+    INDICATOR_ALERT = "indicator_alert"
+    CRITICAL_ALERT = "critical_alert"
 
 @dataclass
 class TickStockEvent:
@@ -81,15 +89,32 @@ class RedisEventSubscriber:
             EventType.PATTERN_DETECTED: [],
             EventType.BACKTEST_PROGRESS: [],
             EventType.BACKTEST_RESULT: [],
-            EventType.SYSTEM_HEALTH: []
+            EventType.SYSTEM_HEALTH: [],
+            # Phase 5 handlers
+            EventType.STREAMING_SESSION_STARTED: [],
+            EventType.STREAMING_SESSION_STOPPED: [],
+            EventType.STREAMING_HEALTH: [],
+            EventType.STREAMING_PATTERN: [],
+            EventType.STREAMING_INDICATOR: [],
+            EventType.INDICATOR_ALERT: [],
+            EventType.CRITICAL_ALERT: []
         }
-        
+
         # TickStockPL event channels
         self.channels = {
             'tickstock.events.patterns': EventType.PATTERN_DETECTED,
             'tickstock.events.backtesting.progress': EventType.BACKTEST_PROGRESS,
             'tickstock.events.backtesting.results': EventType.BACKTEST_RESULT,
-            'tickstock.health.status': EventType.SYSTEM_HEALTH
+            'tickstock.health.status': EventType.SYSTEM_HEALTH,
+            # Phase 5 streaming channels
+            'tickstock:streaming:session_started': EventType.STREAMING_SESSION_STARTED,
+            'tickstock:streaming:session_stopped': EventType.STREAMING_SESSION_STOPPED,
+            'tickstock:streaming:health': EventType.STREAMING_HEALTH,
+            'tickstock:patterns:streaming': EventType.STREAMING_PATTERN,
+            'tickstock:patterns:detected': EventType.STREAMING_PATTERN,  # High confidence patterns
+            'tickstock:indicators:streaming': EventType.STREAMING_INDICATOR,
+            'tickstock:alerts:indicators': EventType.INDICATOR_ALERT,
+            'tickstock:alerts:critical': EventType.CRITICAL_ALERT
         }
         
         # User subscription tracking
@@ -110,6 +135,11 @@ class RedisEventSubscriber:
         # Heartbeat tracking
         self.heartbeat_interval = 60  # Log heartbeat every 60 seconds
         self.last_heartbeat_log = time.time()
+
+        # Phase 5 Streaming state
+        self.current_streaming_session = None
+        self.latest_streaming_health = {}
+        self.streaming_buffer = None  # Will be set if buffering is enabled
         
     def start(self) -> bool:
         """Start the Redis event subscription service."""
@@ -289,6 +319,21 @@ class RedisEventSubscriber:
                 self._handle_backtest_result(event)
             elif event.event_type == EventType.SYSTEM_HEALTH:
                 self._handle_system_health(event)
+            # Phase 5 streaming events
+            elif event.event_type == EventType.STREAMING_SESSION_STARTED:
+                self._handle_streaming_session_started(event)
+            elif event.event_type == EventType.STREAMING_SESSION_STOPPED:
+                self._handle_streaming_session_stopped(event)
+            elif event.event_type == EventType.STREAMING_HEALTH:
+                self._handle_streaming_health(event)
+            elif event.event_type == EventType.STREAMING_PATTERN:
+                self._handle_streaming_pattern(event)
+            elif event.event_type == EventType.STREAMING_INDICATOR:
+                self._handle_streaming_indicator(event)
+            elif event.event_type == EventType.INDICATOR_ALERT:
+                self._handle_indicator_alert(event)
+            elif event.event_type == EventType.CRITICAL_ALERT:
+                self._handle_critical_alert(event)
             
             # Call registered event handlers
             for handler in self.event_handlers.get(event.event_type, []):
@@ -477,12 +522,199 @@ class RedisEventSubscriber:
             'type': 'system_health',
             'event': event.to_websocket_dict()
         }
-        
+
         # Broadcast to all connected users
         self.socketio.emit('system_health', websocket_data, namespace='/')
         self.stats['events_forwarded'] += 1
-        
+
         logger.debug("REDIS-SUBSCRIBER: System health update forwarded")
+
+    # Phase 5 Streaming Event Handlers
+    def _handle_streaming_session_started(self, event: TickStockEvent):
+        """Handle streaming session start event."""
+        session_data = event.data.get('data', event.data)
+        session_id = session_data.get('session_id')
+        symbol_universe_key = session_data.get('symbol_universe_key')
+        start_time = session_data.get('start_time')
+
+        logger.info(f"REDIS-SUBSCRIBER: Streaming session started - ID: {session_id}, Universe: {symbol_universe_key}")
+
+        # Store session info for tracking
+        self.current_streaming_session = {
+            'session_id': session_id,
+            'start_time': start_time,
+            'universe': symbol_universe_key
+        }
+
+        # Broadcast to UI
+        websocket_data = {
+            'type': 'streaming_session_started',
+            'session': self.current_streaming_session
+        }
+        self.socketio.emit('streaming_session', websocket_data, namespace='/')
+        self.stats['events_forwarded'] += 1
+
+    def _handle_streaming_session_stopped(self, event: TickStockEvent):
+        """Handle streaming session stop event."""
+        session_data = event.data.get('data', event.data)
+        session_id = session_data.get('session_id')
+
+        logger.info(f"REDIS-SUBSCRIBER: Streaming session stopped - ID: {session_id}")
+
+        # Clear session info
+        self.current_streaming_session = None
+
+        # Broadcast to UI
+        websocket_data = {
+            'type': 'streaming_session_stopped',
+            'session_id': session_id
+        }
+        self.socketio.emit('streaming_session', websocket_data, namespace='/')
+        self.stats['events_forwarded'] += 1
+
+    def _handle_streaming_health(self, event: TickStockEvent):
+        """Handle streaming health metrics."""
+        health_data = event.data
+
+        # Store latest health metrics
+        self.latest_streaming_health = {
+            'timestamp': health_data.get('timestamp'),
+            'session_id': health_data.get('session_id'),
+            'status': health_data.get('status'),
+            'connection': health_data.get('connection', {}),
+            'data_flow': health_data.get('data_flow', {}),
+            'resources': health_data.get('resources', {}),
+            'active_symbols': health_data.get('active_symbols', 0),
+            'stale_symbols': health_data.get('stale_symbols', {})
+        }
+
+        # Check for critical issues
+        if health_data.get('status') == 'critical':
+            logger.error(f"REDIS-SUBSCRIBER: Streaming health critical - Issues: {health_data.get('issues')}")
+
+        # Broadcast health update
+        websocket_data = {
+            'type': 'streaming_health',
+            'health': self.latest_streaming_health
+        }
+        self.socketio.emit('streaming_health', websocket_data, namespace='/')
+        self.stats['events_forwarded'] += 1
+
+    def _handle_streaming_pattern(self, event: TickStockEvent):
+        """Handle real-time streaming pattern detection."""
+        detection = event.data.get('detection', event.data)
+
+        pattern_type = detection.get('pattern_type')
+        symbol = detection.get('symbol')
+        confidence = detection.get('confidence', 0)
+        timestamp = detection.get('timestamp')
+
+        logger.debug(f"REDIS-SUBSCRIBER: Streaming pattern - {pattern_type} on {symbol} (confidence: {confidence})")
+
+        # Broadcast pattern immediately (will be buffered by streaming handler)
+        websocket_data = {
+            'type': 'streaming_pattern',
+            'detection': {
+                'pattern_type': pattern_type,
+                'symbol': symbol,
+                'confidence': confidence,
+                'timestamp': timestamp,
+                'parameters': detection.get('parameters', {}),
+                'timeframe': detection.get('timeframe', '1min')
+            }
+        }
+
+        # Send to buffering handler if available
+        if hasattr(self, 'streaming_buffer'):
+            self.streaming_buffer.add_pattern(websocket_data)
+        else:
+            # Direct broadcast without buffering
+            self.socketio.emit('streaming_pattern', websocket_data, namespace='/')
+
+        self.stats['events_forwarded'] += 1
+
+    def _handle_streaming_indicator(self, event: TickStockEvent):
+        """Handle real-time streaming indicator calculation."""
+        calculation = event.data.get('calculation', event.data)
+
+        indicator_type = calculation.get('indicator_type')
+        symbol = calculation.get('symbol')
+        values = calculation.get('values', {})
+        timestamp = calculation.get('timestamp')
+
+        logger.debug(f"REDIS-SUBSCRIBER: Streaming indicator - {indicator_type} on {symbol}")
+
+        # Broadcast indicator update
+        websocket_data = {
+            'type': 'streaming_indicator',
+            'calculation': {
+                'indicator_type': indicator_type,
+                'symbol': symbol,
+                'values': values,
+                'timestamp': timestamp,
+                'timeframe': calculation.get('timeframe', '1min')
+            }
+        }
+
+        # Send to buffering handler if available
+        if hasattr(self, 'streaming_buffer'):
+            self.streaming_buffer.add_indicator(websocket_data)
+        else:
+            # Direct broadcast without buffering
+            self.socketio.emit('streaming_indicator', websocket_data, namespace='/')
+
+        self.stats['events_forwarded'] += 1
+
+    def _handle_indicator_alert(self, event: TickStockEvent):
+        """Handle indicator alert events (RSI, MACD, BB extremes)."""
+        alert_data = event.data
+
+        alert_type = alert_data.get('alert_type')
+        symbol = alert_data.get('symbol')
+        data = alert_data.get('data', {})
+        timestamp = alert_data.get('timestamp')
+
+        logger.info(f"REDIS-SUBSCRIBER: Indicator alert - {alert_type} on {symbol}")
+
+        # Broadcast alert immediately (no buffering for alerts)
+        websocket_data = {
+            'type': 'indicator_alert',
+            'alert': {
+                'alert_type': alert_type,
+                'symbol': symbol,
+                'data': data,
+                'timestamp': timestamp,
+                'session_id': alert_data.get('session_id')
+            }
+        }
+
+        self.socketio.emit('indicator_alert', websocket_data, namespace='/')
+        self.stats['events_forwarded'] += 1
+
+    def _handle_critical_alert(self, event: TickStockEvent):
+        """Handle critical system alerts."""
+        alert_data = event.data
+
+        alert_type = alert_data.get('type')
+        message = alert_data.get('message')
+        severity = alert_data.get('severity', 'critical')
+
+        logger.error(f"REDIS-SUBSCRIBER: Critical alert - {alert_type}: {message}")
+
+        # Broadcast critical alert immediately
+        websocket_data = {
+            'type': 'critical_alert',
+            'alert': {
+                'type': alert_type,
+                'message': message,
+                'severity': severity,
+                'timestamp': alert_data.get('timestamp'),
+                'data': alert_data.get('data', {})
+            }
+        }
+
+        self.socketio.emit('critical_alert', websocket_data, namespace='/')
+        self.stats['events_forwarded'] += 1
     
     def _handle_connection_error(self):
         """Handle Redis connection errors with reconnection logic."""

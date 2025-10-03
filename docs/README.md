@@ -39,7 +39,7 @@ TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem,
 ### Essential Commands
 ```bash
 # Start application
-python start_both_services.py
+python start_all_services.py
 
 # Run tests
 python run_tests.py
