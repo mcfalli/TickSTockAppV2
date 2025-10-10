@@ -7,7 +7,7 @@ Provides routes for streaming dashboard and API endpoints for historical data.
 
 import logging
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, current_app
 from flask_login import login_required, current_user
 from typing import Dict, Any, List, Optional
 import json
@@ -17,20 +17,19 @@ logger = logging.getLogger(__name__)
 # Create blueprint
 streaming_bp = Blueprint('streaming', __name__, url_prefix='/streaming')
 
-@streaming_bp.route('/')
-@login_required
-def streaming_dashboard():
-    """
-    Real-time streaming dashboard page.
-
-    Shows live pattern detections and indicator alerts from market hours streaming.
-    """
-    try:
-        logger.info(f"STREAMING-ROUTE: Dashboard requested by user {current_user.id}")
-        return render_template('dashboard/streaming.html')
-    except Exception as e:
-        logger.error(f"STREAMING-ROUTE-ERROR: Dashboard route failed: {e}")
-        return jsonify({'error': 'Failed to load streaming dashboard'}), 500
+# @streaming_bp.route('/')
+# @login_required
+# def streaming_dashboard():
+#     """
+#     DISABLED: This route conflicts with sidebar navigation (SPA model).
+#     Live Streaming is now accessed via sidebar JavaScript, not a Flask route.
+#
+#     The streaming dashboard is rendered by StreamingDashboardService (JavaScript)
+#     when user clicks "Live Streaming" in the sidebar navigation.
+#     See: web/static/js/services/streaming-dashboard.js
+#          web/static/js/components/sidebar-navigation-controller.js (lines 53-60)
+#     """
+#     pass
 
 @streaming_bp.route('/api/status')
 @login_required
@@ -42,10 +41,8 @@ def streaming_status():
         JSON with session info, health metrics, and connection status
     """
     try:
-        from src.app import app
-
-        # Get Redis subscriber instance
-        redis_subscriber = getattr(app, 'redis_subscriber', None)
+        # Get Redis subscriber instance from current Flask app
+        redis_subscriber = getattr(current_app, 'redis_subscriber', None)
         if not redis_subscriber:
             return jsonify({
                 'status': 'offline',

@@ -244,6 +244,36 @@ class MarketDataService:
                     self.data_publisher.redis_client.publish('tickstock.data.raw', json.dumps(raw_data))
                 except Exception as e:
                     logger.error(f"MARKET-DATA-SERVICE: Failed to publish raw data to Redis: {e}")
+
+            # Forward tick to TickStockPL streaming service (Sprint 40)
+            if self.data_publisher and self.data_publisher.redis_client:
+                try:
+                    # Format tick data for TickStockPL streaming service
+                    market_tick = {
+                        'type': 'market_tick',
+                        'symbol': tick_data.ticker,
+                        'price': tick_data.price,
+                        'volume': tick_data.volume or 0,
+                        'timestamp': tick_data.timestamp,
+                        'source': 'polygon'
+                    }
+
+                    # Publish to TickStockPL streaming channel
+                    self.data_publisher.redis_client.publish(
+                        'tickstock:market:ticks',
+                        json.dumps(market_tick)
+                    )
+
+                    # Log every 100 forwarded ticks
+                    if not hasattr(self, '_forwarded_tick_count'):
+                        self._forwarded_tick_count = 0
+                    self._forwarded_tick_count += 1
+
+                    if self._forwarded_tick_count % 100 == 0:
+                        logger.debug(f"MARKET-DATA-SERVICE: Forwarded {self._forwarded_tick_count} ticks to TickStockPL streaming")
+
+                except Exception as e:
+                    logger.error(f"MARKET-DATA-SERVICE: Failed to forward tick to TickStockPL: {e}")
             
             # Log first few ticks for debugging
             if self.stats.ticks_processed <= 10:

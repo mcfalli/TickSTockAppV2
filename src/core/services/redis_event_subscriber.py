@@ -138,7 +138,14 @@ class RedisEventSubscriber:
 
         # Phase 5 Streaming state
         self.current_streaming_session = None
-        self.latest_streaming_health = {}
+        self.latest_streaming_health = {
+            'status': 'unknown',
+            'active_symbols': 0,
+            'ticks_per_second': 0.0,
+            'data_flow': {
+                'ticks_per_second': 0.0
+            }
+        }
         self.streaming_buffer = None  # Will be set if buffering is enabled
         
     def start(self) -> bool:
@@ -532,19 +539,27 @@ class RedisEventSubscriber:
     # Phase 5 Streaming Event Handlers
     def _handle_streaming_session_started(self, event: TickStockEvent):
         """Handle streaming session start event."""
-        session_data = event.data.get('data', event.data)
+        # Event format: {'type': 'streaming_session_started', 'session': {...}, 'timestamp': ...}
+        session_data = event.data.get('session', {})
         session_id = session_data.get('session_id')
-        symbol_universe_key = session_data.get('symbol_universe_key')
-        start_time = session_data.get('start_time')
+        symbol_universe_key = session_data.get('universe', session_data.get('symbol_universe_key'))
+        start_time = session_data.get('started_at', session_data.get('start_time'))
+        symbol_count = session_data.get('symbol_count', 0)
+        status = session_data.get('status', 'unknown')
 
-        logger.info(f"REDIS-SUBSCRIBER: Streaming session started - ID: {session_id}, Universe: {symbol_universe_key}")
+        logger.info(f"REDIS-SUBSCRIBER: Streaming session started - ID: {session_id}, Universe: {symbol_universe_key}, Symbols: {symbol_count}, Status: {status}")
 
         # Store session info for tracking
         self.current_streaming_session = {
             'session_id': session_id,
             'start_time': start_time,
-            'universe': symbol_universe_key
+            'universe': symbol_universe_key,
+            'symbol_count': symbol_count,
+            'status': status
         }
+
+        # Debug: Confirm session stored
+        logger.info(f"REDIS-SUBSCRIBER: current_streaming_session set to: {self.current_streaming_session}")
 
         # Broadcast to UI
         websocket_data = {
@@ -556,10 +571,16 @@ class RedisEventSubscriber:
 
     def _handle_streaming_session_stopped(self, event: TickStockEvent):
         """Handle streaming session stop event."""
-        session_data = event.data.get('data', event.data)
+        # Event format: {'type': 'streaming_session_stopped', 'session': {...}, 'timestamp': ...}
+        session_data = event.data.get('session', event.data)
         session_id = session_data.get('session_id')
+        stopped_at = session_data.get('stopped_at')
+        duration_seconds = session_data.get('duration_seconds', 0)
+        total_patterns = session_data.get('total_patterns', 0)
+        total_indicators = session_data.get('total_indicators', 0)
+        final_status = session_data.get('final_status', 'unknown')
 
-        logger.info(f"REDIS-SUBSCRIBER: Streaming session stopped - ID: {session_id}")
+        logger.info(f"REDIS-SUBSCRIBER: Streaming session stopped - ID: {session_id}, Duration: {duration_seconds}s, Patterns: {total_patterns}, Indicators: {total_indicators}, Status: {final_status}")
 
         # Clear session info
         self.current_streaming_session = None
@@ -567,26 +588,43 @@ class RedisEventSubscriber:
         # Broadcast to UI
         websocket_data = {
             'type': 'streaming_session_stopped',
-            'session_id': session_id
+            'session_id': session_id,
+            'stopped_at': stopped_at,
+            'duration_seconds': duration_seconds,
+            'total_patterns': total_patterns,
+            'total_indicators': total_indicators,
+            'final_status': final_status
         }
         self.socketio.emit('streaming_session', websocket_data, namespace='/')
         self.stats['events_forwarded'] += 1
 
     def _handle_streaming_health(self, event: TickStockEvent):
         """Handle streaming health metrics."""
-        health_data = event.data
+        # Event format: {'type': 'streaming_health', 'health': {...}, 'timestamp': ...}
+        health_data = event.data.get('health', event.data)  # Extract nested 'health' object
 
         # Store latest health metrics
+        tps = health_data.get('ticks_per_second', 0.0)
+
         self.latest_streaming_health = {
-            'timestamp': health_data.get('timestamp'),
+            'timestamp': event.data.get('timestamp', health_data.get('timestamp')),
             'session_id': health_data.get('session_id'),
             'status': health_data.get('status'),
-            'connection': health_data.get('connection', {}),
-            'data_flow': health_data.get('data_flow', {}),
-            'resources': health_data.get('resources', {}),
             'active_symbols': health_data.get('active_symbols', 0),
+            'ticks_per_second': tps,
+            'patterns_detected': health_data.get('patterns_detected', 0),
+            'indicators_calculated': health_data.get('indicators_calculated', 0),
+            # Legacy fields (may not be present in new format)
+            'connection': health_data.get('connection', {}),
+            'data_flow': {
+                'ticks_per_second': tps,  # Populate for dashboard compatibility
+                **health_data.get('data_flow', {})
+            },
+            'resources': health_data.get('resources', {}),
             'stale_symbols': health_data.get('stale_symbols', {})
         }
+
+        logger.info(f"REDIS-SUBSCRIBER: Streaming health update received - Status: {health_data.get('status')}, Active Symbols: {health_data.get('active_symbols', 0)}, TPS: {health_data.get('ticks_per_second', 0.0)}")
 
         # Check for critical issues
         if health_data.get('status') == 'critical':

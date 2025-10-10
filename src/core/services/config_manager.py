@@ -84,6 +84,14 @@ class ConfigManager:
         'SIMULATOR_UNIVERSE': 'MARKET_CAP_LARGE_UNIVERSE',
         'SYNTHETIC_DATA_RATE': 0.1,
         'SYNTHETIC_DATA_VARIANCE': 0.05,
+
+        # Sprint 41: Enhanced Synthetic Data Configuration
+        'SYNTHETIC_UNIVERSE': 'market_leaders:top_500',
+        'SYNTHETIC_PATTERN_INJECTION': True,
+        'SYNTHETIC_PATTERN_FREQUENCY': 0.1,
+        'SYNTHETIC_PATTERN_TYPES': 'Doji,Hammer,ShootingStar,BullishEngulfing,BearishEngulfing,Harami',
+        'SYNTHETIC_SCENARIO': 'normal',
+        'SYNTHETIC_ACTIVITY_LEVEL': 'medium',
         'MOMENTUM_WINDOW_SECONDS': 5,
         'MOMENTUM_MAX_THRESHOLD': 15,
         'FLOW_WINDOW_SECONDS': 30,
