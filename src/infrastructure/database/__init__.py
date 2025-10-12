@@ -26,14 +26,8 @@ from src.infrastructure.database.migrations.run_migrations import (
     run_migration_command,
 )
 
-# Import OHLCV persistence service
-from src.infrastructure.database.ohlcv_persistence import (
-    OHLCVPersistenceService,
-    OHLCVRecord,
-    PersistenceStats,
-)
-
 # Analytics models removed during Phase 2 cleanup
+# OHLCV persistence removed during Sprint 42 Phase 2 (moved to TickStockPL)
 
 __all__ = [
     # Database instance
@@ -56,9 +50,4 @@ __all__ = [
     
     # Migration utilities
     'run_migration_command',
-    
-    # OHLCV Persistence
-    'OHLCVPersistenceService',
-    'OHLCVRecord',
-    'PersistenceStats',
 ]
