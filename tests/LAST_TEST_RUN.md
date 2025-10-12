@@ -1,8 +1,8 @@
 # Last Test Run Report
 
-**Generated**: 2025-10-03 17:04:58
+**Generated**: 2025-10-12 13:38:25
 **Command**: `python run_tests.py`
-**Total Duration**: 22.62 seconds
+**Total Duration**: 17.64 seconds
 **Status**: [FAILED]
 
 ## Summary Statistics
@@ -10,42 +10,41 @@
 - **Test Suites Run**: 2
 - **Test Suites Passed**: 1
 - **Test Suites Failed**: 1
-- **Individual Tests Passed**: 25
-- **Individual Tests Failed**: 1
+- **Individual Tests Passed**: 19
+- **Individual Tests Failed**: 6
 - **Performance Target (<10s)**: [MISSED]
 
 ## Test Suite Results
 
 | Suite | Status | Duration | Tests |
 |-------|--------|----------|-------|
-| Core Integration Tests | [FAIL] | 13.53s | 16 |
-| End-to-End Pattern Flow | [PASS] | 9.09s | 10 |
+| Core Integration Tests | [FAIL] | 8.67s | 15 |
+| End-to-End Pattern Flow | [PASS] | 8.97s | 10 |
 
 ## Individual Test Results
 
 
 ### Core Integration Tests
 
-- [PASS] Redis subscription active: 1 subscriber(s)
-- [PASS] Pattern event structure compatibility verified
+- [FAIL] Redis Subscription FAILED: No subscribers on tickstock.events.patterns channel
+- [FAIL] Event Structure FAILED: Failed to publish test event
 - [PASS] Database access working: 0 error log entries in last 24 hours
 - [PASS] Database write access confirmed via error_logs table
-- [PASS] Pattern flow subscriber active: 1 subscriber(s)
-- [PASS] Pattern flow checkpoints verified via Redis cache
-- [PASS] Redis heartbeat: 0.3ms latency
+- [FAIL] Pattern Flow FAILED: Failed to publish test pattern
+- [PASS] Redis heartbeat: 0.4ms latency
 - [PASS] Database heartbeat: 0.2ms latency
 - [PASS] Error logging active: 0 entries in last 24 hours
-- [PASS] Redis->Database flow working via error_logs: Flow ID ab612277... processed
+- [FAIL] Redis->DB Flow FAILED: Failed to publish to Redis channel
 - [PASS] Pattern cache contains 0 entries
 - [FAIL] WebSocket Config FAILED: No pattern event handlers registered
-- [PASS] Redis performance: 0.4ms avg latency
-- [PASS] Database performance: 0.9ms avg query latency
-- [PASS] Error logging performance: 13.2ms write+delete latency
-- [PASS] Error recovery working
+- [PASS] Redis performance: 0.3ms avg latency
+- [PASS] Database performance: 1.3ms avg query latency
+- [PASS] Error logging performance: 13.0ms write+delete latency
+- [FAIL] Error Recovery FAILED: System not recovering from bad events
 
 ### End-to-End Pattern Flow
 
-- [PASS] Published pattern with flow_id: 1ba3ead1-35d4-4209-915e-691a1925895e
+- [PASS] Published pattern with flow_id: a91fc149-b804-4a5d-af51-bd92b190ad0d
 - [PASS] Published daily tier pattern: HeadShoulders for TSLA
 - [PASS] Published intraday tier pattern: VolumeSurge for NVDA
 - [PASS] Published combo tier pattern: SupportBreakout for AAPL
