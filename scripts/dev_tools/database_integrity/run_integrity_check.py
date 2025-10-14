@@ -7,39 +7,39 @@ Quick way to run integrity checks with proper configuration.
 """
 
 import sys
-import getpass
-from pathlib import Path
-from util_test_db_integrity import DatabaseIntegrityChecker
+
 from db_config import get_database_config
+from util_test_db_integrity import DatabaseIntegrityChecker
+
 
 def main():
     """Run Sprint 23 integrity check with guided setup"""
-    
+
     print("🔍 TickStockAppV2 Database Integrity Checker")
     print("=" * 50)
-    
+
     # Get configuration (hardcoded from .env file)
     config = get_database_config()
-    
+
     # Initialize and run checker
     checker = DatabaseIntegrityChecker(config)
-    
+
     if not checker.connect():
         print("❌ Failed to connect to database. Check your configuration.")
         sys.exit(1)
-    
+
     try:
-        print(f"\n🎯 Running Sprint 23 integrity checks...")
-        
+        print("\n🎯 Running Sprint 23 integrity checks...")
+
         # Run Sprint 23 specific checks
         results = checker.run_all_checks(sprint_filter="23")
-        
+
         # Summary
         passed = len([r for r in results if r.passed])
         total = len(results)
-        
+
         print(f"\n📊 Results: {passed}/{total} checks passed")
-        
+
         if passed < total:
             print("\n❌ Some checks failed. Generating fix report...")
             fix_file = checker.save_fix_report(results, "sprint23_fixes.md")
@@ -54,9 +54,9 @@ def main():
             print("• Phase 2: TickStockAppV2 Backend Services")
             print("• TimescaleDB optimizations (optional)")
             print("• Phase 3: TickStockPL handoff")
-        
+
         sys.exit(0 if passed == total else 1)
-        
+
     except KeyboardInterrupt:
         print("\n⏹️  Check interrupted by user")
         sys.exit(1)

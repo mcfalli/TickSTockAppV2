@@ -5,11 +5,11 @@
 # COMPONENTS: Mock data, API clients, WebSocket simulation
 # ==========================================================================
 
-import pytest
-import json
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime, timedelta
 import time
+from datetime import datetime, timedelta
+from unittest.mock import Mock
+
+import pytest
 
 # ==========================================================================
 # MOCK DATA FIXTURES
@@ -21,18 +21,18 @@ def mock_symbols_data():
     return [
         {
             "symbol": "AAPL",
-            "name": "Apple Inc.", 
+            "name": "Apple Inc.",
             "market_cap": 3000000000000,
             "sector": "Technology"
         },
         {
             "symbol": "GOOGL",
-            "name": "Alphabet Inc.", 
+            "name": "Alphabet Inc.",
             "market_cap": 1800000000000,
             "sector": "Technology"
         },
         {
-            "symbol": "MSFT", 
+            "symbol": "MSFT",
             "name": "Microsoft Corporation",
             "market_cap": 2800000000000,
             "sector": "Technology"
@@ -40,7 +40,7 @@ def mock_symbols_data():
         {
             "symbol": "TSLA",
             "name": "Tesla, Inc.",
-            "market_cap": 800000000000, 
+            "market_cap": 800000000000,
             "sector": "Consumer Discretionary"
         },
         {
@@ -64,7 +64,7 @@ def mock_watchlist_data():
             "volume": 45000000
         },
         {
-            "symbol": "GOOGL", 
+            "symbol": "GOOGL",
             "name": "Alphabet Inc.",
             "last_price": 142.80,
             "change": -1.20,
@@ -73,7 +73,7 @@ def mock_watchlist_data():
         },
         {
             "symbol": "MSFT",
-            "name": "Microsoft Corporation", 
+            "name": "Microsoft Corporation",
             "last_price": 420.15,
             "change": 5.45,
             "change_percent": 1.31,
@@ -81,12 +81,12 @@ def mock_watchlist_data():
         }
     ]
 
-@pytest.fixture 
+@pytest.fixture
 def mock_chart_data():
     """Mock OHLCV chart data for testing."""
     base_time = datetime.now() - timedelta(days=30)
     data = []
-    
+
     for i in range(30):
         timestamp = base_time + timedelta(days=i)
         open_price = 150.0 + (i * 0.5)
@@ -94,7 +94,7 @@ def mock_chart_data():
         low_price = open_price - 1.5
         close_price = open_price + 0.75
         volume = 25000000 + (i * 100000)
-        
+
         data.append({
             "timestamp": timestamp.isoformat(),
             "open": round(open_price, 2),
@@ -103,7 +103,7 @@ def mock_chart_data():
             "close": round(close_price, 2),
             "volume": volume
         })
-    
+
     return data
 
 @pytest.fixture
@@ -126,33 +126,33 @@ def mock_real_time_price():
 def mock_api_client():
     """Mock API client for testing API interactions."""
     client = Mock()
-    
+
     # Configure default successful responses
     client.get_watchlist.return_value = {
         "success": True,
         "symbols": []
     }
-    
+
     client.add_to_watchlist.return_value = {
         "success": True,
         "message": "Symbol added successfully"
     }
-    
+
     client.remove_from_watchlist.return_value = {
-        "success": True, 
+        "success": True,
         "message": "Symbol removed successfully"
     }
-    
+
     client.get_symbols.return_value = {
         "success": True,
         "symbols": []
     }
-    
+
     client.get_chart_data.return_value = {
         "success": True,
         "chart_data": []
     }
-    
+
     return client
 
 @pytest.fixture
@@ -175,25 +175,25 @@ def performance_timer():
         def __init__(self):
             self.start_time = None
             self.end_time = None
-            
+
         def start(self):
             self.start_time = time.perf_counter()
-            
+
         def stop(self):
             self.end_time = time.perf_counter()
-            
+
         @property
         def elapsed(self):
             if self.start_time and self.end_time:
                 return (self.end_time - self.start_time) * 1000  # Return in milliseconds
             return None
-            
+
         @property
         def elapsed_seconds(self):
             if self.start_time and self.end_time:
                 return self.end_time - self.start_time
             return None
-    
+
     return PerformanceTimer()
 
 # ==========================================================================
@@ -232,16 +232,16 @@ def watchlist_generator():
         symbols = ["AAPL", "GOOGL", "MSFT", "TSLA", "NVDA", "AMZN", "META", "NFLX", "AMD", "INTC"]
         companies = [
             "Apple Inc.", "Alphabet Inc.", "Microsoft Corporation", "Tesla, Inc.",
-            "NVIDIA Corporation", "Amazon.com Inc.", "Meta Platforms Inc.", 
+            "NVIDIA Corporation", "Amazon.com Inc.", "Meta Platforms Inc.",
             "Netflix Inc.", "Advanced Micro Devices Inc.", "Intel Corporation"
         ]
-        
+
         watchlist = []
         for i in range(min(count, len(symbols))):
             base_price = 100 + (i * 25)
             change = (i - count//2) * 2.5 if with_changes else 0
             change_percent = (change / base_price) * 100 if base_price > 0 else 0
-            
+
             watchlist.append({
                 "symbol": symbols[i],
                 "name": companies[i],
@@ -250,9 +250,9 @@ def watchlist_generator():
                 "change_percent": change_percent,
                 "volume": 25000000 + (i * 5000000)
             })
-        
+
         return watchlist
-    
+
     return generate_watchlist
 
 @pytest.fixture
@@ -262,10 +262,10 @@ def chart_data_generator():
         base_time = datetime.now() - timedelta(days=days)
         data = []
         base_price = 150.0
-        
+
         for i in range(days):
             timestamp = base_time + timedelta(days=i)
-            
+
             # Apply pattern
             if pattern == "uptrend":
                 trend_factor = 1 + (i * 0.01)
@@ -273,26 +273,26 @@ def chart_data_generator():
                 trend_factor = 1 - (i * 0.01)
             else:  # sideways
                 trend_factor = 1 + (0.005 * (i % 4 - 2))
-            
+
             # Add volatility
             import random
             random_factor = 1 + (random.random() - 0.5) * volatility
-            
+
             open_price = base_price * trend_factor * random_factor
             high_price = open_price * (1 + volatility/2)
-            low_price = open_price * (1 - volatility/2) 
+            low_price = open_price * (1 - volatility/2)
             close_price = open_price * (1 + (random.random() - 0.5) * volatility/2)
             volume = random.randint(20000000, 80000000)
-            
+
             data.append({
                 "timestamp": timestamp.isoformat(),
                 "open": round(open_price, 2),
-                "high": round(high_price, 2), 
+                "high": round(high_price, 2),
                 "low": round(low_price, 2),
                 "close": round(close_price, 2),
                 "volume": volume
             })
-        
+
         return data
-    
+
     return generate_chart_data

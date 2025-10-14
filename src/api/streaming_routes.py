@@ -5,12 +5,11 @@ Sprint 33 Phase 5: Real-time streaming integration
 Provides routes for streaming dashboard and API endpoints for historical data.
 """
 
-import logging
-from datetime import datetime, timedelta
-from flask import Blueprint, render_template, jsonify, request, current_app
-from flask_login import login_required, current_user
-from typing import Dict, Any, List, Optional
 import json
+import logging
+
+from flask import Blueprint, current_app, jsonify, request
+from flask_login import login_required
 
 logger = logging.getLogger(__name__)
 
@@ -102,24 +101,23 @@ def get_streaming_patterns(symbol: str):
             LIMIT 100
         """
 
-        with get_db_connection(read_only=True) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query, (symbol, hours))
-                columns = [desc[0] for desc in cursor.description]
-                results = []
+        with get_db_connection(read_only=True) as conn, conn.cursor() as cursor:
+            cursor.execute(query, (symbol, hours))
+            columns = [desc[0] for desc in cursor.description]
+            results = []
 
-                for row in cursor.fetchall():
-                    pattern = dict(zip(columns, row))
-                    # Convert datetime to ISO format
-                    if pattern.get('timestamp'):
-                        pattern['timestamp'] = pattern['timestamp'].isoformat()
-                    # Parse parameters JSON if string
-                    if pattern.get('parameters') and isinstance(pattern['parameters'], str):
-                        try:
-                            pattern['parameters'] = json.loads(pattern['parameters'])
-                        except:
-                            pass
-                    results.append(pattern)
+            for row in cursor.fetchall():
+                pattern = dict(zip(columns, row, strict=False))
+                # Convert datetime to ISO format
+                if pattern.get('timestamp'):
+                    pattern['timestamp'] = pattern['timestamp'].isoformat()
+                # Parse parameters JSON if string
+                if pattern.get('parameters') and isinstance(pattern['parameters'], str):
+                    try:
+                        pattern['parameters'] = json.loads(pattern['parameters'])
+                    except:
+                        pass
+                results.append(pattern)
 
         logger.info(f"STREAMING-API: Found {len(results)} patterns for {symbol} in last {hours} hours")
         return jsonify(results)
@@ -172,24 +170,23 @@ def get_streaming_indicators(symbol: str):
 
         base_query += " ORDER BY calculated_at DESC LIMIT 200"
 
-        with get_db_connection(read_only=True) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(base_query, params)
-                columns = [desc[0] for desc in cursor.description]
-                results = []
+        with get_db_connection(read_only=True) as conn, conn.cursor() as cursor:
+            cursor.execute(base_query, params)
+            columns = [desc[0] for desc in cursor.description]
+            results = []
 
-                for row in cursor.fetchall():
-                    indicator = dict(zip(columns, row))
-                    # Convert datetime to ISO format
-                    if indicator.get('timestamp'):
-                        indicator['timestamp'] = indicator['timestamp'].isoformat()
-                    # Parse parameters JSON if string
-                    if indicator.get('parameters') and isinstance(indicator['parameters'], str):
-                        try:
-                            indicator['parameters'] = json.loads(indicator['parameters'])
-                        except:
-                            pass
-                    results.append(indicator)
+            for row in cursor.fetchall():
+                indicator = dict(zip(columns, row, strict=False))
+                # Convert datetime to ISO format
+                if indicator.get('timestamp'):
+                    indicator['timestamp'] = indicator['timestamp'].isoformat()
+                # Parse parameters JSON if string
+                if indicator.get('parameters') and isinstance(indicator['parameters'], str):
+                    try:
+                        indicator['parameters'] = json.loads(indicator['parameters'])
+                    except:
+                        pass
+                results.append(indicator)
 
         logger.info(f"STREAMING-API: Found {len(results)} indicators for {symbol} in last {hours} hours")
         return jsonify(results)
@@ -245,26 +242,25 @@ def get_indicator_alerts():
 
         query += f" ORDER BY calculated_at DESC LIMIT {limit}"
 
-        with get_db_connection(read_only=True) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query, params)
-                columns = [desc[0] for desc in cursor.description]
-                results = []
+        with get_db_connection(read_only=True) as conn, conn.cursor() as cursor:
+            cursor.execute(query, params)
+            columns = [desc[0] for desc in cursor.description]
+            results = []
 
-                for row in cursor.fetchall():
-                    alert = dict(zip(columns, row))
-                    # Convert datetime to ISO format
-                    if alert.get('timestamp'):
-                        alert['timestamp'] = alert['timestamp'].isoformat()
+            for row in cursor.fetchall():
+                alert = dict(zip(columns, row, strict=False))
+                # Convert datetime to ISO format
+                if alert.get('timestamp'):
+                    alert['timestamp'] = alert['timestamp'].isoformat()
 
-                    # Determine alert type based on indicator values
-                    if alert['alert_type'] == 'RSI':
-                        if alert['value'] > 70:
-                            alert['alert_type'] = 'RSI_OVERBOUGHT'
-                        elif alert['value'] < 30:
-                            alert['alert_type'] = 'RSI_OVERSOLD'
+                # Determine alert type based on indicator values
+                if alert['alert_type'] == 'RSI':
+                    if alert['value'] > 70:
+                        alert['alert_type'] = 'RSI_OVERBOUGHT'
+                    elif alert['value'] < 30:
+                        alert['alert_type'] = 'RSI_OVERSOLD'
 
-                    results.append(alert)
+                results.append(alert)
 
         logger.info(f"STREAMING-API: Found {len(results)} alerts in last {hours} hours")
         return jsonify(results)
@@ -287,20 +283,19 @@ def get_streaming_summary():
 
         summary = {}
 
-        with get_db_connection(read_only=True) as conn:
-            with conn.cursor() as cursor:
-                # Pattern counts by type (last hour)
-                cursor.execute("""
+        with get_db_connection(read_only=True) as conn, conn.cursor() as cursor:
+            # Pattern counts by type (last hour)
+            cursor.execute("""
                     SELECT pattern_type, COUNT(*) as count
                     FROM intraday_patterns
                     WHERE detected_at > NOW() - INTERVAL '1 hour'
                     GROUP BY pattern_type
                     ORDER BY count DESC
                 """)
-                summary['pattern_distribution'] = dict(cursor.fetchall())
+            summary['pattern_distribution'] = dict(cursor.fetchall())
 
-                # Top active symbols
-                cursor.execute("""
+            # Top active symbols
+            cursor.execute("""
                     SELECT symbol, COUNT(*) as event_count
                     FROM (
                         SELECT symbol FROM intraday_patterns
@@ -313,22 +308,22 @@ def get_streaming_summary():
                     ORDER BY event_count DESC
                     LIMIT 10
                 """)
-                summary['top_symbols'] = [
-                    {'symbol': row[0], 'events': row[1]}
-                    for row in cursor.fetchall()
-                ]
+            summary['top_symbols'] = [
+                {'symbol': row[0], 'events': row[1]}
+                for row in cursor.fetchall()
+            ]
 
-                # Total counts
-                cursor.execute("""
+            # Total counts
+            cursor.execute("""
                     SELECT
                         (SELECT COUNT(*) FROM intraday_patterns
                          WHERE detected_at > NOW() - INTERVAL '1 hour') as patterns,
                         (SELECT COUNT(*) FROM intraday_indicators
                          WHERE calculated_at > NOW() - INTERVAL '1 hour') as indicators
                 """)
-                counts = cursor.fetchone()
-                summary['total_patterns'] = counts[0] if counts else 0
-                summary['total_indicators'] = counts[1] if counts else 0
+            counts = cursor.fetchone()
+            summary['total_patterns'] = counts[0] if counts else 0
+            summary['total_indicators'] = counts[1] if counts else 0
 
         return jsonify(summary)
 

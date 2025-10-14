@@ -18,11 +18,10 @@ Sprint: 23
 """
 
 import logging
-import asyncio
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any
 
 from src.infrastructure.database.connection_pool import DatabaseConnectionPool
 
@@ -31,7 +30,7 @@ logger = logging.getLogger(__name__)
 class MarketTrend(Enum):
     """Market trend enumeration"""
     BULLISH = "bullish"
-    BEARISH = "bearish" 
+    BEARISH = "bearish"
     NEUTRAL = "neutral"
 
 class SessionType(Enum):
@@ -71,7 +70,7 @@ class PatternMarketContext:
 
 class MarketConditionService:
     """Service for market condition analysis and pattern correlation"""
-    
+
     def __init__(self, db_pool: DatabaseConnectionPool):
         """Initialize market condition service
         
@@ -82,10 +81,10 @@ class MarketConditionService:
         self._current_conditions_cache = None
         self._cache_timestamp = None
         self._cache_timeout = 300  # 5 minutes
-        
+
         logger.info("MarketConditionService initialized")
-    
-    async def get_current_market_conditions(self) -> Optional[MarketCondition]:
+
+    async def get_current_market_conditions(self) -> MarketCondition | None:
         """Get the most recent market conditions
         
         Returns:
@@ -93,59 +92,58 @@ class MarketConditionService:
         """
         try:
             # Check cache first
-            if (self._current_conditions_cache and self._cache_timestamp and 
+            if (self._current_conditions_cache and self._cache_timestamp and
                 (datetime.now() - self._cache_timestamp).seconds < self._cache_timeout):
                 logger.debug("Returning cached current market conditions")
                 return self._current_conditions_cache
-            
+
             # Fetch from database
-            async with self.db_pool.get_connection() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute("""
+            async with self.db_pool.get_connection() as conn, conn.cursor() as cursor:
+                await cursor.execute("""
                         SELECT * FROM market_conditions 
                         ORDER BY timestamp DESC 
                         LIMIT 1
                     """)
-                    
-                    result = await cursor.fetchone()
-                    
-                    if not result:
-                        logger.warning("No market conditions found in database")
-                        return self._get_mock_market_conditions()
-                    
-                    conditions = MarketCondition(
-                        timestamp=result[1],
-                        market_volatility=float(result[2]) if result[2] else 0.0,
-                        volatility_percentile=float(result[3]) if result[3] else 0.0,
-                        overall_volume=int(result[4]) if result[4] else 0,
-                        volume_vs_average=float(result[5]) if result[5] else 1.0,
-                        market_trend=MarketTrend(result[6]),
-                        trend_strength=float(result[7]) if result[7] else 0.0,
-                        session_type=SessionType(result[8]),
-                        day_of_week=int(result[9]),
-                        advancing_count=int(result[10]) if result[10] else 0,
-                        declining_count=int(result[11]) if result[11] else 0,
-                        advance_decline_ratio=float(result[12]) if result[12] else 1.0,
-                        sp500_change=float(result[13]) if result[13] else 0.0,
-                        nasdaq_change=float(result[14]) if result[14] else 0.0,
-                        dow_change=float(result[15]) if result[15] else 0.0
-                    )
-            
+
+                result = await cursor.fetchone()
+
+                if not result:
+                    logger.warning("No market conditions found in database")
+                    return self._get_mock_market_conditions()
+
+                conditions = MarketCondition(
+                    timestamp=result[1],
+                    market_volatility=float(result[2]) if result[2] else 0.0,
+                    volatility_percentile=float(result[3]) if result[3] else 0.0,
+                    overall_volume=int(result[4]) if result[4] else 0,
+                    volume_vs_average=float(result[5]) if result[5] else 1.0,
+                    market_trend=MarketTrend(result[6]),
+                    trend_strength=float(result[7]) if result[7] else 0.0,
+                    session_type=SessionType(result[8]),
+                    day_of_week=int(result[9]),
+                    advancing_count=int(result[10]) if result[10] else 0,
+                    declining_count=int(result[11]) if result[11] else 0,
+                    advance_decline_ratio=float(result[12]) if result[12] else 1.0,
+                    sp500_change=float(result[13]) if result[13] else 0.0,
+                    nasdaq_change=float(result[14]) if result[14] else 0.0,
+                    dow_change=float(result[15]) if result[15] else 0.0
+                )
+
             # Cache the result
             self._current_conditions_cache = conditions
             self._cache_timestamp = datetime.now()
-            
+
             logger.info(f"Retrieved current market conditions: {conditions.market_trend.value}, volatility: {conditions.market_volatility}")
             return conditions
-            
+
         except Exception as e:
             logger.error(f"Error getting current market conditions: {e}")
             # Return mock data for testing
             return self._get_mock_market_conditions()
-    
-    async def get_pattern_market_context(self, 
+
+    async def get_pattern_market_context(self,
                                        pattern_name: str,
-                                       days_back: int = 30) -> List[PatternMarketContext]:
+                                       days_back: int = 30) -> list[PatternMarketContext]:
         """Get pattern performance by market conditions
         
         Args:
@@ -157,36 +155,35 @@ class MarketConditionService:
         """
         try:
             # Fetch from database using Sprint 23 analytics function
-            async with self.db_pool.get_connection() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute("""
+            async with self.db_pool.get_connection() as conn, conn.cursor() as cursor:
+                await cursor.execute("""
                         SELECT * FROM analyze_pattern_market_context(%s, %s)
                         ORDER BY detection_count DESC
                     """, (pattern_name, days_back))
-                    
-                    results = await cursor.fetchall()
-                    
-                    contexts = []
-                    for row in results:
-                        contexts.append(PatternMarketContext(
-                            condition_type=row[0],
-                            condition_value=row[1],
-                            detection_count=int(row[2]),
-                            success_rate=float(row[3]) if row[3] else 0.0,
-                            avg_return_1d=float(row[4]) if row[4] else 0.0,
-                            vs_overall_performance=float(row[5]) if row[5] else 0.0
-                        ))
-            
+
+                results = await cursor.fetchall()
+
+                contexts = []
+                for row in results:
+                    contexts.append(PatternMarketContext(
+                        condition_type=row[0],
+                        condition_value=row[1],
+                        detection_count=int(row[2]),
+                        success_rate=float(row[3]) if row[3] else 0.0,
+                        avg_return_1d=float(row[4]) if row[4] else 0.0,
+                        vs_overall_performance=float(row[5]) if row[5] else 0.0
+                    ))
+
             logger.info(f"Retrieved {len(contexts)} market contexts for pattern: {pattern_name}")
             return contexts
-            
+
         except Exception as e:
             logger.error(f"Error getting pattern market context for {pattern_name}: {e}")
             # Return mock data for testing
             return self._get_mock_pattern_market_context(pattern_name)
-    
-    async def get_market_condition_history(self, 
-                                         hours_back: int = 24) -> List[MarketCondition]:
+
+    async def get_market_condition_history(self,
+                                         hours_back: int = 24) -> list[MarketCondition]:
         """Get historical market conditions
         
         Args:
@@ -196,45 +193,44 @@ class MarketConditionService:
             List of historical market conditions
         """
         try:
-            async with self.db_pool.get_connection() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute("""
+            async with self.db_pool.get_connection() as conn, conn.cursor() as cursor:
+                await cursor.execute("""
                         SELECT * FROM market_conditions 
                         WHERE timestamp >= %s 
                         ORDER BY timestamp DESC
                     """, (datetime.now() - timedelta(hours=hours_back),))
-                    
-                    results = await cursor.fetchall()
-                    
-                    conditions = []
-                    for row in results:
-                        conditions.append(MarketCondition(
-                            timestamp=row[1],
-                            market_volatility=float(row[2]) if row[2] else 0.0,
-                            volatility_percentile=float(row[3]) if row[3] else 0.0,
-                            overall_volume=int(row[4]) if row[4] else 0,
-                            volume_vs_average=float(row[5]) if row[5] else 1.0,
-                            market_trend=MarketTrend(row[6]),
-                            trend_strength=float(row[7]) if row[7] else 0.0,
-                            session_type=SessionType(row[8]),
-                            day_of_week=int(row[9]),
-                            advancing_count=int(row[10]) if result[10] else 0,
-                            declining_count=int(row[11]) if result[11] else 0,
-                            advance_decline_ratio=float(row[12]) if row[12] else 1.0,
-                            sp500_change=float(row[13]) if row[13] else 0.0,
-                            nasdaq_change=float(row[14]) if row[14] else 0.0,
-                            dow_change=float(row[15]) if row[15] else 0.0
-                        ))
-            
+
+                results = await cursor.fetchall()
+
+                conditions = []
+                for row in results:
+                    conditions.append(MarketCondition(
+                        timestamp=row[1],
+                        market_volatility=float(row[2]) if row[2] else 0.0,
+                        volatility_percentile=float(row[3]) if row[3] else 0.0,
+                        overall_volume=int(row[4]) if row[4] else 0,
+                        volume_vs_average=float(row[5]) if row[5] else 1.0,
+                        market_trend=MarketTrend(row[6]),
+                        trend_strength=float(row[7]) if row[7] else 0.0,
+                        session_type=SessionType(row[8]),
+                        day_of_week=int(row[9]),
+                        advancing_count=int(row[10]) if result[10] else 0,
+                        declining_count=int(row[11]) if result[11] else 0,
+                        advance_decline_ratio=float(row[12]) if row[12] else 1.0,
+                        sp500_change=float(row[13]) if row[13] else 0.0,
+                        nasdaq_change=float(row[14]) if row[14] else 0.0,
+                        dow_change=float(row[15]) if row[15] else 0.0
+                    ))
+
             logger.info(f"Retrieved {len(conditions)} historical market conditions")
             return conditions
-            
+
         except Exception as e:
             logger.error(f"Error getting market condition history: {e}")
             # Return mock data for testing
             return [self._get_mock_market_conditions()]
-    
-    async def get_market_summary(self) -> Dict[str, Any]:
+
+    async def get_market_summary(self) -> dict[str, Any]:
         """Get market condition summary for dashboard
         
         Returns:
@@ -244,15 +240,15 @@ class MarketConditionService:
             current = await self.get_current_market_conditions()
             if not current:
                 return self._get_mock_market_summary()
-            
+
             # Determine volatility level
             if current.market_volatility < 15:
                 volatility_level = "Low"
             elif current.market_volatility < 25:
-                volatility_level = "Medium"  
+                volatility_level = "Medium"
             else:
                 volatility_level = "High"
-            
+
             # Determine volume level
             if current.volume_vs_average > 1.5:
                 volume_level = "High"
@@ -260,7 +256,7 @@ class MarketConditionService:
                 volume_level = "Normal"
             else:
                 volume_level = "Low"
-            
+
             summary = {
                 'timestamp': current.timestamp.isoformat(),
                 'trend': current.market_trend.value.title(),
@@ -278,22 +274,22 @@ class MarketConditionService:
                     'dow': current.dow_change
                 }
             }
-            
+
             logger.info("Generated market summary")
             return summary
-            
+
         except Exception as e:
             logger.error(f"Error generating market summary: {e}")
             return self._get_mock_market_summary()
-    
+
     def clear_cache(self):
         """Clear cached market conditions"""
         self._current_conditions_cache = None
         self._cache_timestamp = None
         logger.info("Market condition cache cleared")
-    
+
     # Mock data methods for testing (will be replaced with real data from TickStockPL)
-    
+
     def _get_mock_market_conditions(self) -> MarketCondition:
         """Generate mock market conditions for testing"""
         return MarketCondition(
@@ -313,8 +309,8 @@ class MarketConditionService:
             nasdaq_change=1.23,
             dow_change=0.67
         )
-    
-    def _get_mock_pattern_market_context(self, pattern_name: str) -> List[PatternMarketContext]:
+
+    def _get_mock_pattern_market_context(self, pattern_name: str) -> list[PatternMarketContext]:
         """Generate mock pattern market context for testing"""
         return [
             PatternMarketContext(
@@ -342,7 +338,7 @@ class MarketConditionService:
                 vs_overall_performance=5.6
             ),
             PatternMarketContext(
-                condition_type="Market Trend", 
+                condition_type="Market Trend",
                 condition_value="BEARISH",
                 detection_count=11,
                 success_rate=45.8,
@@ -350,8 +346,8 @@ class MarketConditionService:
                 vs_overall_performance=-23.7
             )
         ]
-    
-    def _get_mock_market_summary(self) -> Dict[str, Any]:
+
+    def _get_mock_market_summary(self) -> dict[str, Any]:
         """Generate mock market summary for testing"""
         return {
             'timestamp': datetime.now().isoformat(),

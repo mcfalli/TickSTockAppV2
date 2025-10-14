@@ -3,25 +3,24 @@ Integration Test Fixtures for Sprint 10 Phase 2
 Comprehensive fixtures for Redis Event Consumption and WebSocket Broadcasting tests.
 """
 
-import pytest
-import threading
-import time
 import json
-import redis
-from unittest.mock import Mock, MagicMock, patch, create_autospec
-from typing import Dict, Any, List, Optional, Callable
-from dataclasses import dataclass
-from flask import Flask
-from flask_socketio import SocketIO
-import eventlet
+import os
 
 # Import TickStockApp components
 import sys
-import os
+import time
+from dataclasses import dataclass
+from typing import Any
+from unittest.mock import Mock
+
+import pytest
+import redis
+from flask import Flask
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'src'))
 
-from core.services.redis_event_subscriber import RedisEventSubscriber, EventType, TickStockEvent
-from core.services.websocket_broadcaster import WebSocketBroadcaster, ConnectedUser
+from core.services.redis_event_subscriber import EventType, RedisEventSubscriber
+from core.services.websocket_broadcaster import ConnectedUser, WebSocketBroadcaster
 
 
 @dataclass
@@ -30,7 +29,7 @@ class MockRedisMessage:
     channel: str
     data: str
     type: str = 'message'
-    
+
     def __getitem__(self, key):
         """Allow dictionary-style access."""
         return getattr(self, key)
@@ -38,25 +37,25 @@ class MockRedisMessage:
 
 class MockRedisClient:
     """Enhanced mock Redis client with pub-sub simulation."""
-    
+
     def __init__(self):
         self.connected = True
         self.channels = {}
         self.pubsub_instance = None
         self.published_messages = []
-        
+
     def ping(self):
         """Mock ping method."""
         if not self.connected:
             raise redis.ConnectionError("Mock Redis connection failed")
         return True
-    
+
     def pubsub(self):
         """Create mock pubsub instance."""
         if self.pubsub_instance is None:
             self.pubsub_instance = MockPubSub(self)
         return self.pubsub_instance
-    
+
     def publish(self, channel: str, message: str):
         """Mock publish - stores messages for verification."""
         message_data = {
@@ -65,7 +64,7 @@ class MockRedisClient:
             'timestamp': time.time()
         }
         self.published_messages.append(message_data)
-        
+
         # Deliver to subscribers if any
         if self.pubsub_instance and channel in self.pubsub_instance.subscribed_channels:
             mock_message = MockRedisMessage(
@@ -74,11 +73,11 @@ class MockRedisClient:
                 type='message'
             )
             self.pubsub_instance.message_queue.append(mock_message)
-    
+
     def simulate_connection_failure(self):
         """Simulate Redis connection failure."""
         self.connected = False
-        
+
     def restore_connection(self):
         """Restore Redis connection."""
         self.connected = True
@@ -86,21 +85,21 @@ class MockRedisClient:
 
 class MockPubSub:
     """Mock Redis pub-sub client."""
-    
+
     def __init__(self, redis_client: MockRedisClient):
         self.redis_client = redis_client
         self.subscribed_channels = set()
         self.message_queue = []
         self.closed = False
-        
+
     def subscribe(self, channels):
         """Mock subscribe to channels."""
         if isinstance(channels, str):
             channels = [channels]
-        
+
         for channel in channels:
             self.subscribed_channels.add(channel)
-        
+
         # Add subscription confirmation messages
         for channel in channels:
             confirm_msg = MockRedisMessage(
@@ -109,37 +108,37 @@ class MockPubSub:
                 type='subscribe'
             )
             self.message_queue.append(confirm_msg)
-    
+
     def unsubscribe(self):
         """Mock unsubscribe from all channels."""
         self.subscribed_channels.clear()
-        
+
     def close(self):
         """Mock close pubsub connection."""
         self.closed = True
-        
+
     def get_message(self, timeout=None):
         """Mock get message with timeout."""
         if not self.redis_client.connected:
             raise redis.ConnectionError("Mock connection error")
-            
+
         if self.message_queue:
             return self.message_queue.pop(0)
-            
+
         return None
 
 
 class MockSocketIOClient:
     """Mock SocketIO client for testing broadcasts."""
-    
+
     def __init__(self, user_id: str = "test_user", session_id: str = "test_session"):
         self.user_id = user_id
         self.session_id = session_id
         self.received_messages = []
         self.connected = True
         self.subscriptions = set()
-        
-    def emit(self, event: str, data: Dict[str, Any]):
+
+    def emit(self, event: str, data: dict[str, Any]):
         """Mock emit - store received messages."""
         self.received_messages.append({
             'event': event,
@@ -150,15 +149,15 @@ class MockSocketIOClient:
 
 class MockSocketIO:
     """Enhanced mock SocketIO for integration testing."""
-    
+
     def __init__(self):
         self.clients = {}
         self.broadcast_messages = []
         self.room_messages = {}
         self.event_handlers = {}
         self.server = MockSocketIOServer()
-        
-    def emit(self, event: str, data: Dict[str, Any], broadcast: bool = False, room: str = None):
+
+    def emit(self, event: str, data: dict[str, Any], broadcast: bool = False, room: str = None):
         """Mock emit with broadcast and room support."""
         message = {
             'event': event,
@@ -167,7 +166,7 @@ class MockSocketIO:
             'room': room,
             'timestamp': time.time()
         }
-        
+
         if broadcast:
             self.broadcast_messages.append(message)
             # Deliver to all connected clients
@@ -180,28 +179,28 @@ class MockSocketIO:
             # Deliver to client in that room (session)
             if room in self.clients:
                 self.clients[room].emit(event, data)
-        
+
     def on(self, event_name: str):
         """Mock decorator for event handlers."""
         def decorator(handler):
             self.event_handlers[event_name] = handler
             return handler
         return decorator
-        
+
     def add_client(self, session_id: str, client: MockSocketIOClient):
         """Add mock client for testing."""
         self.clients[session_id] = client
-        
+
     def remove_client(self, session_id: str):
         """Remove mock client."""
         if session_id in self.clients:
             del self.clients[session_id]
-            
+
     def trigger_event(self, event_name: str, *args, **kwargs):
         """Manually trigger event handler for testing."""
         if event_name in self.event_handlers:
             return self.event_handlers[event_name](*args, **kwargs)
-            
+
     def disconnect(self, session_id: str):
         """Mock disconnect client."""
         if session_id in self.clients:
@@ -210,10 +209,10 @@ class MockSocketIO:
 
 class MockSocketIOServer:
     """Mock SocketIO server for session management."""
-    
+
     def __init__(self):
         self.current_sid = "test_session_123"
-        
+
     def get_sid(self):
         """Return current session ID."""
         return self.current_sid
@@ -221,10 +220,10 @@ class MockSocketIOServer:
 
 class TickStockPLSimulator:
     """Simulate TickStockPL publishing events for integration testing."""
-    
+
     def __init__(self, redis_client: MockRedisClient):
         self.redis_client = redis_client
-        
+
     def publish_pattern_event(self, symbol: str, pattern: str, confidence: float = 0.85):
         """Simulate TickStockPL publishing pattern detection event."""
         event_data = {
@@ -239,17 +238,17 @@ class TickStockPLSimulator:
                 'historical_accuracy': 0.78
             }
         }
-        
+
         channel = 'tickstock.events.patterns'
         message = json.dumps(event_data)
         self.redis_client.publish(channel, message)
         return event_data
-        
+
     def publish_backtest_progress(self, job_id: str, progress: float, status: str = 'processing'):
         """Simulate TickStockPL publishing backtest progress."""
         progress_data = {
             'event_type': 'backtest_progress',
-            'source': 'tickstock_pl', 
+            'source': 'tickstock_pl',
             'timestamp': time.time(),
             'job_id': job_id,
             'progress': progress,
@@ -258,12 +257,12 @@ class TickStockPLSimulator:
             'current_symbol': 'AAPL',
             'processed_symbols': int(progress * 100)
         }
-        
+
         channel = 'tickstock.events.backtesting.progress'
         message = json.dumps(progress_data)
         self.redis_client.publish(channel, message)
         return progress_data
-        
+
     def publish_backtest_result(self, job_id: str, status: str = 'completed'):
         """Simulate TickStockPL publishing backtest completion."""
         result_data = {
@@ -283,12 +282,12 @@ class TickStockPLSimulator:
             },
             'processing_time_seconds': 45.2
         }
-        
+
         channel = 'tickstock.events.backtesting.results'
         message = json.dumps(result_data)
         self.redis_client.publish(channel, message)
         return result_data
-        
+
     def publish_system_health(self, status: str = 'healthy'):
         """Simulate TickStockPL publishing system health update."""
         health_data = {
@@ -305,7 +304,7 @@ class TickStockPLSimulator:
                 'uptime_hours': 72.5
             }
         }
-        
+
         channel = 'tickstock.health.status'
         message = json.dumps(health_data)
         self.redis_client.publish(channel, message)
@@ -369,7 +368,7 @@ def websocket_broadcaster(mock_socketio, mock_redis_client):
 def mock_connected_users():
     """Provide mock connected users for testing."""
     users = []
-    
+
     for i in range(3):
         user = ConnectedUser(
             user_id=f"user_{i}",
@@ -379,7 +378,7 @@ def mock_connected_users():
             subscriptions=set(['Doji', 'Hammer']) if i % 2 == 0 else set(['Engulfing'])
         )
         users.append(user)
-        
+
     return users
 
 
@@ -390,25 +389,25 @@ def performance_timer():
         def __init__(self):
             self.start_time = None
             self.end_time = None
-            
+
         def start(self):
             self.start_time = time.perf_counter()
-            
+
         def stop(self):
             self.end_time = time.perf_counter()
-            
+
         @property
         def elapsed_ms(self) -> float:
             if self.start_time and self.end_time:
                 return (self.end_time - self.start_time) * 1000
             return 0.0
-            
+
         @property
         def elapsed_s(self) -> float:
             if self.start_time and self.end_time:
                 return self.end_time - self.start_time
             return 0.0
-            
+
     return PerformanceTimer()
 
 
@@ -421,30 +420,30 @@ def integration_test_environment(mock_redis_client, mock_socketio, test_config):
             self.socketio = mock_socketio
             self.config = test_config
             self.simulator = TickStockPLSimulator(mock_redis_client)
-            
+
             # Initialize components
             self.subscriber = RedisEventSubscriber(mock_redis_client, mock_socketio, test_config)
             self.broadcaster = WebSocketBroadcaster(mock_socketio, mock_redis_client)
-            
+
             # Track all events for verification
             self.received_events = []
-            
+
         def setup_event_tracking(self):
             """Set up event tracking for verification."""
             for event_type in EventType:
                 self.subscriber.add_event_handler(
-                    event_type, 
+                    event_type,
                     lambda event, et=event_type: self.received_events.append((et, event))
                 )
-                
-        def add_mock_user(self, user_id: str, session_id: str, subscriptions: List[str] = None):
+
+        def add_mock_user(self, user_id: str, session_id: str, subscriptions: list[str] = None):
             """Add mock user to WebSocket broadcaster."""
             client = MockSocketIOClient(user_id, session_id)
             if subscriptions:
                 client.subscriptions = set(subscriptions)
-                
+
             self.socketio.add_client(session_id, client)
-            
+
             # Add to broadcaster's tracking
             connected_user = ConnectedUser(
                 user_id=user_id,
@@ -454,31 +453,31 @@ def integration_test_environment(mock_redis_client, mock_socketio, test_config):
                 subscriptions=set(subscriptions) if subscriptions else set()
             )
             self.broadcaster.connected_users[session_id] = connected_user
-            
+
             if user_id not in self.broadcaster.user_sessions:
                 self.broadcaster.user_sessions[user_id] = set()
             self.broadcaster.user_sessions[user_id].add(session_id)
-            
+
             return client
-            
+
         def start_subscriber(self):
             """Start Redis event subscriber."""
             return self.subscriber.start()
-            
+
         def stop_subscriber(self):
             """Stop Redis event subscriber."""
             self.subscriber.stop()
-            
+
         def wait_for_events(self, timeout: float = 1.0):
             """Wait for events to be processed."""
             time.sleep(timeout)
-            
+
     return IntegrationEnvironment()
 
 
 # Helper functions for assertions
 
-def assert_redis_message_valid(message: Dict[str, Any]):
+def assert_redis_message_valid(message: dict[str, Any]):
     """Assert Redis message has valid structure."""
     assert 'event_type' in message
     assert 'source' in message
@@ -486,7 +485,7 @@ def assert_redis_message_valid(message: Dict[str, Any]):
     assert message['source'] == 'tickstock_pl'
 
 
-def assert_websocket_message_valid(message: Dict[str, Any]):
+def assert_websocket_message_valid(message: dict[str, Any]):
     """Assert WebSocket message has valid structure."""
     assert 'type' in message
     assert 'timestamp' in message
@@ -500,15 +499,15 @@ def assert_performance_acceptable(duration_ms: float, max_ms: int = 100):
 
 
 def assert_event_delivery_complete(
-    sent_events: List[Dict[str, Any]], 
-    received_events: List[Dict[str, Any]], 
+    sent_events: list[dict[str, Any]],
+    received_events: list[dict[str, Any]],
     tolerance_ms: int = 100
 ):
     """Assert all events were delivered within tolerance."""
     assert len(received_events) == len(sent_events), \
         f"Event count mismatch: sent {len(sent_events)}, received {len(received_events)}"
-    
-    for sent, received in zip(sent_events, received_events):
+
+    for sent, received in zip(sent_events, received_events, strict=False):
         delivery_time_ms = (received['timestamp'] - sent['timestamp']) * 1000
         assert delivery_time_ms <= tolerance_ms, \
             f"Delivery time {delivery_time_ms:.2f}ms exceeds tolerance {tolerance_ms}ms"

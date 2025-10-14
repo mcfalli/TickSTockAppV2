@@ -5,9 +5,11 @@ Validates that TickStockPL TickAggregator is functioning correctly
 before proceeding to Phase 2 (removing AppV2 aggregation).
 """
 
+
 import psycopg2
-from datetime import datetime, timedelta
+
 from src.config.database_config import get_database_config
+
 
 def main():
     print("\n" + "="*80)
@@ -83,7 +85,7 @@ def main():
         for row in pattern_results:
             print(f"  {row[0]}: {row[1]} detections (avg confidence: {row[2]})")
     else:
-        print(f"⚠️  WARNING: 0 patterns detected (may be normal if no patterns present)")
+        print("⚠️  WARNING: 0 patterns detected (may be normal if no patterns present)")
         print("  Note: Pattern detection working if bars are being created")
 
     # Test 3: Check indicator calculations
@@ -110,7 +112,7 @@ def main():
         for row in indicator_results:
             print(f"  {row[0]}: {row[1]} calculations")
     else:
-        print(f"⚠️  WARNING: 0 indicators calculated")
+        print("⚠️  WARNING: 0 indicators calculated")
         print("  Check if indicator jobs are subscribed to persistence manager")
 
     # Test 4: Verify NO duplicate bars

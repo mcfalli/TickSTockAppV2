@@ -6,22 +6,23 @@ ensuring all TickStockPL integration requirements are met before proceeding.
 """
 
 import json
-import time
-import redis
 import logging
-from typing import Dict, List, Any, Optional
+import time
+from typing import Any
+
+import redis
 
 from src.core.exceptions.redis_exceptions import (
+    RedisChannelError,
+    RedisConfigurationError,
     RedisConnectionError,
-    RedisChannelError, 
     RedisPerformanceError,
-    RedisConfigurationError
 )
 
 logger = logging.getLogger(__name__)
 
 
-def validate_redis_config(config: Dict[str, Any]) -> None:
+def validate_redis_config(config: dict[str, Any]) -> None:
     """
     Validate Redis configuration before attempting connection.
     
@@ -33,27 +34,27 @@ def validate_redis_config(config: Dict[str, Any]) -> None:
     """
     # Check for Redis URL or individual settings
     redis_url = config.get('REDIS_URL')
-    
+
     if redis_url:
         if not redis_url.strip():
             raise RedisConfigurationError("REDIS_URL is configured but empty")
         return
-    
+
     # Check individual Redis settings
     required_keys = ['REDIS_HOST', 'REDIS_PORT', 'REDIS_DB']
     missing_keys = []
-    
+
     for key in required_keys:
         value = config.get(key)
         if value is None:
             missing_keys.append(key)
-    
+
     if missing_keys:
         raise RedisConfigurationError(
             f"Missing required Redis configuration: {missing_keys}. "
             f"Either provide REDIS_URL or individual settings (REDIS_HOST, REDIS_PORT, REDIS_DB)"
         )
-    
+
     # Validate values
     try:
         port = int(config['REDIS_PORT'])
@@ -61,7 +62,7 @@ def validate_redis_config(config: Dict[str, Any]) -> None:
             raise RedisConfigurationError(f"Invalid Redis port: {port} (must be 1-65535)")
     except (ValueError, TypeError):
         raise RedisConfigurationError(f"Redis port must be integer: {config['REDIS_PORT']}")
-    
+
     try:
         db = int(config['REDIS_DB'])
         if not (0 <= db <= 15):
@@ -70,7 +71,7 @@ def validate_redis_config(config: Dict[str, Any]) -> None:
         raise RedisConfigurationError(f"Redis database must be integer: {config['REDIS_DB']}")
 
 
-def create_redis_client(config: Dict[str, Any]) -> redis.Redis:
+def create_redis_client(config: dict[str, Any]) -> redis.Redis:
     """
     Create Redis client from configuration.
     
@@ -84,9 +85,9 @@ def create_redis_client(config: Dict[str, Any]) -> redis.Redis:
         RedisConfigurationError: If configuration is invalid
     """
     validate_redis_config(config)
-    
+
     redis_url = config.get('REDIS_URL')
-    
+
     if redis_url:
         try:
             return redis.Redis.from_url(
@@ -98,12 +99,12 @@ def create_redis_client(config: Dict[str, Any]) -> redis.Redis:
             )
         except Exception as e:
             raise RedisConfigurationError(f"Invalid REDIS_URL: {e}")
-    
+
     # Use individual settings
     redis_host = config.get('REDIS_HOST', 'localhost')
     redis_port = int(config['REDIS_PORT'])
     redis_db = int(config['REDIS_DB'])
-    
+
     return redis.Redis(
         host=redis_host,
         port=redis_port,
@@ -115,7 +116,7 @@ def create_redis_client(config: Dict[str, Any]) -> redis.Redis:
     )
 
 
-def test_basic_connectivity(redis_client: redis.Redis, timeout: float = 5.0, environment: str = 'PRODUCTION') -> Dict[str, Any]:
+def test_basic_connectivity(redis_client: redis.Redis, timeout: float = 5.0, environment: str = 'PRODUCTION') -> dict[str, Any]:
     """
     Test basic Redis connectivity with performance validation.
     
@@ -135,29 +136,29 @@ def test_basic_connectivity(redis_client: redis.Redis, timeout: float = 5.0, env
         start_time = time.time()
         result = redis_client.ping()
         response_time = (time.time() - start_time) * 1000
-        
+
         if not result:
             raise RedisConnectionError("Redis ping returned False - connection invalid")
-        
+
         # Performance validation with environment-aware thresholds
         # PRODUCTION: <50ms for real-time processing
         # DEVELOPMENT: <5000ms for local development with Docker
         max_latency = 50 if environment == 'PRODUCTION' else 5000
         target_desc = '50ms' if environment == 'PRODUCTION' else '5000ms'
-        
+
         if response_time > max_latency:
             raise RedisPerformanceError(
                 f"Redis ping latency too high: {response_time:.2f}ms (target: <{target_desc}). "
                 f"This will impact real-time market data processing in {environment} environment."
             )
-        
+
         # Get server info for diagnostics
         info = redis_client.info('server')
-        
+
         logger.info(f"REDIS: Basic connectivity validated - ping: {response_time:.2f}ms")
         logger.info(f"REDIS: Server info - version: {info.get('redis_version', 'unknown')}, "
                    f"uptime: {info.get('uptime_in_seconds', 0)}s")
-        
+
         return {
             'ping_success': True,
             'response_time_ms': round(response_time, 2),
@@ -165,7 +166,7 @@ def test_basic_connectivity(redis_client: redis.Redis, timeout: float = 5.0, env
             'uptime_seconds': info.get('uptime_in_seconds'),
             'used_memory_human': info.get('used_memory_human')
         }
-        
+
     except redis.ConnectionError as e:
         raise RedisConnectionError(f"Redis connection failed: {e}")
     except redis.TimeoutError as e:
@@ -176,7 +177,7 @@ def test_basic_connectivity(redis_client: redis.Redis, timeout: float = 5.0, env
         raise RedisConnectionError(f"Unexpected Redis connectivity error: {e}")
 
 
-def validate_pubsub_channels(redis_client: redis.Redis) -> Dict[str, Any]:
+def validate_pubsub_channels(redis_client: redis.Redis) -> dict[str, Any]:
     """
     Validate Redis pub-sub functionality and required channels.
     
@@ -195,33 +196,33 @@ def validate_pubsub_channels(redis_client: redis.Redis) -> Dict[str, Any]:
         'tickstock.events.backtesting.results',
         'tickstock.health.status'
     ]
-    
+
     try:
         # Test pub-sub subscription capability
         pubsub = redis_client.pubsub()
         test_channel = "tickstock.test.connectivity"
-        
+
         # Test subscription
         pubsub.subscribe(test_channel)
-        
+
         # Validate subscription worked - get the subscription confirmation message
         message = pubsub.get_message(timeout=2.0)
         if not message or message['type'] != 'subscribe':
             raise RedisChannelError("Redis pub-sub subscription test failed - no confirmation message")
-        
+
         # Test publishing capability
         test_payload = {"test": "connectivity", "timestamp": time.time()}
         publish_result = redis_client.publish(test_channel, json.dumps(test_payload))
-        
+
         # Check if we can receive the published message
         published_message = pubsub.get_message(timeout=2.0)
         if not published_message or published_message['type'] != 'message':
             logger.warning("REDIS: Pub-sub message delivery test failed - message not received")
-        
+
         # Cleanup test subscription
         pubsub.unsubscribe(test_channel)
         pubsub.close()
-        
+
         # Check channel permissions for required channels
         channel_status = {}
         for channel in required_channels:
@@ -231,7 +232,7 @@ def validate_pubsub_channels(redis_client: redis.Redis) -> Dict[str, Any]:
                 channel_status[channel] = "accessible"
             except Exception as e:
                 channel_status[channel] = f"error: {e}"
-        
+
         # Check if any channels are inaccessible
         failed_channels = [ch for ch, status in channel_status.items() if status.startswith("error:")]
         if failed_channels:
@@ -239,16 +240,16 @@ def validate_pubsub_channels(redis_client: redis.Redis) -> Dict[str, Any]:
                 f"Required Redis channels inaccessible: {failed_channels}. "
                 f"TickStockPL integration requires pub-sub access to these channels."
             )
-        
+
         logger.info(f"REDIS: Pub-sub validation successful for {len(required_channels)} channels")
-        
+
         return {
             'pubsub_functional': True,
             'test_publish_result': publish_result,
             'required_channels': required_channels,
             'channel_status': channel_status
         }
-        
+
     except redis.ConnectionError as e:
         raise RedisChannelError(f"Redis connection lost during pub-sub test: {e}")
     except RedisChannelError:
@@ -257,7 +258,7 @@ def validate_pubsub_channels(redis_client: redis.Redis) -> Dict[str, Any]:
         raise RedisChannelError(f"Redis pub-sub validation failed: {e}")
 
 
-def validate_redis_performance(redis_client: redis.Redis, test_count: int = 5, environment: str = 'PRODUCTION') -> Dict[str, Any]:
+def validate_redis_performance(redis_client: redis.Redis, test_count: int = 5, environment: str = 'PRODUCTION') -> dict[str, Any]:
     """
     Validate Redis performance meets TickStock real-time requirements.
     
@@ -273,7 +274,7 @@ def validate_redis_performance(redis_client: redis.Redis, test_count: int = 5, e
         RedisPerformanceError: If performance is below requirements
     """
     performance_tests = []
-    
+
     try:
         # Test ping latency multiple times for statistical accuracy
         for i in range(test_count):
@@ -281,16 +282,16 @@ def validate_redis_performance(redis_client: redis.Redis, test_count: int = 5, e
             redis_client.ping()
             latency = (time.time() - start_time) * 1000
             performance_tests.append(latency)
-        
+
         avg_latency = sum(performance_tests) / len(performance_tests)
         max_latency = max(performance_tests)
         min_latency = min(performance_tests)
-        
+
         # Performance requirements with environment-aware thresholds
         # PRODUCTION: Average <10ms, Maximum <50ms for real-time processing
         # DEVELOPMENT: Relaxed thresholds for local Docker development
         warnings = []
-        
+
         if environment == 'PRODUCTION':
             avg_threshold = 10
             max_threshold = 50
@@ -299,26 +300,26 @@ def validate_redis_performance(redis_client: redis.Redis, test_count: int = 5, e
             avg_threshold = 100  # More relaxed for development
             max_threshold = 5000  # Allow Docker container startup delays
             warning_threshold = 1000
-        
+
         if avg_latency > avg_threshold:
             warnings.append(f"High average latency: {avg_latency:.2f}ms (target: <{avg_threshold}ms in {environment})")
-        
+
         if max_latency > max_threshold:
             raise RedisPerformanceError(
                 f"Redis maximum latency too high: {max_latency:.2f}ms (target: <{max_threshold}ms). "
                 f"This will cause processing delays in {environment} environment."
             )
-        
+
         if max_latency > warning_threshold:
             warnings.append(f"High maximum latency: {max_latency:.2f}ms (target: <{warning_threshold}ms in {environment})")
-        
+
         if warnings:
             for warning in warnings:
                 logger.warning(f"REDIS: Performance warning - {warning}")
-        
+
         logger.info(f"REDIS: Performance validation passed - "
                    f"avg: {avg_latency:.2f}ms, max: {max_latency:.2f}ms, min: {min_latency:.2f}ms")
-        
+
         return {
             'performance_acceptable': True,
             'avg_latency_ms': round(avg_latency, 2),
@@ -327,14 +328,14 @@ def validate_redis_performance(redis_client: redis.Redis, test_count: int = 5, e
             'test_count': test_count,
             'warnings': warnings
         }
-        
+
     except RedisPerformanceError:
         raise
     except Exception as e:
         raise RedisPerformanceError(f"Redis performance validation failed: {e}")
 
 
-def initialize_redis_mandatory(config: Dict[str, Any], environment: str = 'PRODUCTION') -> redis.Redis:
+def initialize_redis_mandatory(config: dict[str, Any], environment: str = 'PRODUCTION') -> redis.Redis:
     """
     Initialize Redis with mandatory connectivity validation for TickStockPL integration.
     
@@ -356,34 +357,34 @@ def initialize_redis_mandatory(config: Dict[str, Any], environment: str = 'PRODU
         RedisPerformanceError: If performance is below requirements
     """
     logger.info("REDIS: Starting mandatory connectivity validation...")
-    
+
     # Step 1: Configuration validation
     logger.info("REDIS: Validating configuration...")
     validate_redis_config(config)
-    
+
     # Step 2: Create Redis client
     logger.info("REDIS: Creating Redis client...")
     redis_client = create_redis_client(config)
-    
+
     # Step 3: Basic connectivity test
     logger.info(f"REDIS: Testing basic connectivity ({environment} environment)...")
     connectivity_results = test_basic_connectivity(redis_client, environment=environment)
-    
+
     # Step 4: Pub-sub validation
     logger.info("REDIS: Validating pub-sub functionality...")
     pubsub_results = validate_pubsub_channels(redis_client)
-    
+
     # Step 5: Performance validation
     logger.info(f"REDIS: Validating performance requirements ({environment} environment)...")
     performance_results = validate_redis_performance(redis_client, environment=environment)
-    
+
     # All validations passed
     logger.info("REDIS: [SUCCESS] All mandatory validations passed successfully")
     logger.info(f"REDIS: Ready for TickStockPL integration - "
                f"ping: {connectivity_results['response_time_ms']}ms, "
                f"channels: {len(pubsub_results['required_channels'])}, "
                f"performance: avg {performance_results['avg_latency_ms']}ms")
-    
+
     return redis_client
 
 
@@ -444,16 +445,16 @@ def generate_redis_failure_report(error_type: str, error_details: str) -> str:
             ]
         }
     }
-    
+
     report = reports.get(error_type, {
         'title': 'Redis Error',
         'message': 'Unknown Redis connectivity issue',
         'solutions': ['Check Redis server status and TickStockAppV2 configuration']
     })
-    
+
     separator = "=" * 80
     output = []
-    
+
     output.append(separator)
     output.append(f"STARTUP FAILURE: {report['title']}")
     output.append(separator)
@@ -472,5 +473,5 @@ def generate_redis_failure_report(error_type: str, error_details: str) -> str:
     output.append("")
     output.append("TickStockAppV2 cannot function without Redis connectivity.")
     output.append(separator)
-    
+
     return "\n".join(output)

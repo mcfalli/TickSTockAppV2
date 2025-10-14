@@ -4,18 +4,17 @@ Sprint 33 - Phase 4 Integration with TickStockPL HTTP API
 Manages daily processing schedules, status monitoring, and manual triggers using HTTP API client
 """
 
-import os
-import json
-import redis
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
-from flask import render_template, request, jsonify, flash, redirect, url_for
-from flask_login import login_required, current_user
-from src.utils.auth_decorators import admin_required
+from datetime import datetime
+
+import redis
+from flask import flash, jsonify, render_template, request
+from flask_login import login_required
+
 from src.core.services.config_manager import get_config
 from src.core.services.processing_event_subscriber import get_processing_subscriber
 from src.core.services.tickstockpl_api_client import get_tickstockpl_client
+from src.utils.auth_decorators import admin_required
 
 logger = logging.getLogger(__name__)
 
@@ -167,11 +166,10 @@ def register_admin_daily_processing_routes(app):
                     'run_id': result['run_id'],
                     'status': 'triggered'
                 })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': result['message']
-                }), 400
+            return jsonify({
+                'success': False,
+                'message': result['message']
+            }), 400
 
         except Exception as e:
             logger.error(f"Error triggering processing: {str(e)}")
@@ -260,38 +258,37 @@ def register_admin_daily_processing_routes(app):
                             'next_run': result.get('next_run')
                         }
                     })
-                else:
-                    # Fallback to local config if API unavailable
-                    return jsonify({
-                        'success': True,
-                        'schedule': schedule_config
-                    })
-
-            else:  # POST
-                data = request.json or {}
-
-                # Update schedule via HTTP API client
-                result = api_client.update_schedule(
-                    enabled=data.get('enabled'),
-                    trigger_time=data.get('trigger_time'),
-                    market_check=data.get('market_check'),
-                    universes=data.get('universes')
-                )
-
-                if result['success']:
-                    # Update local config to match API
-                    if 'enabled' in data:
-                        schedule_config['enabled'] = data['enabled']
-                    if 'trigger_time' in data:
-                        schedule_config['trigger_time'] = data['trigger_time']
-                    if 'market_check' in data:
-                        schedule_config['market_check'] = data['market_check']
-
+                # Fallback to local config if API unavailable
                 return jsonify({
-                    'success': result['success'],
-                    'message': result['message'],
-                    'schedule': result.get('schedule', schedule_config)
+                    'success': True,
+                    'schedule': schedule_config
                 })
+
+            # POST
+            data = request.json or {}
+
+            # Update schedule via HTTP API client
+            result = api_client.update_schedule(
+                enabled=data.get('enabled'),
+                trigger_time=data.get('trigger_time'),
+                market_check=data.get('market_check'),
+                universes=data.get('universes')
+            )
+
+            if result['success']:
+                # Update local config to match API
+                if 'enabled' in data:
+                    schedule_config['enabled'] = data['enabled']
+                if 'trigger_time' in data:
+                    schedule_config['trigger_time'] = data['trigger_time']
+                if 'market_check' in data:
+                    schedule_config['market_check'] = data['market_check']
+
+            return jsonify({
+                'success': result['success'],
+                'message': result['message'],
+                'schedule': result.get('schedule', schedule_config)
+            })
 
         except Exception as e:
             logger.error(f"Error managing schedule: {str(e)}")
@@ -357,11 +354,10 @@ def register_admin_daily_processing_routes(app):
                     'run_id': result['run_id'],
                     'estimated_duration_minutes': 35
                 })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': result['message']
-                }), 400
+            return jsonify({
+                'success': False,
+                'message': result['message']
+            }), 400
 
         except Exception as e:
             logger.error(f"Error triggering import: {str(e)}")
@@ -409,11 +405,10 @@ def register_admin_daily_processing_routes(app):
                     'run_id': result['run_id'],
                     'message': result['message']
                 })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': result['message']
-                }), 400
+            return jsonify({
+                'success': False,
+                'message': result['message']
+            }), 400
 
         except Exception as e:
             logger.error(f"Error retrying imports: {str(e)}")
@@ -571,11 +566,10 @@ def register_admin_daily_processing_routes(app):
                     'run_id': result['run_id'],
                     'estimated_duration_minutes': 15
                 })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': result['message']
-                }), 400
+            return jsonify({
+                'success': False,
+                'message': result['message']
+            }), 400
 
         except Exception as e:
             logger.error(f"Error triggering indicator processing: {str(e)}")

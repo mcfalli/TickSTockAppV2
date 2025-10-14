@@ -10,19 +10,19 @@ Testing Coverage:
 - Database schema compliance for ETF fields
 """
 
-import pytest
 import json
 import time
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, List, Any, Optional
+from unittest.mock import Mock, patch
+
+import pytest
 
 from src.data.historical_loader import PolygonHistoricalLoader
 
 
 class TestETFMetadataExtraction:
     """Test ETF-specific metadata extraction from Polygon.io responses."""
-    
+
     def test_extract_etf_metadata_basic(self, historical_loader: PolygonHistoricalLoader):
         """Test basic ETF metadata extraction from ticker data."""
         # Arrange: Mock Polygon.io ticker response for ETF
@@ -40,10 +40,10 @@ class TestETFMetadataExtraction:
             'list_date': '1993-01-22',
             'market_cap': 450000000000  # $450B AUM approximation
         }
-        
+
         # Act: Extract ETF metadata
         result = historical_loader._extract_etf_metadata(ticker_data)
-        
+
         # Assert: Verify ETF-specific fields extracted
         assert result['etf_type'] == 'ETF'
         assert result['fmv_supported'] is True
@@ -51,11 +51,11 @@ class TestETFMetadataExtraction:
         assert result['composite_figi'] == 'BBG000BDTBL9'
         assert result['share_class_figi'] == 'BBG001S5PQL7'
         assert result['cik'] == '0000884394'
-        
+
         # ETF-specific inference fields
         assert result['issuer'] == 'State Street (SPDR)'  # Inferred from name
         assert result['correlation_reference'] == 'SPY'   # Self-reference for major ETF
-    
+
     def test_extract_etf_metadata_issuer_detection(self, historical_loader: PolygonHistoricalLoader):
         """Test ETF issuer detection from various name patterns."""
         test_cases = [
@@ -68,7 +68,7 @@ class TestETFMetadataExtraction:
             ('ProShares Ultra S&P 500', 'ProShares'),
             ('First Trust Nasdaq ETF', 'First Trust')
         ]
-        
+
         for etf_name, expected_issuer in test_cases:
             # Arrange
             ticker_data = {
@@ -76,13 +76,13 @@ class TestETFMetadataExtraction:
                 'name': etf_name,
                 'type': 'ETF'
             }
-            
+
             # Act
             result = historical_loader._extract_etf_metadata(ticker_data)
-            
+
             # Assert
             assert result['issuer'] == expected_issuer, f"Failed for {etf_name}"
-    
+
     def test_extract_etf_metadata_correlation_reference(self, historical_loader: PolygonHistoricalLoader):
         """Test correlation reference assignment for different ETF types."""
         test_cases = [
@@ -90,21 +90,21 @@ class TestETFMetadataExtraction:
             ('VTI', 'Vanguard Total Stock Market ETF', 'SPY'),
             ('IVV', 'iShares Core S&P 500 ETF', 'SPY'),
             ('VOO', 'Vanguard S&P 500 ETF', 'SPY'),
-            
-            # Small-cap -> IWM  
+
+            # Small-cap -> IWM
             ('IWM', 'iShares Russell 2000 ETF', 'IWM'),
             ('VB', 'Vanguard Small-Cap ETF', 'IWM'),
-            
+
             # Tech/Growth -> QQQ
             ('QQQ', 'Invesco QQQ Trust ETF', 'QQQ'),
             ('VGT', 'Vanguard Information Technology ETF', 'QQQ'),
             ('XLK', 'Technology Select Sector SPDR Fund', 'QQQ'),
-            
+
             # Sector ETFs -> SPY (default)
             ('XLF', 'Financial Select Sector SPDR Fund', 'SPY'),
             ('XLE', 'Energy Select Sector SPDR Fund', 'SPY')
         ]
-        
+
         for ticker, name, expected_ref in test_cases:
             # Arrange
             ticker_data = {
@@ -112,13 +112,13 @@ class TestETFMetadataExtraction:
                 'name': name,
                 'type': 'ETF'
             }
-            
+
             # Act
             result = historical_loader._extract_etf_metadata(ticker_data)
-            
+
             # Assert
             assert result['correlation_reference'] == expected_ref, f"Failed for {ticker}: expected {expected_ref}, got {result['correlation_reference']}"
-    
+
     def test_extract_etf_metadata_missing_fields(self, historical_loader: PolygonHistoricalLoader):
         """Test ETF metadata extraction with minimal ticker data."""
         # Arrange: Minimal ticker data
@@ -126,10 +126,10 @@ class TestETFMetadataExtraction:
             'ticker': 'NEWETF',
             'name': 'New ETF Fund'
         }
-        
+
         # Act
         result = historical_loader._extract_etf_metadata(ticker_data)
-        
+
         # Assert: Verify defaults and required fields
         assert result['etf_type'] == 'ETF'  # Default
         assert result['fmv_supported'] is True  # Always enabled
@@ -141,7 +141,7 @@ class TestETFMetadataExtraction:
 
 class TestETFUniverseCreation:
     """Test ETF universe creation and management in cache_entries."""
-    
+
     @patch('src.data.historical_loader.psycopg2.connect')
     def test_create_etf_universes_success(self, mock_connect, historical_loader: PolygonHistoricalLoader):
         """Test successful ETF universe creation in cache_entries."""
@@ -150,31 +150,31 @@ class TestETFUniverseCreation:
         mock_cursor = Mock()
         mock_connect.return_value = mock_conn
         mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-        
+
         # Act: Create ETF universes
         historical_loader.create_etf_universes()
-        
+
         # Assert: Verify database operations
         assert mock_cursor.execute.call_count == 4  # 4 ETF universes
         assert mock_cursor.execute.call_count == mock_conn.commit.call_count
-        
+
         # Verify universe structure from execute calls
         execute_calls = mock_cursor.execute.call_args_list
         universe_keys = []
-        
+
         for call in execute_calls:
             sql_query, params = call[0]
             assert 'INSERT INTO cache_entries' in sql_query
             assert 'ON CONFLICT (key, type, environment)' in sql_query
-            
+
             # Extract universe key from parameters
             universe_key = params[0]  # First parameter is the key
             universe_keys.append(universe_key)
-        
+
         # Verify expected universe keys created
         expected_keys = ['etf_growth', 'etf_sectors', 'etf_value', 'etf_broad_market']
         assert all(key in universe_keys for key in expected_keys)
-    
+
     @patch('src.data.historical_loader.psycopg2.connect')
     def test_create_etf_universes_growth_content(self, mock_connect, historical_loader: PolygonHistoricalLoader):
         """Test growth ETF universe contains expected tickers."""
@@ -183,10 +183,10 @@ class TestETFUniverseCreation:
         mock_cursor = Mock()
         mock_connect.return_value = mock_conn
         mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-        
+
         # Act: Create ETF universes
         historical_loader.create_etf_universes()
-        
+
         # Assert: Extract growth universe data
         growth_call = None
         for call in mock_cursor.execute.call_args_list:
@@ -194,29 +194,29 @@ class TestETFUniverseCreation:
             if params[0] == 'etf_growth':  # Universe key
                 growth_call = params
                 break
-        
+
         assert growth_call is not None
-        
+
         # Verify growth universe structure
         universe_key, universe_type, universe_value, environment = growth_call
         assert universe_key == 'etf_growth'
         assert universe_type == 'etf_universe'
         assert environment == 'DEFAULT'
-        
+
         # Parse universe data
         universe_data = json.loads(universe_value)
         assert 'name' in universe_data
         assert universe_data['name'] == 'Growth ETFs'
         assert 'etfs' in universe_data
-        
+
         # Verify expected growth ETFs
         etf_tickers = [etf['ticker'] for etf in universe_data['etfs']]
         expected_growth_tickers = ['VUG', 'IVW', 'SCHG', 'QQQ', 'VGT', 'ARKK', 'IGV', 'FTEC']
-        
+
         for ticker in expected_growth_tickers:
             assert ticker in etf_tickers, f"Expected growth ETF {ticker} not found"
-    
-    @patch('src.data.historical_loader.psycopg2.connect')  
+
+    @patch('src.data.historical_loader.psycopg2.connect')
     def test_create_etf_universes_sector_content(self, mock_connect, historical_loader: PolygonHistoricalLoader):
         """Test sector ETF universe contains major sector coverage."""
         # Arrange: Mock database connection
@@ -224,10 +224,10 @@ class TestETFUniverseCreation:
         mock_cursor = Mock()
         mock_connect.return_value = mock_conn
         mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-        
+
         # Act: Create ETF universes
         historical_loader.create_etf_universes()
-        
+
         # Assert: Extract sector universe data
         sector_call = None
         for call in mock_cursor.execute.call_args_list:
@@ -235,37 +235,37 @@ class TestETFUniverseCreation:
             if params[0] == 'etf_sectors':
                 sector_call = params
                 break
-        
+
         assert sector_call is not None
         universe_data = json.loads(sector_call[2])  # universe_value
-        
+
         # Verify major sector coverage
         etf_tickers = [etf['ticker'] for etf in universe_data['etfs']]
         expected_sectors = ['XLF', 'XLK', 'XLE', 'XLV', 'XLI', 'XLY', 'XLP', 'XLRE', 'XLB', 'XLU']
-        
+
         for sector_etf in expected_sectors:
             assert sector_etf in etf_tickers, f"Expected sector ETF {sector_etf} not found"
-    
+
     @patch('src.data.historical_loader.psycopg2.connect')
     def test_create_etf_universes_database_error(self, mock_connect, historical_loader: PolygonHistoricalLoader):
         """Test ETF universe creation handles database errors gracefully."""
         # Arrange: Mock database connection to raise exception
         mock_connect.side_effect = Exception("Database connection failed")
-        
+
         # Act: Attempt to create ETF universes (should not raise)
         historical_loader.create_etf_universes()
-        
+
         # Assert: Verify error was logged (no assertion since we can't easily mock logger)
         # The function should complete without raising an exception
 
 
 class TestETFDataValidation:
     """Test ETF-specific data validation and processing rules."""
-    
+
     @patch('src.data.historical_loader.requests.Session.get')
     def test_fetch_etf_details_success(self, mock_get, historical_loader: PolygonHistoricalLoader):
         """Test successful ETF details fetching from Polygon.io."""
-        # Arrange: Mock Polygon.io financials response  
+        # Arrange: Mock Polygon.io financials response
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -278,21 +278,21 @@ class TestETFDataValidation:
             }]
         }
         mock_get.return_value = mock_response
-        
+
         # Act: Fetch ETF details
         result = historical_loader.fetch_etf_details('SPY')
-        
+
         # Assert: Verify ETF details extracted
         assert result is not None
         assert result['market_cap_millions'] == 450000  # Converted to millions
         assert result['shares_outstanding'] == 915000000
         assert result['cik'] == '0000884394'
-        
+
         # Verify API call made correctly
         mock_get.assert_called_once()
         call_args = mock_get.call_args[1]  # kwargs
         assert 'SPY' in call_args['url']
-    
+
     @patch('src.data.historical_loader.requests.Session.get')
     def test_fetch_etf_details_no_data(self, mock_get, historical_loader: PolygonHistoricalLoader):
         """Test ETF details fetching when no data available."""
@@ -304,37 +304,37 @@ class TestETFDataValidation:
             'results': []
         }
         mock_get.return_value = mock_response
-        
+
         # Act: Fetch ETF details
         result = historical_loader.fetch_etf_details('NEWETF')
-        
+
         # Assert: Should return None for no data
         assert result is None
-    
+
     @patch('src.data.historical_loader.requests.Session.get')
     def test_fetch_etf_details_api_error(self, mock_get, historical_loader: PolygonHistoricalLoader):
         """Test ETF details fetching handles API errors."""
         # Arrange: Mock API error
         mock_get.side_effect = Exception("API request failed")
-        
+
         # Act: Fetch ETF details (should not raise)
         result = historical_loader.fetch_etf_details('SPY')
-        
+
         # Assert: Should return None on error
         assert result is None
-    
+
     def test_etf_symbol_validation(self, historical_loader: PolygonHistoricalLoader):
         """Test ETF symbol validation patterns."""
         # Test valid ETF symbols
         valid_etfs = ['SPY', 'QQQ', 'IWM', 'VTI', 'ARKK', 'XLF', 'GLD']
-        
+
         for symbol in valid_etfs:
             # ETF validation would be implementation-specific
             # Here we test that symbols are processed correctly
             assert len(symbol) >= 2 and len(symbol) <= 5
             assert symbol.isupper()
             assert symbol.isalpha()
-    
+
     def test_etf_fmv_field_support(self, historical_loader: PolygonHistoricalLoader):
         """Test FMV (Fair Market Value) field support for ETFs."""
         # Arrange: Mock ETF data with FMV requirement
@@ -343,10 +343,10 @@ class TestETFDataValidation:
             'name': 'Thinly Traded ETF',
             'type': 'ETF'
         }
-        
+
         # Act: Extract metadata
         result = historical_loader._extract_etf_metadata(etf_ticker_data)
-        
+
         # Assert: FMV should be enabled for all ETFs
         assert result['fmv_supported'] is True
 
@@ -354,7 +354,7 @@ class TestETFDataValidation:
 @pytest.mark.performance
 class TestETFLoadingPerformance:
     """Performance benchmarks for ETF loading operations."""
-    
+
     @patch('src.data.historical_loader.psycopg2.connect')
     @patch('src.data.historical_loader.requests.Session.get')
     def test_bulk_etf_loading_performance(self, mock_get, mock_connect, historical_loader: PolygonHistoricalLoader, performance_timer):
@@ -371,20 +371,20 @@ class TestETFLoadingPerformance:
                     'o': 373.5,   # Open
                     'h': 375.2,   # High
                     'l': 372.8,   # Low
-                    'c': 374.1,   # Close  
+                    'c': 374.1,   # Close
                     'v': 85000    # Volume
                 }
                 # Single day for performance testing
             ]
         }
         mock_get.return_value = mock_response
-        
+
         # Mock database operations
         mock_conn = Mock()
         mock_cursor = Mock()
         mock_connect.return_value = mock_conn
         mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-        
+
         # Test with 50 major ETFs
         test_etfs = [
             'SPY', 'QQQ', 'IWM', 'VTI', 'VOO', 'IVV', 'VEA', 'IEFA', 'VWO', 'EEM',
@@ -393,28 +393,28 @@ class TestETFLoadingPerformance:
             'VUG', 'IVW', 'SCHG', 'VGT', 'ARKK', 'IGV', 'FTEC', 'VTV', 'IVE', 'SCHV',
             'VYM', 'DVY', 'SPHD', 'IWD', 'VOOV', 'USMV', 'DIA', 'MDY', 'IWO', 'IWN'
         ]
-        
+
         # Act: Time the ETF loading process
         performance_timer.start()
-        
+
         # Simulate loading 1 year of data for 50 ETFs
         start_date = datetime.now() - timedelta(days=365)
         end_date = datetime.now()
-        
+
         for etf_symbol in test_etfs:
             # This would normally call historical_loader.load_historical_data()
             # For testing, we simulate the API call overhead
             time.sleep(0.01)  # Simulate 10ms per ETF (rate limiting)
-        
+
         performance_timer.stop()
-        
+
         # Assert: Should complete in <30 minutes (1800 seconds)
         assert performance_timer.elapsed < 1800, f"ETF loading took {performance_timer.elapsed:.2f}s, exceeding 30min benchmark"
-        
+
         # Log performance metrics
         etfs_per_second = len(test_etfs) / performance_timer.elapsed
         print(f"ETF Loading Performance: {len(test_etfs)} ETFs in {performance_timer.elapsed:.2f}s ({etfs_per_second:.2f} ETFs/sec)")
-    
+
     def test_etf_metadata_extraction_performance(self, historical_loader: PolygonHistoricalLoader, performance_timer):
         """Test ETF metadata extraction performance for rapid processing."""
         # Arrange: Large ticker data payload
@@ -432,20 +432,20 @@ class TestETFLoadingPerformance:
             'list_date': '1993-01-22',
             'market_cap': 450000000000
         }
-        
+
         # Act: Time metadata extraction for many iterations
         iterations = 1000
         performance_timer.start()
-        
+
         for _ in range(iterations):
             result = historical_loader._extract_etf_metadata(ticker_data)
-        
+
         performance_timer.stop()
-        
+
         # Assert: Should process <1ms per extraction on average
         avg_time_per_extraction = performance_timer.elapsed / iterations
         assert avg_time_per_extraction < 0.001, f"ETF metadata extraction too slow: {avg_time_per_extraction:.4f}s per extraction"
-    
+
     @patch('src.data.historical_loader.psycopg2.connect')
     def test_etf_universe_creation_performance(self, mock_connect, historical_loader: PolygonHistoricalLoader, performance_timer):
         """Test ETF universe creation performance for rapid setup."""
@@ -454,12 +454,12 @@ class TestETFLoadingPerformance:
         mock_cursor = Mock()
         mock_connect.return_value = mock_conn
         mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-        
+
         # Act: Time universe creation
         performance_timer.start()
         historical_loader.create_etf_universes()
         performance_timer.stop()
-        
+
         # Assert: Should complete in <5 seconds
         assert performance_timer.elapsed < 5.0, f"ETF universe creation took {performance_timer.elapsed:.2f}s, too slow"
 
@@ -485,16 +485,16 @@ def performance_timer():
             self.start_time = None
             self.end_time = None
             self.elapsed = 0
-        
+
         def start(self):
             self.start_time = time.perf_counter()
-        
+
         def stop(self):
             if self.start_time is None:
                 raise RuntimeError("Timer not started")
             self.end_time = time.perf_counter()
             self.elapsed = self.end_time - self.start_time
-    
+
     return PerformanceTimer()
 
 
@@ -512,7 +512,7 @@ def sample_etf_universe_data():
             ]
         },
         'etf_value': {
-            'name': 'Value ETFs', 
+            'name': 'Value ETFs',
             'description': 'Value-focused ETFs',
             'etfs': [
                 {'ticker': 'VTV', 'name': 'Vanguard Value ETF'},

@@ -9,9 +9,10 @@ while ensuring critical alerts are sent immediately.
 import logging
 import threading
 import time
-from typing import Dict, Any, List, Optional
-from collections import deque, defaultdict
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
+from typing import Any
+
 from flask_socketio import SocketIO
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 class BufferedEvent:
     """Container for buffered events with metadata."""
     event_type: str
-    data: Dict[str, Any]
+    data: dict[str, Any]
     timestamp: float = field(default_factory=time.time)
     priority: int = 0  # 0=normal, 1=high, 2=critical
 
@@ -32,7 +33,7 @@ class StreamingBuffer:
     Prevents browser overload during high-volume trading periods.
     """
 
-    def __init__(self, socketio: SocketIO, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, socketio: SocketIO, config: dict[str, Any] | None = None):
         """
         Initialize streaming buffer.
 
@@ -53,8 +54,8 @@ class StreamingBuffer:
         self.indicator_buffer: deque = deque(maxlen=self.max_buffer_size)
 
         # Symbol-based aggregation for deduplication
-        self.pattern_aggregator: Dict[str, Dict[str, Any]] = defaultdict(dict)
-        self.indicator_aggregator: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        self.pattern_aggregator: dict[str, dict[str, Any]] = defaultdict(dict)
+        self.indicator_aggregator: dict[str, dict[str, Any]] = defaultdict(dict)
 
         # Thread management
         self.flush_thread = None
@@ -105,7 +106,7 @@ class StreamingBuffer:
 
         logger.info(f"STREAMING-BUFFER: Stopped. Stats: {self.get_stats()}")
 
-    def add_pattern(self, event_data: Dict[str, Any]):
+    def add_pattern(self, event_data: dict[str, Any]):
         """
         Add pattern detection event to buffer.
 
@@ -142,7 +143,7 @@ class StreamingBuffer:
                     ))
                     self.stats['events_buffered'] += 1
 
-    def add_indicator(self, event_data: Dict[str, Any]):
+    def add_indicator(self, event_data: dict[str, Any]):
         """
         Add indicator calculation event to buffer.
 
@@ -244,7 +245,7 @@ class StreamingBuffer:
                 self.indicator_buffer.clear()
                 self.indicator_aggregator.clear()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get buffer statistics."""
         runtime = time.time() - self.stats['start_time']
 

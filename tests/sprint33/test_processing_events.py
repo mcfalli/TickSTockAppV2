@@ -3,11 +3,13 @@ Test script to simulate Sprint 33 Phase 1 processing events
 This simulates events that TickStockPL will publish
 """
 
-import redis
+import argparse
 import json
 import time
 from datetime import datetime, timedelta
-import argparse
+
+import redis
+
 
 class ProcessingEventSimulator:
     """Simulates processing events from TickStockPL"""
@@ -26,7 +28,7 @@ class ProcessingEventSimulator:
         run_id = f"test-{datetime.now().strftime('%Y%m%d%H%M%S')}"
         start_time = datetime.now()
 
-        print(f"\n=== Starting Processing Simulation ===")
+        print("\n=== Starting Processing Simulation ===")
         print(f"Run ID: {run_id}")
         print(f"Symbols: {symbols_count}")
         print(f"Duration: {duration_minutes} minutes")

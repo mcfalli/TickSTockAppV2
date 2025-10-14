@@ -3,9 +3,12 @@ Database Configuration Module
 Provides database connection management for TickStock services
 """
 
-import psycopg2
 from urllib.parse import urlparse
+
+import psycopg2
+
 from src.core.services.config_manager import get_config
+
 
 def get_database_connection():
     """
@@ -18,10 +21,10 @@ def get_database_connection():
     database_url = config.get('DATABASE_URI')
     if not database_url:
         raise ValueError("DATABASE_URI not found in configuration")
-    
+
     # Parse the database URL
     parsed = urlparse(database_url)
-    
+
     connection_params = {
         "host": parsed.hostname,
         "port": parsed.port or 5432,
@@ -29,7 +32,7 @@ def get_database_connection():
         "user": parsed.username,
         "password": parsed.password
     }
-    
+
     return psycopg2.connect(**connection_params)
 
 def get_database_config():
@@ -43,9 +46,9 @@ def get_database_config():
     database_url = config.get('DATABASE_URI')
     if not database_url:
         raise ValueError("DATABASE_URI not found in configuration")
-    
+
     parsed = urlparse(database_url)
-    
+
     return {
         "host": parsed.hostname,
         "port": parsed.port or 5432,

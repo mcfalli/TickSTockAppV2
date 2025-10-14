@@ -2,12 +2,15 @@
 Run streaming test - clean version without Unicode issues
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from tests.integration.test_streaming_phase5 import StreamingEventSimulator
 import time
+
+from tests.integration.test_streaming_phase5 import StreamingEventSimulator
+
 
 def main():
     print("\n" + "="*60)

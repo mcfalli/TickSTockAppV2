@@ -8,11 +8,13 @@ Maintains database storage and retrieval for user preferences.
 
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List, Union
+from datetime import datetime
+from typing import Any
+
 from flask import has_app_context
 
-from src.infrastructure.database import db, UserFilters, User
+from src.infrastructure.database import UserFilters, db
+
 logger = logging.getLogger(__name__)
 
 class UserFiltersService:
@@ -31,14 +33,14 @@ class UserFiltersService:
     - Configuration management for TickStockPL
     - Database persistence
     """
-    
+
     def __init__(self, app=None):
         """Initialize simplified user filters service."""
         self.app = app
         self.default_filters = self._get_default_filters()
         logger.info("UserFiltersService initialized as simplified version (Phase 4 cleanup)")
 
-    def _get_default_filters(self) -> Dict[str, Any]:
+    def _get_default_filters(self) -> dict[str, Any]:
         """Get default filter configuration."""
         return {
             'filters': {
@@ -62,7 +64,7 @@ class UserFiltersService:
             }
         }
 
-    def get_user_filters(self, user_id: int, filter_name: str = 'default') -> Optional[Dict[str, Any]]:
+    def get_user_filters(self, user_id: int, filter_name: str = 'default') -> dict[str, Any] | None:
         """
         Get user filter preferences from database.
         
@@ -77,20 +79,19 @@ class UserFiltersService:
             if not has_app_context():
                 logger.warning("No Flask app context available")
                 return self.default_filters.copy()
-            
+
             user_filter = UserFilters.get_user_filter(user_id, filter_name)
             if user_filter and user_filter.filter_data:
                 logger.debug(f"Retrieved filters for user {user_id}")
                 return user_filter.filter_data
-            else:
-                logger.debug(f"No custom filters found for user {user_id}, using defaults")
-                return self.default_filters.copy()
-                
+            logger.debug(f"No custom filters found for user {user_id}, using defaults")
+            return self.default_filters.copy()
+
         except Exception as e:
             logger.error(f"Error retrieving user filters for user {user_id}: {e}")
             return self.default_filters.copy()
 
-    def save_user_filters(self, user_id: int, filters: Dict[str, Any], filter_name: str = 'default') -> bool:
+    def save_user_filters(self, user_id: int, filters: dict[str, Any], filter_name: str = 'default') -> bool:
         """
         Save user filter preferences to database.
         
@@ -137,7 +138,7 @@ class UserFiltersService:
                 db.session.rollback()
             return False
 
-    def _validate_filter_structure(self, filters: Dict[str, Any]) -> bool:
+    def _validate_filter_structure(self, filters: dict[str, Any]) -> bool:
         """
         Basic validation of filter structure.
         
@@ -151,28 +152,28 @@ class UserFiltersService:
             # Check basic structure
             if not isinstance(filters, dict):
                 return False
-            
+
             # Check for required sections
             if 'filters' not in filters:
                 return False
-            
+
             filter_config = filters['filters']
             if not isinstance(filter_config, dict):
                 return False
-            
+
             # Basic type checking for filter sections
             for section in ['highlow', 'trending', 'surge']:
                 if section in filter_config:
                     if not isinstance(filter_config[section], dict):
                         return False
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Error validating filter structure: {e}")
             return False
 
-    def get_all_user_filters(self, user_id: int) -> List[Dict[str, Any]]:
+    def get_all_user_filters(self, user_id: int) -> list[dict[str, Any]]:
         """
         Get all filter configurations for a user.
         
@@ -186,10 +187,10 @@ class UserFiltersService:
             if not has_app_context():
                 logger.warning("No Flask app context available")
                 return []
-            
+
             user_filters = UserFilters.get_all_user_filters(user_id)
             return [filter.to_dict() for filter in user_filters]
-            
+
         except Exception as e:
             logger.error(f"Error retrieving all user filters for user {user_id}: {e}")
             return []
@@ -209,17 +210,16 @@ class UserFiltersService:
             if not has_app_context():
                 logger.warning("No Flask app context available")
                 return False
-            
+
             user_filter = UserFilters.get_user_filter(user_id, filter_name)
             if user_filter:
                 db.session.delete(user_filter)
                 db.session.commit()
                 logger.info(f"Deleted filter '{filter_name}' for user {user_id}")
                 return True
-            else:
-                logger.warning(f"Filter '{filter_name}' not found for user {user_id}")
-                return False
-                
+            logger.warning(f"Filter '{filter_name}' not found for user {user_id}")
+            return False
+
         except Exception as e:
             logger.error(f"Error deleting user filter for user {user_id}: {e}")
             if has_app_context():
@@ -239,7 +239,7 @@ class UserFiltersService:
         """
         return self.save_user_filters(user_id, self.default_filters.copy(), filter_name)
 
-    def get_filter_summary(self, user_id: int) -> Dict[str, Any]:
+    def get_filter_summary(self, user_id: int) -> dict[str, Any]:
         """
         Get summary of user filter configuration.
         
@@ -252,7 +252,7 @@ class UserFiltersService:
         try:
             filters = self.get_user_filters(user_id)
             filter_config = filters.get('filters', {})
-            
+
             return {
                 'user_id': user_id,
                 'has_custom_filters': filters != self.default_filters,
@@ -262,12 +262,12 @@ class UserFiltersService:
                 'universes': filters.get('universes', ['all']),
                 'notifications_enabled': filters.get('notifications', {}).get('enabled', False)
             }
-            
+
         except Exception as e:
             logger.error(f"Error getting filter summary for user {user_id}: {e}")
             return {'user_id': user_id, 'error': 'Unable to retrieve filter summary'}
 
-    def get_filters(self, user_id: int) -> Dict[str, Any]:
+    def get_filters(self, user_id: int) -> dict[str, Any]:
         """
         Get user filters (compatibility method).
         
@@ -279,7 +279,7 @@ class UserFiltersService:
         """
         try:
             user_filters = UserFilters.query.filter_by(user_id=user_id).first()
-            
+
             if user_filters and user_filters.filter_data:
                 try:
                     filters = json.loads(user_filters.filter_data)
@@ -287,10 +287,10 @@ class UserFiltersService:
                     filters = self.default_filters
             else:
                 filters = self.default_filters
-                
+
             logger.debug(f"Retrieved filters for user {user_id}")
             return filters
-            
+
         except Exception as e:
             logger.error(f"Failed to get filters for user {user_id}: {e}")
             return self.default_filters

@@ -1,11 +1,9 @@
-import time
-import random
 import logging
+import random
+import time
 from datetime import datetime
-import pytz
-from typing import Dict, List, Any, Optional, Callable
-from dataclasses import dataclass
 
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +19,11 @@ def detect_market_status(timestamp: datetime) -> str:
     """
     # Default to closed
     market_status = "CLOSED"
-    
+
     # Skip if timestamp is None
     if timestamp is None:
         return market_status
-        
+
     # Handle if timestamp is not timezone-aware
     if timestamp.tzinfo is None:
         eastern_tz = pytz.timezone('US/Eastern')
@@ -34,12 +32,12 @@ def detect_market_status(timestamp: datetime) -> str:
         # Convert to Eastern time if in different timezone
         eastern_tz = pytz.timezone('US/Eastern')
         timestamp = timestamp.astimezone(eastern_tz)
-    
+
     # Get day of week (0=Monday, 6=Sunday)
     day_of_week = timestamp.weekday()
     hour = timestamp.hour
     minute = timestamp.minute
-    
+
     # Determine market status based on time and day
     if day_of_week < 5:  # Monday to Friday
         if (hour == 9 and minute >= 30) or (hour > 9 and hour < 16):
@@ -48,7 +46,7 @@ def detect_market_status(timestamp: datetime) -> str:
             market_status = "PRE"
         elif hour >= 16 and hour < 20:
             market_status = "AFTER"
-    
+
     return market_status
 
 def get_eastern_time() -> datetime:
@@ -75,7 +73,7 @@ def format_price(price: float, include_dollar_sign: bool = True) -> str:
     """
     if price is None:
         return "N/A"
-        
+
     if price < 1:
         # For sub-dollar prices, show 4 decimal places
         formatted = f"{price:.4f}"
@@ -88,7 +86,7 @@ def format_price(price: float, include_dollar_sign: bool = True) -> str:
     else:
         # For large prices, show no decimal places
         formatted = f"{price:.0f}"
-        
+
     if include_dollar_sign:
         return f"${formatted}"
     return formatted
@@ -106,7 +104,7 @@ def calculate_percentage_change(old_value: float, new_value: float) -> float:
     """
     if old_value == 0:
         return 0  # Avoid division by zero
-        
+
     return ((new_value - old_value) / abs(old_value)) * 100
 
 def safe_divide(numerator: float, denominator: float, default: float = 0) -> float:
@@ -123,7 +121,7 @@ def safe_divide(numerator: float, denominator: float, default: float = 0) -> flo
     """
     return numerator / denominator if denominator != 0 else default
 
-def exponential_moving_average(values: List[float], alpha: float = 0.3) -> List[float]:
+def exponential_moving_average(values: list[float], alpha: float = 0.3) -> list[float]:
     """
     Calculate exponential moving average of a list of values.
     
@@ -136,13 +134,13 @@ def exponential_moving_average(values: List[float], alpha: float = 0.3) -> List[
     """
     if not values:
         return []
-        
+
     ema_values = [values[0]]  # Start with first value
-    
+
     for i in range(1, len(values)):
         ema = alpha * values[i] + (1 - alpha) * ema_values[-1]
         ema_values.append(ema)
-        
+
     return ema_values
 
 def rate_limiter(max_calls: int, period: float):
@@ -157,25 +155,25 @@ def rate_limiter(max_calls: int, period: float):
         Function: Decorated function
     """
     calls = []
-    
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             current_time = time.time()
-            
+
             # Remove calls older than the period
             nonlocal calls
             calls = [call_time for call_time in calls if current_time - call_time <= period]
-            
+
             # Check if we've exceeded the rate limit
             if len(calls) >= max_calls:
                 sleep_time = calls[0] + period - current_time
                 if sleep_time > 0:
                     logger.info(f"Rate limit reached, sleeping for {sleep_time:.2f}s")
                     time.sleep(sleep_time)
-                    
+
             # Add current call time
             calls.append(time.time())
-            
+
             # Call the original function
             return func(*args, **kwargs)
         return wrapper
@@ -197,7 +195,7 @@ def retry_with_backoff(max_retries: int = 3, initial_backoff: float = 1, max_bac
         def wrapper(*args, **kwargs):
             retries = 0
             backoff = initial_backoff
-            
+
             while True:
                 try:
                     return func(*args, **kwargs)
@@ -205,16 +203,16 @@ def retry_with_backoff(max_retries: int = 3, initial_backoff: float = 1, max_bac
                     retries += 1
                     if retries > max_retries:
                         raise
-                        
+
                     logger.warning(f"Retry {retries}/{max_retries} for {func.__name__} after error: {e}")
-                    
+
                     # Calculate backoff with jitter
                     jitter = backoff * 0.1 * (2 * random.random() - 1)
                     sleep_time = min(backoff + jitter, max_backoff)
-                    
+
                     logger.info(f"Backing off for {sleep_time:.2f}s")
                     time.sleep(sleep_time)
-                    
+
                     # Exponential backoff
                     backoff = min(backoff * 2, max_backoff)
         return wrapper
@@ -230,13 +228,13 @@ def sanitize_dict(data):
     """Clean dictionary data for JSON serialization by handling special float values."""
     if isinstance(data, dict):
         return {k: sanitize_dict(v) for k, v in data.items()}
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return [sanitize_dict(v) for v in data]
-    elif isinstance(data, float):
+    if isinstance(data, float):
         return sanitize_float(data)
     return data
 
-def generate_event_key(ticker: str, price: float, event_type: str, 
+def generate_event_key(ticker: str, price: float, event_type: str,
                       timestamp=None, price_fallback: str = "0.00") -> str:
     """
     Generate a unique key for event deduplication.
@@ -252,9 +250,9 @@ def generate_event_key(ticker: str, price: float, event_type: str,
         Unique event key string
     """
     formatted_price = f"{float(price):.2f}" if price else price_fallback
-    
+
     if timestamp:
         time_part = timestamp.strftime("%H%M%S")
         return f"{ticker}_{formatted_price}_{event_type}_{time_part}"
-    
+
     return f"{ticker}_{formatted_price}_{event_type}"

@@ -8,5 +8,5 @@ from enum import Enum
 class FrequencyType(Enum):
     """Enum for different data frequency types supported by Polygon"""
     PER_SECOND = "per_second"
-    PER_MINUTE = "per_minute" 
+    PER_MINUTE = "per_minute"
     FAIR_MARKET_VALUE = "fmv"

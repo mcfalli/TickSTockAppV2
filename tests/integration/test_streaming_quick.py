@@ -2,11 +2,13 @@
 Quick test for streaming events - runs without user input
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from tests.integration.test_streaming_phase5 import StreamingEventSimulator
+
 
 def main():
     print("Running quick streaming test (5 seconds)...")

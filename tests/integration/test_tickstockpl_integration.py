@@ -7,25 +7,25 @@ No mocks - these tests validate real integration points.
 
 # CRITICAL: eventlet monkey patch must be FIRST
 import eventlet
+
 eventlet.monkey_patch()
 
 import sys
-import os
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import time
 import json
-import uuid
-import redis
-import psycopg2
-import pytest
-from datetime import datetime, timedelta
-import threading
 import re
-from typing import Dict, Any, List
+import time
+import uuid
+from datetime import datetime, timedelta
+
+import psycopg2
+import redis
 
 from src.core.services.config_manager import get_config
+
 
 class TestTickStockPLIntegration:
     """Test suite for TickStockPL -> TickStockAppV2 integration."""
@@ -352,8 +352,9 @@ class TestTickStockPLIntegration:
         # This tests configuration, not actual WebSocket emission
         # (which requires a connected client)
 
-        from src.core.services.redis_event_subscriber import RedisEventSubscriber
         from flask import Flask
+
+        from src.core.services.redis_event_subscriber import RedisEventSubscriber
 
         app = Flask(__name__)
         test_subscriber = RedisEventSubscriber(

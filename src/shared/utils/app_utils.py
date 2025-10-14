@@ -3,11 +3,12 @@ Application Utility Functions
 Helper functions used across the application.
 """
 
+import logging
 import random
 import string
-import logging
-from datetime import datetime, timedelta, timezone
-from src.infrastructure.database import db, VerificationCode, CommunicationLog
+from datetime import UTC, datetime, timedelta
+
+from src.infrastructure.database import CommunicationLog, VerificationCode, db
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ def store_verification_code(user_id, code, verification_type='phone_update', exp
             user_id=user_id,
             verification_type=verification_type
         ).delete()
-        
+
         # Create new code
         expires_at = datetime.utcnow() + timedelta(minutes=expiry_minutes)
         verification = VerificationCode(
@@ -34,7 +35,7 @@ def store_verification_code(user_id, code, verification_type='phone_update', exp
             verification_type=verification_type,
             expires_at=expires_at
         )
-        
+
         db.session.add(verification)
         db.session.commit()
         return True
@@ -51,27 +52,27 @@ def verify_code(user_id, code, verification_type='phone_update'):
             user_id=user_id,
             verification_type=verification_type
         ).first()
-        
+
         if not verification:
             logger.warning(f"No verification code found for user {user_id}, type: {verification_type}")
             return False
-            
+
         if verification.expires_at < datetime.utcnow():
             logger.warning(f"Verification code expired for user {user_id}, type: {verification_type}")
             db.session.delete(verification)
             db.session.commit()
             return False
-            
+
         if verification.code != code:
             logger.warning(f"Invalid verification code for user {user_id}, type: {verification_type}")
             return False
-            
+
         # Code is valid, delete it to prevent reuse
         db.session.delete(verification)
         db.session.commit()
         logger.info(f"Verification code validated for user {user_id}, type: {verification_type}")
         return True
-        
+
     except Exception as e:
         logger.error(f"Error verifying code: {e}")
         return False
@@ -83,12 +84,12 @@ def cancel_subscription(subscription):
         if subscription.status != 'active':
             logger.warning(f"Attempted to cancel inactive subscription {subscription.id}")
             return False
-            
+
         subscription.status = 'cancelled'
-        subscription.canceled_at = datetime.now(timezone.utc)
-        
+        subscription.canceled_at = datetime.now(UTC)
+
         db.session.commit()
-        
+
         # Log the cancellation
         log_subscription_change(
             subscription.user_id,
@@ -96,13 +97,14 @@ def cancel_subscription(subscription):
             'cancelled',
             f"Subscription cancelled, access until {subscription.end_date.strftime('%Y-%m-%d')}"
         )
-        
+
         # Send cancellation email
         try:
+            from flask import current_app
+
             from src.infrastructure.database import User
             from src.infrastructure.messaging.email_service import EmailManager
-            from flask import current_app
-            
+
             user = User.query.get(subscription.user_id)
             if user:
                 # Get mail instance from app context
@@ -116,7 +118,7 @@ def cancel_subscription(subscription):
                     )
         except Exception as email_error:
             logger.error(f"Failed to send cancellation email: {email_error}")
-        
+
         return True
     except Exception as e:
         logger.error(f"Error cancelling subscription: {e}")
@@ -147,21 +149,21 @@ def determine_card_type(card_number):
     """Determine card type from card number."""
     if card_number.startswith('4'):
         return 'Visa'
-    elif card_number.startswith(('5', '2')):
+    if card_number.startswith(('5', '2')):
         return 'Mastercard'
-    elif card_number.startswith(('34', '37')):
+    if card_number.startswith(('34', '37')):
         return 'American Express'
-    elif card_number.startswith('6'):
+    if card_number.startswith('6'):
         return 'Discover'
-    else:
-        return 'Unknown'
+    return 'Unknown'
 
 
 def validate_phone_number(phone):
     """Validate and normalize phone number."""
     import re
+
     import phonenumbers
-    
+
     try:
         normalized_phone = phone
         # Format numbers if they appear valid
@@ -171,16 +173,16 @@ def validate_phone_number(phone):
                 parsed = phonenumbers.parse(phone)
                 if not phonenumbers.is_valid_number(parsed):
                     parsed = phonenumbers.parse(f"+1{digits_only}")
-                
+
                 if phonenumbers.is_valid_number(parsed):
                     normalized_phone = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
                     return True, normalized_phone
             except Exception:
                 # If parsing fails, use the raw input
                 pass
-        
+
         return False, phone
-        
+
     except Exception as e:
         logger.error(f"Error validating phone number: {e}")
         return False, phone
@@ -189,9 +191,9 @@ def validate_phone_number(phone):
 def generate_test_events(market_service):
     """Generate test events for debugging."""
     return {
-        "highs": [{"ticker": "AAPL", "price": 175.5, "time": datetime.now().strftime("%H:%M:%S"), 
+        "highs": [{"ticker": "AAPL", "price": 175.5, "time": datetime.now().strftime("%H:%M:%S"),
                   "market_status": market_service.get_market_status(), "count": 1, "label": "Test high"}],
-        "lows": [{"ticker": "MSFT", "price": 350.25, "time": datetime.now().strftime("%H:%M:%S"), 
+        "lows": [{"ticker": "MSFT", "price": 350.25, "time": datetime.now().strftime("%H:%M:%S"),
                  "market_status": market_service.get_market_status(), "count": 1, "label": "Test low"}],
         "counts": {"highs": 1, "lows": 1, "total_highs": 1, "total_lows": 1},
         "market_status": market_service.get_market_status(),

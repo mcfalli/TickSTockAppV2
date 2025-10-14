@@ -4,14 +4,14 @@ Test Redis job submission for historical data loading.
 This script tests the integration between TickStockAppV2 and TickStockPL via Redis.
 """
 
-import os
-import sys
 import json
-import uuid
-import redis
+import sys
 import time
+import uuid
 from datetime import datetime
 from pathlib import Path
+
+import redis
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -77,14 +77,13 @@ def check_job_status(client, job_id):
 
         if status_data:
             status = json.loads(status_data)
-            print(f"[OK] Job status retrieved:")
+            print("[OK] Job status retrieved:")
             print(f"  Status: {status.get('status')}")
             print(f"  Progress: {status.get('progress')}%")
             print(f"  Message: {status.get('message')}")
             return status
-        else:
-            print(f"[FAIL] No status found for job {job_id[:8]}...")
-            return None
+        print(f"[FAIL] No status found for job {job_id[:8]}...")
+        return None
     except Exception as e:
         print(f"[FAIL] Failed to check job status: {e}")
         return None
@@ -96,9 +95,8 @@ def test_tickstockpl_heartbeat(client):
         if heartbeat:
             print(f"[OK] TickStockPL heartbeat detected: {heartbeat}")
             return True
-        else:
-            print("[WARN] TickStockPL heartbeat not found (service may not be running)")
-            return False
+        print("[WARN] TickStockPL heartbeat not found (service may not be running)")
+        return False
     except Exception as e:
         print(f"[FAIL] Failed to check TickStockPL heartbeat: {e}")
         return False

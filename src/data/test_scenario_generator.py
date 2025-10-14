@@ -16,10 +16,10 @@ Architecture:
 - Pattern validation and expected outcome documentation
 """
 
+import logging
 import os
 import sys
-import json
-import logging
+
 import numpy as np
 
 # Load environment variables from config manager
@@ -27,15 +27,13 @@ try:
     from src.core.services.config_manager import get_config
 except ImportError:
     pass  # config manager not available, will handle below
-import pandas as pd
-from datetime import datetime, timedelta, date
-from typing import Dict, List, Any, Optional, Tuple
+import random
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
+
 import psycopg2
 import psycopg2.extras
-from decimal import Decimal
-import math
-import random
 
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../'))
@@ -57,8 +55,8 @@ class ScenarioConfig:
     volatility_profile: str  # low, medium, high, extreme
     trend_direction: str  # up, down, sideways, mixed
     volume_profile: str  # low, normal, high, spike
-    pattern_features: List[str]  # List of expected patterns
-    expected_outcomes: Dict[str, Any]
+    pattern_features: list[str]  # List of expected patterns
+    expected_outcomes: dict[str, Any]
 
 class TestScenarioGenerator:
     """
@@ -70,7 +68,7 @@ class TestScenarioGenerator:
     - Integration with technical analysis libraries
     - Performance optimized for rapid scenario deployment
     """
-    
+
     def __init__(self, database_uri: str = None):
         """Initialize test scenario generator"""
         config = get_config()
@@ -80,18 +78,18 @@ class TestScenarioGenerator:
         )
         # Scenario configurations
         self.scenarios = self._initialize_scenario_configs()
-        
+
         # Random seed for reproducible results
         self.random_seed = 42
-        
+
         # Initialize logging
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         self.logger = logging.getLogger(__name__)
-        
-    def _initialize_scenario_configs(self) -> Dict[str, ScenarioConfig]:
+
+    def _initialize_scenario_configs(self) -> dict[str, ScenarioConfig]:
         """Initialize predefined scenario configurations"""
         return {
             'crash_2020': ScenarioConfig(
@@ -175,7 +173,7 @@ class TestScenarioGenerator:
                 }
             )
         }
-    
+
     def get_database_connection(self):
         """Get PostgreSQL database connection"""
         try:
@@ -187,8 +185,8 @@ class TestScenarioGenerator:
         except Exception as e:
             self.logger.error(f"- Database connection failed: {e}")
             return None
-    
-    def generate_scenario_data(self, scenario_name: str, symbol_suffix: str = '') -> Optional[List[Dict[str, Any]]]:
+
+    def generate_scenario_data(self, scenario_name: str, symbol_suffix: str = '') -> list[dict[str, Any]] | None:
         """
         Generate synthetic OHLCV data for specified scenario
         
@@ -202,14 +200,14 @@ class TestScenarioGenerator:
         if scenario_name not in self.scenarios:
             self.logger.error(f"- Unknown scenario: {scenario_name}")
             return None
-        
+
         config = self.scenarios[scenario_name]
         self.logger.info(f"+ Generating scenario '{scenario_name}': {config.length} days")
-        
+
         # Set reproducible seed
         np.random.seed(self.random_seed)
         random.seed(self.random_seed)
-        
+
         # Generate base time series
         if config.name == 'crash_2020':
             ohlcv_data = self._generate_crash_scenario(config)
@@ -223,7 +221,7 @@ class TestScenarioGenerator:
             ohlcv_data = self._generate_high_low_scenario(config)
         else:
             ohlcv_data = self._generate_generic_scenario(config)
-        
+
         # Add symbol suffix if provided
         if symbol_suffix:
             for row in ohlcv_data:
@@ -231,40 +229,40 @@ class TestScenarioGenerator:
         else:
             for row in ohlcv_data:
                 row['symbol'] = f"TEST_{scenario_name.upper()}"
-        
+
         self.logger.info(f"+ Generated {len(ohlcv_data)} OHLCV records for scenario '{scenario_name}'")
         return ohlcv_data
-    
-    def _generate_crash_scenario(self, config: ScenarioConfig) -> List[Dict[str, Any]]:
+
+    def _generate_crash_scenario(self, config: ScenarioConfig) -> list[dict[str, Any]]:
         """Generate COVID-19 style crash scenario"""
         length = config.length
         base_price = config.base_price
-        
+
         # Phase structure: Normal (60%) -> Crash (10%) -> Recovery (30%)
         normal_period = int(length * 0.6)
         crash_period = int(length * 0.1)
         recovery_period = length - normal_period - crash_period
-        
+
         # Generate returns for each phase
         normal_returns = np.random.normal(0.0008, 0.015, normal_period)  # Slight upward bias, low vol
         crash_returns = np.random.normal(-0.08, 0.12, crash_period)      # Heavy downward, extreme vol
         recovery_returns = np.random.normal(0.025, 0.06, recovery_period) # Strong recovery, medium vol
-        
+
         # Combine and create price series
         all_returns = np.concatenate([normal_returns, crash_returns, recovery_returns])
         prices = base_price * np.cumprod(1 + all_returns)
-        
+
         # Generate OHLCV data with realistic intraday patterns
         ohlcv_data = []
         start_date = datetime.now().date() - timedelta(days=length + 30)
-        
+
         for i, close in enumerate(prices):
             current_date = start_date + timedelta(days=i)
-            
+
             # Skip weekends
             if current_date.weekday() >= 5:
                 continue
-                
+
             # Determine volatility phase for intraday range
             if i < normal_period:
                 vol_multiplier = 1.0
@@ -275,30 +273,30 @@ class TestScenarioGenerator:
             else:
                 vol_multiplier = 2.0  # Elevated volatility during recovery
                 volume_base = 4000000
-            
+
             # Calculate OHLC with realistic intraday patterns
             daily_range = close * np.random.uniform(0.02, 0.08) * vol_multiplier
             high = close + np.random.uniform(0.3, 0.7) * daily_range
             low = close - np.random.uniform(0.3, 0.7) * daily_range
-            
+
             # Open price based on previous close with gap potential
             if i > 0:
                 gap_factor = np.random.normal(0, 0.01 * vol_multiplier)
                 open_price = prices[i-1] * (1 + gap_factor)
             else:
                 open_price = close
-            
+
             # Ensure OHLC relationships are valid
             high = max(high, open_price, close)
             low = min(low, open_price, close)
-            
+
             # Generate realistic volume with spikes during crash
             volume_noise = np.random.uniform(0.7, 1.5)
             if i >= normal_period and i < normal_period + crash_period:
                 volume_noise *= np.random.uniform(2.0, 5.0)  # Volume spikes during crash
-                
+
             volume = int(volume_base * volume_noise)
-            
+
             ohlcv_data.append({
                 'date': current_date,
                 'open': round(open_price, 2),
@@ -307,37 +305,37 @@ class TestScenarioGenerator:
                 'close': round(close, 2),
                 'volume': volume
             })
-        
+
         return ohlcv_data
-    
-    def _generate_growth_scenario(self, config: ScenarioConfig) -> List[Dict[str, Any]]:
+
+    def _generate_growth_scenario(self, config: ScenarioConfig) -> list[dict[str, Any]]:
         """Generate post-pandemic growth market scenario"""
         length = config.length
         base_price = config.base_price
-        
+
         # Growth phases: Recovery (30%) -> Momentum (50%) -> Consolidation (20%)
         recovery_period = int(length * 0.3)
         momentum_period = int(length * 0.5)
         consolidation_period = length - recovery_period - momentum_period
-        
+
         # Generate returns with growth bias
         recovery_returns = np.random.normal(0.015, 0.025, recovery_period)    # Steady recovery
         momentum_returns = np.random.normal(0.008, 0.020, momentum_period)    # Growth momentum
         consolidation_returns = np.random.normal(0.002, 0.015, consolidation_period) # Consolidation
-        
+
         all_returns = np.concatenate([recovery_returns, momentum_returns, consolidation_returns])
         prices = base_price * np.cumprod(1 + all_returns)
-        
+
         # Generate OHLCV data
         ohlcv_data = []
         start_date = datetime.now().date() - timedelta(days=length + 30)
-        
+
         for i, close in enumerate(prices):
             current_date = start_date + timedelta(days=i)
-            
+
             if current_date.weekday() >= 5:
                 continue
-            
+
             # Determine phase characteristics
             if i < recovery_period:
                 vol_multiplier = 1.2
@@ -348,23 +346,23 @@ class TestScenarioGenerator:
             else:
                 vol_multiplier = 0.8  # Low volatility during consolidation
                 volume_base = 2000000
-            
+
             # Generate OHLC
             daily_range = close * np.random.uniform(0.015, 0.035) * vol_multiplier
             high = close + np.random.uniform(0.4, 0.8) * daily_range
             low = close - np.random.uniform(0.2, 0.6) * daily_range  # Upward bias
-            
+
             if i > 0:
                 gap_factor = np.random.normal(0.001, 0.005)  # Small upward gaps
                 open_price = prices[i-1] * (1 + gap_factor)
             else:
                 open_price = close
-            
+
             high = max(high, open_price, close)
             low = min(low, open_price, close)
-            
+
             volume = int(volume_base * np.random.uniform(0.8, 1.3))
-            
+
             ohlcv_data.append({
                 'date': current_date,
                 'open': round(open_price, 2),
@@ -373,25 +371,25 @@ class TestScenarioGenerator:
                 'close': round(close, 2),
                 'volume': volume
             })
-        
+
         return ohlcv_data
-    
-    def _generate_volatility_scenario(self, config: ScenarioConfig) -> List[Dict[str, Any]]:
+
+    def _generate_volatility_scenario(self, config: ScenarioConfig) -> list[dict[str, Any]]:
         """Generate high volatility sideways movement scenario"""
         length = config.length
         base_price = config.base_price
-        
+
         # Create mean-reverting series with volatility clustering
         returns = []
         current_vol = 0.02  # Base volatility
-        
+
         for i in range(length):
             # Volatility clustering - high vol periods followed by high vol
             vol_persistence = 0.85
             vol_innovation = np.random.normal(0, 0.005)
             current_vol = current_vol * vol_persistence + vol_innovation
             current_vol = max(0.01, min(0.08, current_vol))  # Bound volatility
-            
+
             # Mean reversion to sideways trend
             mean_reversion_strength = 0.05
             if i > 0:
@@ -399,45 +397,45 @@ class TestScenarioGenerator:
                 mean_reversion = -mean_reversion_strength * price_level
             else:
                 mean_reversion = 0
-            
+
             # Generate return with mean reversion and current volatility
             daily_return = mean_reversion + np.random.normal(0, current_vol)
             returns.append(daily_return)
-        
+
         prices = base_price * np.cumprod(1 + np.array(returns))
-        
+
         # Generate OHLCV data with volatility clustering
         ohlcv_data = []
         start_date = datetime.now().date() - timedelta(days=length + 30)
-        
+
         for i, close in enumerate(prices):
             current_date = start_date + timedelta(days=i)
-            
+
             if current_date.weekday() >= 5:
                 continue
-            
+
             # Use local volatility for intraday range
             local_vol = abs(returns[i]) if i < len(returns) else 0.02
             vol_multiplier = 1 + (local_vol / 0.02)  # Scale based on return volatility
-            
+
             daily_range = close * np.random.uniform(0.03, 0.06) * vol_multiplier
             high = close + np.random.uniform(0.3, 0.7) * daily_range
             low = close - np.random.uniform(0.3, 0.7) * daily_range
-            
+
             if i > 0:
                 gap_factor = np.random.normal(0, 0.008)
                 open_price = prices[i-1] * (1 + gap_factor)
             else:
                 open_price = close
-            
+
             high = max(high, open_price, close)
             low = min(low, open_price, close)
-            
+
             # Volume increases with volatility
             volume_base = 2500000
             volume_multiplier = 1 + (local_vol / 0.02) * 0.5
             volume = int(volume_base * volume_multiplier * np.random.uniform(0.7, 1.4))
-            
+
             ohlcv_data.append({
                 'date': current_date,
                 'open': round(open_price, 2),
@@ -446,49 +444,49 @@ class TestScenarioGenerator:
                 'close': round(close, 2),
                 'volume': volume
             })
-        
+
         return ohlcv_data
-    
-    def _generate_trend_changes_scenario(self, config: ScenarioConfig) -> List[Dict[str, Any]]:
+
+    def _generate_trend_changes_scenario(self, config: ScenarioConfig) -> list[dict[str, Any]]:
         """Generate scenario with multiple trend direction changes"""
         length = config.length
         base_price = config.base_price
-        
+
         # Define trend segments
         segment_length = length // 4
         trend_segments = [
             ('up', 0.012, 0.020),      # Uptrend
-            ('down', -0.008, 0.025),   # Downtrend  
+            ('down', -0.008, 0.025),   # Downtrend
             ('up', 0.015, 0.018),      # Recovery
             ('sideways', 0.001, 0.022) # Consolidation
         ]
-        
+
         all_returns = []
         for trend_type, mean_return, volatility in trend_segments:
             segment_returns = np.random.normal(mean_return, volatility, segment_length)
             all_returns.extend(segment_returns)
-        
+
         # Add any remaining days
         remaining = length - len(all_returns)
         if remaining > 0:
             all_returns.extend(np.random.normal(0.002, 0.020, remaining))
-        
+
         prices = base_price * np.cumprod(1 + np.array(all_returns[:length]))
-        
+
         # Generate OHLCV data
         ohlcv_data = []
         start_date = datetime.now().date() - timedelta(days=length + 30)
-        
+
         for i, close in enumerate(prices):
             current_date = start_date + timedelta(days=i)
-            
+
             if current_date.weekday() >= 5:
                 continue
-            
+
             # Determine current trend segment
             segment_index = min(i // segment_length, len(trend_segments) - 1)
             trend_type, _, segment_vol = trend_segments[segment_index]
-            
+
             # Adjust characteristics based on trend
             if trend_type == 'up':
                 vol_multiplier = 0.9
@@ -499,26 +497,26 @@ class TestScenarioGenerator:
             else:
                 vol_multiplier = 1.0
                 volume_base = 2800000
-            
+
             daily_range = close * np.random.uniform(0.02, 0.05) * vol_multiplier
             high = close + np.random.uniform(0.3, 0.7) * daily_range
             low = close - np.random.uniform(0.3, 0.7) * daily_range
-            
+
             if i > 0:
                 gap_factor = np.random.normal(0, 0.006)
                 open_price = prices[i-1] * (1 + gap_factor)
             else:
                 open_price = close
-            
+
             high = max(high, open_price, close)
             low = min(low, open_price, close)
-            
+
             volume = int(volume_base * np.random.uniform(0.8, 1.3))
-            
+
             # Add trend change volume spikes
             if i > 0 and i % segment_length == 0:  # Trend change point
                 volume *= np.random.uniform(1.5, 2.5)
-            
+
             ohlcv_data.append({
                 'date': current_date,
                 'open': round(open_price, 2),
@@ -527,45 +525,45 @@ class TestScenarioGenerator:
                 'close': round(close, 2),
                 'volume': int(volume)
             })
-        
+
         return ohlcv_data
-    
-    def _generate_high_low_scenario(self, config: ScenarioConfig) -> List[Dict[str, Any]]:
+
+    def _generate_high_low_scenario(self, config: ScenarioConfig) -> list[dict[str, Any]]:
         """Generate scenario with frequent high/low events for threshold testing"""
         length = config.length
         base_price = config.base_price
-        
+
         # Generate base price series with embedded high/low events
         returns = np.random.normal(0.003, 0.025, length)
-        
+
         # Inject high/low events at regular intervals
         high_event_frequency = length // 12  # Every ~5 trading days
         low_event_frequency = length // 10   # Every ~6 trading days
-        
+
         for i in range(0, length, high_event_frequency):
             if i < len(returns):
                 returns[i] = np.random.uniform(0.08, 0.15)  # High event
-                
+
         for i in range(low_event_frequency//2, length, low_event_frequency):
             if i < len(returns):
                 returns[i] = np.random.uniform(-0.12, -0.08)  # Low event
-        
+
         prices = base_price * np.cumprod(1 + returns)
-        
+
         # Generate OHLCV data with exaggerated ranges for high/low events
         ohlcv_data = []
         start_date = datetime.now().date() - timedelta(days=length + 30)
-        
+
         for i, close in enumerate(prices):
             current_date = start_date + timedelta(days=i)
-            
+
             if current_date.weekday() >= 5:
                 continue
-            
+
             # Check if this is a high/low event day
             is_high_event = abs(returns[i]) > 0.07 and returns[i] > 0
             is_low_event = abs(returns[i]) > 0.07 and returns[i] < 0
-            
+
             if is_high_event or is_low_event:
                 # Exaggerated ranges for event days
                 vol_multiplier = 2.5
@@ -573,11 +571,11 @@ class TestScenarioGenerator:
             else:
                 vol_multiplier = 1.0
                 volume_base = 2000000
-            
+
             daily_range = close * np.random.uniform(0.025, 0.08) * vol_multiplier
             high = close + np.random.uniform(0.2, 0.8) * daily_range
             low = close - np.random.uniform(0.2, 0.8) * daily_range
-            
+
             if i > 0:
                 # Add price gaps on event days
                 if is_high_event or is_low_event:
@@ -587,12 +585,12 @@ class TestScenarioGenerator:
                 open_price = prices[i-1] * (1 + gap_factor)
             else:
                 open_price = close
-            
+
             high = max(high, open_price, close)
             low = min(low, open_price, close)
-            
+
             volume = int(volume_base * np.random.uniform(0.8, 1.5))
-            
+
             ohlcv_data.append({
                 'date': current_date,
                 'open': round(open_price, 2),
@@ -601,14 +599,14 @@ class TestScenarioGenerator:
                 'close': round(close, 2),
                 'volume': volume
             })
-        
+
         return ohlcv_data
-    
-    def _generate_generic_scenario(self, config: ScenarioConfig) -> List[Dict[str, Any]]:
+
+    def _generate_generic_scenario(self, config: ScenarioConfig) -> list[dict[str, Any]]:
         """Generate generic scenario based on configuration parameters"""
         length = config.length
         base_price = config.base_price
-        
+
         # Map volatility profile to parameters
         vol_params = {
             'low': 0.012,
@@ -616,7 +614,7 @@ class TestScenarioGenerator:
             'high': 0.035,
             'extreme': 0.060
         }
-        
+
         # Map trend direction to return bias
         trend_params = {
             'up': 0.008,
@@ -624,13 +622,13 @@ class TestScenarioGenerator:
             'sideways': 0.001,
             'mixed': 0.002
         }
-        
+
         vol = vol_params.get(config.volatility_profile, 0.020)
         trend = trend_params.get(config.trend_direction, 0.002)
-        
+
         returns = np.random.normal(trend, vol, length)
         prices = base_price * np.cumprod(1 + returns)
-        
+
         # Volume parameters
         volume_params = {
             'low': 1000000,
@@ -638,34 +636,34 @@ class TestScenarioGenerator:
             'high': 5000000,
             'spike': 8000000
         }
-        
+
         volume_base = volume_params.get(config.volume_profile, 2500000)
-        
+
         # Generate OHLCV data
         ohlcv_data = []
         start_date = datetime.now().date() - timedelta(days=length + 30)
-        
+
         for i, close in enumerate(prices):
             current_date = start_date + timedelta(days=i)
-            
+
             if current_date.weekday() >= 5:
                 continue
-            
+
             daily_range = close * np.random.uniform(0.02, 0.06)
             high = close + np.random.uniform(0.3, 0.7) * daily_range
             low = close - np.random.uniform(0.3, 0.7) * daily_range
-            
+
             if i > 0:
                 gap_factor = np.random.normal(0, vol * 0.3)
                 open_price = prices[i-1] * (1 + gap_factor)
             else:
                 open_price = close
-            
+
             high = max(high, open_price, close)
             low = min(low, open_price, close)
-            
+
             volume = int(volume_base * np.random.uniform(0.7, 1.4))
-            
+
             ohlcv_data.append({
                 'date': current_date,
                 'open': round(open_price, 2),
@@ -674,10 +672,10 @@ class TestScenarioGenerator:
                 'close': round(close, 2),
                 'volume': volume
             })
-        
+
         return ohlcv_data
-    
-    def load_scenario(self, scenario_name: str, symbols: List[str] = None) -> Dict[str, Any]:
+
+    def load_scenario(self, scenario_name: str, symbols: list[str] = None) -> dict[str, Any]:
         """
         Load scenario data into database for testing
         
@@ -689,27 +687,27 @@ class TestScenarioGenerator:
             Loading results with statistics and performance metrics
         """
         start_time = datetime.now()
-        
+
         if not symbols:
             symbols = [f'TEST_{scenario_name.upper()}']
-        
+
         conn = self.get_database_connection()
         if not conn:
             return {'error': 'Database connection failed'}
-        
+
         try:
             total_records = 0
             loaded_symbols = []
-            
+
             for symbol in symbols:
                 # Generate scenario data
                 ohlcv_data = self.generate_scenario_data(scenario_name, f'_{symbol}' if len(symbols) > 1 else '')
-                
+
                 if not ohlcv_data:
                     continue
-                
+
                 cursor = conn.cursor()
-                
+
                 # Insert into historical_data table
                 for row in ohlcv_data:
                     cursor.execute("""
@@ -722,12 +720,12 @@ class TestScenarioGenerator:
                             close_price = EXCLUDED.close_price,
                             volume = EXCLUDED.volume,
                             updated_at = CURRENT_TIMESTAMP
-                    """, (row['symbol'], row['date'], row['open'], row['high'], 
+                    """, (row['symbol'], row['date'], row['open'], row['high'],
                           row['low'], row['close'], row['volume']))
-                
+
                 total_records += len(ohlcv_data)
                 loaded_symbols.append(row['symbol'])
-                
+
                 # Ensure symbol exists in symbols table
                 cursor.execute("""
                     INSERT INTO symbols (symbol, name, type, active)
@@ -736,11 +734,11 @@ class TestScenarioGenerator:
                         active = true,
                         updated_at = CURRENT_TIMESTAMP
                 """, (row['symbol'], f'Test Scenario: {scenario_name.title()}'))
-            
+
             conn.commit()
-            
+
             load_duration = (datetime.now() - start_time).total_seconds()
-            
+
             result = {
                 'scenario_name': scenario_name,
                 'symbols_loaded': loaded_symbols,
@@ -750,10 +748,10 @@ class TestScenarioGenerator:
                 'expected_outcomes': self.scenarios[scenario_name].expected_outcomes if scenario_name in self.scenarios else {},
                 'timestamp': datetime.now().isoformat()
             }
-            
+
             self.logger.info(f"+ Scenario '{scenario_name}' loaded: {total_records} records in {load_duration:.2f}s")
             return result
-            
+
         except Exception as e:
             conn.rollback()
             self.logger.error(f"- Scenario loading failed: {e}")
@@ -761,8 +759,8 @@ class TestScenarioGenerator:
         finally:
             if conn:
                 conn.close()
-    
-    def validate_scenario_patterns(self, scenario_name: str, symbol: str = None) -> Dict[str, Any]:
+
+    def validate_scenario_patterns(self, scenario_name: str, symbol: str = None) -> dict[str, Any]:
         """
         Validate generated patterns using TA-Lib (if available)
         
@@ -775,17 +773,17 @@ class TestScenarioGenerator:
         """
         if not TALIB_AVAILABLE:
             return {'error': 'TA-Lib not available for pattern validation'}
-        
+
         if not symbol:
             symbol = f'TEST_{scenario_name.upper()}'
-        
+
         conn = self.get_database_connection()
         if not conn:
             return {'error': 'Database connection failed'}
-        
+
         try:
             cursor = conn.cursor()
-            
+
             # Get OHLCV data for validation
             cursor.execute("""
                 SELECT date, open_price, high_price, low_price, close_price, volume
@@ -793,18 +791,18 @@ class TestScenarioGenerator:
                 WHERE symbol = %s
                 ORDER BY date
             """, (symbol,))
-            
+
             data = cursor.fetchall()
             if not data:
                 return {'error': f'No data found for symbol {symbol}'}
-            
+
             # Convert to numpy arrays for TA-Lib
             opens = np.array([float(row['open_price']) for row in data])
             highs = np.array([float(row['high_price']) for row in data])
             lows = np.array([float(row['low_price']) for row in data])
             closes = np.array([float(row['close_price']) for row in data])
             volumes = np.array([int(row['volume']) for row in data])
-            
+
             # Calculate basic technical indicators
             validation_results = {
                 'symbol': symbol,
@@ -815,33 +813,33 @@ class TestScenarioGenerator:
                     'end': data[-1]['date'].isoformat()
                 }
             }
-            
+
             # Price movement validation
             total_return = (closes[-1] - closes[0]) / closes[0] * 100
             validation_results['total_return_pct'] = round(total_return, 2)
-            
+
             # Volatility calculation (20-day rolling)
             if len(closes) >= 20:
                 returns = np.diff(np.log(closes))
                 volatility = np.std(returns) * np.sqrt(252) * 100  # Annualized volatility
                 validation_results['volatility_pct'] = round(volatility, 2)
-            
+
             # Volume analysis
             avg_volume = np.mean(volumes)
             max_volume = np.max(volumes)
             validation_results['avg_volume'] = int(avg_volume)
             validation_results['max_volume'] = int(max_volume)
             validation_results['volume_spike_ratio'] = round(max_volume / avg_volume, 2)
-            
+
             # Pattern-specific validations
             config = self.scenarios.get(scenario_name)
             if config:
                 expected = config.expected_outcomes
                 validation_results['expected_outcomes'] = expected
-                
+
                 # Compare actual vs expected (simplified)
                 validation_results['outcome_validation'] = {}
-                
+
                 if 'max_drawdown' in expected:
                     cummax = np.maximum.accumulate(closes)
                     drawdowns = (closes - cummax) / cummax * 100
@@ -851,27 +849,27 @@ class TestScenarioGenerator:
                         'actual': round(actual_max_drawdown, 2),
                         'within_range': abs(actual_max_drawdown - expected['max_drawdown']) < 10
                     }
-                
+
                 if 'total_return' in expected:
                     validation_results['outcome_validation']['total_return'] = {
                         'expected': expected['total_return'],
                         'actual': total_return,
                         'within_range': abs(total_return - expected['total_return']) < 10
                     }
-            
+
             return validation_results
-            
+
         except Exception as e:
             self.logger.error(f"- Pattern validation failed: {e}")
             return {'error': str(e)}
         finally:
             if conn:
                 conn.close()
-    
-    def list_scenarios(self) -> Dict[str, Any]:
+
+    def list_scenarios(self) -> dict[str, Any]:
         """List available scenarios with descriptions and characteristics"""
         scenario_list = {}
-        
+
         for name, config in self.scenarios.items():
             scenario_list[name] = {
                 'name': config.name,
@@ -884,7 +882,7 @@ class TestScenarioGenerator:
                 'pattern_features': config.pattern_features,
                 'expected_outcomes': config.expected_outcomes
             }
-        
+
         return {
             'available_scenarios': scenario_list,
             'total_scenarios': len(scenario_list),
@@ -894,10 +892,10 @@ class TestScenarioGenerator:
 def main():
     """Main execution function for test scenario generation"""
     generator = TestScenarioGenerator()
-    
+
     if len(sys.argv) > 1:
         command = sys.argv[1]
-        
+
         if command == '--list-scenarios':
             scenarios = generator.list_scenarios()
             print("Available Test Scenarios:")
@@ -908,7 +906,7 @@ def main():
                 print(f"    Volatility: {info['volatility_profile']}")
                 print(f"    Trend: {info['trend_direction']}")
                 print(f"    Features: {', '.join(info['pattern_features'])}")
-                
+
         elif command.startswith('--load-scenario='):
             scenario_name = command.split('=')[1]
             result = generator.load_scenario(scenario_name)
@@ -920,7 +918,7 @@ def main():
                 print(f"  Performance: {result['records_per_second']:.0f} records/sec")
             else:
                 print(f"Loading failed: {result['error']}")
-                
+
         elif command.startswith('--validate-scenario='):
             scenario_name = command.split('=')[1]
             result = generator.validate_scenario_patterns(scenario_name)
@@ -934,7 +932,7 @@ def main():
                 print(f"  Volume Spike: {result['volume_spike_ratio']:.1f}x")
             else:
                 print(f"Validation failed: {result['error']}")
-                
+
         else:
             print("Usage:")
             print("  --list-scenarios: List all available test scenarios")

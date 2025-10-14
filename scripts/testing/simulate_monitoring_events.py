@@ -5,10 +5,12 @@ This script publishes events to Redis in the same format as TickStockPL.
 """
 
 import json
-import redis
-import time
 import random
+import time
 from datetime import datetime
+
+import redis
+
 
 def publish_monitoring_events():
     """Publish simulated monitoring events to Redis channel."""

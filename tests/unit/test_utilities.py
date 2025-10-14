@@ -7,10 +7,10 @@ Provides shared functionality for all trace testing scripts.
 import json
 import os
 from collections import defaultdict
-from datetime import datetime
-from typing import Dict, List, Set, Tuple, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
+
 
 class TraceStage(Enum):
     """Standardized trace stages"""
@@ -35,9 +35,9 @@ class EventType(Enum):
 class TraceValidationResult:
     """Result of trace validation"""
     is_valid: bool
-    errors: List[str]
-    warnings: List[str]
-    metrics: Dict[str, Any]
+    errors: list[str]
+    warnings: list[str]
+    metrics: dict[str, Any]
 
 @dataclass
 class FlowAnalysisResult:
@@ -46,12 +46,12 @@ class FlowAnalysisResult:
     complete_flows: int
     incomplete_flows: int
     efficiency: float
-    lost_events: List[str]
-    bottlenecks: List[Dict[str, Any]]
+    lost_events: list[str]
+    bottlenecks: list[dict[str, Any]]
 
 class TraceAnalyzer:
     """Enhanced trace analysis utilities"""
-    
+
     EXPECTED_FLOW = [
         TraceStage.EVENT_DETECTED,
         TraceStage.EVENT_QUEUED,
@@ -59,10 +59,10 @@ class TraceAnalyzer:
         TraceStage.EVENT_READY_FOR_EMISSION,
         TraceStage.EVENT_EMITTED
     ]
-    
+
     def __init__(self):
         self.reset()
-    
+
     def reset(self):
         """Reset analyzer state"""
         self.events_by_id = defaultdict(list)
@@ -70,19 +70,19 @@ class TraceAnalyzer:
         self.type_counts = defaultdict(lambda: defaultdict(int))
         self.validation_errors = []
         self.validation_warnings = []
-    
-    def load_trace_file(self, filename: str) -> Dict[str, Any]:
+
+    def load_trace_file(self, filename: str) -> dict[str, Any]:
         """Load and parse trace file with error handling"""
         # Handle path resolution
         if not os.path.dirname(filename):
             filename = os.path.join('./logs/trace/', filename)
-        
+
         if not os.path.exists(filename):
             raise FileNotFoundError(f"Trace file not found: {filename}")
-        
-        with open(filename, 'r') as f:
+
+        with open(filename) as f:
             data = json.load(f)
-        
+
         # Handle different formats
         if isinstance(data, dict) and 'steps' in data:
             return {
@@ -90,20 +90,19 @@ class TraceAnalyzer:
                 'duration': data.get('duration_seconds', 0),
                 'traces': data['steps']
             }
-        elif isinstance(data, list):
+        if isinstance(data, list):
             return {
                 'trace_id': 'unknown',
                 'duration': 0,
                 'traces': data
             }
-        else:
-            raise ValueError("Unknown trace format")
-    
-    def extract_connection_timing(self, trace_data: Dict[str, Any]) -> Dict[str, Any]:
+        raise ValueError("Unknown trace format")
+
+    def extract_connection_timing(self, trace_data: dict[str, Any]) -> dict[str, Any]:
         """Extract user connection timing information"""
         traces = trace_data.get('traces', [])
         connections = []
-        
+
         for trace in traces:
             action = trace.get('action', '')
             if action in ['user_connected', 'user_authenticated', 'client_connected']:
@@ -113,10 +112,10 @@ class TraceAnalyzer:
                     'user_id': trace.get('data', {}).get('details', {}).get('user_id'),
                     'component': trace.get('component', '')
                 })
-        
+
         # Sort by timestamp
         connections.sort(key=lambda x: x['timestamp'])
-        
+
         # Find first authenticated user
         first_auth_time = None
         first_user_id = None
@@ -125,7 +124,7 @@ class TraceAnalyzer:
                 first_auth_time = conn['timestamp']
                 first_user_id = conn['user_id']
                 break
-        
+
         return {
             'connections': connections,
             'first_auth_time': first_auth_time,
@@ -133,11 +132,11 @@ class TraceAnalyzer:
             'total_connections': len(connections)
         }
 
-    def calculate_adjusted_efficiency(self, trace_data: Dict[str, Any], ticker: str = None) -> Dict[str, float]:
+    def calculate_adjusted_efficiency(self, trace_data: dict[str, Any], ticker: str = None) -> dict[str, float]:
         """Calculate efficiency adjusted for user connection timing"""
         connection_info = self.extract_connection_timing(trace_data)
         first_user_time = connection_info['first_auth_time']
-        
+
         if not first_user_time:
             # No user connection found, return raw efficiency
             flow = self.extract_flow_metrics(trace_data, ticker)
@@ -147,32 +146,32 @@ class TraceAnalyzer:
                 'events_before_user': 0,
                 'warning': 'No user connections found'
             }
-        
+
         # Count events before and after user connection
         self.reset()
         traces = trace_data.get('traces', [])
-        
+
         events_before = 0
         events_after = 0
-        
+
         for trace in traces:
             if ticker and trace.get('ticker') != ticker:
                 continue
-                
+
             if trace.get('action') == 'event_detected':
                 if trace.get('timestamp', 0) < first_user_time:
                     events_before += 1
                 else:
                     events_after += 1
-        
+
         # Get emission counts
-        emitted = sum(1 for trace in traces 
-                    if trace.get('action') == 'event_emitted' and 
+        emitted = sum(1 for trace in traces
+                    if trace.get('action') == 'event_emitted' and
                     (not ticker or trace.get('ticker') == ticker))
-        
+
         raw_efficiency = (emitted / (events_before + events_after) * 100) if (events_before + events_after) > 0 else 0
         adjusted_efficiency = (emitted / events_after * 100) if events_after > 0 else 0
-        
+
         return {
             'raw_efficiency': raw_efficiency,
             'adjusted_efficiency': adjusted_efficiency,
@@ -182,25 +181,25 @@ class TraceAnalyzer:
             'first_user_time': first_user_time
         }
 
-    def validate_json_structure(self, trace_data: Dict[str, Any]) -> TraceValidationResult:
+    def validate_json_structure(self, trace_data: dict[str, Any]) -> TraceValidationResult:
         """Validate JSON meets expected schema"""
         errors = []
         warnings = []
         metrics = {}
-        
+
         traces = trace_data.get('traces', [])
         metrics['total_traces'] = len(traces)
-        
+
         # Check required fields
         required_fields = ['timestamp', 'ticker', 'component', 'action']
         optional_fields = ['data', 'category']
-        
+
         for i, trace in enumerate(traces):
             # Check required fields
             for field in required_fields:
                 if field not in trace:
                     errors.append(f"Trace {i}: Missing required field '{field}'")
-            
+
             # Validate timestamp
             if 'timestamp' in trace:
                 try:
@@ -209,7 +208,7 @@ class TraceAnalyzer:
                         warnings.append(f"Trace {i}: Invalid timestamp {ts}")
                 except:
                     errors.append(f"Trace {i}: Timestamp not a number")
-            
+
             # Validate data field
             if 'data' in trace:
                 data = trace['data']
@@ -222,52 +221,52 @@ class TraceAnalyzer:
                             int(data['output_count'])
                         except:
                             warnings.append(f"Trace {i}: output_count not convertible to int")
-        
+
         # Check for trace continuity
         if traces:
             timestamps = [t.get('timestamp', 0) for t in traces]
             if timestamps != sorted(timestamps):
                 warnings.append("Traces not in chronological order")
-        
+
         is_valid = len(errors) == 0
         return TraceValidationResult(is_valid, errors, warnings, metrics)
-    
-    def extract_flow_metrics(self, trace_data: Dict[str, Any], ticker: str = None) -> FlowAnalysisResult:
+
+    def extract_flow_metrics(self, trace_data: dict[str, Any], ticker: str = None) -> FlowAnalysisResult:
         """Extract key performance indicators from trace data"""
         self.reset()
         traces = trace_data.get('traces', [])
-        
+
         # Process all traces
         for trace in traces:
             if ticker and trace.get('ticker') != ticker:
                 continue
             self._process_trace(trace)
-        
+
         # Calculate metrics
         detected = len(self.events_by_id)
-        emitted = sum(1 for events in self.events_by_id.values() 
+        emitted = sum(1 for events in self.events_by_id.values()
                      if any(e['action'] == TraceStage.EVENT_EMITTED.value for e in events))
-        
+
         efficiency = (emitted / detected * 100) if detected > 0 else 0
-        
+
         # Find incomplete flows
         incomplete = []
         lost = []
         for event_id, events in self.events_by_id.items():
             stages = set(e['action'] for e in events)
             expected = set(s.value for s in self.EXPECTED_FLOW)
-            
-            if not stages.issuperset({TraceStage.EVENT_DETECTED.value, 
-                                     TraceStage.EVENT_QUEUED.value, 
+
+            if not stages.issuperset({TraceStage.EVENT_DETECTED.value,
+                                     TraceStage.EVENT_QUEUED.value,
                                      TraceStage.EVENT_EMITTED.value}):
                 incomplete.append(event_id)
-                
+
                 if TraceStage.EVENT_EMITTED.value not in stages:
                     lost.append(event_id)
-        
+
         # Identify bottlenecks
         bottlenecks = self._identify_bottlenecks()
-        
+
         return FlowAnalysisResult(
             total_events=detected,
             complete_flows=detected - len(incomplete),
@@ -276,22 +275,22 @@ class TraceAnalyzer:
             lost_events=lost,
             bottlenecks=bottlenecks
         )
-    
+
     def _process_trace(self, trace: dict):
         """Process individual trace entry"""
         action = trace.get('action', '')
         data = trace.get('data', {})
-        
+
         # Handle string data
         if isinstance(data, str):
             try:
                 data = json.loads(data)
             except:
                 data = {}
-        
+
         details = data.get('details', {})
         event_id = details.get('event_id') or data.get('event_id')
-        
+
         if event_id and event_id != 'None':
             self.events_by_id[event_id].append({
                 'timestamp': trace.get('timestamp', 0),
@@ -300,29 +299,29 @@ class TraceAnalyzer:
                 'action': action,
                 'details': details
             })
-        
+
         # Count stages
         self.stage_counts[action] += 1
-        
+
         # Count by type
         event_type = details.get('event_type', 'unknown')
         self.type_counts[action][event_type] += 1
-    
-    def _identify_bottlenecks(self) -> List[Dict[str, Any]]:
+
+    def _identify_bottlenecks(self) -> list[dict[str, Any]]:
         """Identify performance bottlenecks"""
         bottlenecks = []
-        
+
         # Check stage transitions
         transitions = [
             ('event_detected', 'event_queued'),
             ('event_queued', 'events_collected'),
             ('events_collected', 'event_emitted')
         ]
-        
+
         for from_stage, to_stage in transitions:
             from_count = self.stage_counts.get(from_stage, 0)
             to_count = self.stage_counts.get(to_stage, 0)
-            
+
             if from_count > 0:
                 efficiency = (to_count / from_count) * 100
                 if efficiency < 90:  # Threshold for bottleneck
@@ -332,18 +331,18 @@ class TraceAnalyzer:
                         'lost': from_count - to_count,
                         'severity': 'high' if efficiency < 80 else 'medium'
                     })
-        
+
         return bottlenecks
-    
-    def generate_summary_report(self, trace_data: Dict[str, Any], ticker: str = None) -> str:
+
+    def generate_summary_report(self, trace_data: dict[str, Any], ticker: str = None) -> str:
         """Create concise analysis report"""
         validation = self.validate_json_structure(trace_data)
         flow = self.extract_flow_metrics(trace_data, ticker)
-        
+
         report = []
         report.append("📊 TRACE ANALYSIS REPORT")
         report.append("=" * 60)
-        
+
         # Validation section
         report.append(f"\n✅ Validation: {'PASSED' if validation.is_valid else 'FAILED'}")
         if validation.errors:
@@ -354,31 +353,31 @@ class TraceAnalyzer:
             report.append(f"   Warnings: {len(validation.warnings)}")
             for warning in validation.warnings[:3]:
                 report.append(f"   - {warning}")
-        
+
         # Flow analysis section
-        report.append(f"\n📈 Flow Analysis:")
+        report.append("\n📈 Flow Analysis:")
         report.append(f"   Total Events: {flow.total_events}")
         report.append(f"   Complete Flows: {flow.complete_flows}")
         report.append(f"   Efficiency: {flow.efficiency:.1f}%")
-        
+
         if flow.bottlenecks:
-            report.append(f"\n⚠️  Bottlenecks Found:")
+            report.append("\n⚠️  Bottlenecks Found:")
             for bottleneck in flow.bottlenecks:
                 report.append(f"   - {bottleneck['stage']}: {bottleneck['efficiency']:.1f}% "
                             f"({bottleneck['severity']} severity)")
-        
+
         if flow.lost_events:
             report.append(f"\n❌ Lost Events: {len(flow.lost_events)}")
             for event_id in flow.lost_events[:5]:
                 report.append(f"   - {event_id}")
-        
+
         return "\n".join(report)
-    
-    def detect_anomalies(self, trace_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+
+    def detect_anomalies(self, trace_data: dict[str, Any]) -> list[dict[str, Any]]:
         """Identify unusual patterns or issues"""
         anomalies = []
         traces = trace_data.get('traces', [])
-        
+
         # Check for string/integer inconsistencies
         string_counts = 0
         for trace in traces:
@@ -387,7 +386,7 @@ class TraceAnalyzer:
                 for key, value in data.items():
                     if key.endswith('_count') and isinstance(value, str):
                         string_counts += 1
-        
+
         if string_counts > 0:
             anomalies.append({
                 'type': 'type_inconsistency',
@@ -395,7 +394,7 @@ class TraceAnalyzer:
                 'description': f'Found {string_counts} count fields as strings instead of integers',
                 'impact': 'May cause calculation errors'
             })
-        
+
         # Check for missing emission traces
         if 'event_ready_for_emission' not in self.stage_counts:
             anomalies.append({
@@ -404,12 +403,12 @@ class TraceAnalyzer:
                 'description': 'No "event_ready_for_emission" traces found',
                 'impact': 'Cannot track emission pipeline'
             })
-        
+
         # Check for event type imbalance
         for event_type in ['high', 'low', 'surge', 'trend']:
             detected = self.type_counts.get('event_detected', {}).get(event_type, 0)
             emitted = self.type_counts.get('event_emitted', {}).get(event_type, 0)
-            
+
             if detected > 0 and emitted == 0:
                 anomalies.append({
                     'type': 'event_type_loss',
@@ -417,7 +416,7 @@ class TraceAnalyzer:
                     'description': f'All {event_type} events lost (detected: {detected}, emitted: 0)',
                     'impact': f'No {event_type} events reaching users'
                 })
-        
+
         return anomalies
 
 # Convenience functions

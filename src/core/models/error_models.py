@@ -7,10 +7,11 @@ Created: 2025-09-25
 Purpose: Pydantic models for consistent error handling across systems
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, Field
 
 
 class ErrorMessage(BaseModel):
@@ -26,11 +27,11 @@ class ErrorMessage(BaseModel):
     error_id: str = Field(..., description="UUID for tracking errors across systems")
     source: str = Field(..., description="System that generated the error: 'TickStockAppV2' or 'TickStockPL'")
     severity: str = Field(..., description="Error severity level: critical|error|warning|info|debug")
-    category: Optional[str] = Field(None, description="Error category: pattern|database|network|validation|performance|security|configuration")
+    category: str | None = Field(None, description="Error category: pattern|database|network|validation|performance|security|configuration")
     message: str = Field(..., description="Human-readable error message")
-    component: Optional[str] = Field(None, description="Component/class that generated the error")
-    traceback: Optional[str] = Field(None, description="Stack trace if available")
-    context: Optional[Dict[str, Any]] = Field(None, description="Additional context data (symbol, user_id, etc.)")
+    component: str | None = Field(None, description="Component/class that generated the error")
+    traceback: str | None = Field(None, description="Stack trace if available")
+    context: dict[str, Any] | None = Field(None, description="Additional context data (symbol, user_id, etc.)")
     timestamp: datetime = Field(..., description="When the error occurred")
 
     @classmethod
@@ -39,10 +40,10 @@ class ErrorMessage(BaseModel):
         source: str,
         severity: str,
         message: str,
-        category: Optional[str] = None,
-        component: Optional[str] = None,
-        traceback: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None
+        category: str | None = None,
+        component: str | None = None,
+        traceback: str | None = None,
+        context: dict[str, Any] | None = None
     ) -> 'ErrorMessage':
         """Create a new ErrorMessage with auto-generated ID and timestamp
 
@@ -93,7 +94,7 @@ class ErrorMessage(BaseModel):
         """
         return cls.model_validate_json(json_str)
 
-    def to_database_dict(self) -> Dict[str, Any]:
+    def to_database_dict(self) -> dict[str, Any]:
         """Convert to dictionary format suitable for database insertion
 
         Returns:

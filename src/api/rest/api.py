@@ -3,28 +3,25 @@ Simplified API Routes - Post-Cleanup
 Essential API endpoints for the simplified TickStock architecture.
 """
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from flask import current_app, jsonify, request, session
-from flask_login import login_required, current_user
+from flask import jsonify, request
+from flask_login import current_user, login_required
 
-from src.infrastructure.database import User, db, Subscription, UserSettings
 from src.core.services.user_settings_service import UserSettingsService
+from src.infrastructure.database import db
 from src.infrastructure.database.tickstock_db import TickStockDatabase
-
-from src.presentation.websocket.publisher import WebSocketPublisher
-
 
 logger = logging.getLogger(__name__)
 api_logger = logging.getLogger(__name__)
 
 def generate_realistic_mock_data(symbol, timeframe, num_bars=50):
     """Generate realistic mock OHLCV data for fallback scenarios."""
-    from datetime import datetime, timedelta
     import random
-    
+    from datetime import datetime, timedelta
+
     chart_data = []
-    
+
     # Realistic base prices for different symbols
     base_prices = {
         'AAPL': 150.0, 'GOOGL': 2500.0, 'MSFT': 300.0, 'TSLA': 200.0,
@@ -32,32 +29,32 @@ def generate_realistic_mock_data(symbol, timeframe, num_bars=50):
     }
     base_price = base_prices.get(symbol, 100.0)
     current_time = datetime.utcnow()
-    
+
     for i in range(num_bars):
         # More realistic price movement with volatility clustering
         volatility = random.uniform(0.5, 2.0) if random.random() < 0.3 else random.uniform(0.1, 0.8)
         price_change = random.gauss(0, volatility)
-        
+
         open_price = max(0.01, base_price + price_change)
-        high_price = open_price + abs(random.gauss(0, 0.5)) 
+        high_price = open_price + abs(random.gauss(0, 0.5))
         low_price = max(0.01, open_price - abs(random.gauss(0, 0.5)))
         close_price = random.uniform(low_price, high_price)
-        
+
         # Volume with realistic patterns
         base_volume = 500000 if base_price < 50 else 200000
         volume_multiplier = random.uniform(0.3, 3.0)
         volume = int(base_volume * volume_multiplier)
-        
+
         # Time calculation based on timeframe
         if timeframe == '1d':
             timestamp = current_time - timedelta(days=num_bars-i)
         elif timeframe == '1w':
-            timestamp = current_time - timedelta(weeks=num_bars-i)  
+            timestamp = current_time - timedelta(weeks=num_bars-i)
         elif timeframe == '1m':
             timestamp = current_time - timedelta(days=(num_bars-i)*30)
         else:
             timestamp = current_time - timedelta(hours=num_bars-i)
-        
+
         chart_data.append({
             "timestamp": timestamp.isoformat() + "Z",
             "open": round(open_price, 2),
@@ -66,24 +63,24 @@ def generate_realistic_mock_data(symbol, timeframe, num_bars=50):
             "close": round(close_price, 2),
             "volume": volume
         })
-        
+
         base_price = close_price  # Use close as next base price
-    
+
     return chart_data
 
 
 def register_api_routes(app, extensions, cache_control, config):
     """Register simplified API routes for essential functionality."""
-    
+
     # Get instances from extensions
     mail = extensions.get('mail')
-    
+
     # Initialize the user settings service
     user_settings_service = UserSettingsService(cache_control)
-    
+
     # Initialize TickStock database connection for read-only queries
     tickstock_db = TickStockDatabase(config)
-        
+
     @app.route('/api/cache', methods=['GET'])
     def get_cache_contents():
         """Debug endpoint to view cache contents."""
@@ -134,7 +131,7 @@ def register_api_routes(app, extensions, cache_control, config):
                     }
                 else:
                     market_data_healthy = False
-                    
+
             except Exception as e:
                 logger.error("Market data service health check failed: %s", str(e))
                 market_data_healthy = False
@@ -152,14 +149,14 @@ def register_api_routes(app, extensions, cache_control, config):
                 "stats": {
                     "market_service": market_service_stats
                 },
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             })
         except Exception as e:
             logger.error("Health check failed: %s", str(e))
             return jsonify({
                 "status": "unhealthy",
                 "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }), 500
 
     # User Settings Endpoints
@@ -181,7 +178,7 @@ def register_api_routes(app, extensions, cache_control, config):
                 "error": str(e)
             }), 500
 
-    @app.route('/api/user/settings', methods=['POST']) 
+    @app.route('/api/user/settings', methods=['POST'])
     @login_required
     def save_user_settings():
         """Save user settings."""
@@ -198,19 +195,18 @@ def register_api_routes(app, extensions, cache_control, config):
                 if not user_settings_service.set_user_setting(current_user.id, key, value):
                     success = False
                     break
-            
+
             if success:
                 return jsonify({
                     "success": True,
                     "message": "Settings saved successfully",
                     "user_id": current_user.id
                 })
-            else:
-                return jsonify({
-                    "success": False,
-                    "error": "Failed to save settings"
-                }), 500
-                
+            return jsonify({
+                "success": False,
+                "error": "Failed to save settings"
+            }), 500
+
         except Exception as e:
             logger.error("Error saving user settings: %s", str(e))
             return jsonify({
@@ -231,15 +227,15 @@ def register_api_routes(app, extensions, cache_control, config):
         try:
             # Get optional search query parameter
             query = request.args.get('query', '').strip().upper()
-            
+
             # Get all symbols from TickStock database
             symbols = tickstock_db.get_symbols_for_dropdown()
-            
+
             # Filter by query if provided
             if query:
                 filtered_symbols = []
                 for symbol in symbols:
-                    if (query in symbol['symbol'] or 
+                    if (query in symbol['symbol'] or
                         query in symbol.get('name', '').upper()):
                         filtered_symbols.append({
                             'symbol': symbol['symbol'],
@@ -252,15 +248,15 @@ def register_api_routes(app, extensions, cache_control, config):
                     'symbol': s['symbol'],
                     'name': s['name']
                 } for s in symbols]
-            
+
             # Limit results to reasonable number for UI performance
             symbols = symbols[:100]
-            
+
             return jsonify({
                 "success": True,
                 "symbols": symbols
             })
-            
+
         except Exception as e:
             logger.error("Error searching symbols: %s", str(e))
             return jsonify({
@@ -276,14 +272,14 @@ def register_api_routes(app, extensions, cache_control, config):
             # Get watchlist from user settings
             settings = user_settings_service.get_user_settings(current_user.id)
             watchlist_symbols = settings.get('watchlist', [])
-            
+
             # If watchlist is empty, return empty list
             if not watchlist_symbols:
                 return jsonify({
                     "success": True,
                     "symbols": []
                 })
-            
+
             # Get symbol details for watchlist items
             watchlist_data = []
             for symbol_code in watchlist_symbols:
@@ -302,12 +298,12 @@ def register_api_routes(app, extensions, cache_control, config):
                         'name': 'Unknown',
                         'last_price': 0.00
                     })
-            
+
             return jsonify({
                 "success": True,
                 "symbols": watchlist_data
             })
-            
+
         except Exception as e:
             logger.error("Error getting watchlist: %s", str(e))
             return jsonify({
@@ -326,9 +322,9 @@ def register_api_routes(app, extensions, cache_control, config):
                     "success": False,
                     "error": "Symbol is required"
                 }), 400
-                
+
             symbol = data['symbol'].strip().upper()
-            
+
             # Validate symbol exists in database
             symbol_details = tickstock_db.get_symbol_details(symbol)
             if not symbol_details:
@@ -336,38 +332,36 @@ def register_api_routes(app, extensions, cache_control, config):
                     "success": False,
                     "error": f"Symbol {symbol} not found"
                 }), 404
-            
+
             # Get current watchlist
             settings = user_settings_service.get_user_settings(current_user.id)
             watchlist = settings.get('watchlist', [])
-            
+
             # Add symbol if not already present
             if symbol not in watchlist:
                 watchlist.append(symbol)
-                
+
                 # Update watchlist setting
                 success = user_settings_service.set_user_setting(
-                    current_user.id, 
+                    current_user.id,
                     'watchlist',
                     watchlist
                 )
-                
+
                 if success:
                     return jsonify({
                         "success": True,
                         "message": f"Added {symbol} to watchlist"
                     })
-                else:
-                    return jsonify({
-                        "success": False,
-                        "error": "Failed to save watchlist"
-                    }), 500
-            else:
                 return jsonify({
-                    "success": True,
-                    "message": f"{symbol} is already in watchlist"
-                })
-                
+                    "success": False,
+                    "error": "Failed to save watchlist"
+                }), 500
+            return jsonify({
+                "success": True,
+                "message": f"{symbol} is already in watchlist"
+            })
+
         except Exception as e:
             logger.error("Error adding to watchlist: %s", str(e))
             return jsonify({
@@ -386,40 +380,38 @@ def register_api_routes(app, extensions, cache_control, config):
                     "success": False,
                     "error": "Symbol is required"
                 }), 400
-                
+
             symbol = data['symbol'].strip().upper()
-            
+
             # Get current watchlist
             settings = user_settings_service.get_user_settings(current_user.id)
             watchlist = settings.get('watchlist', [])
-            
+
             # Remove symbol if present
             if symbol in watchlist:
                 watchlist.remove(symbol)
-                
+
                 # Update watchlist setting
                 success = user_settings_service.set_user_setting(
-                    current_user.id, 
+                    current_user.id,
                     'watchlist',
                     watchlist
                 )
-                
+
                 if success:
                     return jsonify({
                         "success": True,
                         "message": f"Removed {symbol} from watchlist"
                     })
-                else:
-                    return jsonify({
-                        "success": False,
-                        "error": "Failed to save watchlist"
-                    }), 500
-            else:
                 return jsonify({
-                    "success": True,
-                    "message": f"{symbol} was not in watchlist"
-                })
-                
+                    "success": False,
+                    "error": "Failed to save watchlist"
+                }), 500
+            return jsonify({
+                "success": True,
+                "message": f"{symbol} was not in watchlist"
+            })
+
         except Exception as e:
             logger.error("Error removing from watchlist: %s", str(e))
             return jsonify({
@@ -434,7 +426,7 @@ def register_api_routes(app, extensions, cache_control, config):
         try:
             # Get optional timeframe parameter
             timeframe = request.args.get('timeframe', '1d')
-            
+
             # Validate symbol exists
             symbol = symbol.upper()
             symbol_details = tickstock_db.get_symbol_details(symbol)
@@ -443,30 +435,30 @@ def register_api_routes(app, extensions, cache_control, config):
                     "success": False,
                     "error": f"Symbol {symbol} not found"
                 }), 404
-            
+
             # Phase 2: For now, use enhanced mock data (TickStockPL integration ready)
             # TODO: Replace with real TickStockPL integration when service is available
             try:
                 # Check if TickStockPL service is available
                 # For now, always use enhanced mock data
                 chart_data = generate_realistic_mock_data(symbol, timeframe)
-                logger.info("Using enhanced mock data for %s (%s): %d bars", 
+                logger.info("Using enhanced mock data for %s (%s): %d bars",
                           symbol, timeframe, len(chart_data))
-                    
+
             except Exception as error:
                 logger.error("Error generating chart data for %s: %s", symbol, error)
                 return jsonify({
                     "success": False,
                     "error": f"Failed to generate chart data for {symbol}"
                 }), 500
-            
+
             return jsonify({
                 "success": True,
                 "chart_data": chart_data,
                 "symbol": symbol,
                 "timeframe": timeframe
             })
-            
+
         except Exception as e:
             logger.error("Error getting chart data for %s: %s", symbol, str(e))
             return jsonify({
@@ -544,7 +536,7 @@ def register_api_routes(app, extensions, cache_control, config):
         """Get pattern performance data."""
         try:
             timeframe = request.args.get('timeframe', '1d')
-            
+
             # Mock performance data for now - JavaScript expects 'performance' array
             return jsonify({
                 "success": True,
@@ -564,7 +556,7 @@ def register_api_routes(app, extensions, cache_control, config):
         try:
             limit = int(request.args.get('limit', 50))
             offset = int(request.args.get('offset', 0))
-            
+
             # Mock history data for now
             return jsonify({
                 "success": True,
@@ -760,33 +752,33 @@ def register_api_routes(app, extensions, cache_control, config):
         Performance Target: <50ms query response time
         """
         try:
-            start_time = datetime.now(timezone.utc)
-            
+            start_time = datetime.now(UTC)
+
             # Phase 1: Mock implementation with consumer-ready structure
             # TODO Sprint 10 Phase 2: Replace with Redis cache lookup and TickStockPL job triggering
-            
+
             # Generate realistic mock market movers data
             mock_market_movers = generate_market_movers_mock_data()
-            
+
             # Track performance
-            processing_time_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
+            processing_time_ms = (datetime.now(UTC) - start_time).total_seconds() * 1000
             if processing_time_ms > 50:
                 logger.warning("Market movers query exceeded target: %.2fms", processing_time_ms)
-            
-            logger.debug("Market movers API: %d gainers, %d losers - %.2fms", 
+
+            logger.debug("Market movers API: %d gainers, %d losers - %.2fms",
                         len(mock_market_movers.get('gainers', [])),
                         len(mock_market_movers.get('losers', [])),
                         processing_time_ms)
-            
+
             return jsonify({
                 "success": True,
                 "data": mock_market_movers,
                 "cache_status": "mock",  # Will be "hit", "miss", or "stale" in Phase 2
-                "last_updated": datetime.now(timezone.utc).isoformat() + "Z",
+                "last_updated": datetime.now(UTC).isoformat() + "Z",
                 "processing_time_ms": round(processing_time_ms, 2),
                 "data_source": "mock"  # Will be "cache" or "realtime" in Phase 2
             })
-            
+
         except Exception as e:
             logger.error("Error getting market movers: %s", str(e))
             return jsonify({
@@ -806,8 +798,8 @@ def generate_market_movers_mock_data():
     - Consistent with existing symbols in database
     """
     import random
-    from datetime import datetime, timezone
-    
+    from datetime import datetime
+
     # Common stock symbols with realistic base prices
     symbols_data = [
         {"symbol": "AAPL", "name": "Apple Inc.", "base_price": 150.00},
@@ -831,24 +823,24 @@ def generate_market_movers_mock_data():
         {"symbol": "TWTR", "name": "Twitter Inc.", "base_price": 35.00},
         {"symbol": "SNAP", "name": "Snap Inc.", "base_price": 25.00}
     ]
-    
+
     # Shuffle for randomness
     random.shuffle(symbols_data)
-    
+
     # Generate gainers (positive changes)
     gainers = []
     for i in range(10):
         symbol_data = symbols_data[i]
         base_price = symbol_data["base_price"]
-        
+
         # Generate positive change (1% to 15%)
         change_percent = random.uniform(1.0, 15.0)
         price_change = base_price * (change_percent / 100)
         current_price = base_price + price_change
-        
+
         # Generate realistic volume
         volume = random.randint(100000, 5000000)
-        
+
         gainers.append({
             "symbol": symbol_data["symbol"],
             "name": symbol_data["name"],
@@ -856,23 +848,23 @@ def generate_market_movers_mock_data():
             "change": round(price_change, 2),
             "change_percent": round(change_percent, 2),
             "volume": volume,
-            "timestamp": datetime.now(timezone.utc).isoformat() + "Z"
+            "timestamp": datetime.now(UTC).isoformat() + "Z"
         })
-    
+
     # Generate losers (negative changes)
     losers = []
     for i in range(10, 20):  # Next 10 symbols
         symbol_data = symbols_data[i]
         base_price = symbol_data["base_price"]
-        
+
         # Generate negative change (-1% to -12%)
         change_percent = random.uniform(-12.0, -1.0)
         price_change = base_price * (change_percent / 100)
         current_price = base_price + price_change
-        
+
         # Generate realistic volume (often higher for losers)
         volume = random.randint(150000, 6000000)
-        
+
         losers.append({
             "symbol": symbol_data["symbol"],
             "name": symbol_data["name"],
@@ -880,13 +872,13 @@ def generate_market_movers_mock_data():
             "change": round(price_change, 2),
             "change_percent": round(change_percent, 2),
             "volume": volume,
-            "timestamp": datetime.now(timezone.utc).isoformat() + "Z"
+            "timestamp": datetime.now(UTC).isoformat() + "Z"
         })
-    
+
     # Sort gainers by change_percent descending, losers by change_percent ascending
     gainers.sort(key=lambda x: x["change_percent"], reverse=True)
     losers.sort(key=lambda x: x["change_percent"])
-    
+
     return {
         "gainers": gainers,
         "losers": losers,
@@ -896,7 +888,7 @@ def generate_market_movers_mock_data():
             "avg_gain_percent": round(sum(g["change_percent"] for g in gainers) / len(gainers), 2),
             "avg_loss_percent": round(sum(l["change_percent"] for l in losers) / len(losers), 2),
             "total_volume": sum(s["volume"] for s in gainers + losers),
-            "last_updated": datetime.now(timezone.utc).isoformat() + "Z"
+            "last_updated": datetime.now(UTC).isoformat() + "Z"
         }
     }
 

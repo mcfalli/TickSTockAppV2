@@ -4,15 +4,16 @@ Sprint 32: Simple tests for Enhanced Error Handling System
 Focus on core functionality without Windows file locking issues
 """
 
+import json
 import os
 import sys
-import json
 import time
+from datetime import datetime
+
 import psycopg2
 import redis
-from datetime import datetime
-from src.core.services.config_manager import get_config
 
+from src.core.services.config_manager import get_config
 
 # Get configuration
 try:
@@ -24,8 +25,12 @@ except:
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from src.core.services.config_manager import LoggingConfig
-from src.core.services.enhanced_logger import EnhancedLogger, create_enhanced_logger, get_enhanced_logger, set_enhanced_logger
-from src.core.services.error_subscriber import ErrorSubscriber, create_error_subscriber
+from src.core.services.enhanced_logger import (
+    create_enhanced_logger,
+    get_enhanced_logger,
+    set_enhanced_logger,
+)
+from src.core.services.error_subscriber import create_error_subscriber
 
 print("\n" + "="*60)
 print("SPRINT 32: ENHANCED ERROR HANDLING - SIMPLE TEST SUITE")
@@ -35,7 +40,7 @@ print("="*60 + "\n")
 print("[TEST 1] Loading configuration from environment...")
 try:
     config = LoggingConfig()
-    print(f"  [PASS] Config loaded:")
+    print("  [PASS] Config loaded:")
     print(f"    - File path: {config.log_file_path}")
     print(f"    - DB enabled: {config.log_db_enabled}")
     print(f"    - DB threshold: {config.log_db_severity_threshold}")
@@ -50,7 +55,7 @@ try:
     db_conn = psycopg2.connect(config.get('DATABASE_URI'))
     logger = create_enhanced_logger(config, db_conn)
     set_enhanced_logger(logger)
-    print(f"  [PASS] Logger created with file and database support")
+    print("  [PASS] Logger created with file and database support")
 except Exception as e:
     print(f"  [FAIL] Logger creation error: {e}")
     sys.exit(1)
@@ -86,11 +91,11 @@ try:
     results = cursor.fetchall()
 
     if results:
-        print(f"  [PASS] Database contains:")
+        print("  [PASS] Database contains:")
         for severity, count in results:
             print(f"    - {severity}: {count} entries")
     else:
-        print(f"  [INFO] No recent entries in database")
+        print("  [INFO] No recent entries in database")
 
     # Clean up test data
     cursor.execute("DELETE FROM error_logs WHERE component = 'SimpleTest'")
@@ -150,13 +155,13 @@ try:
             'component': 'RedisTest'
         }
         redis_client.publish(config.redis_error_channel, json.dumps(test_msg))
-        print(f"  [INFO] Test message published to Redis")
+        print("  [INFO] Test message published to Redis")
 
         # Stop subscriber
         time.sleep(1)
         subscriber.stop()
     else:
-        print(f"  [FAIL] Could not start Redis subscriber")
+        print("  [FAIL] Could not start Redis subscriber")
 except Exception as e:
     print(f"  [WARN] Redis test skipped: {e}")
 
@@ -166,13 +171,13 @@ try:
     global_logger = get_enhanced_logger()
     if global_logger:
         stats = global_logger.get_stats()
-        print(f"  [PASS] Global logger accessible:")
+        print("  [PASS] Global logger accessible:")
         print(f"    - Total errors: {stats['total_errors']}")
         print(f"    - DB writes: {stats['database_writes']}")
         print(f"    - File logging: {stats['file_logging_enabled']}")
         print(f"    - DB logging: {stats['database_logging_enabled']}")
     else:
-        print(f"  [FAIL] Global logger not set")
+        print("  [FAIL] Global logger not set")
 except Exception as e:
     print(f"  [FAIL] Global logger error: {e}")
 

@@ -11,24 +11,17 @@ Validates:
 - End-to-end performance targets
 - System resilience across all phases
 """
-import pytest
-import json
-import time
 import threading
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
-from sqlalchemy import text
-from typing import Dict, List, Optional, Tuple, Set
+import time
 
-from tests.integration.sprint14.conftest import (
-    SPRINT14_REDIS_CHANNELS,
-    PERFORMANCE_TARGETS
-)
+from sqlalchemy import text
+
+from tests.integration.sprint14.conftest import PERFORMANCE_TARGETS, SPRINT14_REDIS_CHANNELS
 
 
 class TestCompleteSystemWorkflow:
     """Test complete system workflow across all Sprint 14 phases"""
-    
+
     def test_new_ipo_complete_lifecycle_workflow(
         self,
         redis_client,
@@ -54,13 +47,13 @@ class TestCompleteSystemWorkflow:
         all_channels = list(SPRINT14_REDIS_CHANNELS['events'].values()) + list(SPRINT14_REDIS_CHANNELS['jobs'].values())
         listener.subscribe(all_channels)
         listener.start_listening()
-        
+
         consumer = mock_tickstockapp_consumer(redis_client)
         producer = mock_tickstockpl_producer(redis_client)
-        
+
         try:
             # === PHASE 1: Foundation Enhancement ===
-            
+
             # Step 1a: ETF Integration - New sector ETF detected
             new_etf_data = {
                 'symbol': 'NEWTECH_ETF',
@@ -70,7 +63,7 @@ class TestCompleteSystemWorkflow:
                 'expense_ratio': 0.0065,
                 'underlying_index': 'Custom Tech Index'
             }
-            
+
             with integration_performance_monitor.measure_operation('complete_workflow_etf_integration'):
                 # Database insertion
                 db_connection.execute(text("""
@@ -78,10 +71,10 @@ class TestCompleteSystemWorkflow:
                     VALUES (:symbol, :name, 'ETF', :etf_type, :aum_millions, :expense_ratio, :underlying_index)
                 """), new_etf_data)
                 db_connection.commit()
-                
+
                 # ETF update notification
                 producer.publish_etf_data_update(new_etf_data['symbol'], new_etf_data)
-            
+
             # Step 1b: Historical Loading - Trigger backfill for new ETF
             historical_job = {
                 'request_type': 'historical_backfill',
@@ -91,9 +84,9 @@ class TestCompleteSystemWorkflow:
                 'data_types': ['ohlcv_daily', 'ohlcv_1min'],
                 'priority': 'medium'
             }
-            
+
             consumer.submit_data_request(historical_job)
-            
+
             # Step 1c: EOD Processing integration
             eod_summary = {
                 'symbols_processed': 4250,  # Including new ETF
@@ -103,15 +96,15 @@ class TestCompleteSystemWorkflow:
                 'new_symbols_processed': [new_etf_data['symbol']]
             }
             producer.publish_eod_completion(eod_summary)
-            
+
             # === PHASE 2: Automation & Monitoring ===
-            
+
             # Step 2a: IPO Detection - New company IPO
             ipo_data = sprint14_test_data.ipo_listing_data()
             ipo_data['symbol'] = 'COMPLETE_IPO'
             ipo_data['sector'] = 'Technology'  # Related to the ETF
             ipo_data['market_cap'] = 8000.0  # Mid-cap
-            
+
             with integration_performance_monitor.measure_operation('complete_workflow_ipo_detection'):
                 # IPO database insertion
                 db_connection.execute(text("""
@@ -119,10 +112,10 @@ class TestCompleteSystemWorkflow:
                     VALUES (:symbol, :name, 'CS', :market_cap, :sector, :exchange, :listing_date)
                 """), ipo_data)
                 db_connection.commit()
-                
+
                 # IPO detection notification
                 producer.publish_ipo_detection(ipo_data['symbol'], ipo_data)
-            
+
             # Step 2b: Data Quality Assessment for new IPO
             ipo_quality_assessment = {
                 'symbol': ipo_data['symbol'],
@@ -134,7 +127,7 @@ class TestCompleteSystemWorkflow:
                 'recommendations': ['monitor_liquidity', 'standard_processing']
             }
             producer.publish_data_quality_alert(ipo_quality_assessment)
-            
+
             # Step 2c: Equity Type Assignment
             equity_type_assignment = {
                 'symbol': ipo_data['symbol'],
@@ -151,9 +144,9 @@ class TestCompleteSystemWorkflow:
                 }
             }
             producer.publish_data_quality_alert(equity_type_assignment)
-            
+
             # === PHASE 3: Advanced Features ===
-            
+
             # Step 3a: Cache Universe Assignment for both ETF and IPO
             cache_assignments = [
                 {
@@ -173,11 +166,11 @@ class TestCompleteSystemWorkflow:
                     'change_type': 'symbol_addition'
                 }
             ]
-            
+
             for assignment in cache_assignments:
                 producer.publish_data_quality_alert(assignment)
                 time.sleep(0.05)
-            
+
             # Step 3b: Test Scenario Generation
             comprehensive_test_scenario = {
                 'alert_type': 'test_scenario_generated',
@@ -199,9 +192,9 @@ class TestCompleteSystemWorkflow:
                 }
             }
             producer.publish_data_quality_alert(comprehensive_test_scenario)
-            
+
             # === PHASE 4: Production Optimization ===
-            
+
             # Step 4a: Enterprise Scheduler handles new symbol processing
             enterprise_jobs = [
                 {
@@ -220,11 +213,11 @@ class TestCompleteSystemWorkflow:
                     'scheduler': 'enterprise_scheduler'
                 }
             ]
-            
+
             for job in enterprise_jobs:
                 consumer.submit_data_request(job)
                 time.sleep(0.05)
-            
+
             # Step 4b: Market Calendar Integration
             market_schedule_update = {
                 'alert_type': 'market_calendar_update',
@@ -239,15 +232,15 @@ class TestCompleteSystemWorkflow:
                 }
             }
             producer.publish_data_quality_alert(market_schedule_update)
-            
+
             # === EXECUTION PHASE: Process all jobs with progress tracking ===
-            
+
             job_ids = [
                 'enterprise_new_symbols',
                 'enterprise_rebalance',
                 'complete_workflow_001'  # Test scenario
             ]
-            
+
             # Execute jobs with progress updates
             for job_id in job_ids:
                 progress_steps = [0.25, 0.50, 0.75, 1.0]
@@ -256,7 +249,7 @@ class TestCompleteSystemWorkflow:
                     with integration_performance_monitor.measure_operation('complete_workflow_job_execution'):
                         producer.publish_backtest_progress(job_id, progress, status)
                     time.sleep(0.1)
-            
+
             # Pattern detection for both new symbols
             pattern_detections = [
                 {
@@ -272,90 +265,90 @@ class TestCompleteSystemWorkflow:
                     'timeframe': '1D'
                 }
             ]
-            
+
             for detection in pattern_detections:
                 producer.publish_pattern_event(detection)
-            
+
             # === VALIDATION PHASE ===
             time.sleep(2.0)  # Allow complete processing
-            
+
             # Collect all messages
             all_messages = []
             message_counts_by_channel = {}
-            
+
             for channel in all_channels:
                 channel_messages = listener.get_messages(channel)
                 all_messages.extend(channel_messages)
                 message_counts_by_channel[channel] = len(channel_messages)
-                
+
             # Validate comprehensive workflow completion
             assert len(all_messages) >= 20, f"Expected ≥20 messages in complete workflow, got {len(all_messages)}"
-            
+
             # Phase 1 Validation: ETF and EOD integration
             etf_messages = [
-                msg for msg in all_messages 
+                msg for msg in all_messages
                 if msg.get('parsed_data', {}).get('symbol') == new_etf_data['symbol']
             ]
             assert len(etf_messages) >= 3, "ETF should appear in multiple workflow steps"
-            
+
             eod_messages = [
                 msg for msg in all_messages
                 if 'eod_processing_complete' in str(msg.get('parsed_data', {}))
             ]
             assert len(eod_messages) >= 1, "EOD completion should be captured"
-            
+
             # Phase 2 Validation: IPO and quality monitoring
             ipo_messages = [
                 msg for msg in all_messages
                 if msg.get('parsed_data', {}).get('symbol') == ipo_data['symbol']
             ]
             assert len(ipo_messages) >= 4, "IPO should appear in detection, quality, and equity type steps"
-            
+
             # Phase 3 Validation: Cache and test scenarios
             cache_messages = [
                 msg for msg in all_messages
                 if 'cache_universe' in str(msg.get('parsed_data', {}).get('alert_type', ''))
             ]
             assert len(cache_messages) >= 2, "Cache universe updates should be present"
-            
+
             test_scenario_messages = [
                 msg for msg in all_messages
                 if 'test_scenario' in str(msg.get('parsed_data', {}).get('alert_type', ''))
             ]
             assert len(test_scenario_messages) >= 1, "Test scenario generation should be captured"
-            
+
             # Phase 4 Validation: Enterprise and market calendar
             enterprise_job_messages = [
                 msg for msg in all_messages
                 if msg.get('parsed_data', {}).get('scheduler') == 'enterprise_scheduler'
             ]
             assert len(enterprise_job_messages) >= 2, "Enterprise jobs should be present"
-            
+
             # Pattern detection validation
             pattern_messages = [
                 msg for msg in all_messages
                 if 'pattern' in str(msg.get('parsed_data', {}))
             ]
             assert len(pattern_messages) >= 2, "Pattern detections should be captured"
-            
+
             # Job completion validation
             completed_jobs = [
                 msg for msg in all_messages
                 if msg.get('parsed_data', {}).get('progress') == 1.0
             ]
             assert len(completed_jobs) >= 3, "All major jobs should complete"
-            
+
             # Performance validation across complete workflow
             integration_performance_monitor.assert_performance_target(
                 'complete_workflow_etf_integration',
                 PERFORMANCE_TARGETS['message_delivery_ms']
             )
-            
+
             integration_performance_monitor.assert_performance_target(
                 'complete_workflow_ipo_detection',
                 PERFORMANCE_TARGETS['message_delivery_ms']
             )
-            
+
             # Validate database consistency
             final_symbols_check = db_connection.execute(text("""
                 SELECT COUNT(*) FROM symbols 
@@ -364,12 +357,12 @@ class TestCompleteSystemWorkflow:
                 'etf_symbol': new_etf_data['symbol'],
                 'ipo_symbol': ipo_data['symbol']
             })
-            
+
             assert final_symbols_check.scalar() == 2, "Both ETF and IPO should be in database"
-            
+
         finally:
             listener.stop_listening()
-    
+
     def test_market_disruption_complete_system_response(
         self,
         redis_client,
@@ -387,9 +380,9 @@ class TestCompleteSystemWorkflow:
         all_channels = list(SPRINT14_REDIS_CHANNELS['events'].values())
         listener.subscribe(all_channels)
         listener.start_listening()
-        
+
         producer = mock_tickstockpl_producer(redis_client)
-        
+
         try:
             # === MARKET DISRUPTION EVENT ===
             disruption_trigger = {
@@ -405,12 +398,12 @@ class TestCompleteSystemWorkflow:
                 },
                 'response_coordination_required': True
             }
-            
+
             with integration_performance_monitor.measure_operation('market_disruption_coordination'):
                 producer.publish_data_quality_alert(disruption_trigger)
-            
+
             # === PHASE 1 RESPONSE: ETF and EOD Adjustments ===
-            
+
             # ETF correlation breakdown detection
             etf_responses = [
                 {
@@ -422,16 +415,16 @@ class TestCompleteSystemWorkflow:
                 },
                 {
                     'symbol': 'QQQ',
-                    'correlation_reference': 'SPY', 
+                    'correlation_reference': 'SPY',
                     'correlation_coefficient': 0.32,
                     'correlation_strength': 'severely_disrupted',
                     'emergency_monitoring': True
                 }
             ]
-            
+
             for etf in etf_responses:
                 producer.publish_etf_data_update(etf['symbol'], etf)
-            
+
             # Emergency EOD processing
             emergency_eod = {
                 'symbols_processed': 4200,
@@ -442,9 +435,9 @@ class TestCompleteSystemWorkflow:
                 'market_condition': 'severe_disruption'
             }
             producer.publish_eod_completion(emergency_eod)
-            
+
             # === PHASE 2 RESPONSE: Quality Monitoring and IPO Impact ===
-            
+
             # Massive data quality alerts
             quality_alerts = [
                 {
@@ -465,10 +458,10 @@ class TestCompleteSystemWorkflow:
                     'gap_handling': 'fmv_approximation_active'
                 }
             ]
-            
+
             for alert in quality_alerts:
                 producer.publish_data_quality_alert(alert)
-            
+
             # IPO postponement notifications
             ipo_disruption = {
                 'symbol': 'POSTPONED_IPO',
@@ -479,9 +472,9 @@ class TestCompleteSystemWorkflow:
                 'new_tentative_date': '2024-02-15'
             }
             producer.publish_data_quality_alert(ipo_disruption)
-            
+
             # === PHASE 3 RESPONSE: Universe Rebalancing and Scenarios ===
-            
+
             # Emergency universe rebalancing
             universe_rebalancing = [
                 {
@@ -502,10 +495,10 @@ class TestCompleteSystemWorkflow:
                     'expansion_reason': 'market_disruption_response'
                 }
             ]
-            
+
             for rebalance in universe_rebalancing:
                 producer.publish_data_quality_alert(rebalance)
-            
+
             # Emergency test scenario generation
             disruption_test = {
                 'alert_type': 'test_scenario_generated',
@@ -520,9 +513,9 @@ class TestCompleteSystemWorkflow:
                 }
             }
             producer.publish_data_quality_alert(disruption_test)
-            
+
             # === PHASE 4 RESPONSE: Emergency Scheduling and Calendar ===
-            
+
             # Enterprise scheduler emergency mode
             emergency_scheduling = {
                 'alert_type': 'enterprise_emergency_mode',
@@ -537,7 +530,7 @@ class TestCompleteSystemWorkflow:
                 'estimated_emergency_duration_hours': 4
             }
             producer.publish_data_quality_alert(emergency_scheduling)
-            
+
             # Market calendar disruption adjustment
             calendar_disruption = {
                 'alert_type': 'market_calendar_disruption',
@@ -551,17 +544,17 @@ class TestCompleteSystemWorkflow:
                 }
             }
             producer.publish_data_quality_alert(calendar_disruption)
-            
+
             # === COORDINATED RESPONSE EXECUTION ===
-            
+
             # System-wide coordination jobs
             coordination_jobs = [
                 'emergency_correlation_recalc',
-                'volatility_universe_rebuild', 
+                'volatility_universe_rebuild',
                 'data_quality_emergency_scan',
                 'pattern_detection_recalibration'
             ]
-            
+
             for job_id in coordination_jobs:
                 # Rapid execution under emergency conditions
                 progress_steps = [0.4, 0.8, 1.0]  # Fewer steps, faster execution
@@ -569,7 +562,7 @@ class TestCompleteSystemWorkflow:
                     status = 'emergency_processing' if progress < 1.0 else 'emergency_completed'
                     producer.publish_backtest_progress(job_id, progress, status)
                     time.sleep(0.05)  # Very fast execution
-            
+
             # Pattern detection under extreme conditions
             extreme_patterns = [
                 {
@@ -585,70 +578,70 @@ class TestCompleteSystemWorkflow:
                     'market_condition': 'disruption_recovery'
                 }
             ]
-            
+
             for pattern in extreme_patterns:
                 producer.publish_pattern_event(pattern)
-            
+
             # === VALIDATION OF COORDINATED RESPONSE ===
             time.sleep(2.5)  # Allow emergency processing
-            
+
             # Collect all disruption response messages
             all_messages = []
             for channel in all_channels:
                 channel_messages = listener.get_messages(channel)
                 all_messages.extend(channel_messages)
-            
+
             # Should handle substantial emergency message volume
             assert len(all_messages) >= 25, f"Expected ≥25 emergency messages, got {len(all_messages)}"
-            
+
             # Validate market disruption detection
             disruption_messages = [
                 msg for msg in all_messages
                 if 'disruption' in str(msg.get('parsed_data', {}))
             ]
             assert len(disruption_messages) >= 5, "Should capture multiple disruption responses"
-            
+
             # Validate emergency mode activation
             emergency_messages = [
                 msg for msg in all_messages
                 if 'emergency' in str(msg.get('parsed_data', {}))
             ]
             assert len(emergency_messages) >= 4, "Should activate emergency protocols"
-            
+
             # Validate ETF correlation breakdown detection
             etf_correlation_messages = [
                 msg for msg in all_messages
                 if msg.get('parsed_data', {}).get('correlation_strength') == 'severely_disrupted'
             ]
             assert len(etf_correlation_messages) >= 2, "Should detect ETF correlation breakdown"
-            
+
             # Validate extreme pattern detection
             extreme_pattern_messages = [
                 msg for msg in all_messages
                 if 'Extreme' in str(msg.get('parsed_data', {}).get('pattern', ''))
             ]
             assert len(extreme_pattern_messages) >= 1, "Should detect extreme patterns"
-            
+
             # Validate emergency job completion
             emergency_completed_jobs = [
                 msg for msg in all_messages
                 if msg.get('parsed_data', {}).get('status') == 'emergency_completed'
             ]
             assert len(emergency_completed_jobs) >= 4, "Emergency jobs should complete"
-            
+
             # Performance validation - should maintain responsiveness even under extreme load
             integration_performance_monitor.assert_performance_target(
                 'market_disruption_coordination',
                 PERFORMANCE_TARGETS['message_delivery_ms'] * 2  # Allow 2x latency under emergency
             )
-            
+
         finally:
             listener.stop_listening()
 
 
 class TestSystemWideConsistencyValidation:
     """Test system-wide data consistency across all phases"""
-    
+
     def test_cross_phase_data_consistency(
         self,
         redis_client,
@@ -668,9 +661,9 @@ class TestSystemWideConsistencyValidation:
         all_channels = list(SPRINT14_REDIS_CHANNELS['events'].values())
         listener.subscribe(all_channels)
         listener.start_listening()
-        
+
         producer = mock_tickstockpl_producer(redis_client)
-        
+
         # Track symbols and their data across phases
         consistency_tracking = {
             'symbols': {},
@@ -678,10 +671,10 @@ class TestSystemWideConsistencyValidation:
             'jobs': {},
             'patterns': {}
         }
-        
+
         try:
             # === CONSISTENCY TEST SETUP ===
-            
+
             # Create test symbols for consistency tracking
             test_symbols = [
                 {
@@ -700,7 +693,7 @@ class TestSystemWideConsistencyValidation:
                     'expense_ratio': 0.0055
                 }
             ]
-            
+
             # Insert test symbols into database
             for symbol in test_symbols:
                 if symbol['type'] == 'CS':
@@ -714,11 +707,11 @@ class TestSystemWideConsistencyValidation:
                         VALUES (:symbol, :name, :type, :etf_type, :aum_millions, :expense_ratio)
                     """), symbol)
                 consistency_tracking['symbols'][symbol['symbol']] = symbol
-            
+
             db_connection.commit()
-            
+
             # === PHASE 1: Foundation Data Flow ===
-            
+
             # ETF update with specific data
             etf_update_data = {
                 'symbol': 'CONSIST_ETF',
@@ -727,10 +720,10 @@ class TestSystemWideConsistencyValidation:
                 'correlation_coefficient': 0.82,
                 'tracking_id': 'consist_001'
             }
-            
+
             with integration_performance_monitor.measure_operation('consistency_etf_update'):
                 producer.publish_etf_data_update('CONSIST_ETF', etf_update_data)
-            
+
             # Historical loading completion
             historical_completion_data = {
                 'symbols_processed': 2,
@@ -741,9 +734,9 @@ class TestSystemWideConsistencyValidation:
                 'tracking_id': 'consist_001'
             }
             producer.publish_eod_completion(historical_completion_data)
-            
+
             # === PHASE 2: Quality and Classification ===
-            
+
             # Data quality assessment for stock
             stock_quality_data = {
                 'symbol': 'CONSIST_STOCK',
@@ -755,7 +748,7 @@ class TestSystemWideConsistencyValidation:
                 'tracking_id': 'consist_001'
             }
             producer.publish_data_quality_alert(stock_quality_data)
-            
+
             # Equity type assignment
             equity_type_data = {
                 'symbol': 'CONSIST_STOCK',
@@ -770,9 +763,9 @@ class TestSystemWideConsistencyValidation:
                 'tracking_id': 'consist_001'
             }
             producer.publish_data_quality_alert(equity_type_data)
-            
+
             # === PHASE 3: Universe and Scenarios ===
-            
+
             # Cache universe assignments
             universe_assignments = [
                 {
@@ -792,10 +785,10 @@ class TestSystemWideConsistencyValidation:
                     'tracking_id': 'consist_001'
                 }
             ]
-            
+
             for assignment in universe_assignments:
                 producer.publish_data_quality_alert(assignment)
-            
+
             # Test scenario with both symbols
             test_scenario_data = {
                 'alert_type': 'test_scenario_generated',
@@ -810,9 +803,9 @@ class TestSystemWideConsistencyValidation:
                 'tracking_id': 'consist_001'
             }
             producer.publish_data_quality_alert(test_scenario_data)
-            
+
             # === PHASE 4: Enterprise and Schedule ===
-            
+
             # Enterprise job processing both symbols
             enterprise_job_data = {
                 'alert_type': 'enterprise_job_summary',
@@ -827,7 +820,7 @@ class TestSystemWideConsistencyValidation:
                 'tracking_id': 'consist_001'
             }
             producer.publish_data_quality_alert(enterprise_job_data)
-            
+
             # Pattern detection for both symbols
             pattern_detections = [
                 {
@@ -843,28 +836,28 @@ class TestSystemWideConsistencyValidation:
                     'tracking_id': 'consist_001'
                 }
             ]
-            
+
             for pattern in pattern_detections:
                 producer.publish_pattern_event(pattern)
-            
+
             # === CONSISTENCY VALIDATION ===
             time.sleep(1.5)  # Allow all processing
-            
+
             # Collect all messages for consistency analysis
             all_messages = []
             for channel in all_channels:
                 channel_messages = listener.get_messages(channel)
                 all_messages.extend(channel_messages)
-            
+
             # Filter messages with tracking_id for consistency validation
             tracked_messages = [
                 msg for msg in all_messages
                 if msg.get('parsed_data', {}).get('tracking_id') == 'consist_001'
             ]
-            
+
             # Should have consistent tracking across all phases
             assert len(tracked_messages) >= 8, f"Expected ≥8 tracked messages, got {len(tracked_messages)}"
-            
+
             # Validate symbol consistency across phases
             symbols_in_messages = set()
             for msg in tracked_messages:
@@ -876,29 +869,29 @@ class TestSystemWideConsistencyValidation:
                 elif 'symbols_processed' in data:
                     if isinstance(data['symbols_processed'], list):
                         symbols_in_messages.update(data['symbols_processed'])
-            
+
             expected_symbols = {'CONSIST_STOCK', 'CONSIST_ETF'}
             assert expected_symbols.issubset(symbols_in_messages), "Symbols should be consistent across all phases"
-            
+
             # Validate data value consistency
             etf_aum_values = []
             stock_assessment_scores = []
-            
+
             for msg in tracked_messages:
                 data = msg.get('parsed_data', {})
                 if data.get('symbol') == 'CONSIST_ETF' and 'aum_millions' in data:
                     etf_aum_values.append(data['aum_millions'])
                 elif data.get('symbol') == 'CONSIST_STOCK' and 'assessment_score' in data:
                     stock_assessment_scores.append(data['assessment_score'])
-            
+
             # ETF AUM should be consistent
             if etf_aum_values:
                 assert all(aum == 3500.0 for aum in etf_aum_values), "ETF AUM values should be consistent"
-            
+
             # Stock assessment scores should be consistent
             if stock_assessment_scores:
                 assert all(score == 0.91 for score in stock_assessment_scores), "Assessment scores should be consistent"
-            
+
             # Validate database consistency
             final_db_check = db_connection.execute(text("""
                 SELECT symbol, 
@@ -908,10 +901,10 @@ class TestSystemWideConsistencyValidation:
                 WHERE symbol IN ('CONSIST_STOCK', 'CONSIST_ETF')
                 ORDER BY symbol
             """))
-            
+
             db_results = final_db_check.fetchall()
             assert len(db_results) == 2, "Both test symbols should remain in database"
-            
+
             # Verify database values match message data
             for row in db_results:
                 symbol, value, secondary = row
@@ -920,20 +913,20 @@ class TestSystemWideConsistencyValidation:
                     assert float(secondary or 0) == 0.0055, "Database expense ratio should match"
                 elif symbol == 'CONSIST_STOCK':
                     assert float(value) == 5000.0, "Database market cap should be preserved"
-            
+
             # Performance validation
             integration_performance_monitor.assert_performance_target(
                 'consistency_etf_update',
                 PERFORMANCE_TARGETS['message_delivery_ms']
             )
-            
+
         finally:
             listener.stop_listening()
 
 
 class TestSystemScalabilityValidation:
     """Test system scalability across all Sprint 14 phases"""
-    
+
     def test_high_volume_cross_phase_scalability(
         self,
         redis_client,
@@ -955,16 +948,16 @@ class TestSystemScalabilityValidation:
         all_channels = list(SPRINT14_REDIS_CHANNELS['events'].values())
         listener.subscribe(all_channels)
         listener.start_listening()
-        
+
         producer = mock_tickstockpl_producer(redis_client)
-        
+
         try:
             # === HIGH VOLUME SIMULATION ===
-            
+
             total_messages_generated = 0
-            
+
             with integration_performance_monitor.measure_operation('high_volume_scalability_test'):
-                
+
                 # Phase 1: High volume ETF updates
                 for i in range(100):
                     etf_data = {
@@ -975,10 +968,10 @@ class TestSystemScalabilityValidation:
                     }
                     producer.publish_etf_data_update(etf_data['symbol'], etf_data)
                     total_messages_generated += 1
-                    
+
                     if i % 25 == 0:  # Brief pause every 25 messages
                         time.sleep(0.01)
-                
+
                 # Phase 1: EOD processing under load
                 for i in range(10):
                     eod_data = {
@@ -990,7 +983,7 @@ class TestSystemScalabilityValidation:
                     }
                     producer.publish_eod_completion(eod_data)
                     total_messages_generated += 1
-                
+
                 # Phase 2: High volume IPO detections
                 for i in range(50):
                     ipo_data = {
@@ -1002,7 +995,7 @@ class TestSystemScalabilityValidation:
                     }
                     producer.publish_ipo_detection(ipo_data['symbol'], ipo_data)
                     total_messages_generated += 1
-                
+
                 # Phase 2: Massive data quality alerts
                 for i in range(500):
                     quality_alert = {
@@ -1015,10 +1008,10 @@ class TestSystemScalabilityValidation:
                     }
                     producer.publish_data_quality_alert(quality_alert)
                     total_messages_generated += 1
-                    
+
                     if i % 100 == 0:  # Brief pause every 100 messages
                         time.sleep(0.01)
-                
+
                 # Phase 3: Universe assignments and test scenarios
                 for i in range(25):
                     universe_update = {
@@ -1031,7 +1024,7 @@ class TestSystemScalabilityValidation:
                     }
                     producer.publish_data_quality_alert(universe_update)
                     total_messages_generated += 1
-                
+
                 # Test scenarios under load
                 for i in range(10):
                     test_scenario = {
@@ -1044,7 +1037,7 @@ class TestSystemScalabilityValidation:
                     }
                     producer.publish_data_quality_alert(test_scenario)
                     total_messages_generated += 1
-                
+
                 # Phase 4: Enterprise job load and pattern detections
                 for i in range(200):
                     # Alternate between job status and enterprise monitoring
@@ -1068,9 +1061,9 @@ class TestSystemScalabilityValidation:
                             min(1.0, 0.1 * (i % 10)),
                             'processing' if i % 10 < 9 else 'completed'
                         )
-                    
+
                     total_messages_generated += 1
-                
+
                 # High volume pattern detections
                 for i in range(1000):
                     pattern_data = {
@@ -1081,37 +1074,37 @@ class TestSystemScalabilityValidation:
                     }
                     producer.publish_pattern_event(pattern_data)
                     total_messages_generated += 1
-                    
+
                     if i % 200 == 0:  # Brief pause every 200 patterns
                         time.sleep(0.01)
-            
+
             # === SCALABILITY VALIDATION ===
-            
+
             # Allow substantial processing time for high volume
             time.sleep(5.0)
-            
+
             # Collect all messages
             all_messages = []
             for channel in all_channels:
                 channel_messages = listener.get_messages(channel)
                 all_messages.extend(channel_messages)
-            
+
             messages_received = len(all_messages)
-            
+
             # Validate high-volume message handling
             message_retention_rate = messages_received / total_messages_generated if total_messages_generated > 0 else 0
-            
+
             # Should retain substantial percentage of messages despite volume
             assert message_retention_rate >= 0.85, (
                 f"Message retention rate {message_retention_rate:.2%} too low for scalability. "
                 f"Generated: {total_messages_generated}, Received: {messages_received}"
             )
-            
+
             # Validate message diversity under load
             batch_ids = set()
             alert_types = set()
             symbols = set()
-            
+
             for msg in all_messages:
                 data = msg.get('parsed_data', {})
                 if 'batch_id' in data:
@@ -1122,18 +1115,18 @@ class TestSystemScalabilityValidation:
                     alert_types.add(data['event_type'])
                 if 'symbol' in data:
                     symbols.add(data['symbol'])
-            
+
             # Should maintain message diversity
             assert len(alert_types) >= 8, f"Expected diverse message types, got {len(alert_types)}"
             assert len(symbols) >= 100, f"Expected diverse symbols, got {len(symbols)}"
-            
+
             # Validate phase representation
             phase1_messages = len([
                 msg for msg in all_messages
                 if any(phrase in str(msg.get('parsed_data', {})) for phrase in ['etf', 'eod'])
             ])
             phase2_messages = len([
-                msg for msg in all_messages  
+                msg for msg in all_messages
                 if any(phrase in str(msg.get('parsed_data', {})) for phrase in ['ipo', 'quality'])
             ])
             phase3_messages = len([
@@ -1144,27 +1137,27 @@ class TestSystemScalabilityValidation:
                 msg for msg in all_messages
                 if any(phrase in str(msg.get('parsed_data', {})) for phrase in ['job_queue', 'enterprise'])
             ])
-            
+
             # All phases should be represented under load
             assert phase1_messages >= 80, f"Phase 1 under-represented: {phase1_messages}"
-            assert phase2_messages >= 400, f"Phase 2 under-represented: {phase2_messages}" 
+            assert phase2_messages >= 400, f"Phase 2 under-represented: {phase2_messages}"
             assert phase3_messages >= 25, f"Phase 3 under-represented: {phase3_messages}"
             assert phase4_messages >= 80, f"Phase 4 under-represented: {phase4_messages}"
-            
+
             # Performance validation - should maintain reasonable performance under load
             integration_performance_monitor.assert_performance_target(
                 'high_volume_scalability_test',
                 PERFORMANCE_TARGETS['end_to_end_workflow_ms'] * 10  # Allow 10x latency under extreme load
             )
-            
-            print(f"Scalability Test Results:")
+
+            print("Scalability Test Results:")
             print(f"  Total messages generated: {total_messages_generated}")
             print(f"  Total messages received: {messages_received}")
             print(f"  Message retention rate: {message_retention_rate:.1%}")
             print(f"  Message types detected: {len(alert_types)}")
             print(f"  Unique symbols processed: {len(symbols)}")
             print(f"  Phase distribution: P1={phase1_messages}, P2={phase2_messages}, P3={phase3_messages}, P4={phase4_messages}")
-            
+
         finally:
             listener.stop_listening()
 
@@ -1185,14 +1178,14 @@ class TestSystemScalabilityValidation:
         all_channels = list(SPRINT14_REDIS_CHANNELS['events'].values())
         listener.subscribe(all_channels)
         listener.start_listening()
-        
+
         producer = mock_tickstockpl_producer(redis_client)
-        
+
         try:
             # Define concurrent operation threads
             operation_threads = []
             thread_results = {'messages_sent': 0, 'errors': 0}
-            
+
             def phase1_operations():
                 """Concurrent Phase 1 operations"""
                 try:
@@ -1204,7 +1197,7 @@ class TestSystemScalabilityValidation:
                             'thread_id': 'phase1_thread'
                         }
                         producer.publish_etf_data_update(etf_data['symbol'], etf_data)
-                        
+
                         # EOD completions
                         if i % 5 == 0:
                             eod_data = {
@@ -1213,13 +1206,13 @@ class TestSystemScalabilityValidation:
                                 'thread_id': 'phase1_thread'
                             }
                             producer.publish_eod_completion(eod_data)
-                        
+
                         thread_results['messages_sent'] += 1
                         time.sleep(0.02)
                 except Exception as e:
                     thread_results['errors'] += 1
                     print(f"Phase 1 thread error: {e}")
-            
+
             def phase2_operations():
                 """Concurrent Phase 2 operations"""
                 try:
@@ -1232,7 +1225,7 @@ class TestSystemScalabilityValidation:
                                 'thread_id': 'phase2_thread'
                             }
                             producer.publish_ipo_detection(ipo_data['symbol'], ipo_data)
-                        
+
                         # Quality alerts
                         quality_alert = {
                             'symbol': f'CONCURRENT_QUAL_{i:02d}',
@@ -1241,13 +1234,13 @@ class TestSystemScalabilityValidation:
                             'thread_id': 'phase2_thread'
                         }
                         producer.publish_data_quality_alert(quality_alert)
-                        
+
                         thread_results['messages_sent'] += 1
                         time.sleep(0.015)
                 except Exception as e:
                     thread_results['errors'] += 1
                     print(f"Phase 2 thread error: {e}")
-            
+
             def phase3_operations():
                 """Concurrent Phase 3 operations"""
                 try:
@@ -1261,7 +1254,7 @@ class TestSystemScalabilityValidation:
                             'thread_id': 'phase3_thread'
                         }
                         producer.publish_data_quality_alert(universe_update)
-                        
+
                         # Test scenarios
                         if i % 3 == 0:
                             test_scenario = {
@@ -1271,13 +1264,13 @@ class TestSystemScalabilityValidation:
                                 'thread_id': 'phase3_thread'
                             }
                             producer.publish_data_quality_alert(test_scenario)
-                        
+
                         thread_results['messages_sent'] += 1
                         time.sleep(0.03)
                 except Exception as e:
                     thread_results['errors'] += 1
                     print(f"Phase 3 thread error: {e}")
-            
+
             def phase4_operations():
                 """Concurrent Phase 4 operations"""
                 try:
@@ -1293,20 +1286,20 @@ class TestSystemScalabilityValidation:
                             'thread_id': 'phase4_thread'
                         }
                         producer.publish_data_quality_alert(job_update)
-                        
+
                         # Job progress
                         producer.publish_backtest_progress(
                             f'concurrent_job_{i:02d}',
                             min(1.0, 0.2 * (i % 5)),
                             'processing' if i % 5 < 4 else 'completed'
                         )
-                        
+
                         thread_results['messages_sent'] += 1
                         time.sleep(0.025)
                 except Exception as e:
                     thread_results['errors'] += 1
                     print(f"Phase 4 thread error: {e}")
-            
+
             def pattern_operations():
                 """Concurrent pattern detection across all phases"""
                 try:
@@ -1323,65 +1316,65 @@ class TestSystemScalabilityValidation:
                 except Exception as e:
                     thread_results['errors'] += 1
                     print(f"Pattern thread error: {e}")
-            
+
             # === EXECUTE CONCURRENT OPERATIONS ===
-            
+
             with integration_performance_monitor.measure_operation('concurrent_phase_operations'):
-                
+
                 # Start all operation threads simultaneously
                 threads = [
                     threading.Thread(target=phase1_operations, name='Phase1'),
-                    threading.Thread(target=phase2_operations, name='Phase2'), 
+                    threading.Thread(target=phase2_operations, name='Phase2'),
                     threading.Thread(target=phase3_operations, name='Phase3'),
                     threading.Thread(target=phase4_operations, name='Phase4'),
                     threading.Thread(target=pattern_operations, name='Patterns')
                 ]
-                
+
                 # Start all threads
                 start_time = time.time()
                 for thread in threads:
                     thread.start()
-                
+
                 # Wait for all threads to complete
                 for thread in threads:
                     thread.join(timeout=10.0)  # 10 second timeout per thread
-                
+
                 execution_time = time.time() - start_time
-            
+
             # === CONCURRENT OPERATION VALIDATION ===
-            
+
             # Allow processing time
             time.sleep(2.0)
-            
+
             # Collect messages from all channels
             all_messages = []
             for channel in all_channels:
                 channel_messages = listener.get_messages(channel)
                 all_messages.extend(channel_messages)
-            
+
             # Validate concurrent operation results
             total_messages_sent = thread_results['messages_sent']
             total_messages_received = len(all_messages)
-            
+
             assert thread_results['errors'] == 0, f"Encountered {thread_results['errors']} thread errors"
             assert total_messages_sent > 0, "Should have sent messages from concurrent operations"
-            
+
             # Validate message retention under concurrency
             retention_rate = total_messages_received / total_messages_sent if total_messages_sent > 0 else 0
             assert retention_rate >= 0.80, (
                 f"Concurrent message retention {retention_rate:.1%} too low. "
                 f"Sent: {total_messages_sent}, Received: {total_messages_received}"
             )
-            
+
             # Validate thread representation
             thread_ids = set()
             phase_representation = {'phase1': 0, 'phase2': 0, 'phase3': 0, 'phase4': 0, 'patterns': 0}
-            
+
             for msg in all_messages:
                 data = msg.get('parsed_data', {})
                 if 'thread_id' in data:
                     thread_ids.add(data['thread_id'])
-                    
+
                     # Count phase representation
                     if 'phase1' in data['thread_id']:
                         phase_representation['phase1'] += 1
@@ -1393,23 +1386,23 @@ class TestSystemScalabilityValidation:
                         phase_representation['phase4'] += 1
                     elif 'pattern' in data['thread_id']:
                         phase_representation['patterns'] += 1
-            
+
             # All threads should be represented
             assert len(thread_ids) >= 4, f"Expected ≥4 thread IDs, got {len(thread_ids)}: {thread_ids}"
-            
+
             # Each phase should have reasonable representation
             for phase, count in phase_representation.items():
                 assert count > 0, f"Phase {phase} not represented in concurrent operations"
-            
+
             # Performance validation
             assert execution_time < 15.0, f"Concurrent execution took {execution_time:.1f}s, expected <15s"
-            
+
             integration_performance_monitor.assert_performance_target(
                 'concurrent_phase_operations',
                 PERFORMANCE_TARGETS['end_to_end_workflow_ms'] * 5  # Allow 5x latency for concurrency
             )
-            
-            print(f"Concurrent Operations Results:")
+
+            print("Concurrent Operations Results:")
             print(f"  Execution time: {execution_time:.1f}s")
             print(f"  Messages sent: {total_messages_sent}")
             print(f"  Messages received: {total_messages_received}")
@@ -1417,6 +1410,6 @@ class TestSystemScalabilityValidation:
             print(f"  Thread representation: {len(thread_ids)} threads")
             print(f"  Phase distribution: {phase_representation}")
             print(f"  Thread errors: {thread_results['errors']}")
-            
+
         finally:
             listener.stop_listening()

@@ -3,10 +3,11 @@
 Test script for TickStockPL historical data import integration
 """
 
-import redis
 import json
-import uuid
 import time
+import uuid
+
+import redis
 
 # Connect to Redis
 r = redis.Redis(host='127.0.0.1', port=6379, decode_responses=True)
@@ -43,7 +44,7 @@ print(f"   Job Data: {json.dumps(job, indent=2)}")
 try:
     # Publish to the channel TickStockPL is listening on
     result = r.publish('tickstock.jobs.data_load', json.dumps(job))
-    print(f"   ✅ Job published to tickstock.jobs.data_load")
+    print("   ✅ Job published to tickstock.jobs.data_load")
     print(f"   Subscribers listening: {result}")
 
     if result == 0:

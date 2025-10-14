@@ -6,12 +6,11 @@ Tests the complete flow:
 3. TickStockPL consumes (if running)
 4. Dashboard displays data
 """
+
 import pytest
-import time
-import json
+
 from src.core.services.config_manager import get_config
 from src.infrastructure.data_sources.factory import DataProviderFactory
-from src.core.services.market_data_service import MarketDataService
 
 
 class TestSyntheticDataIntegration:

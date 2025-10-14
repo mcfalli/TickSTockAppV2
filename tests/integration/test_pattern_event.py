@@ -3,9 +3,11 @@ Test script to publish a pattern event to Redis for TickStockApp consumption.
 This simulates what TickStockPL would publish.
 """
 
-import redis
 import json
 import time
+
+import redis
+
 
 def publish_test_pattern():
     """Publish a test pattern event to Redis."""

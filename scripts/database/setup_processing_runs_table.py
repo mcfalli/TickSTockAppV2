@@ -5,15 +5,17 @@ Run this script to create the required database table.
 """
 
 import sys
-import os
 from pathlib import Path
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import psycopg2
-from src.core.services.config_manager import get_config
 import re
+
+import psycopg2
+
+from src.core.services.config_manager import get_config
+
 
 def create_processing_runs_table():
     """Create the processing_runs table if it doesn't exist"""

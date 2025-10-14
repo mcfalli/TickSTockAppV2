@@ -5,11 +5,12 @@ Provides comprehensive fixtures for testing the Sprint 102 synthetic data system
 including frequency-specific generators, validation systems, and configuration presets.
 """
 
-import pytest
 import time
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
+from typing import Any
+from unittest.mock import Mock
+
+import pytest
 
 # Import synthetic data types
 try:
@@ -17,22 +18,29 @@ try:
 except ImportError:
     # Mock types if not available
     from enum import Enum
-    
+
     class DataFrequency(Enum):
         PER_SECOND = "per_second"
         PER_MINUTE = "per_minute"
         FAIR_VALUE = "fair_value"
-    
+
     class FrequencyGenerator:
         pass
 
 # Import synthetic data components
 try:
-    from src.infrastructure.data_sources.synthetic.provider import SimulatedDataProvider
-    from src.infrastructure.data_sources.synthetic.generators.per_second_generator import PerSecondGenerator
-    from src.infrastructure.data_sources.synthetic.generators.per_minute_generator import PerMinuteGenerator
     from src.infrastructure.data_sources.synthetic.generators.fmv_generator import FMVGenerator
-    from src.infrastructure.data_sources.synthetic.validators.data_consistency import DataConsistencyValidator
+    from src.infrastructure.data_sources.synthetic.generators.per_minute_generator import (
+        PerMinuteGenerator,
+    )
+    from src.infrastructure.data_sources.synthetic.generators.per_second_generator import (
+        PerSecondGenerator,
+    )
+    from src.infrastructure.data_sources.synthetic.validators.data_consistency import (
+        DataConsistencyValidator,
+    )
+
+    from src.infrastructure.data_sources.synthetic.provider import SimulatedDataProvider
 except ImportError:
     # Mock components if not available
     SimulatedDataProvider = Mock
@@ -52,8 +60,8 @@ class SyntheticTestScenario:
     """Represents a test scenario with specific configuration and expected behavior."""
     name: str
     description: str
-    config: Dict[str, Any]
-    expected_frequencies: List[DataFrequency]
+    config: dict[str, Any]
+    expected_frequencies: list[DataFrequency]
     expected_generation_count: int
     expected_validation_enabled: bool
     test_duration_seconds: float = 5.0
@@ -61,18 +69,18 @@ class SyntheticTestScenario:
 
 class SyntheticDataBuilder:
     """Builder for creating synthetic data test scenarios."""
-    
+
     @staticmethod
     def create_per_second_tick(
         ticker: str = "AAPL",
         price: float = 150.0,
         volume: int = 10000,
-        timestamp: Optional[float] = None
-    ) -> Dict[str, Any]:
+        timestamp: float | None = None
+    ) -> dict[str, Any]:
         """Create mock per-second tick data."""
         if timestamp is None:
             timestamp = time.time()
-        
+
         return {
             'ticker': ticker,
             'price': price,
@@ -93,7 +101,7 @@ class SyntheticDataBuilder:
             'tick_start_timestamp': timestamp - 1,
             'tick_end_timestamp': timestamp
         }
-    
+
     @staticmethod
     def create_per_minute_bar(
         ticker: str = "AAPL",
@@ -102,15 +110,15 @@ class SyntheticDataBuilder:
         low_price: float = 149.0,
         close_price: float = 150.0,
         volume: int = 50000,
-        timestamp: Optional[float] = None
-    ) -> Dict[str, Any]:
+        timestamp: float | None = None
+    ) -> dict[str, Any]:
         """Create mock per-minute OHLCV bar."""
         if timestamp is None:
             timestamp = time.time()
-        
+
         # Calculate VWAP (simple approximation)
         vwap = (open_price + high_price + low_price + close_price) / 4
-        
+
         return {
             'ev': 'AM',  # Polygon aggregate minute event
             'sym': ticker,
@@ -129,21 +137,21 @@ class SyntheticDataBuilder:
             'timestamp': timestamp,
             'source': 'synthetic_per_minute'
         }
-    
+
     @staticmethod
     def create_fmv_update(
         ticker: str = "AAPL",
         fmv_price: float = 150.25,
         market_price: float = 150.00,
         confidence: float = 0.85,
-        timestamp: Optional[float] = None
-    ) -> Dict[str, Any]:
+        timestamp: float | None = None
+    ) -> dict[str, Any]:
         """Create mock Fair Market Value update."""
         if timestamp is None:
             timestamp = time.time()
-        
+
         premium_discount = (fmv_price - market_price) / market_price
-        
+
         return {
             'ev': 'FMV',
             'sym': ticker,
@@ -158,14 +166,14 @@ class SyntheticDataBuilder:
             'trend_momentum': 0.0,
             'update_interval': 30
         }
-    
+
     @staticmethod
     def create_validation_result(
         is_valid: bool = True,
-        errors: Optional[List[str]] = None,
-        warnings: Optional[List[str]] = None,
-        metrics: Optional[Dict[str, float]] = None
-    ) -> Dict[str, Any]:
+        errors: list[str] | None = None,
+        warnings: list[str] | None = None,
+        metrics: dict[str, float] | None = None
+    ) -> dict[str, Any]:
         """Create mock validation result."""
         return {
             'is_valid': is_valid,
@@ -207,19 +215,19 @@ def multi_frequency_synthetic_config():
         'SYNTHETIC_ACTIVITY_LEVEL': 'high',
         'ENABLE_SYNTHETIC_DATA_VALIDATION': True,
         'MARKET_TIMEZONE': 'US/Eastern',
-        
+
         # Per-second settings
         'SYNTHETIC_PER_SECOND_FREQUENCY': 1.0,
         'SYNTHETIC_PER_SECOND_PRICE_VARIANCE': 0.001,
         'SYNTHETIC_PER_SECOND_VOLUME_RANGE': [10000, 100000],
-        
+
         # Per-minute settings
         'SYNTHETIC_PER_MINUTE_WINDOW': 60,
         'SYNTHETIC_PER_MINUTE_MIN_TICKS': 5,
         'SYNTHETIC_PER_MINUTE_MAX_TICKS': 30,
         'SYNTHETIC_PER_MINUTE_OHLC_VARIANCE': 0.005,
         'SYNTHETIC_PER_MINUTE_VOLUME_MULTIPLIER': 5.0,
-        
+
         # FMV settings
         'SYNTHETIC_FMV_UPDATE_INTERVAL': 30,
         'SYNTHETIC_FMV_CORRELATION': 0.85,
@@ -231,7 +239,7 @@ def multi_frequency_synthetic_config():
         'SYNTHETIC_FMV_TRENDING_CORRELATION': 0.90,
         'SYNTHETIC_FMV_SIDEWAYS_CORRELATION': 0.75,
         'SYNTHETIC_FMV_VOLATILE_CORRELATION': 0.65,
-        
+
         # Validation settings
         'VALIDATION_PRICE_TOLERANCE': 0.001,
         'VALIDATION_VOLUME_TOLERANCE': 0.05,
@@ -340,11 +348,11 @@ def mock_per_second_generator(basic_synthetic_config, synthetic_data_builder):
     generator.config = basic_synthetic_config
     generator.generation_count = 0
     generator.supports_frequency.return_value = True
-    
-    def generate_data(ticker: str, config: Dict[str, Any]):
+
+    def generate_data(ticker: str, config: dict[str, Any]):
         generator.generation_count += 1
         return synthetic_data_builder.create_per_second_tick(ticker=ticker)
-    
+
     generator.generate_data.side_effect = generate_data
     generator.get_generation_stats.return_value = {
         'type': 'per_second',
@@ -360,11 +368,11 @@ def mock_per_minute_generator(multi_frequency_synthetic_config, synthetic_data_b
     generator.config = multi_frequency_synthetic_config
     generator.generation_count = 0
     generator.supports_frequency.return_value = True
-    
-    def generate_data(ticker: str, config: Dict[str, Any]):
+
+    def generate_data(ticker: str, config: dict[str, Any]):
         generator.generation_count += 1
         return synthetic_data_builder.create_per_minute_bar(ticker=ticker)
-    
+
     generator.generate_data.side_effect = generate_data
     generator.get_generation_stats.return_value = {
         'type': 'per_minute',
@@ -380,11 +388,11 @@ def mock_fmv_generator(multi_frequency_synthetic_config, synthetic_data_builder)
     generator.config = multi_frequency_synthetic_config
     generator.generation_count = 0
     generator.supports_frequency.return_value = True
-    
-    def generate_data(ticker: str, config: Dict[str, Any]):
+
+    def generate_data(ticker: str, config: dict[str, Any]):
         generator.generation_count += 1
         return synthetic_data_builder.create_fmv_update(ticker=ticker)
-    
+
     generator.generate_data.side_effect = generate_data
     generator.get_current_fmv.return_value = 150.25
     generator.get_generation_stats.return_value = {
@@ -411,16 +419,16 @@ def mock_data_validator(synthetic_data_builder):
     """Mock DataConsistencyValidator with controlled validation behavior."""
     validator = Mock(spec=DataConsistencyValidator)
     validator.validation_count = 0
-    
-    def validate_minute_bar(ticker: str, minute_bar: Dict[str, Any]):
+
+    def validate_minute_bar(ticker: str, minute_bar: dict[str, Any]):
         validator.validation_count += 1
         # Return valid by default, can be overridden in tests
         return synthetic_data_builder.create_validation_result(is_valid=True)
-    
-    def validate_fmv_correlation(ticker: str, fmv_update: Dict[str, Any]):
+
+    def validate_fmv_correlation(ticker: str, fmv_update: dict[str, Any]):
         validator.validation_count += 1
         return synthetic_data_builder.create_validation_result(is_valid=True)
-    
+
     validator.validate_minute_bar_consistency.side_effect = validate_minute_bar
     validator.validate_fmv_correlation.side_effect = validate_fmv_correlation
     validator.add_tick_data.return_value = None
@@ -448,15 +456,15 @@ def multi_frequency_test_runner(mock_synthetic_provider):
         def __init__(self, provider):
             self.provider = provider
             self.results = []
-        
-        def run_scenario(self, scenario: SyntheticTestScenario, tickers: List[str]):
+
+        def run_scenario(self, scenario: SyntheticTestScenario, tickers: list[str]):
             """Run a test scenario and collect results."""
             start_time = time.time()
             generation_count = 0
-            
+
             # Apply scenario configuration
             self.provider.config.update(scenario.config)
-            
+
             # Simulate data generation for the scenario duration
             while time.time() - start_time < scenario.test_duration_seconds:
                 for ticker in tickers:
@@ -465,10 +473,10 @@ def multi_frequency_test_runner(mock_synthetic_provider):
                             data = self.provider.generate_frequency_data(ticker, frequency)
                             if data:
                                 generation_count += 1
-                        except Exception as e:
+                        except Exception:
                             pass  # Continue testing even if some generation fails
                 time.sleep(0.1)  # Small delay between generations
-            
+
             result = {
                 'scenario': scenario,
                 'duration': time.time() - start_time,
@@ -477,12 +485,12 @@ def multi_frequency_test_runner(mock_synthetic_provider):
             }
             self.results.append(result)
             return result
-        
+
         def get_summary(self):
             """Get summary of all test runs."""
             if not self.results:
                 return {'total_scenarios': 0, 'success_rate': 0.0}
-            
+
             successful = sum(1 for r in self.results if r['success'])
             return {
                 'total_scenarios': len(self.results),
@@ -490,7 +498,7 @@ def multi_frequency_test_runner(mock_synthetic_provider):
                 'success_rate': successful / len(self.results),
                 'total_generations': sum(r['generation_count'] for r in self.results)
             }
-    
+
     return TestRunner(mock_synthetic_provider)
 
 

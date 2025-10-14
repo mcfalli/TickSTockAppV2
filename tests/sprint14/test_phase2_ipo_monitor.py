@@ -4,17 +4,19 @@ Test script for Sprint 14 Phase 2: IPO Monitoring Service
 Tests the automation architecture and IPO detection functionality
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../'))
 
-from datetime import datetime, timedelta
 import json
+from datetime import datetime
+
 
 def test_ipo_monitor_architecture():
     """Test the IPO monitoring service architecture and basic functionality"""
     print("=== Sprint 14 Phase 2: IPO Monitoring Test ===\n")
-    
+
     try:
         # Test 1: Import and initialization
         print("1. Testing IPO Monitor service import...")
@@ -25,7 +27,7 @@ def test_ipo_monitor_architecture():
             print("+ Redis pub-sub integration patterns ready\n")
         except Exception as e:
             print(f"- Import failed: {e}\n")
-        
+
         # Test 2: Redis channel definitions
         print("2. Testing Redis automation channels...")
         automation_channels = {
@@ -38,46 +40,46 @@ def test_ipo_monitor_architecture():
             'maintenance_started': 'tickstock.automation.maintenance.started',
             'maintenance_completed': 'tickstock.automation.maintenance.completed'
         }
-        
+
         print(f"+ Automation channels defined: {len(automation_channels)}")
         for channel_type, channel_name in automation_channels.items():
             print(f"  - {channel_type}: {channel_name}")
         print()
-        
+
         # Test 3: IPO detection workflow
         print("3. Testing IPO detection workflow...")
-        
+
         # Simulate IPO detection workflow
         workflow_steps = [
             "Daily scan for new symbols via Polygon.io",
-            "Compare against existing symbols in database", 
+            "Compare against existing symbols in database",
             "Process new symbols with metadata extraction",
             "Trigger 90-day historical backfill",
             "Auto-assign to appropriate universes",
             "Publish Redis notifications to TickStockApp"
         ]
-        
+
         print("+ IPO Detection Workflow:")
         for i, step in enumerate(workflow_steps, 1):
             print(f"  {i}. {step}")
         print()
-        
+
         # Test 4: Architecture compliance validation
         print("4. Validating architecture compliance...")
         compliance_checks = [
             "✓ Service runs separately from TickStockApp",
             "✓ Full database write access in automation service",
-            "✓ Redis pub-sub for TickStockApp notifications", 
+            "✓ Redis pub-sub for TickStockApp notifications",
             "✓ No direct API calls between services",
             "✓ 90-day historical backfill automation",
             "✓ Auto-universe assignment logic",
             "✓ Performance isolation from TickStockApp"
         ]
-        
+
         for check in compliance_checks:
             print(f"  {check}")
         print()
-        
+
         # Test 5: Example automation event structure
         print("5. Testing automation event structure...")
         sample_ipo_event = {
@@ -93,7 +95,7 @@ def test_ipo_monitor_architecture():
                 'detection_date': datetime.now().isoformat()
             }
         }
-        
+
         sample_backfill_event = {
             'timestamp': datetime.now().isoformat(),
             'service': 'ipo_monitor',
@@ -105,17 +107,17 @@ def test_ipo_monitor_architecture():
                 'completion_time': datetime.now().isoformat()
             }
         }
-        
+
         print("+ Sample IPO Detection Event:")
-        print(f"  Channel: tickstock.automation.symbols.new")
+        print("  Channel: tickstock.automation.symbols.new")
         print(f"  Data: {json.dumps(sample_ipo_event['data'], indent=2)}")
         print()
-        
+
         print("+ Sample Backfill Completion Event:")
-        print(f"  Channel: tickstock.automation.backfill.completed")
+        print("  Channel: tickstock.automation.backfill.completed")
         print(f"  Data: {json.dumps(sample_backfill_event['data'], indent=2)}")
         print()
-        
+
         # Test 6: Performance targets
         print("6. Validating performance targets...")
         performance_targets = {
@@ -125,12 +127,12 @@ def test_ipo_monitor_architecture():
             'Redis Notification': '<100ms delivery to TickStockApp',
             'Database Operations': '<5 second response time'
         }
-        
+
         print("+ Performance Targets:")
         for operation, target in performance_targets.items():
             print(f"  - {operation}: {target}")
         print()
-        
+
         print("=== IPO Monitoring Service Test Summary ===")
         print("✓ Architecture compliance: VALIDATED")
         print("✓ Redis pub-sub integration: READY")
@@ -146,7 +148,7 @@ def test_ipo_monitor_architecture():
         print()
         print("# Trigger backfill for specific symbol:")
         print("python -m automation.services.ipo_monitor --backfill-symbol AAPL")
-        
+
     except Exception as e:
         print(f"ERROR: Test failed: {e}")
         import traceback

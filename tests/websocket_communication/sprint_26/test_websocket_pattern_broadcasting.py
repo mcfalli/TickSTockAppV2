@@ -13,22 +13,20 @@ Test Categories:
 - Resilience Tests: Connection recovery, message queueing
 """
 
-import pytest
-import time
-import json
+import os
+import sys
 import threading
-from unittest.mock import Mock, patch, MagicMock, call
-from typing import Dict, Any, List, Set
+import time
+from dataclasses import dataclass
+from unittest.mock import Mock, patch
+
+import pytest
 from flask import Flask
 from flask_socketio import SocketIO
-import socketio
-from dataclasses import dataclass
 
-import sys
-import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from src.core.services.websocket_broadcaster import WebSocketBroadcaster, ConnectedUser
+from src.core.services.websocket_broadcaster import ConnectedUser, WebSocketBroadcaster
 
 
 @dataclass
@@ -107,7 +105,7 @@ class TestWebSocketPatternBroadcasting:
         # Simulate user connection
         session_id = 'session_123'
         user_id = 'user456'
-        
+
         # Manually add connected user (simulating SocketIO handler)
         connected_user = ConnectedUser(
             user_id=user_id,
@@ -116,16 +114,16 @@ class TestWebSocketPatternBroadcasting:
             last_seen=time.time(),
             subscriptions=set()
         )
-        
+
         websocket_broadcaster.connected_users[session_id] = connected_user
         if user_id not in websocket_broadcaster.user_sessions:
             websocket_broadcaster.user_sessions[user_id] = set()
         websocket_broadcaster.user_sessions[user_id].add(session_id)
-        
+
         # Update stats
         websocket_broadcaster.stats['total_connections'] += 1
         websocket_broadcaster.stats['active_connections'] = len(websocket_broadcaster.connected_users)
-        
+
         # Verify connection tracking
         assert session_id in websocket_broadcaster.connected_users
         assert user_id in websocket_broadcaster.user_sessions
@@ -136,25 +134,25 @@ class TestWebSocketPatternBroadcasting:
         """Test user disconnection and cleanup."""
         session_id = sample_connected_user.session_id
         user_id = sample_connected_user.user_id
-        
+
         # Add connected user
         websocket_broadcaster.connected_users[session_id] = sample_connected_user
         websocket_broadcaster.user_sessions[user_id] = {session_id}
         websocket_broadcaster.stats['active_connections'] = 1
-        
+
         # Simulate disconnection
         if session_id in websocket_broadcaster.connected_users:
             connected_user = websocket_broadcaster.connected_users[session_id]
             del websocket_broadcaster.connected_users[session_id]
-            
+
             if user_id in websocket_broadcaster.user_sessions:
                 websocket_broadcaster.user_sessions[user_id].discard(session_id)
                 if not websocket_broadcaster.user_sessions[user_id]:
                     del websocket_broadcaster.user_sessions[user_id]
-            
+
             websocket_broadcaster.stats['disconnections'] += 1
             websocket_broadcaster.stats['active_connections'] = len(websocket_broadcaster.connected_users)
-        
+
         # Verify cleanup
         assert session_id not in websocket_broadcaster.connected_users
         assert user_id not in websocket_broadcaster.user_sessions
@@ -165,12 +163,12 @@ class TestWebSocketPatternBroadcasting:
         """Test pattern subscription management."""
         session_id = sample_connected_user.session_id
         websocket_broadcaster.connected_users[session_id] = sample_connected_user
-        
+
         # Test subscription update
         new_patterns = {'Breakout', 'Volume', 'Momentum', 'Support'}
         sample_connected_user.subscriptions = new_patterns
         sample_connected_user.update_last_seen()
-        
+
         # Verify subscription update
         assert sample_connected_user.subscriptions == new_patterns
         assert len(sample_connected_user.subscriptions) == 4
@@ -184,7 +182,7 @@ class TestWebSocketPatternBroadcasting:
         for i in range(user_count):
             session_id = f'session_{i}'
             user_id = f'user_{i}'
-            
+
             connected_user = ConnectedUser(
                 user_id=user_id,
                 session_id=session_id,
@@ -192,29 +190,29 @@ class TestWebSocketPatternBroadcasting:
                 last_seen=time.time(),
                 subscriptions={'Breakout'}  # Subscribe to test pattern
             )
-            
+
             websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Performance test: Broadcast to all subscribed users
         iterations = 10
         broadcast_times = []
-        
+
         for i in range(iterations):
             start_time = time.perf_counter()
             websocket_broadcaster.broadcast_pattern_alert(sample_pattern_event)
             end_time = time.perf_counter()
-            
+
             broadcast_time_ms = (end_time - start_time) * 1000
             broadcast_times.append(broadcast_time_ms)
-        
+
         # Calculate performance metrics
         avg_broadcast_time = sum(broadcast_times) / len(broadcast_times)
         max_broadcast_time = max(broadcast_times)
-        
+
         # Assert: <100ms broadcast time
         assert avg_broadcast_time < 100, f"Average broadcast time {avg_broadcast_time:.2f}ms exceeds 100ms requirement"
         assert max_broadcast_time < 150, f"Max broadcast time {max_broadcast_time:.2f}ms too high"
-        
+
         # Verify all subscribed users received the alert
         expected_emissions = user_count * iterations
         assert mock_socketio.emit.call_count == expected_emissions
@@ -228,7 +226,7 @@ class TestWebSocketPatternBroadcasting:
             ('session_3', 'user_3', {'Breakout'}),               # Should receive
             ('session_4', 'user_4', set()),                       # Empty subscription = receive all
         ]
-        
+
         for session_id, user_id, subscriptions in users_data:
             connected_user = ConnectedUser(
                 user_id=user_id,
@@ -238,19 +236,19 @@ class TestWebSocketPatternBroadcasting:
                 subscriptions=subscriptions
             )
             websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Broadcast Breakout pattern
         websocket_broadcaster.broadcast_pattern_alert(sample_pattern_event)
-        
+
         # Verify targeted broadcasting
         # Should emit to session_1, session_3, and session_4 (3 total)
         assert mock_socketio.emit.call_count == 3
-        
+
         # Verify message content
         for call_args in mock_socketio.emit.call_args_list:
             event_name = call_args[0][0]
             message_data = call_args[0][1]
-            
+
             assert event_name == 'pattern_alert'
             assert message_data['type'] == 'pattern_alert'
             assert message_data['pattern'] == 'Breakout'
@@ -262,7 +260,7 @@ class TestWebSocketPatternBroadcasting:
         for i in range(5):
             session_id = f'session_{i}'
             user_id = f'user_{i}'
-            
+
             connected_user = ConnectedUser(
                 user_id=user_id,
                 session_id=session_id,
@@ -271,7 +269,7 @@ class TestWebSocketPatternBroadcasting:
                 subscriptions=set()
             )
             websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Sample backtest progress event
         progress_event = {
             'type': 'backtest_progress',
@@ -283,15 +281,15 @@ class TestWebSocketPatternBroadcasting:
             },
             'timestamp': time.time()
         }
-        
+
         # Broadcast backtest progress
         websocket_broadcaster.broadcast_backtest_progress(progress_event)
-        
+
         # Verify broadcast to all users
-        mock_socketio.emit.assert_called_once_with('backtest_progress', 
+        mock_socketio.emit.assert_called_once_with('backtest_progress',
                                                    message=progress_event,
                                                    broadcast=True)
-        
+
         # Verify statistics updated
         assert websocket_broadcaster.stats['messages_sent'] == 5  # All connected users
 
@@ -307,7 +305,7 @@ class TestWebSocketPatternBroadcasting:
                 last_seen=time.time(),
                 subscriptions=set()
             )
-        
+
         # Sample system health event
         health_event = {
             'type': 'system_health',
@@ -319,12 +317,12 @@ class TestWebSocketPatternBroadcasting:
             },
             'timestamp': time.time()
         }
-        
+
         # Broadcast system health
         websocket_broadcaster.broadcast_system_health(health_event)
-        
+
         # Verify broadcast
-        mock_socketio.emit.assert_called_once_with('system_health', 
+        mock_socketio.emit.assert_called_once_with('system_health',
                                                    message=health_event,
                                                    broadcast=True)
 
@@ -336,15 +334,15 @@ class TestWebSocketPatternBroadcasting:
             'data': {'pattern': 'Breakout', 'symbol': 'AAPL'},
             'timestamp': time.time()
         }
-        
+
         # Queue message for offline user
         websocket_broadcaster.queue_message_for_offline_user(user_id, test_message)
-        
+
         # Verify message queued
         assert user_id in websocket_broadcaster.offline_message_queue
         assert len(websocket_broadcaster.offline_message_queue[user_id]) == 1
         assert websocket_broadcaster.stats['messages_queued'] == 1
-        
+
         # Verify queued message format
         queued_message = websocket_broadcaster.offline_message_queue[user_id][0]
         assert 'queued_at' in queued_message
@@ -355,7 +353,7 @@ class TestWebSocketPatternBroadcasting:
         """Test offline message queue size limiting."""
         user_id = 'heavy_user'
         max_messages = websocket_broadcaster.max_offline_messages
-        
+
         # Queue more than max allowed messages
         for i in range(max_messages + 50):
             message = {
@@ -364,10 +362,10 @@ class TestWebSocketPatternBroadcasting:
                 'timestamp': time.time()
             }
             websocket_broadcaster.queue_message_for_offline_user(user_id, message)
-        
+
         # Verify queue size is limited
         assert len(websocket_broadcaster.offline_message_queue[user_id]) == max_messages
-        
+
         # Verify most recent messages are kept
         last_message = websocket_broadcaster.offline_message_queue[user_id][-1]
         assert 'Pattern_' in last_message['data']['pattern']
@@ -376,28 +374,28 @@ class TestWebSocketPatternBroadcasting:
         """Test delivery of queued messages to reconnecting users."""
         user_id = 'returning_user'
         session_id = 'new_session'
-        
+
         # Queue messages for offline user
         test_messages = [
             {'type': 'pattern_alert', 'data': {'pattern': 'Breakout', 'symbol': 'AAPL'}},
             {'type': 'pattern_alert', 'data': {'pattern': 'Volume', 'symbol': 'GOOGL'}},
             {'type': 'backtest_result', 'data': {'job_id': 'bt_123', 'status': 'completed'}}
         ]
-        
+
         for message in test_messages:
             websocket_broadcaster.queue_message_for_offline_user(user_id, message)
-        
+
         # Simulate message delivery (called when user reconnects)
         if user_id in websocket_broadcaster.offline_message_queue:
             queued_messages = websocket_broadcaster.offline_message_queue[user_id]
-            
+
             # Simulate delivery
             for message in queued_messages:
                 mock_socketio.emit('queued_message', message, room=session_id)
-            
+
             # Clear queue
             del websocket_broadcaster.offline_message_queue[user_id]
-        
+
         # Verify delivery
         assert mock_socketio.emit.call_count == 3
         assert user_id not in websocket_broadcaster.offline_message_queue
@@ -405,19 +403,19 @@ class TestWebSocketPatternBroadcasting:
     def test_user_online_status_check(self, websocket_broadcaster, sample_connected_user):
         """Test accurate user online status checking."""
         user_id = sample_connected_user.user_id
-        
+
         # User not connected
         assert not websocket_broadcaster.is_user_online(user_id)
-        
+
         # Add user connection
         websocket_broadcaster.user_sessions[user_id] = {sample_connected_user.session_id}
-        
+
         # User now online
         assert websocket_broadcaster.is_user_online(user_id)
-        
+
         # Remove user session
         del websocket_broadcaster.user_sessions[user_id]
-        
+
         # User offline again
         assert not websocket_broadcaster.is_user_online(user_id)
 
@@ -429,7 +427,7 @@ class TestWebSocketPatternBroadcasting:
             ('session_2', 'user_2', {'Volume', 'Momentum'}),
             ('session_3', 'user_1', set())  # Same user, different session
         ]
-        
+
         for session_id, user_id, subscriptions in users_data:
             connected_user = ConnectedUser(
                 user_id=user_id,
@@ -439,13 +437,13 @@ class TestWebSocketPatternBroadcasting:
                 subscriptions=subscriptions
             )
             websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Get connected users report
         connected_users = websocket_broadcaster.get_connected_users()
-        
+
         # Verify report
         assert len(connected_users) == 3  # 3 sessions
-        
+
         for user_info in connected_users:
             assert 'user_id' in user_info
             assert 'session_id' in user_info
@@ -453,7 +451,7 @@ class TestWebSocketPatternBroadcasting:
             assert 'last_seen' in user_info
             assert 'subscriptions' in user_info
             assert 'connection_duration' in user_info
-            
+
             # Connection duration should be around 5 minutes (300 seconds)
             assert user_info['connection_duration'] > 250
             assert user_info['connection_duration'] < 350
@@ -465,17 +463,17 @@ class TestWebSocketPatternBroadcasting:
         websocket_broadcaster.stats['active_connections'] = 25
         websocket_broadcaster.stats['messages_sent'] = 500
         websocket_broadcaster.stats['disconnections'] = 75
-        
+
         # Add offline message queues
         websocket_broadcaster.offline_message_queue['user1'] = [{'msg': 'test1'}]
         websocket_broadcaster.offline_message_queue['user2'] = [{'msg': 'test2'}, {'msg': 'test3'}]
-        
+
         # Add user sessions
         websocket_broadcaster.user_sessions = {'user_a': {'session1'}, 'user_b': {'session2', 'session3'}}
-        
+
         # Get statistics
         stats = websocket_broadcaster.get_stats()
-        
+
         # Verify statistics
         assert stats['total_connections'] == 100
         assert stats['active_connections'] == 25
@@ -490,7 +488,7 @@ class TestWebSocketPatternBroadcasting:
     def test_stale_connection_cleanup(self, websocket_broadcaster, mock_socketio):
         """Test cleanup of stale connections."""
         current_time = time.time()
-        
+
         # Add connections with different last seen times
         connections_data = [
             ('session_1', current_time - 60),    # Recent (1 minute ago)
@@ -498,7 +496,7 @@ class TestWebSocketPatternBroadcasting:
             ('session_3', current_time - 30),    # Recent (30 seconds ago)
             ('session_4', current_time - 500),   # Stale (8+ minutes ago)
         ]
-        
+
         for session_id, last_seen in connections_data:
             connected_user = ConnectedUser(
                 user_id=f'user_{session_id}',
@@ -508,15 +506,15 @@ class TestWebSocketPatternBroadcasting:
                 subscriptions=set()
             )
             websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Cleanup stale connections (5 minute threshold)
         with patch.object(websocket_broadcaster.socketio, 'disconnect') as mock_disconnect:
             stale_count = websocket_broadcaster.cleanup_stale_connections(max_idle_seconds=300)
-        
+
         # Verify stale connections identified and disconnected
         assert stale_count == 2  # session_2 and session_4
         assert mock_disconnect.call_count == 2
-        
+
         # Verify which sessions were disconnected
         disconnected_sessions = [call[0][0] for call in mock_disconnect.call_args_list]
         assert 'session_2' in disconnected_sessions
@@ -537,44 +535,44 @@ class TestWebSocketPatternBroadcasting:
                 subscriptions={'Breakout'}
             )
             websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Concurrent broadcasting test
         broadcast_count = 50
         broadcast_times = []
-        
+
         def broadcast_pattern():
             start_time = time.perf_counter()
-            
+
             test_event = {
                 'type': 'pattern_alert',
                 'data': {'pattern': 'Breakout', 'symbol': 'TEST'},
                 'timestamp': time.time()
             }
-            
+
             websocket_broadcaster.broadcast_pattern_alert(test_event)
-            
+
             end_time = time.perf_counter()
             broadcast_times.append((end_time - start_time) * 1000)
-        
+
         # Create concurrent broadcast threads
         threads = []
         for _ in range(broadcast_count):
             thread = threading.Thread(target=broadcast_pattern)
             threads.append(thread)
             thread.start()
-        
+
         # Wait for all broadcasts to complete
         for thread in threads:
             thread.join()
-        
+
         # Verify performance
         avg_broadcast_time = sum(broadcast_times) / len(broadcast_times)
         max_broadcast_time = max(broadcast_times)
-        
+
         # Even under high concurrency, should maintain reasonable performance
         assert avg_broadcast_time < 200, f"Average broadcast time {avg_broadcast_time:.2f}ms too high under load"
         assert max_broadcast_time < 500, f"Max broadcast time {max_broadcast_time:.2f}ms too high under load"
-        
+
         # Verify all broadcasts completed
         expected_total_emissions = user_count * broadcast_count
         assert mock_socketio.emit.call_count == expected_total_emissions
@@ -583,7 +581,7 @@ class TestWebSocketPatternBroadcasting:
         """Test heartbeat monitoring for connection health."""
         session_id = 'session_heartbeat'
         user_id = 'user_heartbeat'
-        
+
         # Create connected user
         connected_user = ConnectedUser(
             user_id=user_id,
@@ -593,15 +591,15 @@ class TestWebSocketPatternBroadcasting:
             subscriptions=set()
         )
         websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Simulate heartbeat update
         initial_last_seen = connected_user.last_seen
         time.sleep(0.1)  # Small delay
         connected_user.update_last_seen()
-        
+
         # Verify heartbeat updated
         assert connected_user.last_seen > initial_last_seen
-        
+
         # Test heartbeat age calculation
         heartbeat_age = time.time() - connected_user.last_seen
         assert heartbeat_age < 1.0  # Should be very recent
@@ -618,20 +616,20 @@ class TestWebSocketPatternBroadcasting:
             subscriptions={'Breakout'}
         )
         websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Mock SocketIO emit to raise exception
         mock_socketio.emit.side_effect = Exception("WebSocket connection error")
-        
+
         # Attempt broadcast (should handle error gracefully)
         test_event = {
             'type': 'pattern_alert',
             'data': {'pattern': 'Breakout', 'symbol': 'AAPL'},
             'timestamp': time.time()
         }
-        
+
         # Should not raise exception
         websocket_broadcaster.broadcast_pattern_alert(test_event)
-        
+
         # Verify attempt was made
         assert mock_socketio.emit.called
 

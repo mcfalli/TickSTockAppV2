@@ -10,16 +10,16 @@ Architecture:
 """
 
 import logging
-import os
-from typing import Dict, Any
+from typing import Any
+
 from flask import Flask, jsonify
 
 from src.api.rest.pattern_consumer import pattern_consumer_bp
 from src.api.rest.user_universe import user_universe_bp
 from src.core.services.pattern_discovery_service import (
+    get_pattern_discovery_service,
     initialize_pattern_discovery_service,
     shutdown_pattern_discovery_service,
-    get_pattern_discovery_service
 )
 
 logger = logging.getLogger(__name__)
@@ -36,33 +36,33 @@ def register_pattern_discovery_apis(app: Flask) -> bool:
     """
     try:
         logger.info("PATTERN-DISCOVERY-API: Initializing Pattern Discovery APIs...")
-        
+
         # Load configuration
         config = _load_pattern_discovery_config()
-        
+
         # Initialize Pattern Discovery Service
         if not initialize_pattern_discovery_service(app, config):
             logger.error("PATTERN-DISCOVERY-API: Failed to initialize pattern discovery service")
             return False
-        
+
         # Register API blueprints
         app.register_blueprint(pattern_consumer_bp, url_prefix='')
         app.register_blueprint(user_universe_bp, url_prefix='')
-        
+
         # Register health endpoint
         _register_health_endpoints(app)
-        
+
         # Register error handlers
         _register_error_handlers(app)
-        
+
         logger.info("PATTERN-DISCOVERY-API: Pattern Discovery APIs initialized successfully")
         return True
-        
+
     except Exception as e:
         logger.error("PATTERN-DISCOVERY-API: Initialization error: %s", e)
         return False
 
-def _load_pattern_discovery_config() -> Dict[str, Any]:
+def _load_pattern_discovery_config() -> dict[str, Any]:
     """Load configuration for Pattern Discovery components."""
     from src.core.services.config_manager import get_config
     config = get_config()
@@ -86,15 +86,15 @@ def _load_pattern_discovery_config() -> Dict[str, Any]:
         'database_name': 'tickstock',
         'database_user': config.get('TICKSTOCK_DB_USER', 'app_readwrite'),
         'database_password': config.get('TICKSTOCK_DB_PASSWORD', 'PASSWORD_PLACEHOLDER'),
-        
+
         # TickStockPL integration channels
         'tickstock_channels': [
             'tickstock.events.patterns',
-            'tickstock.events.backtesting.progress', 
+            'tickstock.events.backtesting.progress',
             'tickstock.events.backtesting.results',
             'tickstock.health.status'
         ],
-        
+
         # Performance targets
         'api_response_target_ms': 50,
         'websocket_latency_target_ms': 100,
@@ -103,7 +103,7 @@ def _load_pattern_discovery_config() -> Dict[str, Any]:
 
 def _register_health_endpoints(app: Flask):
     """Register centralized health endpoints for Pattern Discovery components."""
-    
+
     @app.route('/api/pattern-discovery/health', methods=['GET'])
     def pattern_discovery_health():
         """
@@ -122,10 +122,10 @@ def _register_health_endpoints(app: Flask):
                     'message': 'Pattern discovery service not initialized',
                     'components': {}
                 }), 503
-            
+
             # Get comprehensive health status
             health_status = service.get_health_status()
-            
+
             # Determine HTTP status code
             if health_status['status'] == 'healthy':
                 status_code = 200
@@ -133,9 +133,9 @@ def _register_health_endpoints(app: Flask):
                 status_code = 200  # Still operational
             else:
                 status_code = 503  # Service unavailable
-            
+
             return jsonify(health_status), status_code
-            
+
         except Exception as e:
             logger.error("PATTERN-DISCOVERY-API: Health check error: %s", e)
             return jsonify({
@@ -143,7 +143,7 @@ def _register_health_endpoints(app: Flask):
                 'healthy': False,
                 'message': f'Health check failed: {str(e)}'
             }), 500
-    
+
     @app.route('/api/pattern-discovery/performance', methods=['GET'])
     def pattern_discovery_performance():
         """
@@ -158,22 +158,22 @@ def _register_health_endpoints(app: Flask):
                 return jsonify({
                     'error': 'Pattern discovery service not available'
                 }), 503
-            
+
             health_status = service.get_health_status()
             performance_metrics = health_status.get('performance', {})
-            
+
             # Add performance targets for comparison
             performance_metrics['targets'] = {
                 'api_response_time_ms': 50,
                 'websocket_latency_ms': 100,
                 'cache_hit_ratio': 0.7
             }
-            
+
             return jsonify({
                 'performance': performance_metrics,
                 'status': 'healthy' if health_status.get('healthy') else 'degraded'
             })
-            
+
         except Exception as e:
             logger.error("PATTERN-DISCOVERY-API: Performance check error: %s", e)
             return jsonify({
@@ -182,7 +182,7 @@ def _register_health_endpoints(app: Flask):
 
 def _register_error_handlers(app: Flask):
     """Register consistent error handlers for Pattern Discovery APIs."""
-    
+
     @app.errorhandler(429)  # Rate limiting
     def rate_limit_handler(e):
         return jsonify({
@@ -190,7 +190,7 @@ def _register_error_handlers(app: Flask):
             'message': 'Too many requests. Please slow down.',
             'retry_after': getattr(e, 'retry_after', 60)
         }), 429
-    
+
     @app.errorhandler(503)  # Service unavailable
     def service_unavailable_handler(e):
         return jsonify({
@@ -213,7 +213,7 @@ def setup_pattern_discovery_socketio(socketio):
             logger.info("PATTERN-DISCOVERY-API: SocketIO integration configured")
         else:
             logger.warning("PATTERN-DISCOVERY-API: Pattern discovery service not available for SocketIO integration")
-            
+
     except Exception as e:
         logger.error("PATTERN-DISCOVERY-API: SocketIO integration error: %s", e)
 
@@ -223,25 +223,25 @@ def cleanup_pattern_discovery_services():
         logger.info("PATTERN-DISCOVERY-API: Cleaning up Pattern Discovery services...")
         shutdown_pattern_discovery_service()
         logger.info("PATTERN-DISCOVERY-API: Pattern Discovery cleanup complete")
-        
+
     except Exception as e:
         logger.error("PATTERN-DISCOVERY-API: Cleanup error: %s", e)
 
 # Flask application lifecycle integration
 def init_app(app: Flask) -> bool:
     """Initialize Pattern Discovery components with Flask app."""
-    
+
     # Register APIs and services
     success = register_pattern_discovery_apis(app)
-    
+
     if success:
         logger.info("PATTERN-DISCOVERY-API: Pattern Discovery integration successful")
-        
+
         # Register cleanup handler
         import atexit
         atexit.register(cleanup_pattern_discovery_services)
-        
+
     else:
         logger.error("PATTERN-DISCOVERY-API: Pattern Discovery integration failed")
-    
+
     return success

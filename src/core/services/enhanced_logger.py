@@ -8,16 +8,14 @@ Purpose: Unified error handling with configurable file and database logging
 Architecture: Config-driven via .env, <100ms processing time, zero performance impact
 """
 
-import logging
-import os
 import json
+import logging
 import traceback as tb
 from logging.handlers import RotatingFileHandler
-from datetime import datetime
-from typing import Dict, Any, Optional, Union
 from pathlib import Path
+from typing import Any
 
-from src.core.models.error_models import ErrorMessage, SEVERITY_LEVELS
+from src.core.models.error_models import SEVERITY_LEVELS, ErrorMessage
 from src.core.services.config_manager import LoggingConfig
 
 
@@ -88,10 +86,10 @@ class EnhancedLogger:
         self,
         severity: str,
         message: str,
-        category: Optional[str] = None,
-        component: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        traceback: Optional[str] = None,
+        category: str | None = None,
+        component: str | None = None,
+        context: dict[str, Any] | None = None,
+        traceback: str | None = None,
         source: str = 'TickStockAppV2'
     ):
         """Log error with optional database storage
@@ -203,10 +201,9 @@ class EnhancedLogger:
             # Execute database insert
             if hasattr(self.db, 'get_connection'):
                 # Connection pool pattern
-                with self.db.get_connection() as conn:
-                    with conn.cursor() as cursor:
-                        cursor.execute(query, values)
-                        conn.commit()
+                with self.db.get_connection() as conn, conn.cursor() as cursor:
+                    cursor.execute(query, values)
+                    conn.commit()
             else:
                 # Direct connection pattern
                 with self.db.cursor() as cursor:
@@ -223,9 +220,9 @@ class EnhancedLogger:
         self,
         exception: Exception,
         severity: str = 'error',
-        category: Optional[str] = None,
-        component: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
+        category: str | None = None,
+        component: str | None = None,
+        context: dict[str, Any] | None = None,
         include_traceback: bool = True
     ):
         """Log error from an exception object
@@ -251,7 +248,7 @@ class EnhancedLogger:
             traceback=traceback_str
         )
 
-    def log_from_redis_message(self, redis_message: Union[str, bytes]):
+    def log_from_redis_message(self, redis_message: str | bytes):
         """Log error message received from Redis
 
         Args:
@@ -279,7 +276,7 @@ class EnhancedLogger:
         except Exception as e:
             self.logger.error(f"Failed to process Redis error message: {e}")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get logging statistics
 
         Returns:
@@ -314,7 +311,7 @@ class EnhancedLogger:
 
 
 def create_enhanced_logger(
-    config: Optional[LoggingConfig] = None,
+    config: LoggingConfig | None = None,
     db_connection=None
 ) -> EnhancedLogger:
     """Factory function to create enhanced logger
@@ -333,10 +330,10 @@ def create_enhanced_logger(
 
 
 # Global enhanced logger instance (will be initialized by app.py)
-enhanced_logger: Optional[EnhancedLogger] = None
+enhanced_logger: EnhancedLogger | None = None
 
 
-def get_enhanced_logger() -> Optional[EnhancedLogger]:
+def get_enhanced_logger() -> EnhancedLogger | None:
     """Get the global enhanced logger instance
 
     Returns:

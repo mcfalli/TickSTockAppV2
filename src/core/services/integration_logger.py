@@ -9,10 +9,10 @@ TickStockPL events through Redis to WebSocket delivery.
 import logging
 import os
 import time
-from typing import Dict, Any, Optional
-from functools import wraps
 from dataclasses import dataclass
 from enum import Enum
+from functools import wraps
+from typing import Any
 
 # Create dedicated integration logger
 integration_logger = logging.getLogger('INTEGRATION')
@@ -108,7 +108,7 @@ class IntegrationFlowLogger:
         self.enabled = enabled
         integration_logger.info(f"Integration logging {'enabled' if enabled else 'disabled'}")
 
-    def start_flow(self, event_data: Dict[str, Any]) -> str:
+    def start_flow(self, event_data: dict[str, Any]) -> str:
         """Start tracking a new event flow."""
         if not self.enabled:
             return ""
@@ -139,7 +139,7 @@ class IntegrationFlowLogger:
         return flow_id
 
     def log_checkpoint(self, flow_id: str, point: IntegrationPoint,
-                       details: Optional[str] = None):
+                       details: str | None = None):
         """Log a checkpoint in the event flow."""
         if not self.enabled or not flow_id or flow_id not in self.active_flows:
             return
@@ -182,7 +182,7 @@ class IntegrationFlowLogger:
 # Global instance
 flow_logger = IntegrationFlowLogger()
 
-def log_integration_point(point: IntegrationPoint, details: Optional[str] = None):
+def log_integration_point(point: IntegrationPoint, details: str | None = None):
     """Quick logging of integration points without flow tracking."""
     if flow_logger.enabled:
         msg = point.value

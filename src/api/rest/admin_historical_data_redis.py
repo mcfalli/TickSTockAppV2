@@ -13,15 +13,16 @@ Features:
 
 import json
 import uuid
-import redis
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
-from src.core.services.config_manager import get_config
+from datetime import datetime
 
-from flask import render_template, request, jsonify, flash, redirect, url_for
-from flask_login import login_required, current_user
-from src.utils.auth_decorators import admin_required
+import redis
+from flask import flash, jsonify, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+
+from src.core.services.config_manager import get_config
 from src.core.services.tickstockpl_api_client import get_tickstockpl_client
+from src.utils.auth_decorators import admin_required
+
 
 # Initialize Redis client
 def get_redis_client():
@@ -286,11 +287,10 @@ def register_admin_historical_routes(app):
                     'message': result.get('message', 'Processing triggered successfully'),
                     'status': result.get('status')
                 })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': result.get('message', 'Failed to trigger processing')
-                }), 500
+            return jsonify({
+                'success': False,
+                'message': result.get('message', 'Failed to trigger processing')
+            }), 500
 
         except Exception as e:
             app.logger.error(f"Error triggering TickStockPL processing: {str(e)}")
@@ -313,22 +313,21 @@ def register_admin_historical_routes(app):
                     'job_id': job_id,
                     **status
                 })
-            else:
-                # Check if job exists in history
-                for job in job_history:
-                    if job.get('job_id') == job_id:
-                        return jsonify({
-                            'success': True,
-                            'job_id': job_id,
-                            'status': 'expired',
-                            'message': 'Job status expired from cache',
-                            'progress': 100
-                        })
+            # Check if job exists in history
+            for job in job_history:
+                if job.get('job_id') == job_id:
+                    return jsonify({
+                        'success': True,
+                        'job_id': job_id,
+                        'status': 'expired',
+                        'message': 'Job status expired from cache',
+                        'progress': 100
+                    })
 
-                return jsonify({
-                    'success': False,
-                    'message': 'Job not found'
-                }), 404
+            return jsonify({
+                'success': False,
+                'message': 'Job not found'
+            }), 404
 
         except Exception as e:
             app.logger.error(f"Error getting job status: {str(e)}")
@@ -533,11 +532,10 @@ def register_admin_historical_routes(app):
                     'job_id': job_id,
                     **status
                 })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': 'Job not found'
-                }), 404
+            return jsonify({
+                'success': False,
+                'message': 'Job not found'
+            }), 404
 
         except Exception as e:
             return jsonify({'success': False, 'error': str(e)}), 500

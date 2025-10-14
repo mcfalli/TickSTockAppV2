@@ -7,19 +7,20 @@ PHASE 6 CLEANUP: Simplified to basic factory pattern with:
 
 Removed: Multi-frequency complexity, validation layers, fallback logic.
 """
-from typing import Dict, Any
-from src.core.interfaces.data_provider import DataProvider
-from src.infrastructure.data_sources.synthetic.provider import SimulatedDataProvider
-from src.infrastructure.data_sources.polygon.provider import PolygonDataProvider
 import logging
+from typing import Any
+
+from src.core.interfaces.data_provider import DataProvider
+from src.infrastructure.data_sources.polygon.provider import PolygonDataProvider
+from src.infrastructure.data_sources.synthetic.provider import SimulatedDataProvider
 
 logger = logging.getLogger(__name__)
 
 class DataProviderFactory:
     """Simplified factory for creating data provider instances."""
-    
+
     @classmethod
-    def get_provider(cls, config: Dict[str, Any]) -> DataProvider:
+    def get_provider(cls, config: dict[str, Any]) -> DataProvider:
         """Get data provider based on simple configuration."""
         use_synthetic = config.get('USE_SYNTHETIC_DATA', False)
         use_polygon = config.get('USE_POLYGON_API', False)
@@ -34,11 +35,10 @@ class DataProviderFactory:
                 if provider.is_available():
                     logger.info("DATA-PROVIDER-FACTORY: Using Polygon provider")
                     return provider
-                else:
-                    logger.warning("DATA-PROVIDER-FACTORY: Polygon API not available, falling back to synthetic")
+                logger.warning("DATA-PROVIDER-FACTORY: Polygon API not available, falling back to synthetic")
             except Exception as e:
                 logger.error(f"DATA-PROVIDER-FACTORY: Polygon initialization failed: {e}")
-        
+
         # Default to synthetic
         logger.info("DATA-PROVIDER-FACTORY: Using synthetic provider")
         return SimulatedDataProvider(config)

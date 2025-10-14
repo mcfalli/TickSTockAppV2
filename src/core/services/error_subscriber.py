@@ -8,16 +8,16 @@ Purpose: Cross-system error integration via Redis pub-sub
 Architecture: Background thread, auto-reconnect, graceful degradation
 """
 
-import redis
-import threading
-import json
-import time
 import logging
-from typing import Optional, Callable, Dict, Any
+import threading
+import time
+from typing import Any
 
-from src.core.services.enhanced_logger import EnhancedLogger
-from src.core.services.config_manager import LoggingConfig
+import redis
+
 from src.core.models.error_models import ErrorMessage
+from src.core.services.config_manager import LoggingConfig
+from src.core.services.enhanced_logger import EnhancedLogger
 
 
 class ErrorSubscriber:
@@ -47,8 +47,8 @@ class ErrorSubscriber:
 
         # Thread control
         self.running = False
-        self.thread: Optional[threading.Thread] = None
-        self.pubsub: Optional[redis.client.PubSub] = None
+        self.thread: threading.Thread | None = None
+        self.pubsub: redis.client.PubSub | None = None
 
         # Performance tracking
         self.messages_processed = 0
@@ -154,7 +154,7 @@ class ErrorSubscriber:
                     pass
                 self.pubsub = None
 
-    def _process_message(self, message: Dict[str, Any]):
+    def _process_message(self, message: dict[str, Any]):
         """Process a single error message from Redis
 
         Args:
@@ -216,7 +216,7 @@ class ErrorSubscriber:
         except Exception as e:
             self.logger.error(f"Redis still not available: {e}")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get subscriber statistics
 
         Returns:
@@ -231,7 +231,7 @@ class ErrorSubscriber:
             'channel': self.config.redis_error_channel
         }
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """Check subscriber health status
 
         Returns:
@@ -301,7 +301,7 @@ class ErrorSubscriber:
 def create_error_subscriber(
     redis_client: redis.Redis,
     enhanced_logger: EnhancedLogger,
-    config: Optional[LoggingConfig] = None
+    config: LoggingConfig | None = None
 ) -> ErrorSubscriber:
     """Factory function to create error subscriber
 
@@ -324,10 +324,10 @@ def create_error_subscriber(
 
 
 # Global error subscriber instance (will be initialized by app.py)
-error_subscriber: Optional[ErrorSubscriber] = None
+error_subscriber: ErrorSubscriber | None = None
 
 
-def get_error_subscriber() -> Optional[ErrorSubscriber]:
+def get_error_subscriber() -> ErrorSubscriber | None:
     """Get the global error subscriber instance
 
     Returns:

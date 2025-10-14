@@ -6,23 +6,20 @@ Tests the intelligent event routing system with content-based routing,
 route caching, and <20ms routing performance targets.
 """
 
-import pytest
-import time
 import threading
-from unittest.mock import Mock, MagicMock, patch
-from typing import Dict, Any, Set
+import time
+from unittest.mock import Mock, patch
+
+import pytest
 
 from src.infrastructure.websocket.event_router import (
-    EventRouter,
-    RoutingStrategy,
-    EventCategory,
-    RoutingRule,
-    RoutingResult,
-    RouterStats,
     DeliveryPriority,
-    create_pattern_routing_rule,
+    EventRouter,
+    RoutingRule,
+    RoutingStrategy,
     create_market_data_routing_rule,
-    create_tier_routing_rule
+    create_pattern_routing_rule,
+    create_tier_routing_rule,
 )
 from src.infrastructure.websocket.scalable_broadcaster import ScalableBroadcaster
 
@@ -73,18 +70,18 @@ class TestEventRouterLayer:
         # Verify configuration
         assert event_router.cache_size == 100
         assert event_router.enable_caching is True
-        
+
         # Verify routing system components
         assert len(event_router.routing_rules) == 0
         assert len(event_router.rule_categories) >= 0
-        
+
         # Verify route caching system
         assert len(event_router.route_cache) == 0
         assert len(event_router.cache_access_order) == 0
-        
+
         # Verify thread pool executor
         assert event_router.routing_executor is not None
-        
+
         # Verify statistics tracking
         assert event_router.stats is not None
         assert event_router.stats.total_events == 0
@@ -92,18 +89,18 @@ class TestEventRouterLayer:
     def test_add_routing_rule_with_categorization(self, event_router, sample_routing_rule):
         """Test adding routing rule with automatic categorization."""
         success = event_router.add_routing_rule(sample_routing_rule)
-        
+
         # Verify rule was added
         assert success is True
         assert sample_routing_rule.rule_id in event_router.routing_rules
-        
+
         # Verify rule categorization occurred
         found_in_category = False
         for category, rule_ids in event_router.rule_categories.items():
             if sample_routing_rule.rule_id in rule_ids:
                 found_in_category = True
                 break
-        
+
         # Rule should be categorized based on event type patterns
         assert found_in_category or len(event_router.rule_categories) == 0  # May not categorize test rules
 
@@ -112,17 +109,17 @@ class TestEventRouterLayer:
         # Add rule first
         event_router.add_routing_rule(sample_routing_rule)
         assert sample_routing_rule.rule_id in event_router.routing_rules
-        
+
         # Add some cache entries
         event_router.route_cache['test_key'] = (Mock(), time.time())
-        
+
         # Remove rule
         success = event_router.remove_routing_rule(sample_routing_rule.rule_id)
-        
+
         # Verify removal was successful
         assert success is True
         assert sample_routing_rule.rule_id not in event_router.routing_rules
-        
+
         # Verify cache was cleared
         assert len(event_router.route_cache) == 0
 
@@ -130,7 +127,7 @@ class TestEventRouterLayer:
         """Test event routing meets <20ms performance target."""
         # Add routing rule
         event_router.add_routing_rule(sample_routing_rule)
-        
+
         # Test routing performance
         event_type = 'tier_pattern'
         event_data = {
@@ -142,21 +139,21 @@ class TestEventRouterLayer:
         user_context = {
             'interested_users': ['user1', 'user2', 'user3']
         }
-        
+
         # Measure routing time
         start_time = time.time()
-        
+
         routing_result = event_router.route_event(
             event_type=event_type,
             event_data=event_data,
             user_context=user_context
         )
-        
+
         routing_time_ms = (time.time() - start_time) * 1000
-        
+
         # Verify performance target <20ms
         assert routing_time_ms < 20.0, f"Routing took {routing_time_ms:.2f}ms, exceeds 20ms target"
-        
+
         # Verify routing result
         assert routing_result is not None
         assert routing_result.event_id is not None
@@ -177,7 +174,7 @@ class TestEventRouterLayer:
             destinations=['system_room'],
             priority=DeliveryPriority.HIGH
         )
-        
+
         content_rule = RoutingRule(
             rule_id='content_rule',
             name='Content Based Rule',
@@ -189,7 +186,7 @@ class TestEventRouterLayer:
             destinations=[],
             priority=DeliveryPriority.MEDIUM
         )
-        
+
         priority_rule = RoutingRule(
             rule_id='priority_rule',
             name='Priority First Rule',
@@ -201,46 +198,46 @@ class TestEventRouterLayer:
             destinations=['priority_room'],
             priority=DeliveryPriority.CRITICAL
         )
-        
+
         # Add all rules
         event_router.add_routing_rule(broadcast_rule)
         event_router.add_routing_rule(content_rule)
         event_router.add_routing_rule(priority_rule)
-        
+
         # Test broadcast strategy
         broadcast_result = event_router.route_event(
             event_type='system_health',
             event_data={'status': 'healthy'},
             user_context={}
         )
-        
+
         assert len(broadcast_result.matched_rules) > 0
         assert 'broadcast_rule' in broadcast_result.matched_rules
-        
+
         # Test content-based strategy
         content_result = event_router.route_event(
             event_type='tier_pattern',
             event_data={'pattern_type': 'BreakoutBO', 'symbol': 'AAPL'},
             user_context={}
         )
-        
+
         assert len(content_result.matched_rules) > 0
         assert 'content_rule' in content_result.matched_rules
-        
+
         # Test priority strategy
         priority_result = event_router.route_event(
             event_type='alert_critical',
             event_data={'priority': 'HIGH', 'message': 'Critical alert'},
             user_context={}
         )
-        
+
         assert len(priority_result.matched_rules) > 0
         assert 'priority_rule' in priority_result.matched_rules
 
     def test_route_caching_with_lru_eviction(self, event_router, sample_routing_rule):
         """Test route caching improves performance with LRU eviction."""
         event_router.add_routing_rule(sample_routing_rule)
-        
+
         event_type = 'tier_pattern'
         event_data = {
             'pattern_type': 'BreakoutBO',
@@ -248,19 +245,19 @@ class TestEventRouterLayer:
             'confidence': 0.8
         }
         user_context = {'interested_users': ['user1', 'user2']}
-        
+
         # First routing - should cache result
         first_result = event_router.route_event(event_type, event_data, user_context)
         first_cache_size = len(event_router.route_cache)
-        
+
         # Second routing with same criteria - should use cache
         second_result = event_router.route_event(event_type, event_data, user_context)
         second_cache_size = len(event_router.route_cache)
-        
+
         # Cache should be used (same size, marked as cache hit)
         assert first_cache_size == second_cache_size
         assert second_result.cache_hit is True
-        
+
         # Test LRU eviction by filling cache beyond capacity
         for i in range(event_router.cache_size + 10):
             test_data = {
@@ -269,7 +266,7 @@ class TestEventRouterLayer:
                 'confidence': 0.7
             }
             event_router.route_event(event_type, test_data, {})
-        
+
         # Cache should not exceed capacity
         assert len(event_router.route_cache) <= event_router.cache_size
 
@@ -281,7 +278,7 @@ class TestEventRouterLayer:
             transformed['enriched'] = True
             transformed['timestamp_enriched'] = time.time()
             return transformed
-        
+
         # Create rule with content transformation
         transform_rule = RoutingRule(
             rule_id='transform_rule',
@@ -295,9 +292,9 @@ class TestEventRouterLayer:
             priority=DeliveryPriority.MEDIUM,
             content_transformer=test_transformer
         )
-        
+
         event_router.add_routing_rule(transform_rule)
-        
+
         # Route event that should trigger transformation
         result = event_router.route_event(
             event_type='tier_pattern',
@@ -308,7 +305,7 @@ class TestEventRouterLayer:
             },
             user_context={}
         )
-        
+
         # Verify transformation was applied
         assert len(result.transformations_applied) > 0
         assert 'transform_rule_content_transform' in result.transformations_applied
@@ -331,9 +328,9 @@ class TestEventRouterLayer:
             destinations=['complex_room'],
             priority=DeliveryPriority.MEDIUM
         )
-        
+
         event_router.add_routing_rule(complex_rule)
-        
+
         # Test matching event
         matching_result = event_router.route_event(
             event_type='tier_pattern',
@@ -343,9 +340,9 @@ class TestEventRouterLayer:
                 'confidence': 0.85
             }
         )
-        
+
         assert 'complex_rule' in matching_result.matched_rules
-        
+
         # Test non-matching event (wrong symbol)
         non_matching_result = event_router.route_event(
             event_type='tier_pattern',
@@ -355,9 +352,9 @@ class TestEventRouterLayer:
                 'confidence': 0.85
             }
         )
-        
+
         assert 'complex_rule' not in non_matching_result.matched_rules
-        
+
         # Test non-matching event (confidence too low)
         low_confidence_result = event_router.route_event(
             event_type='tier_pattern',
@@ -367,7 +364,7 @@ class TestEventRouterLayer:
                 'confidence': 0.5  # Too low
             }
         )
-        
+
         assert 'complex_rule' not in low_confidence_result.matched_rules
 
     def test_routing_execution_with_broadcaster(self, event_router, mock_scalable_broadcaster):
@@ -384,26 +381,26 @@ class TestEventRouterLayer:
             destinations=[],
             priority=DeliveryPriority.MEDIUM
         )
-        
+
         event_router.add_routing_rule(user_rule)
-        
+
         # Mock routing strategy to return specific users
         with patch.object(event_router, '_get_broadcast_destinations') as mock_destinations:
             mock_destinations.return_value = {
                 'user_room_1': {'user1', 'user2'},
                 'user_room_2': {'user3'}
             }
-            
+
             # Route event
             result = event_router.route_event(
                 event_type='user_event',
                 event_data={'message': 'test'},
                 user_context={}
             )
-            
+
             # Verify routing occurred
             assert result.total_users == 3
-            
+
             # Verify ScalableBroadcaster was called
             assert mock_scalable_broadcaster.broadcast_to_users.call_count > 0
 
@@ -411,7 +408,7 @@ class TestEventRouterLayer:
         """Test comprehensive routing statistics reporting."""
         # Add multiple rules
         event_router.add_routing_rule(sample_routing_rule)
-        
+
         additional_rule = RoutingRule(
             rule_id='additional_rule',
             name='Additional Rule',
@@ -424,42 +421,42 @@ class TestEventRouterLayer:
             priority=DeliveryPriority.LOW
         )
         event_router.add_routing_rule(additional_rule)
-        
+
         # Route various events to generate statistics
         test_events = [
             ('tier_pattern', {'pattern_type': 'BreakoutBO', 'confidence': 0.8}),
             ('market_update', {'symbol': 'AAPL', 'price': 150.0}),
             ('tier_pattern', {'pattern_type': 'TrendReversal', 'confidence': 0.6})
         ]
-        
+
         for event_type, event_data in test_events:
             event_router.route_event(event_type, event_data, {})
-        
+
         # Get comprehensive statistics
         stats = event_router.get_routing_stats()
-        
+
         # Verify basic event metrics
         assert stats['total_events'] == 3
         assert stats['events_routed'] >= 0
         assert stats['events_per_second'] >= 0
-        
+
         # Verify performance metrics
         assert 'avg_routing_time_ms' in stats
         assert 'max_routing_time_ms' in stats
         assert 'cache_hit_rate_percent' in stats
         assert stats['avg_routing_time_ms'] >= 0
-        
+
         # Verify rule effectiveness metrics
         assert stats['total_rules'] == 2
         assert 'avg_rules_matched_per_event' in stats
         assert 'most_used_rule' in stats
         assert 'rule_usage' in stats
-        
+
         # Verify cache metrics
         assert 'cache_size' in stats
         assert 'cache_capacity' in stats
         assert 'cache_utilization_percent' in stats
-        
+
         # Verify error tracking
         assert 'routing_errors' in stats
         assert 'transformation_errors' in stats
@@ -467,7 +464,7 @@ class TestEventRouterLayer:
     def test_health_status_monitoring(self, event_router, sample_routing_rule):
         """Test health status monitoring with performance validation."""
         event_router.add_routing_rule(sample_routing_rule)
-        
+
         # Generate some routing activity
         for i in range(10):
             event_router.route_event(
@@ -475,10 +472,10 @@ class TestEventRouterLayer:
                 event_data={'pattern_type': 'BreakoutBO', 'sequence': i},
                 user_context={}
             )
-        
+
         # Get health status
         health_status = event_router.get_health_status()
-        
+
         # Verify health status structure
         assert 'service' in health_status
         assert 'status' in health_status
@@ -486,13 +483,13 @@ class TestEventRouterLayer:
         assert 'timestamp' in health_status
         assert 'stats' in health_status
         assert 'performance_targets' in health_status
-        
+
         # Verify service identification
         assert health_status['service'] == 'event_router'
-        
+
         # Verify status is reasonable (should be healthy with normal routing)
         assert health_status['status'] in ['healthy', 'warning', 'error']
-        
+
         # Verify performance targets
         targets = health_status['performance_targets']
         assert targets['routing_time_target_ms'] == 20.0
@@ -502,28 +499,28 @@ class TestEventRouterLayer:
     def test_optimize_performance_cleanup(self, event_router, sample_routing_rule):
         """Test performance optimization cleans up stale data."""
         event_router.add_routing_rule(sample_routing_rule)
-        
+
         # Create stale cache entries
         old_time = time.time() - 400  # 400 seconds ago (> 5 minute TTL)
         for i in range(10):
             cache_key = f'stale_key_{i}'
             event_router.route_cache[cache_key] = (Mock(), old_time)
-        
+
         # Add recent cache entries
         for i in range(5):
             cache_key = f'fresh_key_{i}'
             event_router.route_cache[cache_key] = (Mock(), time.time())
-        
+
         # Run optimization
         optimization_results = event_router.optimize_performance()
-        
+
         # Verify optimization results
         assert 'cache_cleaned' in optimization_results
         assert 'rules_optimized' in optimization_results
-        
+
         # Verify stale entries were cleaned
         assert optimization_results['cache_cleaned'] >= 10
-        
+
         # Verify rules were optimized (reordered by usage)
         assert optimization_results['rules_optimized'] > 0
 
@@ -531,10 +528,10 @@ class TestEventRouterLayer:
         """Test graceful shutdown process."""
         # Add some state to clean up
         event_router.route_cache['test_key'] = (Mock(), time.time())
-        
+
         # Shutdown should complete without errors
         event_router.shutdown()
-        
+
         # Verify cleanup occurred
         assert len(event_router.route_cache) == 0
         assert len(event_router.cache_access_order) == 0
@@ -547,27 +544,27 @@ class TestEventRouterLayer:
             pattern_types=['BreakoutBO', 'TrendReversal'],
             symbols=['AAPL', 'MSFT']
         )
-        
+
         assert pattern_rule.rule_id == 'test_pattern_rule'
         assert pattern_rule.strategy == RoutingStrategy.CONTENT_BASED
         assert pattern_rule.priority == DeliveryPriority.HIGH
-        
+
         # Test market data routing rule creation
         market_rule = create_market_data_routing_rule(
             rule_id='test_market_rule',
             symbols=['AAPL', 'GOOGL']
         )
-        
+
         assert market_rule.rule_id == 'test_market_rule'
         assert market_rule.strategy == RoutingStrategy.BROADCAST_ALL
         assert market_rule.priority == DeliveryPriority.MEDIUM
-        
+
         # Test tier routing rule creation
         tier_rule = create_tier_routing_rule(
             rule_id='test_tier_rule',
             tier='daily'
         )
-        
+
         assert tier_rule.rule_id == 'test_tier_rule'
         assert tier_rule.strategy == RoutingStrategy.CONTENT_BASED
         assert 'tier_daily' in tier_rule.destinations
@@ -575,9 +572,9 @@ class TestEventRouterLayer:
     def test_thread_safety_concurrent_routing(self, event_router, sample_routing_rule):
         """Test thread safety with concurrent routing operations."""
         event_router.add_routing_rule(sample_routing_rule)
-        
+
         results = {'success_count': 0, 'errors': []}
-        
+
         def routing_worker(worker_id):
             """Worker function for concurrent routing."""
             try:
@@ -592,16 +589,16 @@ class TestEventRouterLayer:
                         },
                         user_context={'worker': worker_id}
                     )
-                    
+
                     if result and result.event_id:
                         results['success_count'] += 1
-                    
+
                     # Small delay to encourage race conditions
                     time.sleep(0.001)
-                    
+
             except Exception as e:
                 results['errors'].append(f"Worker {worker_id}: {str(e)}")
-        
+
         def cache_worker():
             """Worker function for concurrent cache operations."""
             try:
@@ -610,34 +607,34 @@ class TestEventRouterLayer:
                     # Trigger cache operations
                     event_router.optimize_performance()
                     time.sleep(0.01)
-                    
+
             except Exception as e:
                 results['errors'].append(f"Cache worker: {str(e)}")
-        
+
         # Create and start threads
         threads = []
-        
+
         # Routing worker threads
         for i in range(4):
             thread = threading.Thread(target=routing_worker, args=(i,))
             threads.append(thread)
             thread.start()
-        
+
         # Cache worker thread
         cache_thread = threading.Thread(target=cache_worker)
         threads.append(cache_thread)
         cache_thread.start()
-        
+
         # Wait for all threads to complete
         for thread in threads:
             thread.join(timeout=10)
-        
+
         # Verify no errors occurred
         assert len(results['errors']) == 0, f"Thread safety errors: {results['errors']}"
-        
+
         # Verify reasonable number of successful routings
         assert results['success_count'] >= 100  # Most should succeed
-        
+
         # Verify system integrity
         stats = event_router.get_routing_stats()
         assert stats['total_events'] > 0
@@ -656,18 +653,18 @@ class TestEventRouterLayer:
             destinations=[],
             priority=DeliveryPriority.MEDIUM
         )
-        
+
         # Should handle bad rule gracefully
         success = event_router.add_routing_rule(bad_rule)
         assert success is True  # Should still add the rule
-        
+
         # Routing with bad rule should not crash
         result = event_router.route_event(
             event_type='test_event',
             event_data={'test': True},
             user_context={}
         )
-        
+
         # Should return valid result even with bad rule
         assert result is not None
         assert result.event_id is not None
@@ -675,10 +672,10 @@ class TestEventRouterLayer:
     def test_routing_rule_usage_tracking(self, event_router, sample_routing_rule):
         """Test routing rule usage statistics are tracked."""
         event_router.add_routing_rule(sample_routing_rule)
-        
+
         # Initially, rule should have no usage
         assert sample_routing_rule.messages_routed == 0
-        
+
         # Route events that match the rule
         for i in range(5):
             event_router.route_event(
@@ -690,7 +687,7 @@ class TestEventRouterLayer:
                 },
                 user_context={}
             )
-        
+
         # Rule usage should be updated
         assert sample_routing_rule.messages_routed == 5
         assert sample_routing_rule.last_used > 0
@@ -703,28 +700,28 @@ class TestEventRouterLayer:
             'symbol': 'AAPL',
             'confidence': 0.8
         }
-        
+
         criteria2 = {
             'confidence': 0.8,
             'symbol': 'AAPL',
             'pattern_type': 'BreakoutBO'
         }  # Same criteria, different order
-        
+
         user_context = {'user_id': 'test_user'}
-        
+
         key1 = event_router._generate_cache_key('tier_pattern', criteria1, user_context)
         key2 = event_router._generate_cache_key('tier_pattern', criteria2, user_context)
-        
+
         # Should generate identical keys
         assert key1 == key2
-        
+
         # Different criteria should generate different keys
         criteria3 = {
             'pattern_type': 'TrendReversal',
             'symbol': 'AAPL',
             'confidence': 0.8
         }
-        
+
         key3 = event_router._generate_cache_key('tier_pattern', criteria3, user_context)
         assert key3 != key1
 
@@ -743,16 +740,16 @@ class TestEventRouterLayer:
             priority=DeliveryPriority.MEDIUM,
             enabled=False  # Disabled
         )
-        
+
         event_router.add_routing_rule(disabled_rule)
-        
+
         # Route event that would match if enabled
         result = event_router.route_event(
             event_type='tier_pattern',
             event_data={'pattern_type': 'BreakoutBO'},
             user_context={}
         )
-        
+
         # Disabled rule should not be matched
         assert 'disabled_rule' not in result.matched_rules
         assert result.total_users == 0
@@ -777,14 +774,14 @@ class TestEventRouterLayer:
                 priority=list(DeliveryPriority)[i % 4]
             )
             event_router.add_routing_rule(rule)
-        
+
         # Test routing performance under load
         total_routing_time = 0
         successful_routes = 0
-        
+
         for i in range(100):
             start_time = time.time()
-            
+
             result = event_router.route_event(
                 event_type='tier_pattern',
                 event_data={
@@ -794,21 +791,21 @@ class TestEventRouterLayer:
                 },
                 user_context={'load_test': True}
             )
-            
+
             routing_time = (time.time() - start_time) * 1000
             total_routing_time += routing_time
-            
+
             if result and result.event_id:
                 successful_routes += 1
-            
+
             # Individual routing should meet performance target
             assert routing_time < 20.0, f"Route {i} took {routing_time:.2f}ms"
-        
+
         # Verify overall performance
         avg_routing_time = total_routing_time / 100
         assert avg_routing_time < 15.0, f"Average routing time {avg_routing_time:.2f}ms exceeds target"
         assert successful_routes >= 95, f"Only {successful_routes}/100 routes successful"
-        
+
         # Verify system remains stable under load
         stats = event_router.get_routing_stats()
         assert stats['total_events'] == 100

@@ -1,18 +1,16 @@
 # model.py
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin
-from flask import current_app
-from functools import wraps
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Dict, Any
-from datetime import date
 import json
-from werkzeug.security import generate_password_hash, check_password_hash
-import phonenumbers
-import uuid
-from sqlalchemy.dialects.postgresql import JSONB
 import logging
+import uuid
+from datetime import UTC, datetime, timedelta
+from functools import wraps
 
+import phonenumbers
+from flask import current_app
+from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import JSONB
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -84,15 +82,15 @@ class User(db.Model, UserMixin):
         """Stub for 2FA verification."""
         logger.debug(f"2FA verification stub called for user: {self.email}, code: {code}")
         pass
-    
+
     def is_admin(self):
         """Check if user has admin role (admin or super)."""
         return self.role in ['admin', 'super']
-    
+
     def is_super(self):
         """Check if user has super role (full access)."""
         return self.role == 'super'
-    
+
     def has_role(self, role_name):
         """Check if user has specific role."""
         return self.role == role_name
@@ -188,7 +186,7 @@ class VerificationCode(db.Model):
     verification_type = db.Column(db.String(50), nullable=False)  # e.g., 'password_reset', '2fa'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False)
-    
+
     user = db.relationship('User', backref=db.backref('verification_codes', lazy='dynamic'))
 
 class Subscription(db.Model):
@@ -202,28 +200,28 @@ class Subscription(db.Model):
     end_date = db.Column(db.DateTime(timezone=True), nullable=False)
     next_billing_date = db.Column(db.DateTime(timezone=True), nullable=False)
     canceled_at = db.Column(db.DateTime(timezone=True), nullable=True)
-    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-    
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now(UTC))
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.now(UTC), onupdate=datetime.now(UTC))
+
     user = db.relationship('User', backref=db.backref('subscriptions', lazy='dynamic'))
-    
+
     def is_active(self):
         """Check if subscription is active."""
-        return (self.status == 'active' and 
-                self.end_date > datetime.now(timezone.utc))
-                
+        return (self.status == 'active' and
+                self.end_date > datetime.now(UTC))
+
     def calculate_end_date(self, days=30):
         """Calculate end date based on subscription type."""
         if self.subscription_type == 'monthly':
             return self.start_date + timedelta(days=days)
         # Add more calculations for other subscription types as needed
         return self.start_date + timedelta(days=days)
-    
+
     def cancel(self):
         """Cancel subscription but maintain access until end date."""
         if self.status == 'active':
             self.status = 'canceled'
-            self.canceled_at = datetime.now(timezone.utc)
+            self.canceled_at = datetime.now(UTC)
             # No change to end_date - access remains until this date
             db.session.commit()
             return True
@@ -247,9 +245,9 @@ class BillingInfo(db.Model):
     expiry_month = db.Column(db.Integer, nullable=True)
     expiry_year = db.Column(db.Integer, nullable=True)
     is_default = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-    
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now(UTC))
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.now(UTC), onupdate=datetime.now(UTC))
+
     user = db.relationship('User', backref=db.backref('billing_info', lazy='dynamic'))
 
     def get_formatted_expiry(self):
@@ -261,7 +259,7 @@ class BillingInfo(db.Model):
                 year_display = year_str[2:4]  # Get last 2 digits
             else:
                 year_display = f"{self.expiry_year:02d}"  # Pad with zero if needed
-            
+
             return f"{self.expiry_month:02d}/{year_display}"
         return ""
 
@@ -279,14 +277,14 @@ class PaymentHistory(db.Model):
     billing_period_start = db.Column(db.DateTime(timezone=True), nullable=False)
     billing_period_end = db.Column(db.DateTime(timezone=True), nullable=False)
     error_message = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now(timezone.utc))
-    
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now(UTC))
+
     user = db.relationship('User', backref=db.backref('payment_history', lazy='dynamic'))
     subscription = db.relationship('Subscription', backref=db.backref('payments', lazy='dynamic'))
 
 class CacheEntry(db.Model):
     __tablename__ = 'cache_entries'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String(50), nullable=False)
     name = db.Column(db.String(100), nullable=False)
@@ -295,7 +293,7 @@ class CacheEntry(db.Model):
     environment = db.Column(db.String(10), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-    
+
     __table_args__ = (
         db.UniqueConstraint('type', 'name', 'key', 'environment', name='unique_cache_entry'),
     )
@@ -307,15 +305,14 @@ def with_app_context(f):
         if current_app:
             # We're already in an application context
             return f(*args, **kwargs)
-        else:
-            # We need to push an application context
-            from app import app  # Import your Flask app instance
-            with app.app_context():
-                return f(*args, **kwargs)
+        # We need to push an application context
+        from app import app  # Import your Flask app instance
+        with app.app_context():
+            return f(*args, **kwargs)
     return decorated_function
 
 # EventSession table removed - Phase 2 cleanup
-        
+
 # MarketAnalytics table removed - Phase 2 cleanup
 
 class UserFilters(db.Model):
@@ -334,20 +331,20 @@ class UserFilters(db.Model):
     )
 
     user = db.relationship('User', backref=db.backref('filters', lazy='dynamic'))
-    
+
     def __repr__(self):
         return f'<UserFilters {self.user_id}:{self.filter_name}>'
-    
+
     @classmethod
     def get_user_filter(cls, user_id: int, filter_name: str = 'default'):
         """Get a specific filter for a user."""
         return cls.query.filter_by(user_id=user_id, filter_name=filter_name).first()
-    
+
     @classmethod
     def get_all_user_filters(cls, user_id: int):
         """Get all filters for a user."""
         return cls.query.filter_by(user_id=user_id).all()
-    
+
     def to_dict(self):
         """Convert filter to dictionary."""
         return {

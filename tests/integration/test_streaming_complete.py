@@ -12,17 +12,15 @@ Tests all components of the streaming integration:
 Run this after hours to verify everything is ready for market hours.
 """
 
-import sys
-import os
-import time
 import json
+import os
+import sys
+import time
+from collections import defaultdict
+from datetime import UTC, datetime
+
 import redis
 import requests
-import asyncio
-import threading
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
-from collections import defaultdict
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -119,9 +117,8 @@ class StreamingIntegrationTest:
             if response.status_code in [200, 302]:  # 302 for login redirect
                 self.print_test("TickStockAppV2 Connection", True, f"App responding (status: {response.status_code})")
                 return True
-            else:
-                self.print_test("TickStockAppV2 Connection", False, f"Unexpected status: {response.status_code}")
-                return False
+            self.print_test("TickStockAppV2 Connection", False, f"Unexpected status: {response.status_code}")
+            return False
         except Exception as e:
             self.print_test("TickStockAppV2 Connection", False, f"Cannot reach app: {e}")
             return False
@@ -142,7 +139,7 @@ class StreamingIntegrationTest:
                     "Endpoint exists (requires authentication)"
                 )
                 return True
-            elif response.status_code == 200:
+            if response.status_code == 200:
                 data = response.json()
                 self.print_test(
                     "Streaming API Endpoint",
@@ -150,13 +147,12 @@ class StreamingIntegrationTest:
                     f"Status: {data.get('status', 'unknown')}"
                 )
                 return True
-            else:
-                self.print_test(
-                    "Streaming API Endpoint",
-                    False,
-                    f"Unexpected status: {response.status_code}"
-                )
-                return False
+            self.print_test(
+                "Streaming API Endpoint",
+                False,
+                f"Unexpected status: {response.status_code}"
+            )
+            return False
         except Exception as e:
             self.print_test("Streaming API Endpoint", False, f"Error: {e}")
             return False
@@ -169,11 +165,11 @@ class StreamingIntegrationTest:
             # 1. Start session
             start_event = {
                 "event": "session_started",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "data": {
                     "session_id": session_id,
                     "symbol_universe_key": "test_after_hours",
-                    "start_time": datetime.now(timezone.utc).isoformat(),
+                    "start_time": datetime.now(UTC).isoformat(),
                     "trigger_type": "test"
                 }
             }
@@ -184,7 +180,7 @@ class StreamingIntegrationTest:
             pattern_event = {
                 "event": "pattern_detected",
                 "session_id": session_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "detection": {
                     "pattern_type": "TestPattern",
                     "symbol": "TEST",
@@ -200,7 +196,7 @@ class StreamingIntegrationTest:
             alert_event = {
                 "alert_type": "RSI_OVERBOUGHT",
                 "symbol": "TEST",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "session_id": session_id,
                 "data": {"rsi": 75.0}
             }
@@ -210,7 +206,7 @@ class StreamingIntegrationTest:
             # 4. Send health update
             health_event = {
                 "event": "streaming_health",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "session_id": session_id,
                 "status": "healthy",
                 "active_symbols": 1,
@@ -222,10 +218,10 @@ class StreamingIntegrationTest:
             # 5. Stop session
             stop_event = {
                 "event": "session_stopped",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "data": {
                     "session_id": session_id,
-                    "stop_time": datetime.now(timezone.utc).isoformat()
+                    "stop_time": datetime.now(UTC).isoformat()
                 }
             }
             self.redis_client.publish('tickstock:streaming:session_stopped', json.dumps(stop_event))
@@ -282,12 +278,11 @@ class StreamingIntegrationTest:
         """Test streaming buffer configuration."""
         try:
             # Check if buffer configuration is in environment
-            import os
             from pathlib import Path
 
             env_file = Path('.env')
             if env_file.exists():
-                with open(env_file, 'r') as f:
+                with open(env_file) as f:
                     env_content = f.read()
 
                 buffer_configs = [
@@ -305,9 +300,8 @@ class StreamingIntegrationTest:
                         all_found = False
 
                 return all_found
-            else:
-                self.print_test("Buffer Configuration", False, ".env file not found")
-                return False
+            self.print_test("Buffer Configuration", False, ".env file not found")
+            return False
 
         except Exception as e:
             self.print_test("Buffer Configuration", False, f"Error: {e}")
@@ -316,8 +310,9 @@ class StreamingIntegrationTest:
     def test_database_tables(self) -> bool:
         """Test if streaming-related database tables exist."""
         try:
-            import psycopg2
             import os
+
+            import psycopg2
 
             # Get database connection from environment
             db_config = {
@@ -357,7 +352,7 @@ class StreamingIntegrationTest:
         """Run complete test suite."""
         self.print_header("STREAMING INTEGRATION TEST SUITE")
         print(f"Testing at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Note: Streaming service is offline after hours\n")
+        print("Note: Streaming service is offline after hours\n")
 
         # 1. Infrastructure Tests
         self.print_header("1. INFRASTRUCTURE TESTS")

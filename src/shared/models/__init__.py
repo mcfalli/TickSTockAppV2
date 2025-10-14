@@ -9,16 +9,16 @@ Sprint 106: Data Type Handlers Implementation
 """
 
 from .data_types import (
-    TickData,  # Re-export existing TickData
-    OHLCVData,
     FMVData,
+    OHLCVData,
+    TickData,  # Re-export existing TickData
+    convert_to_typed_data,
     identify_data_type,
-    convert_to_typed_data
 )
 
 __all__ = [
     'TickData',
-    'OHLCVData', 
+    'OHLCVData',
     'FMVData',
     'identify_data_type',
     'convert_to_typed_data'

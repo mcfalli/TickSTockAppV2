@@ -6,16 +6,12 @@
 # TESTING APPROACH: Use Selenium WebDriver for JavaScript execution testing
 # ==========================================================================
 
+
 import pytest
-import json
-import time
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import TimeoutException
-from unittest.mock import patch, Mock
 
 # ==========================================================================
 # JAVASCRIPT COMPONENT TESTS - CHART MANAGER
@@ -25,7 +21,7 @@ from unittest.mock import patch, Mock
 @pytest.mark.unit
 class TestChartManager:
     """Test ChartManager JavaScript class functionality."""
-    
+
     @pytest.fixture(autouse=True)
     def setup_driver(self):
         """Setup Chrome WebDriver for JavaScript testing."""
@@ -33,12 +29,12 @@ class TestChartManager:
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        
+
         self.driver = webdriver.Chrome(options=chrome_options)
         self.driver.set_window_size(1920, 1080)
         yield
         self.driver.quit()
-    
+
     def test_chart_manager_initialization(self, live_server):
         """Test ChartManager initializes correctly."""
         # Load test page with ChartManager
@@ -73,32 +69,32 @@ class TestChartManager:
         </body>
         </html>
         """
-        
+
         # Create temporary HTML file and serve it
-        import tempfile
         import os
-        
+        import tempfile
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
             f.write(test_html)
             temp_file = f.name
-        
+
         try:
             self.driver.get(f"file://{temp_file}")
-            
+
             # Wait for ChartManager to initialize
             WebDriverWait(self.driver, 5).until(
                 lambda driver: driver.execute_script("return window.chartManagerReady === true")
             )
-            
+
             # Verify initialization
             is_initialized = self.driver.execute_script(
                 "return typeof chartManager !== 'undefined' && chartManager.isInitialized"
             )
             assert is_initialized is True
-            
+
         finally:
             os.unlink(temp_file)
-    
+
     def test_chart_symbol_selection(self, live_server):
         """Test chart symbol selection triggers data loading."""
         test_html = """
@@ -146,37 +142,37 @@ class TestChartManager:
         </body>
         </html>
         """
-        
-        import tempfile
+
         import os
-        
+        import tempfile
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
             f.write(test_html)
             temp_file = f.name
-        
+
         try:
             self.driver.get(f"file://{temp_file}")
-            
+
             # Select a symbol
             select = self.driver.find_element(By.ID, "chart-symbol-select")
             select.click()
             select.find_element(By.XPATH, "//option[@value='AAPL']").click()
-            
+
             # Wait for symbol change to be processed
             WebDriverWait(self.driver, 5).until(
                 lambda driver: driver.execute_script("return window.chartDataRequested === 'AAPL'")
             )
-            
+
             # Verify data loading was triggered
             current_symbol = self.driver.execute_script("return chartManager.currentSymbol")
             load_called = self.driver.execute_script("return chartManager.loadDataCalled")
-            
+
             assert current_symbol == "AAPL"
             assert load_called is True
-            
+
         finally:
             os.unlink(temp_file)
-    
+
     def test_chart_data_formatting(self, live_server):
         """Test chart data formatting for Chart.js compatibility."""
         test_html = """
@@ -222,33 +218,33 @@ class TestChartManager:
         </body>
         </html>
         """
-        
-        import tempfile
+
         import os
-        
+        import tempfile
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
             f.write(test_html)
             temp_file = f.name
-        
+
         try:
             self.driver.get(f"file://{temp_file}")
-            
+
             # Get formatted data
             formatted_data = self.driver.execute_script("return window.formattedData")
-            
+
             assert len(formatted_data) == 1
             data_point = formatted_data[0]
-            
+
             assert isinstance(data_point['x'], (int, float))  # Timestamp as number
             assert data_point['o'] == 150.0  # Open price as float
             assert data_point['h'] == 155.5  # High price as float
             assert data_point['l'] == 149.25  # Low price as float
             assert data_point['c'] == 154.75  # Close price as float
             assert data_point['v'] == 25000000  # Volume as integer
-            
+
         finally:
             os.unlink(temp_file)
-    
+
     def test_chart_error_handling(self, live_server):
         """Test chart error handling and display."""
         test_html = """
@@ -282,41 +278,41 @@ class TestChartManager:
         </body>
         </html>
         """
-        
-        import tempfile
+
         import os
-        
+        import tempfile
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
             f.write(test_html)
             temp_file = f.name
-        
+
         try:
             self.driver.get(f"file://{temp_file}")
-            
+
             # Verify error display
             error_displayed = self.driver.execute_script("return window.errorDisplayed")
             error_message = self.driver.execute_script("return window.errorMessage")
-            
+
             assert error_displayed is True
             assert error_message == "Test error message"
-            
+
             # Check if error element exists in DOM
             error_element = self.driver.find_element(By.CLASS_NAME, "chart-error")
             assert error_element is not None
             assert "Test error message" in error_element.text
-            
+
         finally:
             os.unlink(temp_file)
 
 # ==========================================================================
-# JAVASCRIPT COMPONENT TESTS - DASHBOARD MANAGER  
+# JAVASCRIPT COMPONENT TESTS - DASHBOARD MANAGER
 # ==========================================================================
 
 @pytest.mark.javascript
 @pytest.mark.unit
 class TestDashboardManager:
     """Test DashboardManager JavaScript class functionality."""
-    
+
     @pytest.fixture(autouse=True)
     def setup_driver(self):
         """Setup Chrome WebDriver for JavaScript testing."""
@@ -324,12 +320,12 @@ class TestDashboardManager:
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        
+
         self.driver = webdriver.Chrome(options=chrome_options)
         self.driver.set_window_size(1920, 1080)
         yield
         self.driver.quit()
-    
+
     def test_dashboard_manager_initialization(self, live_server):
         """Test DashboardManager initializes correctly."""
         test_html = """
@@ -361,31 +357,31 @@ class TestDashboardManager:
         </body>
         </html>
         """
-        
-        import tempfile
+
         import os
-        
+        import tempfile
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
             f.write(test_html)
             temp_file = f.name
-        
+
         try:
             self.driver.get(f"file://{temp_file}")
-            
+
             # Wait for DashboardManager to initialize
             WebDriverWait(self.driver, 5).until(
                 lambda driver: driver.execute_script("return window.dashboardReady === true")
             )
-            
+
             # Verify initialization
             is_initialized = self.driver.execute_script(
                 "return typeof dashboardManager !== 'undefined' && dashboardManager.isInitialized"
             )
             assert is_initialized is True
-            
+
         finally:
             os.unlink(temp_file)
-    
+
     def test_watchlist_rendering(self, live_server):
         """Test watchlist rendering with mock data."""
         test_html = """
@@ -434,37 +430,37 @@ class TestDashboardManager:
         </body>
         </html>
         """
-        
-        import tempfile
+
         import os
-        
+        import tempfile
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
             f.write(test_html)
             temp_file = f.name
-        
+
         try:
             self.driver.get(f"file://{temp_file}")
-            
+
             # Wait for rendering
             WebDriverWait(self.driver, 5).until(
                 lambda driver: driver.execute_script("return window.watchlistRendered === true")
             )
-            
+
             # Verify watchlist items are rendered
             watchlist_items = self.driver.find_elements(By.CLASS_NAME, "watchlist-item")
             assert len(watchlist_items) == 2
-            
+
             # Check first item
             assert "AAPL" in watchlist_items[0].text
             assert "$175.50" in watchlist_items[0].text
-            
-            # Check second item  
+
+            # Check second item
             assert "GOOGL" in watchlist_items[1].text
             assert "$142.80" in watchlist_items[1].text
-            
+
         finally:
             os.unlink(temp_file)
-    
+
     def test_price_data_update(self, live_server):
         """Test real-time price data updates."""
         test_html = """
@@ -514,33 +510,33 @@ class TestDashboardManager:
         </body>
         </html>
         """
-        
-        import tempfile
+
         import os
-        
+        import tempfile
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
             f.write(test_html)
             temp_file = f.name
-        
+
         try:
             self.driver.get(f"file://{temp_file}")
-            
+
             # Wait for price update
             WebDriverWait(self.driver, 5).until(
                 lambda driver: driver.execute_script("return window.priceUpdated === true")
             )
-            
+
             # Verify price was updated
             updated_price = self.driver.execute_script("return window.updatedPrice")
             assert updated_price == 178.25
-            
+
             # Check if UI shows updated price
             watchlist_item = self.driver.find_element(By.CLASS_NAME, "watchlist-item")
             assert "$178.25" in watchlist_item.text
-            
+
         finally:
             os.unlink(temp_file)
-    
+
     def test_market_summary_update(self, live_server):
         """Test market summary calculations and display."""
         test_html = """
@@ -606,31 +602,31 @@ class TestDashboardManager:
         </body>
         </html>
         """
-        
-        import tempfile
+
         import os
-        
+        import tempfile
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
             f.write(test_html)
             temp_file = f.name
-        
+
         try:
             self.driver.get(f"file://{temp_file}")
-            
+
             # Wait for market summary update
             WebDriverWait(self.driver, 5).until(
                 lambda driver: driver.execute_script("return window.marketSummaryUpdated === true")
             )
-            
+
             # Verify market summary values
             total_symbols = self.driver.find_element(By.ID, "total-symbols").text
             symbols_up = self.driver.find_element(By.ID, "symbols-up").text
             symbols_down = self.driver.find_element(By.ID, "symbols-down").text
-            
+
             assert total_symbols == "3"  # Total watchlist items
             assert symbols_up == "2"     # AAPL and MSFT up
             assert symbols_down == "1"   # GOOGL down
-            
+
         finally:
             os.unlink(temp_file)
 
@@ -642,20 +638,20 @@ class TestDashboardManager:
 @pytest.mark.integration
 class TestJavaScriptIntegration:
     """Test integration between JavaScript components."""
-    
-    @pytest.fixture(autouse=True)  
+
+    @pytest.fixture(autouse=True)
     def setup_driver(self):
         """Setup Chrome WebDriver for JavaScript testing."""
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        
+
         self.driver = webdriver.Chrome(options=chrome_options)
         self.driver.set_window_size(1920, 1080)
         yield
         self.driver.quit()
-    
+
     def test_chart_dashboard_integration(self, live_server):
         """Test integration between ChartManager and DashboardManager."""
         test_html = """
@@ -700,28 +696,28 @@ class TestJavaScriptIntegration:
         </body>
         </html>
         """
-        
-        import tempfile
+
         import os
-        
+        import tempfile
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
             f.write(test_html)
             temp_file = f.name
-        
+
         try:
             self.driver.get(f"file://{temp_file}")
-            
+
             # Wait for price update processing
             WebDriverWait(self.driver, 5).until(
                 lambda driver: driver.execute_script("return window.priceUpdateProcessed === true")
             )
-            
+
             # Verify chart was updated
             chart_updated_symbol = self.driver.execute_script("return window.chartUpdatedSymbol")
             chart_updated_price = self.driver.execute_script("return window.chartUpdatedPrice")
-            
+
             assert chart_updated_symbol == "AAPL"
             assert chart_updated_price == 180.50
-            
+
         finally:
             os.unlink(temp_file)

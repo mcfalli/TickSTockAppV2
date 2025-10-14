@@ -17,11 +17,10 @@ Sprint: 23
 """
 
 import logging
-import asyncio
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from src.infrastructure.database.connection_pool import DatabaseConnectionPool
 
@@ -74,7 +73,7 @@ class PatternBenchmark:
 @dataclass
 class ComparisonTable:
     """Multi-pattern comparison table data"""
-    patterns: List[PatternBenchmark]
+    patterns: list[PatternBenchmark]
     comparison_metric: ComparisonMetric
     ranking_order: RankingOrder
     generated_at: datetime
@@ -83,7 +82,7 @@ class ComparisonTable:
 
 class ComparisonToolsService:
     """Service for pattern comparison and benchmarking"""
-    
+
     def __init__(self, db_pool: DatabaseConnectionPool):
         """Initialize comparison tools service
         
@@ -95,10 +94,10 @@ class ComparisonToolsService:
         self._benchmark_cache = {}
         self._table_cache = {}
         self._cache_timeout = 1800  # 30 minutes
-        
+
         logger.info("ComparisonToolsService initialized")
-    
-    async def compare_two_patterns(self, pattern_a: str, pattern_b: str) -> Optional[PatternComparison]:
+
+    async def compare_two_patterns(self, pattern_a: str, pattern_b: str) -> PatternComparison | None:
         """Compare two patterns statistically
         
         Args:
@@ -116,50 +115,49 @@ class ComparisonToolsService:
                 if (datetime.now() - timestamp).seconds < self._cache_timeout:
                     logger.debug(f"Returning cached comparison for {cache_key}")
                     return cached_data
-            
+
             # Fetch from database using Sprint 23 analytics function
-            async with self.db_pool.get_connection() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute("""
+            async with self.db_pool.get_connection() as conn, conn.cursor() as cursor:
+                await cursor.execute("""
                         SELECT * FROM compare_pattern_performance(%s, %s)
                     """, (pattern_a, pattern_b))
-                    
-                    result = await cursor.fetchone()
-                    
-                    if not result:
-                        logger.warning(f"No comparison data found for {pattern_a} vs {pattern_b}")
-                        return None
-                    
-                    # Calculate confidence level based on p-value
-                    p_value = float(result[6])
-                    confidence_level = (1 - p_value) * 100 if p_value <= 1.0 else 0.0
-                    
-                    comparison = PatternComparison(
-                        pattern_a_name=result[0],
-                        pattern_b_name=result[1],
-                        pattern_a_success_rate=float(result[2]),
-                        pattern_b_success_rate=float(result[3]),
-                        difference=float(result[4]),
-                        t_statistic=float(result[5]),
-                        p_value=p_value,
-                        is_significant=bool(result[7]),
-                        effect_size=float(result[8]),
-                        recommendation=result[9],
-                        confidence_level=confidence_level
-                    )
-            
+
+                result = await cursor.fetchone()
+
+                if not result:
+                    logger.warning(f"No comparison data found for {pattern_a} vs {pattern_b}")
+                    return None
+
+                # Calculate confidence level based on p-value
+                p_value = float(result[6])
+                confidence_level = (1 - p_value) * 100 if p_value <= 1.0 else 0.0
+
+                comparison = PatternComparison(
+                    pattern_a_name=result[0],
+                    pattern_b_name=result[1],
+                    pattern_a_success_rate=float(result[2]),
+                    pattern_b_success_rate=float(result[3]),
+                    difference=float(result[4]),
+                    t_statistic=float(result[5]),
+                    p_value=p_value,
+                    is_significant=bool(result[7]),
+                    effect_size=float(result[8]),
+                    recommendation=result[9],
+                    confidence_level=confidence_level
+                )
+
             # Cache the result
             self._comparison_cache[cache_key] = (comparison, datetime.now())
-            
+
             logger.info(f"Completed statistical comparison: {pattern_a} vs {pattern_b}")
             return comparison
-            
+
         except Exception as e:
             logger.error(f"Error comparing patterns {pattern_a} vs {pattern_b}: {e}")
             # Return mock data for testing
             return self._get_mock_comparison(pattern_a, pattern_b)
-    
-    async def get_pattern_benchmarks(self) -> List[PatternBenchmark]:
+
+    async def get_pattern_benchmarks(self) -> list[PatternBenchmark]:
         """Get benchmark data for all active patterns
         
         Returns:
@@ -173,22 +171,21 @@ class ComparisonToolsService:
                 if (datetime.now() - timestamp).seconds < self._cache_timeout:
                     logger.debug("Returning cached benchmark data")
                     return cached_data
-            
+
             # Get all active patterns
-            async with self.db_pool.get_connection() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute("""
+            async with self.db_pool.get_connection() as conn, conn.cursor() as cursor:
+                await cursor.execute("""
                         SELECT name FROM pattern_definitions 
                         WHERE enabled = true 
                         ORDER BY name
                     """)
-                    
-                    pattern_names = [row[0] for row in await cursor.fetchall()]
-            
+
+                pattern_names = [row[0] for row in await cursor.fetchall()]
+
             if not pattern_names:
                 logger.warning("No active patterns found for benchmarking")
                 return []
-            
+
             # Get advanced metrics for each pattern
             benchmarks = []
             for pattern_name in pattern_names:
@@ -198,9 +195,9 @@ class ComparisonToolsService:
                             await cursor.execute("""
                                 SELECT * FROM calculate_advanced_pattern_metrics(%s)
                             """, (pattern_name,))
-                            
+
                             result = await cursor.fetchone()
-                            
+
                             if result:
                                 # Get detection count separately
                                 await cursor.execute("""
@@ -208,10 +205,10 @@ class ComparisonToolsService:
                                     JOIN pattern_detections det ON pd.id = det.pattern_id
                                     WHERE pd.name = %s AND det.outcome_1d IS NOT NULL
                                 """, (pattern_name,))
-                                
+
                                 detection_count = await cursor.fetchone()
                                 total_detections = int(detection_count[0]) if detection_count else 0
-                                
+
                                 benchmark = PatternBenchmark(
                                     pattern_name=result[0],
                                     success_rate=float(result[1]),
@@ -225,32 +222,32 @@ class ComparisonToolsService:
                                     rank=0,  # Will be assigned after sorting
                                     percentile=0.0  # Will be calculated after sorting
                                 )
-                                
+
                                 benchmarks.append(benchmark)
-                                
+
                 except Exception as e:
                     logger.warning(f"Failed to get metrics for pattern {pattern_name}: {e}")
                     continue
-            
+
             # Sort by success rate and assign ranks
             benchmarks.sort(key=lambda x: x.success_rate, reverse=True)
-            
+
             for i, benchmark in enumerate(benchmarks):
                 benchmark.rank = i + 1
                 benchmark.percentile = ((len(benchmarks) - i) / len(benchmarks)) * 100
-            
+
             # Cache the results
             self._benchmark_cache[cache_key] = (benchmarks, datetime.now())
-            
+
             logger.info(f"Generated benchmarks for {len(benchmarks)} patterns")
             return benchmarks
-            
+
         except Exception as e:
             logger.error(f"Error generating pattern benchmarks: {e}")
             # Return mock data for testing
             return self._get_mock_benchmarks()
-    
-    async def get_comparison_table(self, 
+
+    async def get_comparison_table(self,
                                  metric: ComparisonMetric = ComparisonMetric.SUCCESS_RATE,
                                  order: RankingOrder = RankingOrder.DESCENDING,
                                  limit: int = 10) -> ComparisonTable:
@@ -272,43 +269,43 @@ class ComparisonToolsService:
                 if (datetime.now() - timestamp).seconds < self._cache_timeout:
                     logger.debug(f"Returning cached comparison table for {cache_key}")
                     return cached_data
-            
+
             # Get benchmark data
             all_benchmarks = await self.get_pattern_benchmarks()
-            
+
             if not all_benchmarks:
                 logger.warning("No benchmark data available for comparison table")
                 return self._get_mock_comparison_table()
-            
+
             # Sort by requested metric
             if metric == ComparisonMetric.SUCCESS_RATE:
-                sorted_patterns = sorted(all_benchmarks, key=lambda x: x.success_rate, 
+                sorted_patterns = sorted(all_benchmarks, key=lambda x: x.success_rate,
                                        reverse=(order == RankingOrder.DESCENDING))
             elif metric == ComparisonMetric.SHARPE_RATIO:
-                sorted_patterns = sorted(all_benchmarks, key=lambda x: x.sharpe_ratio, 
+                sorted_patterns = sorted(all_benchmarks, key=lambda x: x.sharpe_ratio,
                                        reverse=(order == RankingOrder.DESCENDING))
             elif metric == ComparisonMetric.MAX_DRAWDOWN:
-                sorted_patterns = sorted(all_benchmarks, key=lambda x: x.max_drawdown, 
+                sorted_patterns = sorted(all_benchmarks, key=lambda x: x.max_drawdown,
                                        reverse=(order == RankingOrder.DESCENDING))
             elif metric == ComparisonMetric.WIN_STREAK:
-                sorted_patterns = sorted(all_benchmarks, key=lambda x: x.max_win_streak, 
+                sorted_patterns = sorted(all_benchmarks, key=lambda x: x.max_win_streak,
                                        reverse=(order == RankingOrder.DESCENDING))
             elif metric == ComparisonMetric.DETECTION_COUNT:
-                sorted_patterns = sorted(all_benchmarks, key=lambda x: x.total_detections, 
+                sorted_patterns = sorted(all_benchmarks, key=lambda x: x.total_detections,
                                        reverse=(order == RankingOrder.DESCENDING))
             else:
                 sorted_patterns = all_benchmarks  # Default to current order
-            
+
             # Limit results
             limited_patterns = sorted_patterns[:limit]
-            
+
             # Update ranks based on new sorting
             for i, pattern in enumerate(limited_patterns):
                 pattern.rank = i + 1
-            
+
             # Count significant patterns
             significant_count = len([p for p in limited_patterns if p.statistical_significance])
-            
+
             comparison_table = ComparisonTable(
                 patterns=limited_patterns,
                 comparison_metric=metric,
@@ -317,18 +314,18 @@ class ComparisonToolsService:
                 total_patterns=len(all_benchmarks),
                 significant_patterns=significant_count
             )
-            
+
             # Cache the result
             self._table_cache[cache_key] = (comparison_table, datetime.now())
-            
+
             logger.info(f"Generated comparison table: {len(limited_patterns)} patterns by {metric.value}")
             return comparison_table
-            
+
         except Exception as e:
             logger.error(f"Error generating comparison table: {e}")
             return self._get_mock_comparison_table()
-    
-    async def get_top_performers(self, limit: int = 5) -> List[PatternBenchmark]:
+
+    async def get_top_performers(self, limit: int = 5) -> list[PatternBenchmark]:
         """Get top performing patterns by success rate
         
         Args:
@@ -340,15 +337,15 @@ class ComparisonToolsService:
         try:
             benchmarks = await self.get_pattern_benchmarks()
             top_performers = benchmarks[:limit]
-            
+
             logger.info(f"Retrieved top {len(top_performers)} performing patterns")
             return top_performers
-            
+
         except Exception as e:
             logger.error(f"Error getting top performers: {e}")
             return self._get_mock_benchmarks()[:limit]
-    
-    async def get_pattern_percentile(self, pattern_name: str) -> Optional[Dict[str, Any]]:
+
+    async def get_pattern_percentile(self, pattern_name: str) -> dict[str, Any] | None:
         """Get percentile ranking for a specific pattern
         
         Args:
@@ -359,13 +356,13 @@ class ComparisonToolsService:
         """
         try:
             benchmarks = await self.get_pattern_benchmarks()
-            
+
             pattern_benchmark = next((b for b in benchmarks if b.pattern_name == pattern_name), None)
-            
+
             if not pattern_benchmark:
                 logger.warning(f"Pattern {pattern_name} not found in benchmarks")
                 return None
-            
+
             percentile_info = {
                 'pattern_name': pattern_name,
                 'rank': pattern_benchmark.rank,
@@ -375,23 +372,23 @@ class ComparisonToolsService:
                 'better_than': f"{pattern_benchmark.percentile:.1f}% of patterns",
                 'statistical_significance': pattern_benchmark.statistical_significance
             }
-            
+
             logger.info(f"Generated percentile info for {pattern_name}: {pattern_benchmark.percentile:.1f}%")
             return percentile_info
-            
+
         except Exception as e:
             logger.error(f"Error getting percentile for {pattern_name}: {e}")
             return None
-    
+
     def clear_cache(self):
         """Clear all comparison tool caches"""
         self._comparison_cache.clear()
         self._benchmark_cache.clear()
         self._table_cache.clear()
         logger.info("Comparison tools cache cleared")
-    
+
     # Mock data methods for testing
-    
+
     def _get_mock_comparison(self, pattern_a: str, pattern_b: str) -> PatternComparison:
         """Generate mock comparison for testing"""
         return PatternComparison(
@@ -407,8 +404,8 @@ class ComparisonToolsService:
             recommendation=f"Pattern {pattern_a} significantly outperforms {pattern_b}",
             confidence_level=98.0
         )
-    
-    def _get_mock_benchmarks(self) -> List[PatternBenchmark]:
+
+    def _get_mock_benchmarks(self) -> list[PatternBenchmark]:
         """Generate mock benchmarks for testing"""
         return [
             PatternBenchmark("WeeklyBO", 78.5, 2.34, 1.45, 8.2, 12, 3, 156, True, 1, 100.0),
@@ -416,7 +413,7 @@ class ComparisonToolsService:
             PatternBenchmark("TrendFollower", 68.3, 1.67, 1.18, 12.1, 7, 5, 134, True, 3, 50.0),
             PatternBenchmark("MomentumBO", 59.7, 1.23, 0.95, 15.3, 6, 6, 89, True, 4, 25.0)
         ]
-    
+
     def _get_mock_comparison_table(self) -> ComparisonTable:
         """Generate mock comparison table for testing"""
         return ComparisonTable(

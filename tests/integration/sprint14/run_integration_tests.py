@@ -12,21 +12,19 @@ Usage:
     python run_integration_tests.py --report-html          # Generate HTML report
     python run_integration_tests.py --parallel             # Run tests in parallel
 """
-import sys
-import os
 import argparse
-import subprocess
 import json
+import os
+import subprocess
+import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import tempfile
 
 
 class Sprint14IntegrationTestRunner:
     """Sprint 14 Integration Test Runner with comprehensive reporting"""
-    
+
     def __init__(self):
         self.test_directory = Path(__file__).parent
         self.project_root = self.test_directory.parent.parent.parent
@@ -42,24 +40,24 @@ class Sprint14IntegrationTestRunner:
             'skipped': 0,
             'errors': []
         }
-        
+
     def setup_test_environment(self):
         """Setup test environment and dependencies"""
         print("Setting up Sprint 14 integration test environment...")
-        
+
         # Verify required services
         self._check_redis_availability()
         self._check_database_availability()
-        
+
         # Set test environment variables
         os.environ['TESTING'] = 'true'
         # Test database URL is now managed by config_manager
         pass  # Configuration handled by config_manager
         # Redis URL is now managed by config_manager
         pass  # Configuration handled by config_manager
-        
+
         print("✓ Test environment configured")
-        
+
     def _check_redis_availability(self):
         """Check if Redis is available for testing"""
         try:
@@ -71,7 +69,7 @@ class Sprint14IntegrationTestRunner:
             print(f"✗ Redis not available: {e}")
             print("  Please ensure Redis is running on localhost:6379")
             sys.exit(1)
-            
+
     def _check_database_availability(self):
         """Check if test database is available"""
         try:
@@ -84,36 +82,36 @@ class Sprint14IntegrationTestRunner:
             print(f"✗ Test database not available: {e}")
             print(f"  Please ensure test database is running: {os.environ['TEST_DATABASE_URL']}")
             sys.exit(1)
-    
-    def run_phase_tests(self, phase_num: int) -> Dict:
+
+    def run_phase_tests(self, phase_num: int) -> dict:
         """Run tests for specific phase"""
         phase_name = f"phase{phase_num}"
         test_file = self.test_directory / f"phase{phase_num}_integration_tests.py"
-        
+
         if not test_file.exists():
             return {'error': f"Phase {phase_num} test file not found"}
-        
+
         print(f"\n🚀 Running Sprint 14 Phase {phase_num} Integration Tests...")
-        
+
         start_time = time.time()
-        
+
         try:
             result = subprocess.run([
-                sys.executable, '-m', 'pytest', 
+                sys.executable, '-m', 'pytest',
                 str(test_file),
                 '-v',
                 '--tb=short',
                 '--durations=10',
                 '-x',  # Stop on first failure for integration tests
                 '--junitxml', f'phase{phase_num}_results.xml'
-            ], 
-            capture_output=True, 
+            ],
+            capture_output=True,
             text=True,
             cwd=self.project_root
             )
-            
+
             duration = time.time() - start_time
-            
+
             phase_result = {
                 'phase': phase_num,
                 'duration': duration,
@@ -123,17 +121,17 @@ class Sprint14IntegrationTestRunner:
                 'passed': result.returncode == 0,
                 'test_file': str(test_file)
             }
-            
+
             self._parse_pytest_output(phase_result)
-            
+
             if result.returncode == 0:
                 print(f"✓ Phase {phase_num} tests PASSED ({duration:.1f}s)")
             else:
                 print(f"✗ Phase {phase_num} tests FAILED ({duration:.1f}s)")
                 print(f"  Error output: {result.stderr}")
-            
+
             return phase_result
-            
+
         except Exception as e:
             return {
                 'phase': phase_num,
@@ -141,15 +139,15 @@ class Sprint14IntegrationTestRunner:
                 'error': str(e),
                 'passed': False
             }
-    
-    def run_cross_phase_tests(self) -> Dict:
+
+    def run_cross_phase_tests(self) -> dict:
         """Run cross-phase workflow tests"""
         test_file = self.test_directory / "cross_phase_workflows.py"
-        
-        print(f"\n🔄 Running Sprint 14 Cross-Phase Workflow Tests...")
-        
+
+        print("\n🔄 Running Sprint 14 Cross-Phase Workflow Tests...")
+
         start_time = time.time()
-        
+
         try:
             result = subprocess.run([
                 sys.executable, '-m', 'pytest',
@@ -163,9 +161,9 @@ class Sprint14IntegrationTestRunner:
             text=True,
             cwd=self.project_root
             )
-            
+
             duration = time.time() - start_time
-            
+
             cross_phase_result = {
                 'test_type': 'cross_phase_workflows',
                 'duration': duration,
@@ -175,16 +173,16 @@ class Sprint14IntegrationTestRunner:
                 'passed': result.returncode == 0,
                 'test_file': str(test_file)
             }
-            
+
             self._parse_pytest_output(cross_phase_result)
-            
+
             if result.returncode == 0:
                 print(f"✓ Cross-phase workflow tests PASSED ({duration:.1f}s)")
             else:
                 print(f"✗ Cross-phase workflow tests FAILED ({duration:.1f}s)")
-                
+
             return cross_phase_result
-            
+
         except Exception as e:
             return {
                 'test_type': 'cross_phase_workflows',
@@ -192,15 +190,15 @@ class Sprint14IntegrationTestRunner:
                 'error': str(e),
                 'passed': False
             }
-    
-    def run_resilience_tests(self) -> Dict:
+
+    def run_resilience_tests(self) -> dict:
         """Run Redis resilience and failure recovery tests"""
         test_file = self.test_directory / "redis_resilience_tests.py"
-        
-        print(f"\n🛡️ Running Sprint 14 Redis Resilience Tests...")
-        
+
+        print("\n🛡️ Running Sprint 14 Redis Resilience Tests...")
+
         start_time = time.time()
-        
+
         try:
             result = subprocess.run([
                 sys.executable, '-m', 'pytest',
@@ -214,9 +212,9 @@ class Sprint14IntegrationTestRunner:
             text=True,
             cwd=self.project_root
             )
-            
+
             duration = time.time() - start_time
-            
+
             resilience_result = {
                 'test_type': 'redis_resilience',
                 'duration': duration,
@@ -226,16 +224,16 @@ class Sprint14IntegrationTestRunner:
                 'passed': result.returncode == 0,
                 'test_file': str(test_file)
             }
-            
+
             self._parse_pytest_output(resilience_result)
-            
+
             if result.returncode == 0:
                 print(f"✓ Redis resilience tests PASSED ({duration:.1f}s)")
             else:
                 print(f"✗ Redis resilience tests FAILED ({duration:.1f}s)")
-                
+
             return resilience_result
-            
+
         except Exception as e:
             return {
                 'test_type': 'redis_resilience',
@@ -243,16 +241,16 @@ class Sprint14IntegrationTestRunner:
                 'error': str(e),
                 'passed': False
             }
-    
-    def run_performance_tests(self) -> Dict:
+
+    def run_performance_tests(self) -> dict:
         """Run performance integration tests with timing validation"""
         test_file = self.test_directory / "performance_integration_tests.py"
-        
-        print(f"\n⚡ Running Sprint 14 Performance Integration Tests...")
+
+        print("\n⚡ Running Sprint 14 Performance Integration Tests...")
         print("   Validating <100ms message delivery and system responsiveness...")
-        
+
         start_time = time.time()
-        
+
         try:
             result = subprocess.run([
                 sys.executable, '-m', 'pytest',
@@ -267,9 +265,9 @@ class Sprint14IntegrationTestRunner:
             text=True,
             cwd=self.project_root
             )
-            
+
             duration = time.time() - start_time
-            
+
             performance_result = {
                 'test_type': 'performance_integration',
                 'duration': duration,
@@ -279,18 +277,18 @@ class Sprint14IntegrationTestRunner:
                 'passed': result.returncode == 0,
                 'test_file': str(test_file)
             }
-            
+
             self._parse_pytest_output(performance_result)
             self._extract_performance_metrics(performance_result)
-            
+
             if result.returncode == 0:
                 print(f"✓ Performance integration tests PASSED ({duration:.1f}s)")
                 self._print_performance_summary(performance_result)
             else:
                 print(f"✗ Performance integration tests FAILED ({duration:.1f}s)")
-                
+
             return performance_result
-            
+
         except Exception as e:
             return {
                 'test_type': 'performance_integration',
@@ -298,15 +296,15 @@ class Sprint14IntegrationTestRunner:
                 'error': str(e),
                 'passed': False
             }
-    
-    def run_all_tests(self) -> Dict:
+
+    def run_all_tests(self) -> dict:
         """Run complete Sprint 14 integration test suite"""
         print("🎯 Starting Complete Sprint 14 Integration Test Suite")
         print("=" * 60)
-        
+
         self.results['start_time'] = datetime.now()
         overall_start = time.time()
-        
+
         # Run all test categories
         test_categories = [
             ('phase1', lambda: self.run_phase_tests(1)),
@@ -317,12 +315,12 @@ class Sprint14IntegrationTestRunner:
             ('redis_resilience', self.run_resilience_tests),
             ('performance_integration', self.run_performance_tests)
         ]
-        
+
         for category_name, test_runner in test_categories:
             try:
                 result = test_runner()
                 self.results['phases'][category_name] = result
-                
+
                 if result.get('passed', False):
                     self.results['passed'] += 1
                 else:
@@ -332,7 +330,7 @@ class Sprint14IntegrationTestRunner:
                         'error': result.get('error', 'Test execution failed'),
                         'stderr': result.get('stderr', '')
                     })
-                    
+
             except Exception as e:
                 self.results['failed'] += 1
                 self.results['errors'].append({
@@ -340,16 +338,16 @@ class Sprint14IntegrationTestRunner:
                     'error': str(e)
                 })
                 print(f"✗ Error running {category_name}: {e}")
-        
+
         self.results['end_time'] = datetime.now()
         self.results['total_duration'] = time.time() - overall_start
-        
+
         return self.results
-    
-    def _parse_pytest_output(self, result: Dict):
+
+    def _parse_pytest_output(self, result: dict):
         """Parse pytest output for additional metrics"""
         stdout = result.get('stdout', '')
-        
+
         # Extract test counts
         if 'failed' in stdout:
             import re
@@ -363,44 +361,44 @@ class Sprint14IntegrationTestRunner:
             if match:
                 result['passed_count'] = int(match.group(1))
                 result['failed_count'] = 0
-    
-    def _extract_performance_metrics(self, result: Dict):
+
+    def _extract_performance_metrics(self, result: dict):
         """Extract performance metrics from test output"""
         stdout = result.get('stdout', '')
-        
+
         # Look for performance results in output
         performance_metrics = {}
-        
+
         import re
-        
+
         # Extract latency measurements
         latency_pattern = r'Mean latency:\s+(\d+\.?\d*)\s*ms'
         latencies = re.findall(latency_pattern, stdout)
         if latencies:
             performance_metrics['mean_latencies'] = [float(lat) for lat in latencies]
             performance_metrics['avg_mean_latency'] = sum(performance_metrics['mean_latencies']) / len(performance_metrics['mean_latencies'])
-        
+
         # Extract retention rates
         retention_pattern = r'retention rate:\s+(\d+\.?\d*)%'
         retentions = re.findall(retention_pattern, stdout)
         if retentions:
             performance_metrics['retention_rates'] = [float(ret) for ret in retentions]
             performance_metrics['avg_retention_rate'] = sum(performance_metrics['retention_rates']) / len(performance_metrics['retention_rates'])
-        
+
         # Extract message counts
         message_pattern = r'Messages.*?(\d+)'
         messages = re.findall(message_pattern, stdout)
         if messages:
             performance_metrics['total_messages'] = sum(int(msg) for msg in messages)
-        
+
         if performance_metrics:
             result['performance_metrics'] = performance_metrics
             self.results['performance_summary'] = performance_metrics
-    
-    def _print_performance_summary(self, result: Dict):
+
+    def _print_performance_summary(self, result: dict):
         """Print performance test summary"""
         metrics = result.get('performance_metrics', {})
-        
+
         if metrics:
             print("  Performance Summary:")
             if 'avg_mean_latency' in metrics:
@@ -409,13 +407,13 @@ class Sprint14IntegrationTestRunner:
                 print(f"    Average retention: {metrics['avg_retention_rate']:.1f}%")
             if 'total_messages' in metrics:
                 print(f"    Total messages processed: {metrics['total_messages']:,}")
-    
-    def generate_report(self, output_file: Optional[str] = None) -> str:
+
+    def generate_report(self, output_file: str | None = None) -> str:
         """Generate comprehensive test report"""
         if not output_file:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_file = f"sprint14_integration_report_{timestamp}.json"
-        
+
         report_data = {
             'sprint': 'Sprint 14',
             'test_suite': 'Integration Tests',
@@ -438,36 +436,36 @@ class Sprint14IntegrationTestRunner:
             'failures': self.results.get('failures', []),
             'errors': self.results.get('errors', [])
         }
-        
+
         # Write report to file
         output_path = Path(output_file)
         with open(output_path, 'w') as f:
             json.dump(report_data, f, indent=2, default=str)
-        
+
         print(f"\n📊 Integration test report generated: {output_path}")
         return str(output_path)
-    
+
     def generate_html_report(self, json_report_path: str) -> str:
         """Generate HTML report from JSON data"""
         html_report_path = json_report_path.replace('.json', '.html')
-        
+
         # Load JSON data
-        with open(json_report_path, 'r') as f:
+        with open(json_report_path) as f:
             data = json.load(f)
-        
+
         # Generate HTML report
         html_content = self._create_html_report_template(data)
-        
+
         with open(html_report_path, 'w') as f:
             f.write(html_content)
-        
+
         print(f"📄 HTML report generated: {html_report_path}")
         return html_report_path
-    
-    def _create_html_report_template(self, data: Dict) -> str:
+
+    def _create_html_report_template(self, data: dict) -> str:
         """Create HTML report template"""
         status_color = '#28a745' if data['overall_status'] == 'PASSED' else '#dc3545'
-        
+
         html = f"""
 <!DOCTYPE html>
 <html>
@@ -508,7 +506,7 @@ class Sprint14IntegrationTestRunner:
             <p>E2E Workflow: &lt;{data['performance_targets']['end_to_end_workflow_ms']}ms</p>
         </div>
         """
-        
+
         if data.get('performance_results'):
             perf = data['performance_results']
             html += f"""
@@ -519,19 +517,19 @@ class Sprint14IntegrationTestRunner:
             {f'<p>Messages Processed: {perf["total_messages"]:,}</p>' if 'total_messages' in perf else ''}
         </div>
             """
-        
+
         html += """
     </div>
     
     <h2>Test Categories</h2>
         """
-        
+
         # Add category results
         for category, results in data.get('category_results', {}).items():
             status = 'passed' if results.get('passed', False) else 'failed'
             status_class = 'passed' if status == 'passed' else 'failed'
             duration = results.get('duration', 0)
-            
+
             html += f"""
     <div class="category">
         <div class="category-header">
@@ -539,23 +537,23 @@ class Sprint14IntegrationTestRunner:
         </div>
         <div class="category-content">
             """
-            
+
             if 'test_file' in results:
                 html += f"<p><strong>Test File:</strong> {results['test_file']}</p>"
-            
+
             if 'passed_count' in results or 'failed_count' in results:
                 passed = results.get('passed_count', 0)
                 failed = results.get('failed_count', 0)
                 html += f"<p><strong>Tests:</strong> {passed} passed, {failed} failed</p>"
-            
+
             if results.get('error'):
                 html += f"<p><strong>Error:</strong> {results['error']}</p>"
-                
+
             html += """
         </div>
     </div>
             """
-        
+
         # Add failures section if any
         if data.get('failures'):
             html += """
@@ -573,7 +571,7 @@ class Sprint14IntegrationTestRunner:
         </div>
     </div>
                 """
-        
+
         html += """
     <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #dee2e6; color: #6c757d;">
         <p>Generated by Sprint 14 Integration Test Runner</p>
@@ -581,23 +579,23 @@ class Sprint14IntegrationTestRunner:
 </body>
 </html>
         """
-        
+
         return html
-    
+
     def print_summary(self):
         """Print test execution summary"""
         print("\n" + "=" * 60)
         print("🎯 SPRINT 14 INTEGRATION TEST SUMMARY")
         print("=" * 60)
-        
+
         total_categories = len(self.results.get('phases', {}))
         passed_count = self.results.get('passed', 0)
         failed_count = self.results.get('failed', 0)
         duration = self.results.get('total_duration', 0)
-        
+
         print(f"Total Duration: {duration:.1f}s")
         print(f"Categories: {total_categories} total, {passed_count} passed, {failed_count} failed")
-        
+
         if failed_count == 0:
             print("✅ ALL INTEGRATION TESTS PASSED!")
             print("   TickStockApp ↔ TickStockPL integration validated successfully")
@@ -608,10 +606,10 @@ class Sprint14IntegrationTestRunner:
             print("❌ INTEGRATION TEST FAILURES DETECTED")
             print(f"   {failed_count} test categories failed")
             print("   Please review failures before deployment")
-            
+
             for failure in self.results.get('failures', []):
                 print(f"   - {failure['category']}: {failure['error']}")
-        
+
         # Performance summary
         perf_summary = self.results.get('performance_summary', {})
         if perf_summary:
@@ -620,11 +618,11 @@ class Sprint14IntegrationTestRunner:
                 latency = perf_summary['avg_mean_latency']
                 target_met = "✓" if latency < 100 else "✗"
                 print(f"   {target_met} Average Message Latency: {latency:.2f}ms (target: <100ms)")
-            
+
             if 'avg_retention_rate' in perf_summary:
                 retention = perf_summary['avg_retention_rate']
                 print(f"   Message Retention Rate: {retention:.1f}%")
-                
+
         print("=" * 60)
 
 
@@ -639,16 +637,16 @@ def main():
     parser.add_argument('--report-json', action='store_true', help='Generate JSON report')
     parser.add_argument('--report-html', action='store_true', help='Generate HTML report')
     parser.add_argument('--output', help='Output file for report')
-    
+
     args = parser.parse_args()
-    
+
     # Create test runner
     runner = Sprint14IntegrationTestRunner()
-    
+
     try:
         # Setup test environment
         runner.setup_test_environment()
-        
+
         # Determine what tests to run
         if args.all:
             results = runner.run_all_tests()
@@ -663,21 +661,21 @@ def main():
         else:
             print("Please specify tests to run. Use --help for options.")
             sys.exit(1)
-        
+
         # Print summary
         runner.print_summary()
-        
+
         # Generate reports if requested
         if args.report_json or args.report_html:
             report_path = runner.generate_report(args.output)
-            
+
             if args.report_html:
                 runner.generate_html_report(report_path)
-        
+
         # Exit with appropriate code
         failed_count = runner.results.get('failed', 0)
         sys.exit(0 if failed_count == 0 else 1)
-        
+
     except KeyboardInterrupt:
         print("\n❌ Test execution interrupted by user")
         sys.exit(1)

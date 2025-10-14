@@ -8,17 +8,18 @@ SPRINT 41 ENHANCEMENTS:
 - Time-of-day volume profiles
 - Configurable scenarios (normal, volatile, crash, rally)
 """
+import logging
 import random
 import time
-import pytz
-from datetime import datetime, time as dt_time
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
 
-from src.core.interfaces.data_provider import DataProvider
+import pytz
+
 from src.core.domain.market.tick import TickData
-from src.infrastructure.data_sources.synthetic.universe_loader import UniverseLoader, SymbolInfo
-import logging
+from src.core.interfaces.data_provider import DataProvider
+from src.infrastructure.data_sources.synthetic.universe_loader import UniverseLoader
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ PATTERNS = {
 class SimulatedDataProvider(DataProvider):
     """Production-grade synthetic data provider with pattern injection."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         self.config = config
         self.market_timezone = pytz.timezone(config.get('MARKET_TIMEZONE', 'US/Eastern'))
 
@@ -118,7 +119,7 @@ class SimulatedDataProvider(DataProvider):
         # Statistics
         self.ticks_generated = 0
         self.patterns_injected = 0
-        self.pattern_counts = {pattern: 0 for pattern in PATTERNS.keys()}
+        self.pattern_counts = dict.fromkeys(PATTERNS.keys(), 0)
 
         logger.info(f"SIM-DATA-PROVIDER: Initialized - Scenario: {self.scenario}, "
                    f"Pattern Injection: {self.pattern_injection} ({self.pattern_frequency*100}%)")
@@ -178,13 +179,13 @@ class SimulatedDataProvider(DataProvider):
         if eastern_now.weekday() < 5:  # Monday to Friday
             if (eastern_now.hour == 9 and eastern_now.minute >= 30) or (9 < eastern_now.hour < 16):
                 return "REGULAR"
-            elif eastern_now.hour >= 4 and eastern_now.hour < 9 or (eastern_now.hour == 9 and eastern_now.minute < 30):
+            if eastern_now.hour >= 4 and eastern_now.hour < 9 or (eastern_now.hour == 9 and eastern_now.minute < 30):
                 return "PRE"
-            elif 16 <= eastern_now.hour < 20:
+            if 16 <= eastern_now.hour < 20:
                 return "AFTER"
         return "CLOSED"
 
-    def _get_time_of_day_multiplier(self) -> Dict[str, float]:
+    def _get_time_of_day_multiplier(self) -> dict[str, float]:
         """Get volume/volatility multipliers based on time of day."""
         eastern_now = datetime.now(pytz.utc).astimezone(self.market_timezone)
         hour = eastern_now.hour
@@ -193,20 +194,19 @@ class SimulatedDataProvider(DataProvider):
         # Opening bell (9:30-10:00): High activity
         if hour == 9 and minute >= 30:
             return {'volume': 3.0, 'volatility': 2.0}
-        elif hour == 10 and minute < 30:
+        if hour == 10 and minute < 30:
             return {'volume': 2.0, 'volatility': 1.5}
 
         # Lunch lull (12:00-14:00): Low activity
-        elif 12 <= hour < 14:
+        if 12 <= hour < 14:
             return {'volume': 0.5, 'volatility': 0.7}
 
         # Closing hour (15:00-16:00): High activity
-        elif hour == 15:
+        if hour == 15:
             return {'volume': 2.5, 'volatility': 1.8}
 
         # Normal trading
-        else:
-            return {'volume': 1.0, 'volatility': 1.0}
+        return {'volume': 1.0, 'volatility': 1.0}
 
     def get_ticker_price(self, ticker: str) -> float:
         """Generate a realistic price for a ticker with trend bias and sector volatility."""
@@ -273,7 +273,7 @@ class SimulatedDataProvider(DataProvider):
             return False
         return random.random() < self.pattern_frequency
 
-    def _inject_pattern(self, ticker: str, base_price: float) -> Optional[Dict[str, Any]]:
+    def _inject_pattern(self, ticker: str, base_price: float) -> dict[str, Any] | None:
         """Inject a candlestick pattern into the tick data."""
         # Select random pattern from enabled types
         available_patterns = [p for p in self.pattern_types if p in PATTERNS]
@@ -385,7 +385,7 @@ class SimulatedDataProvider(DataProvider):
 
         return tick
 
-    def get_ticker_details(self, ticker: str) -> Dict[str, Any]:
+    def get_ticker_details(self, ticker: str) -> dict[str, Any]:
         """Get comprehensive ticker details with sector info from universe."""
         current_price = self.get_ticker_price(ticker)
 
@@ -416,7 +416,7 @@ class SimulatedDataProvider(DataProvider):
             "last_updated": datetime.now().isoformat()
         }
 
-    def get_multiple_tickers(self, tickers: list) -> Dict[str, Dict[str, Any]]:
+    def get_multiple_tickers(self, tickers: list) -> dict[str, dict[str, Any]]:
         """Get details for multiple tickers."""
         return {ticker: self.get_ticker_details(ticker) for ticker in tickers}
 
@@ -424,7 +424,7 @@ class SimulatedDataProvider(DataProvider):
         """Synthetic data is always available."""
         return True
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get provider statistics (debugging/monitoring)."""
         return {
             'ticks_generated': self.ticks_generated,

@@ -4,7 +4,9 @@ Provides Redis connection management for TickStock services
 """
 
 import redis
+
 from src.core.services.config_manager import get_config
+
 
 def get_redis_client():
     """
@@ -18,17 +20,17 @@ def get_redis_client():
     redis_port = config.get('REDIS_PORT', 6379)
     redis_db = config.get('REDIS_DB', 0)
     redis_password = config.get('REDIS_PASSWORD')
-    
+
     connection_params = {
         'host': redis_host,
         'port': redis_port,
         'db': redis_db,
         'decode_responses': True
     }
-    
+
     if redis_password:
         connection_params['password'] = redis_password
-    
+
     return redis.Redis(**connection_params)
 
 def get_redis_config():

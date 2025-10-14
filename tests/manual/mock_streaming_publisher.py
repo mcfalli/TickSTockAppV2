@@ -3,12 +3,13 @@ Mock Streaming Data Publisher for Testing
 Publishes simulated streaming events to Redis for testing the Live Streaming dashboard
 """
 
-import redis
 import json
-import time
 import random
-from datetime import datetime, timezone
+import time
+from datetime import UTC, datetime
 from uuid import uuid4
+
+import redis
 
 # Redis connection
 redis_client = redis.Redis(host='127.0.0.1', port=6379, db=0, decode_responses=True)
@@ -32,7 +33,7 @@ def publish_session_start():
         'session': {
             'session_id': SESSION_ID,
             'universe': 'market_leaders:top_500',
-            'started_at': datetime.now(timezone.utc).isoformat(),
+            'started_at': datetime.now(UTC).isoformat(),
             'symbol_count': len(SYMBOLS),
             'status': 'active'
         }
@@ -54,7 +55,7 @@ def publish_pattern_detection():
             'pattern_type': pattern,
             'confidence': confidence,
             'timeframe': '1min',
-            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'timestamp': datetime.now(UTC).isoformat(),
             'bar_data': {
                 'open': round(random.uniform(150, 200), 2),
                 'high': round(random.uniform(200, 210), 2),
@@ -84,7 +85,7 @@ def publish_pattern_batch():
                 'pattern_type': pattern,
                 'confidence': confidence,
                 'timeframe': '1min',
-                'timestamp': datetime.now(timezone.utc).isoformat()
+                'timestamp': datetime.now(UTC).isoformat()
             }
         })
 
@@ -115,7 +116,7 @@ def publish_indicator_alert():
         'alert': {
             'symbol': symbol,
             'alert_type': alert_type,
-            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'timestamp': datetime.now(UTC).isoformat(),
             'data': {
                 'value': round(random.uniform(30, 80), 2),
                 'threshold': 70 if 'OVERBOUGHT' in alert_type else 30
@@ -138,7 +139,7 @@ def publish_indicator_update():
             'indicator_type': indicator,
             'value': round(random.uniform(40, 70), 2),
             'timeframe': '1min',
-            'timestamp': datetime.now(timezone.utc).isoformat()
+            'timestamp': datetime.now(UTC).isoformat()
         }
     }
 
@@ -156,7 +157,7 @@ def publish_health_update():
                 'ticks_per_second': random.randint(100, 500)
             },
             'issues': [],
-            'timestamp': datetime.now(timezone.utc).isoformat()
+            'timestamp': datetime.now(UTC).isoformat()
         }
     }
 
@@ -169,7 +170,7 @@ def publish_session_stop():
         'type': 'streaming_session_stopped',
         'session': {
             'session_id': SESSION_ID,
-            'stopped_at': datetime.now(timezone.utc).isoformat(),
+            'stopped_at': datetime.now(UTC).isoformat(),
             'status': 'completed'
         }
     }

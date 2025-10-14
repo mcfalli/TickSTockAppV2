@@ -6,8 +6,8 @@ Provides REST API endpoints for tier-specific pattern data from actual database 
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
-from flask import Blueprint, request, jsonify, current_app
+
+from flask import Blueprint, current_app, jsonify, request
 
 from src.infrastructure.database.tickstock_db import TickStockDatabase
 
@@ -39,18 +39,18 @@ def get_daily_patterns():
         JSON response with daily patterns
     """
     start_time = time.time()
-    
+
     try:
         # Parse query parameters
         symbols = request.args.get('symbols', '').split(',') if request.args.get('symbols') else []
         symbols = [s.strip().upper() for s in symbols if s.strip()]
         confidence_min = float(request.args.get('confidence_min', 0.6))
         limit = int(request.args.get('limit', 50))
-        
+
         # Validate parameters
         confidence_min = max(0.0, min(1.0, confidence_min))
         limit = max(1, min(200, limit))
-        
+
         # Build SQL query for daily patterns
         query = """
         SELECT 
@@ -67,30 +67,30 @@ def get_daily_patterns():
         WHERE confidence >= %s 
         AND detection_timestamp > %s
         """
-        
+
         params = [confidence_min, datetime.now() - timedelta(days=7)]
-        
+
         # Add symbol filtering if specified
         if symbols:
             placeholders = ','.join(['%s'] * len(symbols))
             query += f" AND symbol IN ({placeholders})"
             params.extend(symbols)
-        
+
         # Order by confidence and limit
         query += " ORDER BY confidence DESC, detection_timestamp DESC LIMIT %s"
         params.append(limit)
-        
+
         # Execute query
         db = TickStockDatabase(current_app.config)
         results = db.execute_query(query, params)
-        
+
         # Format results for frontend
         patterns = []
         for row in results:
             pattern = {
                 'id': str(row[0]),
                 'symbol': row[1],
-                'pattern_type': row[2], 
+                'pattern_type': row[2],
                 'confidence': float(row[3]),
                 'pattern_data': row[4],
                 'detection_timestamp': row[5].isoformat() if row[5] else None,
@@ -101,9 +101,9 @@ def get_daily_patterns():
                 'priority': _calculate_priority(float(row[3]))
             }
             patterns.append(pattern)
-        
+
         response_time = (time.time() - start_time) * 1000
-        
+
         response = {
             'patterns': patterns,
             'metadata': {
@@ -114,10 +114,10 @@ def get_daily_patterns():
                 'response_time_ms': round(response_time, 2)
             }
         }
-        
+
         logger.info(f"TIER-PATTERNS-API: Returned {len(patterns)} daily patterns in {response_time:.2f}ms")
         return jsonify(response)
-        
+
     except Exception as e:
         logger.error(f"TIER-PATTERNS-API: Daily patterns error: {e}")
         return jsonify({'error': 'Failed to fetch daily patterns'}), 500
@@ -128,18 +128,18 @@ def get_intraday_patterns():
     Get intraday tier patterns from intraday_patterns table.
     """
     start_time = time.time()
-    
+
     try:
-        # Parse query parameters  
+        # Parse query parameters
         symbols = request.args.get('symbols', '').split(',') if request.args.get('symbols') else []
         symbols = [s.strip().upper() for s in symbols if s.strip()]
         confidence_min = float(request.args.get('confidence_min', 0.6))
         limit = int(request.args.get('limit', 75))
-        
+
         # Validate parameters
         confidence_min = max(0.0, min(1.0, confidence_min))
         limit = max(1, min(200, limit))
-        
+
         # Build SQL query for intraday patterns
         query = """
         SELECT 
@@ -156,23 +156,23 @@ def get_intraday_patterns():
         WHERE confidence >= %s 
         AND detection_timestamp > %s
         """
-        
+
         params = [confidence_min, datetime.now() - timedelta(hours=24)]
-        
+
         # Add symbol filtering if specified
         if symbols:
             placeholders = ','.join(['%s'] * len(symbols))
             query += f" AND symbol IN ({placeholders})"
             params.extend(symbols)
-        
+
         # Order by confidence and limit
         query += " ORDER BY confidence DESC, detection_timestamp DESC LIMIT %s"
         params.append(limit)
-        
+
         # Execute query
         db = TickStockDatabase(current_app.config)
         results = db.execute_query(query, params)
-        
+
         # Format results for frontend
         patterns = []
         for row in results:
@@ -180,7 +180,7 @@ def get_intraday_patterns():
                 'id': str(row[0]),
                 'symbol': row[1],
                 'pattern_type': row[2],
-                'confidence': float(row[3]), 
+                'confidence': float(row[3]),
                 'pattern_data': row[4],
                 'detection_timestamp': row[5].isoformat() if row[5] else None,
                 'expiration_timestamp': row[6].isoformat() if row[6] else None,
@@ -190,23 +190,23 @@ def get_intraday_patterns():
                 'priority': _calculate_priority(float(row[3]))
             }
             patterns.append(pattern)
-        
+
         response_time = (time.time() - start_time) * 1000
-        
+
         response = {
             'patterns': patterns,
             'metadata': {
                 'count': len(patterns),
-                'tier': 'intraday', 
+                'tier': 'intraday',
                 'confidence_min': confidence_min,
                 'symbols_filter': symbols if symbols else 'all',
                 'response_time_ms': round(response_time, 2)
             }
         }
-        
+
         logger.info(f"TIER-PATTERNS-API: Returned {len(patterns)} intraday patterns in {response_time:.2f}ms")
         return jsonify(response)
-        
+
     except Exception as e:
         logger.error(f"TIER-PATTERNS-API: Intraday patterns error: {e}")
         return jsonify({'error': 'Failed to fetch intraday patterns'}), 500
@@ -217,18 +217,18 @@ def get_combo_patterns():
     Get combo tier patterns from pattern_detections table with pattern definitions.
     """
     start_time = time.time()
-    
+
     try:
         # Parse query parameters
         symbols = request.args.get('symbols', '').split(',') if request.args.get('symbols') else []
         symbols = [s.strip().upper() for s in symbols if s.strip()]
         confidence_min = float(request.args.get('confidence_min', 0.6))
         limit = int(request.args.get('limit', 25))
-        
+
         # Validate parameters
         confidence_min = max(0.0, min(1.0, confidence_min))
         limit = max(1, min(200, limit))
-        
+
         # Build SQL query for combo patterns (using pattern_detections + definitions)
         query = """
         SELECT 
@@ -250,23 +250,23 @@ def get_combo_patterns():
         AND pd.detected_at > %s
         AND pdef.enabled = true
         """
-        
+
         params = [confidence_min, datetime.now() - timedelta(days=3)]
-        
+
         # Add symbol filtering if specified
         if symbols:
             placeholders = ','.join(['%s'] * len(symbols))
             query += f" AND pd.symbol IN ({placeholders})"
             params.extend(symbols)
-        
+
         # Order by confidence and limit
         query += " ORDER BY pd.confidence DESC, pd.detected_at DESC LIMIT %s"
         params.append(limit)
-        
+
         # Execute query
         db = TickStockDatabase(current_app.config)
         results = db.execute_query(query, params)
-        
+
         # Format results for frontend
         patterns = []
         for row in results:
@@ -287,23 +287,23 @@ def get_combo_patterns():
                 'priority': _calculate_priority_combo(float(row[3]), row[11])
             }
             patterns.append(pattern)
-        
+
         response_time = (time.time() - start_time) * 1000
-        
+
         response = {
             'patterns': patterns,
             'metadata': {
                 'count': len(patterns),
                 'tier': 'combo',
-                'confidence_min': confidence_min, 
+                'confidence_min': confidence_min,
                 'symbols_filter': symbols if symbols else 'all',
                 'response_time_ms': round(response_time, 2)
             }
         }
-        
+
         logger.info(f"TIER-PATTERNS-API: Returned {len(patterns)} combo patterns in {response_time:.2f}ms")
         return jsonify(response)
-        
+
     except Exception as e:
         logger.error(f"TIER-PATTERNS-API: Combo patterns error: {e}")
         return jsonify({'error': 'Failed to fetch combo patterns'}), 500
@@ -312,23 +312,22 @@ def _calculate_priority(confidence: float) -> str:
     """Calculate priority based on confidence level."""
     if confidence >= 0.9:
         return 'CRITICAL'
-    elif confidence >= 0.8:
+    if confidence >= 0.8:
         return 'HIGH'
-    elif confidence >= 0.7:
+    if confidence >= 0.7:
         return 'MEDIUM'
-    else:
-        return 'LOW'
+    return 'LOW'
 
 def _calculate_priority_combo(confidence: float, risk_level: str) -> str:
     """Calculate priority for combo patterns based on confidence and risk."""
     base_priority = _calculate_priority(confidence)
-    
+
     # Adjust based on risk level
     if risk_level == 'high' and confidence >= 0.8:
         return 'CRITICAL'
-    elif risk_level == 'low' and base_priority == 'CRITICAL':
+    if risk_level == 'low' and base_priority == 'CRITICAL':
         return 'HIGH'
-    
+
     return base_priority
 
 @tier_patterns_bp.route('/health', methods=['GET'])
@@ -338,7 +337,7 @@ def health_check():
         # Simple database connectivity test
         db = TickStockDatabase(current_app.config)
         result = db.execute_query("SELECT 1", [])
-        
+
         return jsonify({
             'status': 'healthy',
             'database': 'connected',
@@ -347,7 +346,7 @@ def health_check():
     except Exception as e:
         logger.error(f"TIER-PATTERNS-API: Health check failed: {e}")
         return jsonify({
-            'status': 'unhealthy', 
+            'status': 'unhealthy',
             'error': str(e),
             'timestamp': datetime.now().isoformat()
         }), 500

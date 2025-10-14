@@ -5,13 +5,15 @@ Sprint 31 Implementation
 """
 
 import json
-import redis
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
+
+import redis
+from flask import flash, jsonify, render_template, request
+from flask_login import current_user, login_required
+
 from src.core.services.config_manager import get_config
-from flask import render_template, request, jsonify, flash, redirect, url_for
-from flask_login import login_required, current_user
+
 # Note: CSRF exemption handled differently in newer Flask-WTF
 from src.utils.auth_decorators import admin_required
 

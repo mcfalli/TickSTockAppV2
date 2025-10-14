@@ -6,17 +6,18 @@ Provides connection pooling, failover, health monitoring, and performance optimi
 specifically designed for real-time market data streaming with <100ms targets.
 """
 
-import logging
-import time
-import threading
 import json
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, asdict
+import logging
+import threading
+import time
 from contextlib import contextmanager
+from dataclasses import asdict, dataclass
+from typing import Any
+
 import redis
 import redis.connection
-from redis.retry import Retry
 from redis.backoff import ExponentialBackoff
+from redis.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -26,18 +27,18 @@ class RedisConnectionConfig:
     host: str = 'localhost'
     port: int = 6379
     db: int = 0
-    password: Optional[str] = None
+    password: str | None = None
     max_connections: int = 20
     max_connections_per_pool: int = 50
     socket_timeout: float = 5.0
     socket_connect_timeout: float = 5.0
     socket_keepalive: bool = True
-    socket_keepalive_options: Dict[str, int] = None
+    socket_keepalive_options: dict[str, int] = None
     health_check_interval: int = 30
     retry_on_timeout: bool = True
-    retry_on_error: List = None
+    retry_on_error: list = None
     decode_responses: bool = True
-    
+
     def __post_init__(self):
         """Set default values for complex fields."""
         if self.socket_keepalive_options is None:
@@ -56,7 +57,7 @@ class ConnectionPoolStats:
     total_commands: int = 0
     failed_commands: int = 0
     avg_response_time_ms: float = 0.0
-    last_health_check: Optional[float] = None
+    last_health_check: float | None = None
     health_status: str = 'unknown'
     error_count: int = 0
     reconnection_count: int = 0
@@ -72,72 +73,72 @@ class RedisConnectionManager:
     - Circuit breaker pattern for resilience
     - Performance tracking for <100ms targets
     """
-    
+
     def __init__(self, config: RedisConnectionConfig):
         """Initialize Redis connection manager."""
         self.config = config
-        self._primary_pool: Optional[redis.ConnectionPool] = None
-        self._client: Optional[redis.Redis] = None
+        self._primary_pool: redis.ConnectionPool | None = None
+        self._client: redis.Redis | None = None
         self._pool_stats = ConnectionPoolStats(pool_id="primary")
-        
+
         # Health monitoring
-        self._health_check_thread: Optional[threading.Thread] = None
+        self._health_check_thread: threading.Thread | None = None
         self._health_check_running = False
         self._last_ping_time = 0
         self._consecutive_failures = 0
-        
+
         # Performance tracking
-        self._command_times: List[float] = []
+        self._command_times: list[float] = []
         self._max_tracked_commands = 1000
-        
+
         # Circuit breaker
         self._circuit_breaker_open = False
         self._circuit_breaker_failures = 0
         self._circuit_breaker_threshold = 5
         self._circuit_breaker_reset_timeout = 30
         self._circuit_breaker_last_failure = 0
-        
+
         # Thread safety
         self._lock = threading.RLock()
-        
-        logger.info("RedisConnectionManager initialized with config: %s", 
+
+        logger.info("RedisConnectionManager initialized with config: %s",
                    {k: v for k, v in asdict(config).items() if k != 'password'})
-    
+
     def initialize(self) -> bool:
         """Initialize Redis connection and start health monitoring."""
         try:
             with self._lock:
                 logger.info("REDIS-MANAGER: Initializing connection pool...")
-                
+
                 # Create connection pool
                 self._primary_pool = self._create_connection_pool()
-                
+
                 # Create Redis client
                 self._client = redis.Redis(
                     connection_pool=self._primary_pool,
                     decode_responses=self.config.decode_responses
                 )
-                
+
                 # Test connection
                 if not self._test_connection():
                     logger.error("REDIS-MANAGER: Initial connection test failed")
                     return False
-                
+
                 # Start health monitoring
                 self._start_health_monitoring()
-                
+
                 # Update stats
                 self._pool_stats.max_connections = self.config.max_connections
                 self._pool_stats.health_status = 'healthy'
                 self._pool_stats.last_health_check = time.time()
-                
+
                 logger.info("REDIS-MANAGER: Successfully initialized")
                 return True
-                
+
         except Exception as e:
             logger.error("REDIS-MANAGER: Initialization failed: %s", e)
             return False
-    
+
     def _create_connection_pool(self) -> redis.ConnectionPool:
         """Create optimized Redis connection pool."""
         try:
@@ -155,7 +156,7 @@ class RedisConnectionManager:
                 'retry_on_error': self.config.retry_on_error,
                 'retry': Retry(ExponentialBackoff(), retries=3)
             }
-            
+
             # Conditionally add socket_keepalive_options only if not empty
             # This might be causing issues on Windows
             if self.config.socket_keepalive_options and len(self.config.socket_keepalive_options) > 0:
@@ -163,51 +164,51 @@ class RedisConnectionManager:
                 pool_kwargs['socket_keepalive_options'] = self.config.socket_keepalive_options
             else:
                 logger.debug("REDIS-MANAGER: Skipping socket_keepalive_options (empty or None)")
-            
+
             # Debug log all parameter types
             logger.debug("REDIS-MANAGER: Connection pool parameters:")
             for key, value in pool_kwargs.items():
                 logger.debug("  %s: %s (type: %s)", key, value, type(value))
-            
+
             return redis.ConnectionPool(**pool_kwargs)
-            
+
         except Exception as e:
             logger.error("REDIS-MANAGER: Failed to create connection pool: %s", e)
             # Log detailed config for debugging
             logger.error("REDIS-MANAGER: socket_keepalive_options: %s", self.config.socket_keepalive_options)
-            logger.error("REDIS-MANAGER: health_check_interval: %s (type: %s)", 
+            logger.error("REDIS-MANAGER: health_check_interval: %s (type: %s)",
                         self.config.health_check_interval, type(self.config.health_check_interval))
             raise
-    
+
     def _test_connection(self) -> bool:
         """Test Redis connection with timeout."""
         try:
             start_time = time.time()
             result = self._client.ping()
             response_time = (time.time() - start_time) * 1000
-            
+
             # Only log ping at TRACE level to reduce noise
             if logger.isEnabledFor(logging.DEBUG - 5):  # TRACE level
                 logger.log(logging.DEBUG - 5, "REDIS-MANAGER: Ping successful - %s ms", response_time)
-            
+
             # Track performance
             self._record_command_time(response_time)
-            
+
             return bool(result)  # Ensure boolean return
-            
+
         except Exception as e:
             # Add more detailed error information
             logger.error("REDIS-MANAGER: Connection test failed: %s", e)
-            logger.error("REDIS-MANAGER: Config - host:%s, port:%s, db:%s", 
+            logger.error("REDIS-MANAGER: Config - host:%s, port:%s, db:%s",
                         self.config.host, type(self.config.port), type(self.config.db))
             self._consecutive_failures += 1
             return False
-    
+
     def _start_health_monitoring(self):
         """Start background health monitoring thread."""
         if self._health_check_running:
             return
-            
+
         self._health_check_running = True
         self._health_check_thread = threading.Thread(
             target=self._health_check_loop,
@@ -216,7 +217,7 @@ class RedisConnectionManager:
         )
         self._health_check_thread.start()
         logger.info("REDIS-MANAGER: Health monitoring started")
-    
+
     def _health_check_loop(self):
         """Background health check loop."""
         while self._health_check_running:
@@ -225,30 +226,30 @@ class RedisConnectionManager:
                 if self._test_connection():
                     self._pool_stats.health_status = 'healthy'
                     self._consecutive_failures = 0
-                    
+
                     # Reset circuit breaker if healthy
                     if self._circuit_breaker_open:
                         self._try_reset_circuit_breaker()
                 else:
                     self._consecutive_failures += 1
-                    
+
                     if self._consecutive_failures >= 3:
                         self._pool_stats.health_status = 'degraded'
                         self._open_circuit_breaker()
                     elif self._consecutive_failures >= 5:
                         self._pool_stats.health_status = 'error'
-                
+
                 # Update pool statistics
                 self._update_pool_stats()
                 self._pool_stats.last_health_check = time.time()
-                
+
                 # Sleep until next check
                 time.sleep(self.config.health_check_interval)
-                
+
             except Exception as e:
                 logger.error("REDIS-MANAGER: Health check error: %s", e)
                 time.sleep(5)  # Shorter sleep on error
-    
+
     def _update_pool_stats(self):
         """Update connection pool statistics."""
         try:
@@ -268,110 +269,110 @@ class RedisConnectionManager:
             # Only log at TRACE level to reduce noise
             if logger.isEnabledFor(logging.DEBUG - 5):  # TRACE level
                 logger.log(logging.DEBUG - 5, "REDIS-MANAGER: Error updating pool stats: %s", e)
-    
+
     def _record_command_time(self, response_time_ms: float):
         """Record command response time for performance tracking."""
         with self._lock:
             self._command_times.append(response_time_ms)
-            
+
             # Keep only recent command times
             if len(self._command_times) > self._max_tracked_commands:
                 self._command_times = self._command_times[-self._max_tracked_commands // 2:]
-            
+
             self._pool_stats.total_commands += 1
-            
+
             # Log slow commands
             if response_time_ms > 100:  # >100ms is concerning for real-time
                 logger.warning("REDIS-MANAGER: Slow command - %s ms", response_time_ms)
-    
+
     def _open_circuit_breaker(self):
         """Open circuit breaker to prevent cascade failures."""
         if not self._circuit_breaker_open:
             self._circuit_breaker_open = True
             self._circuit_breaker_last_failure = time.time()
             logger.warning("REDIS-MANAGER: Circuit breaker opened due to consecutive failures")
-    
+
     def _try_reset_circuit_breaker(self):
         """Try to reset circuit breaker if enough time has passed."""
-        if (self._circuit_breaker_open and 
+        if (self._circuit_breaker_open and
             time.time() - self._circuit_breaker_last_failure > self._circuit_breaker_reset_timeout):
-            
+
             self._circuit_breaker_open = False
             self._circuit_breaker_failures = 0
             logger.info("REDIS-MANAGER: Circuit breaker reset - resuming normal operations")
-    
+
     @contextmanager
     def get_connection(self):
         """Get Redis connection with automatic error handling."""
         if self._circuit_breaker_open:
             raise redis.ConnectionError("Redis circuit breaker is open")
-        
+
         connection = None
         start_time = time.time()
-        
+
         try:
             connection = self._client
             yield connection
-            
+
             # Record successful command
             response_time = (time.time() - start_time) * 1000
             self._record_command_time(response_time)
-            
+
         except Exception as e:
             self._pool_stats.failed_commands += 1
             self._circuit_breaker_failures += 1
-            
+
             if self._circuit_breaker_failures >= self._circuit_breaker_threshold:
                 self._open_circuit_breaker()
-            
+
             logger.error("REDIS-MANAGER: Command failed: %s", e)
             raise
-    
+
     def execute_command(self, command: str, *args, **kwargs) -> Any:
         """Execute Redis command with performance tracking."""
         start_time = time.time()
-        
+
         try:
             with self.get_connection() as client:
                 result = getattr(client, command)(*args, **kwargs)
-                
+
                 response_time = (time.time() - start_time) * 1000
                 self._record_command_time(response_time)
-                
+
                 return result
-                
+
         except Exception as e:
             logger.error("REDIS-MANAGER: Command '%s' failed: %s", command, e)
             raise
-    
+
     def publish_message(self, channel: str, message: Any) -> bool:
         """Publish message with performance tracking."""
         try:
             if isinstance(message, dict):
                 message = json.dumps(message)
-            
+
             result = self.execute_command('publish', channel, message)
             return result > 0
-            
+
         except Exception as e:
             logger.error("REDIS-MANAGER: Publish failed for channel '%s': %s", channel, e)
             return False
-    
-    def create_subscriber(self, channels: List[str]) -> redis.client.PubSub:
+
+    def create_subscriber(self, channels: list[str]) -> redis.client.PubSub:
         """Create PubSub subscriber with optimal configuration."""
         try:
             with self.get_connection() as client:
                 pubsub = client.pubsub()
                 pubsub.subscribe(channels)
-                
+
                 logger.info("REDIS-MANAGER: Created subscriber for %s channels", len(channels))
                 return pubsub
-                
+
         except Exception as e:
             logger.error("REDIS-MANAGER: Failed to create subscriber: %s", e)
             raise
-    
-    def get_health_status(self) -> Dict[str, Any]:
+
+    def get_health_status(self) -> dict[str, Any]:
         """Get comprehensive health status."""
         return {
             'status': self._pool_stats.health_status,
@@ -394,30 +395,30 @@ class RedisConnectionManager:
             },
             'last_check': self._pool_stats.last_health_check
         }
-    
+
     def _calculate_success_rate(self) -> float:
         """Calculate command success rate."""
         total = self._pool_stats.total_commands
         if total == 0:
             return 1.0
-        
+
         failed = self._pool_stats.failed_commands
         return (total - failed) / total
-    
+
     def _calculate_commands_per_second(self) -> float:
         """Calculate approximate commands per second."""
         if not self._command_times or len(self._command_times) < 2:
             return 0.0
-        
+
         # Simple approximation based on recent command volume
         recent_commands = min(100, len(self._command_times))
         return recent_commands / 60.0  # Rough estimate
-    
-    def get_performance_metrics(self) -> Dict[str, Any]:
+
+    def get_performance_metrics(self) -> dict[str, Any]:
         """Get detailed performance metrics."""
         with self._lock:
             command_times = self._command_times.copy()
-        
+
         if not command_times:
             return {
                 'total_commands': 0,
@@ -427,10 +428,10 @@ class RedisConnectionManager:
                 'p99_response_time_ms': 0,
                 'slow_commands': 0
             }
-        
+
         command_times.sort()
         count = len(command_times)
-        
+
         return {
             'total_commands': self._pool_stats.total_commands,
             'recent_sample_size': count,
@@ -443,28 +444,28 @@ class RedisConnectionManager:
             'slow_commands': len([t for t in command_times if t > 100]),
             'very_slow_commands': len([t for t in command_times if t > 500])
         }
-    
+
     def optimize_for_realtime(self):
         """Apply real-time optimization settings."""
         try:
             logger.info("REDIS-MANAGER: Applying real-time optimizations...")
-            
+
             # Reduce timeouts for faster failure detection
             self.config.socket_timeout = 2.0
             self.config.socket_connect_timeout = 1.0
-            
+
             # Enable keepalive for stable connections (but disable TCP options on Windows)
             self.config.socket_keepalive = True
             # Disable socket keepalive options on Windows - they may cause issues
             self.config.socket_keepalive_options = {}
-            
+
             # Increase connection pool for high throughput
             if self.config.max_connections < 50:
                 self.config.max_connections = 50
-            
+
             # More aggressive health checking
             self.config.health_check_interval = 60  # Check once per minute instead of every 15 seconds
-            
+
             # Recreate pool with new settings
             if self._primary_pool:
                 self._primary_pool.disconnect()
@@ -473,67 +474,65 @@ class RedisConnectionManager:
                     connection_pool=self._primary_pool,
                     decode_responses=self.config.decode_responses
                 )
-            
+
             logger.info("REDIS-MANAGER: Real-time optimizations applied")
-            
+
         except Exception as e:
             logger.error("REDIS-MANAGER: Failed to apply real-time optimizations: %s", e)
-    
+
     def shutdown(self):
         """Gracefully shutdown connection manager."""
         logger.info("REDIS-MANAGER: Shutting down...")
-        
+
         # Stop health monitoring
         self._health_check_running = False
         if self._health_check_thread and self._health_check_thread.is_alive():
             self._health_check_thread.join(timeout=5)
-        
+
         # Close connections
         if self._primary_pool:
             try:
                 self._primary_pool.disconnect()
             except Exception as e:
                 logger.error("REDIS-MANAGER: Error disconnecting pool: %s", e)
-        
+
         self._client = None
         self._primary_pool = None
-        
+
         logger.info("REDIS-MANAGER: Shutdown complete")
 
 # Global connection manager instance
-_global_redis_manager: Optional[RedisConnectionManager] = None
+_global_redis_manager: RedisConnectionManager | None = None
 _manager_lock = threading.Lock()
 
-def get_redis_manager() -> Optional[RedisConnectionManager]:
+def get_redis_manager() -> RedisConnectionManager | None:
     """Get global Redis connection manager instance."""
     return _global_redis_manager
 
 def initialize_global_redis_manager(config: RedisConnectionConfig) -> bool:
     """Initialize global Redis connection manager."""
     global _global_redis_manager
-    
+
     with _manager_lock:
         if _global_redis_manager is None:
             _global_redis_manager = RedisConnectionManager(config)
             success = _global_redis_manager.initialize()
-            
+
             if success:
                 # Apply real-time optimizations for TickStockPL integration
                 _global_redis_manager.optimize_for_realtime()
                 logger.info("Global Redis connection manager initialized successfully")
                 return True
-            else:
-                _global_redis_manager = None
-                logger.error("Failed to initialize global Redis connection manager")
-                return False
-        else:
-            logger.info("Global Redis connection manager already initialized")
-            return True
+            _global_redis_manager = None
+            logger.error("Failed to initialize global Redis connection manager")
+            return False
+        logger.info("Global Redis connection manager already initialized")
+        return True
 
 def shutdown_global_redis_manager():
     """Shutdown global Redis connection manager."""
     global _global_redis_manager
-    
+
     with _manager_lock:
         if _global_redis_manager:
             _global_redis_manager.shutdown()

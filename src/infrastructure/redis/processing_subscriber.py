@@ -5,11 +5,13 @@ Subscribes to TickStockPL processing channels and forwards events to the admin d
 """
 
 import json
-import redis
-import threading
 import logging
+import threading
+from typing import Any
+
+import redis
 import requests
-from typing import Dict, Any, Optional
+
 from src.core.services.config_manager import get_config
 
 logger = logging.getLogger(__name__)
@@ -127,7 +129,7 @@ class ProcessingEventSubscriber:
             except Exception as e:
                 logger.error(f"Error in subscriber loop: {e}")
 
-    def _handle_message(self, message: Dict[str, Any]):
+    def _handle_message(self, message: dict[str, Any]):
         """Handle incoming Redis message"""
         try:
             channel = message['channel']
@@ -188,7 +190,7 @@ class ProcessingEventSubscriber:
         except Exception as e:
             logger.error(f"Error handling message: {e}")
 
-    def _handle_processing_status(self, event: Dict[str, Any]):
+    def _handle_processing_status(self, event: dict[str, Any]):
         """Handle processing status events"""
         event_type = event.get('event')
 
@@ -196,13 +198,13 @@ class ProcessingEventSubscriber:
             self._forward_event_to_app(event)
             logger.info(f"Processing event: {event_type}")
 
-    def _handle_schedule_update(self, event: Dict[str, Any]):
+    def _handle_schedule_update(self, event: dict[str, Any]):
         """Handle schedule update events"""
         if event.get('event') == 'schedule_updated':
             self._forward_event_to_app(event)
             logger.info("Schedule updated")
 
-    def _handle_monitoring_event(self, event: Dict[str, Any]):
+    def _handle_monitoring_event(self, event: dict[str, Any]):
         """Handle monitoring events that relate to processing"""
         event_type = event.get('event')
 
@@ -213,7 +215,7 @@ class ProcessingEventSubscriber:
                 self._forward_event_to_app(event)
                 logger.debug(f"Job progress: {payload.get('phase')} - {payload.get('percentage')}%")
 
-    def _handle_error_event(self, event: Dict[str, Any]):
+    def _handle_error_event(self, event: dict[str, Any]):
         """Handle error events related to processing"""
         payload = event.get('payload', {})
         component = payload.get('component', '')
@@ -223,7 +225,7 @@ class ProcessingEventSubscriber:
             logger.error(f"Processing error: {payload.get('message')}")
             # Could forward to app for display in UI
 
-    def _handle_import_status(self, event: Dict[str, Any]):
+    def _handle_import_status(self, event: dict[str, Any]):
         """Handle Phase 2 data import status events"""
         event_type = event.get('event')
 
@@ -231,7 +233,7 @@ class ProcessingEventSubscriber:
             self._forward_event_to_app(event)
             logger.info(f"Import event: {event_type}")
 
-    def _handle_cache_sync_triggered(self, event: Dict[str, Any]):
+    def _handle_cache_sync_triggered(self, event: dict[str, Any]):
         """Handle cache sync triggered event"""
         payload = event.get('payload', {})
         job_id = payload.get('job_id')
@@ -249,7 +251,7 @@ class ProcessingEventSubscriber:
         }
         self._forward_event_to_app(cache_event)
 
-    def _handle_cache_sync_complete(self, event: Dict[str, Any]):
+    def _handle_cache_sync_complete(self, event: dict[str, Any]):
         """Handle cache sync completion event"""
         payload = event.get('payload', {})
         job_id = payload.get('job_id')
@@ -269,7 +271,7 @@ class ProcessingEventSubscriber:
         }
         self._forward_event_to_app(cache_event)
 
-    def _handle_universe_updated(self, event: Dict[str, Any]):
+    def _handle_universe_updated(self, event: dict[str, Any]):
         """Handle universe update events"""
         payload = event.get('payload', {})
         universe = payload.get('universe')
@@ -280,7 +282,7 @@ class ProcessingEventSubscriber:
         # Could trigger cache refresh in the app
         # For now, just log it
 
-    def _handle_ipo_assignment(self, event: Dict[str, Any]):
+    def _handle_ipo_assignment(self, event: dict[str, Any]):
         """Handle IPO assignment events"""
         payload = event.get('payload', {})
         symbol = payload.get('symbol')
@@ -290,14 +292,14 @@ class ProcessingEventSubscriber:
 
         # Could notify admin dashboard about new IPOs
 
-    def _handle_delisting_cleanup(self, event: Dict[str, Any]):
+    def _handle_delisting_cleanup(self, event: dict[str, Any]):
         """Handle delisting cleanup events"""
         payload = event.get('payload', {})
         removed_count = payload.get('removed_count', 0)
 
         logger.info(f"Delisted stocks cleaned up: {removed_count} removed")
 
-    def _handle_indicator_processing_started(self, event: Dict[str, Any]):
+    def _handle_indicator_processing_started(self, event: dict[str, Any]):
         """Handle indicator processing started event"""
         payload = event.get('payload', {})
         run_id = payload.get('run_id')
@@ -316,7 +318,7 @@ class ProcessingEventSubscriber:
         }
         self._forward_event_to_app(indicator_event)
 
-    def _handle_indicator_progress_update(self, event: Dict[str, Any]):
+    def _handle_indicator_progress_update(self, event: dict[str, Any]):
         """Handle indicator processing progress update"""
         payload = event.get('payload', {})
         run_id = payload.get('run_id')
@@ -338,7 +340,7 @@ class ProcessingEventSubscriber:
         }
         self._forward_event_to_app(indicator_event)
 
-    def _handle_indicator_processing_completed(self, event: Dict[str, Any]):
+    def _handle_indicator_processing_completed(self, event: dict[str, Any]):
         """Handle indicator processing completed event"""
         payload = event.get('payload', {})
         run_id = payload.get('run_id')
@@ -363,7 +365,7 @@ class ProcessingEventSubscriber:
         }
         self._forward_event_to_app(indicator_event)
 
-    def _handle_indicator_calculated(self, event: Dict[str, Any]):
+    def _handle_indicator_calculated(self, event: dict[str, Any]):
         """Handle individual indicator calculated event (optional real-time updates)"""
         payload = event.get('payload', {})
         symbol = payload.get('symbol', '')
@@ -377,7 +379,7 @@ class ProcessingEventSubscriber:
         # In the future, could forward to real-time displays showing specific symbols
         # self._forward_event_to_app(indicator_event)
 
-    def _forward_event_to_app(self, event: Dict[str, Any]):
+    def _forward_event_to_app(self, event: dict[str, Any]):
         """Forward event to Flask application"""
         try:
             # Post to internal endpoint

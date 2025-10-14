@@ -2,13 +2,13 @@
 Enhanced Polygon API diagnostic tool to verify API key and connection.
 This tool uses the application's ConfigManager for consistent configuration handling.
 """
-import os
-import sys
-import requests
-import json
-import time
 import argparse
+import json
+import sys
+import time
 from datetime import datetime, timedelta
+
+import requests
 
 # Import the application's configuration manager
 from src.core.services.config_manager import ConfigManager
@@ -38,7 +38,7 @@ is_valid = config_manager.validate_config()
 api_key = config.get('POLYGON_API_KEY')
 
 print(f"\n{'=' * 50}")
-print(f"POLYGON API CONNECTION TEST")
+print("POLYGON API CONNECTION TEST")
 print(f"{'=' * 50}")
 print(f"Date/Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print(f"API Key: {'*****' + api_key[-4:] if api_key and len(api_key) > 4 else 'Not found or invalid'}")
@@ -80,10 +80,10 @@ for endpoint, description, extra_params in endpoints:
     print(f"\n{'-' * 50}")
     print(f"Testing: {description}")
     print(f"Endpoint: {endpoint}")
-    
+
     # Add API key to params
     params = {'apiKey': api_key, **extra_params}
-    
+
     # Use retry decorator
     @retry_with_backoff(max_retries=2, initial_backoff=1)
     def test_endpoint():
@@ -91,20 +91,20 @@ for endpoint, description, extra_params in endpoints:
         response = requests.get(f"{base_url}{endpoint}", params=params, timeout=10)
         elapsed = time.time() - start_time
         results["response_times"].append(elapsed)
-        
+
         print(f"Status code: {response.status_code}")
         print(f"Response time: {elapsed:.3f} seconds")
-        
+
         if VERBOSE:
             print(f"Rate limit remaining: {response.headers.get('X-Ratelimit-Remaining', 'N/A')}")
             print(f"Rate limit reset: {response.headers.get('X-Ratelimit-Reset', 'N/A')}")
-        
+
         response_data = response.json()
-        
+
         if response.status_code == 200:
             results["success"] += 1
-            print(f"✅ SUCCESS: API call completed successfully")
-            
+            print("✅ SUCCESS: API call completed successfully")
+
             # Print sample of the data
             if VERBOSE:
                 if 'results' in response_data and isinstance(response_data['results'], list):
@@ -119,9 +119,9 @@ for endpoint, description, extra_params in endpoints:
             print(f"❌ ERROR: {response_data.get('error', 'Unknown error')}")
             if VERBOSE:
                 print(f"Full response: {json.dumps(response_data, indent=2)}")
-        
+
         return response
-    
+
     try:
         response = test_endpoint()
     except Exception as e:
@@ -133,7 +133,7 @@ for endpoint, description, extra_params in endpoints:
 
 # Print summary
 print(f"\n{'-' * 50}")
-print(f"TEST SUMMARY")
+print("TEST SUMMARY")
 print(f"{'-' * 50}")
 print(f"Total tests: {results['total']}")
 print(f"Successful: {results['success']}")
@@ -145,7 +145,7 @@ if results['response_times']:
 
 # Check subscription status if possible
 print(f"\n{'-' * 50}")
-print(f"SUBSCRIPTION STATUS CHECK")
+print("SUBSCRIPTION STATUS CHECK")
 try:
     url = f"{base_url}/v1/reference/status"
     params = {'apiKey': api_key}
@@ -156,7 +156,7 @@ try:
             print(f"Full status: {json.dumps(status_data, indent=2)}")
         else:
             print(f"Status: {status_data.get('status')}")
-        
+
         if 'sip' in status_data:
             print(f"Market status: {status_data['sip'].get('updated')}")
     else:
@@ -166,20 +166,20 @@ except Exception as e:
 
 # Check connection to main application components
 print(f"\n{'-' * 50}")
-print(f"POLYGON PROVIDER CHECK")
+print("POLYGON PROVIDER CHECK")
 try:
     from src.infrastructure.data_sources.polygon.provider import PolygonDataProvider
-    
+
     provider = PolygonDataProvider(config)
-    print(f"Testing PolygonDataProvider.is_available()...")
-    
+    print("Testing PolygonDataProvider.is_available()...")
+
     start_time = time.time()
     available = provider.is_available()
     elapsed = time.time() - start_time
-    
+
     if available:
         print(f"✅ Provider available (took {elapsed:.3f}s)")
-        
+
         # Test a real data method
         print(f"\nTesting get_ticker_price() for {test_ticker}...")
         try:
@@ -187,15 +187,15 @@ try:
             if price:
                 print(f"✅ Current price: {format_price(price)}")
             else:
-                print(f"❌ Could not retrieve price")
+                print("❌ Could not retrieve price")
         except Exception as e:
             print(f"❌ Error getting price: {str(e)}")
-            
+
     else:
         print(f"❌ Provider NOT available (took {elapsed:.3f}s)")
-        
+
 except ImportError:
-    print(f"❌ Could not import PolygonDataProvider")
+    print("❌ Could not import PolygonDataProvider")
 except Exception as e:
     print(f"❌ Error testing provider: {str(e)}")
 

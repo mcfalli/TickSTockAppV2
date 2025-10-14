@@ -14,17 +14,18 @@ Date: 2025-09-15
 Sprint: 25 - Pattern Event Structure Fix
 """
 
-import redis
 import json
-import time
 import logging
-from typing import Dict, Any
+import time
 from datetime import datetime
+from typing import Any
+
+import redis
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def create_expected_pattern_event() -> Dict[str, Any]:
+def create_expected_pattern_event() -> dict[str, Any]:
     """Create pattern event in expected nested structure from tests."""
     current_timestamp = time.time()
 
@@ -49,7 +50,7 @@ def create_expected_pattern_event() -> Dict[str, Any]:
         }
     }
 
-def create_tickstockpl_pattern_event() -> Dict[str, Any]:
+def create_tickstockpl_pattern_event() -> dict[str, Any]:
     """Create pattern event as published by TickStockPL."""
     current_timestamp = time.time()
 
@@ -73,7 +74,7 @@ def create_tickstockpl_pattern_event() -> Dict[str, Any]:
         }
     }
 
-def create_fallback_pattern_event() -> Dict[str, Any]:
+def create_fallback_pattern_event() -> dict[str, Any]:
     """Create pattern event as published by fallback detector."""
     current_timestamp = time.time()
 
@@ -98,7 +99,7 @@ def create_fallback_pattern_event() -> Dict[str, Any]:
         }
     }
 
-def validate_pattern_event_structure(event: Dict[str, Any], source_name: str) -> bool:
+def validate_pattern_event_structure(event: dict[str, Any], source_name: str) -> bool:
     """Validate pattern event has correct structure."""
     logger.info(f"Validating {source_name} pattern event structure...")
 
@@ -245,8 +246,7 @@ def test_pattern_event_consumption():
                         logger.info(f"   Event: {received_event['data']['symbol']} - {received_event['data']['pattern']}")
                         message_received = True
                         break
-                    else:
-                        logger.error("❌ Received event failed validation")
+                    logger.error("❌ Received event failed validation")
 
                 except json.JSONDecodeError as e:
                     logger.error(f"❌ Failed to parse received message: {e}")
@@ -261,9 +261,8 @@ def test_pattern_event_consumption():
         if message_received:
             logger.info("✅ Pattern event consumption test passed")
             return True
-        else:
-            logger.warning("⚠️ No pattern events received during test")
-            return False
+        logger.warning("⚠️ No pattern events received during test")
+        return False
 
     except Exception as e:
         logger.error(f"❌ Consumption test failed: {e}")

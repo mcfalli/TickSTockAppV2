@@ -6,13 +6,15 @@ Extracted from src.core.services and health_monitor
 
 import logging
 import time
-from datetime import datetime, date
-from typing import Dict, List, Any, Optional, Callable
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any
+
+import pytz
 
 from src.shared.utils import get_eastern_time
-import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +33,10 @@ class SessionTransition:
     to_session: str
     transition_time: float
     eastern_time: datetime
-    affected_components: List[str]
+    affected_components: list[str]
     success: bool = True
-    errors: List[str] = None
-    
+    errors: list[str] = None
+
     def __post_init__(self):
         if self.errors is None:
             self.errors = []
@@ -43,28 +45,28 @@ class SessionManager:
     """
     Manages market session transitions and coordinates session-based resets.
     """
-    
+
     def __init__(self, config):
         """Initialize session manager with configuration."""
         self.config = self._extract_session_config(config)
-        
+
         # Timezone setup
         self.eastern_tz = pytz.timezone(self.config['MARKET_TIMEZONE'])
-        
+
         # Session tracking
         self.current_session = MarketSession.UNKNOWN
         self.last_session_check = 0
         self.session_history = []
-        
+
         # Component callbacks for session changes
         self.session_change_callbacks = {}
-        
+
         # Initialize current session
         self._update_current_session()
-        
+
         logger.info(f"[SUCCESS] SessionManager initialized - Current: {self.current_session.value}")
-    
-    def _extract_session_config(self, config: Dict) -> Dict:
+
+    def _extract_session_config(self, config: dict) -> dict:
         """Extract session manager specific configuration."""
         return {
             'MARKET_TIMEZONE': config.get('MARKET_TIMEZONE', 'US/Eastern'),
@@ -75,68 +77,68 @@ class SessionManager:
             'AFTER_MARKET_END': config.get('AFTER_MARKET_END', (20, 0)),
             'ENABLE_WEEKEND_SESSIONS': config.get('ENABLE_WEEKEND_SESSIONS', False)
         }
-    
-    def determine_session(self, check_time: Optional[datetime] = None) -> MarketSession:
+
+    def determine_session(self, check_time: datetime | None = None) -> MarketSession:
         """
         Determine market session based on time.
         """
         if check_time is None:
             check_time = get_eastern_time()
-        
+
         # Check if weekend (unless weekend sessions enabled)
         if not self.config['ENABLE_WEEKEND_SESSIONS']:
             weekday = check_time.weekday()
             if weekday >= 5:  # Saturday = 5, Sunday = 6
                 return MarketSession.CLOSED
-        
+
         hour, minute = check_time.hour, check_time.minute
-        
+
         # Pre-market: 4:00 AM - 9:30 AM ET
         pre_start_hour, pre_start_min = self.config['PRE_MARKET_START']
         reg_start_hour, reg_start_min = self.config['REGULAR_MARKET_START']
-        
+
         if (hour > pre_start_hour or (hour == pre_start_hour and minute >= pre_start_min)) and \
            (hour < reg_start_hour or (hour == reg_start_hour and minute < reg_start_min)):
             return MarketSession.PRE
-        
+
         # Regular market: 9:30 AM - 4:00 PM ET
         reg_end_hour, reg_end_min = self.config['REGULAR_MARKET_END']
-        
+
         if (hour > reg_start_hour or (hour == reg_start_hour and minute >= reg_start_min)) and \
            (hour < reg_end_hour or (hour == reg_end_hour and minute < reg_end_min)):
             return MarketSession.REGULAR
-        
+
         # After-market: 4:00 PM - 8:00 PM ET
         after_end_hour, after_end_min = self.config['AFTER_MARKET_END']
-        
+
         if (hour >= reg_end_hour) and (hour < after_end_hour or (hour == after_end_hour and minute < after_end_min)):
             return MarketSession.AFTER
-        
+
         # Otherwise closed
         return MarketSession.CLOSED
-    
-    def check_session_transition(self) -> Optional[SessionTransition]:
+
+    def check_session_transition(self) -> SessionTransition | None:
         """
         Check if a session transition has occurred.
         Returns SessionTransition if transition detected, None otherwise.
         """
         current_time = time.time()
-        
+
         # Rate limit session checks
         if current_time - self.last_session_check < self.config['SESSION_CHECK_INTERVAL']:
             return None
-        
+
         self.last_session_check = current_time
-        
+
         # Determine current session
         eastern_time = get_eastern_time()
         new_session = self.determine_session(eastern_time)
-        
+
         # Check if session changed
         if new_session != self.current_session:
             old_session = self.current_session
             self.current_session = new_session
-            
+
             transition = SessionTransition(
                 from_session=old_session.value,
                 to_session=new_session.value,
@@ -144,21 +146,21 @@ class SessionManager:
                 eastern_time=eastern_time,
                 affected_components=[]
             )
-            
+
             logger.info(f"[SYNC] SESSION TRANSITION: {old_session.value} -> {new_session.value}")
-            
+
             # Execute callbacks
             self._execute_session_callbacks(transition)
-            
+
             # Add to history
             self.session_history.append(transition)
             if len(self.session_history) > 100:
                 self.session_history.pop(0)
-            
+
             return transition
-        
+
         return None
-    
+
     def register_session_callback(self, component_name: str, callback: Callable):
         """
         Register a callback to be executed on session changes.
@@ -182,21 +184,21 @@ class SessionManager:
                     transition.transition_time
                 )
                 transition.affected_components.append(component_name)
-                
+
             except Exception as e:
                 error_msg = f"Session callback failed for {component_name}: {str(e)}"
                 logger.error(f"[ERROR] {error_msg}")
                 transition.errors.append(error_msg)
                 transition.success = False
-        
+
         if transition.affected_components:
             logger.info(f"[SUCCESS] Session callbacks executed: {len(transition.affected_components)} components")
-    
+
     def _update_current_session(self):
         """Update the current session on initialization."""
         self.current_session = self.determine_session()
         self.last_session_check = time.time()
-    
+
     '''
     def get_session_info(self) -> Dict[str, Any]:
         """Get comprehensive session information."""
@@ -218,8 +220,8 @@ class SessionManager:
             'timestamp': time.time()
         }
     '''
-    def _calculate_time_to_next_session(self, current_time: datetime, 
-                                      current_session: MarketSession) -> Dict[str, Any]:
+    def _calculate_time_to_next_session(self, current_time: datetime,
+                                      current_session: MarketSession) -> dict[str, Any]:
         """Calculate time until next session transition."""
         if current_session == MarketSession.PRE:
             target_hour, target_min = self.config['REGULAR_MARKET_START']
@@ -233,29 +235,29 @@ class SessionManager:
         else:  # CLOSED
             target_hour, target_min = self.config['PRE_MARKET_START']
             next_session = "PRE"
-        
+
         # Calculate target time
         target_time = current_time.replace(
             hour=target_hour, minute=target_min, second=0, microsecond=0
         )
-        
+
         # If target is in the past, add a day
         if target_time <= current_time:
             from datetime import timedelta
             target_time += timedelta(days=1)
-        
+
         # Calculate difference
         time_diff = target_time - current_time
         seconds_until = int(time_diff.total_seconds())
-        
+
         return {
             'next_session': next_session,
             'seconds_until': seconds_until,
             'minutes_until': round(seconds_until / 60, 1),
             'target_time': target_time.isoformat()
         }
-    def _get_session_start_time(self, session: MarketSession, 
-                                reference_time: datetime) -> Optional[str]:
+    def _get_session_start_time(self, session: MarketSession,
+                                reference_time: datetime) -> str | None:
         """Get the start time of the current session."""
         if session == MarketSession.PRE:
             hour, minute = self.config['PRE_MARKET_START']
@@ -265,12 +267,12 @@ class SessionManager:
             hour, minute = self.config['REGULAR_MARKET_END']
         else:
             return None
-        
+
         start_time = reference_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
         return start_time.isoformat()
-    
-    def _get_session_end_time(self, session: MarketSession, 
-                            reference_time: datetime) -> Optional[str]:
+
+    def _get_session_end_time(self, session: MarketSession,
+                            reference_time: datetime) -> str | None:
         """Get the end time of the current session."""
         if session == MarketSession.PRE:
             hour, minute = self.config['REGULAR_MARKET_START']
@@ -280,10 +282,10 @@ class SessionManager:
             hour, minute = self.config['AFTER_MARKET_END']
         else:
             return None
-        
+
         end_time = reference_time.replace(hour=hour, minute=minute, second=0, microsecond=0)
         return end_time.isoformat()
-    
+
     '''
     def get_trading_day_info(self, check_date: Optional[date] = None) -> Dict[str, Any]:
         """Get trading day information."""
@@ -330,14 +332,14 @@ class SessionManager:
         
         return transition
     '''
-    
-    def get_performance_report(self) -> Dict[str, Any]:
+
+    def get_performance_report(self) -> dict[str, Any]:
         """Get performance report for session management."""
         transitions = len(self.session_history)
         successful = sum(1 for t in self.session_history if t.success)
-        
+
         success_rate = (successful / transitions * 100) if transitions > 0 else 100.0
-        
+
         return {
             'session_stats': {
                 'current_session': self.current_session.value,

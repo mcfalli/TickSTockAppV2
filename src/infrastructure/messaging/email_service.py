@@ -1,16 +1,17 @@
+import logging
 import smtplib
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from pathlib import Path
+
 from flask import current_app, url_for
 from flask_mail import Message
 from jinja2 import Environment, FileSystemLoader
-from pathlib import Path
-from typing import Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
 from src.infrastructure.cache.cache_control import CacheControl
+
 
 class EmailManager:
     """Manages sending emails with Jinja2 templates and exponential backoff."""
@@ -43,7 +44,7 @@ class EmailManager:
         except Exception as e:
             logger.error(f"Error getting support email: {e}")
             return 'support@tickstock.com'
-        
+
     def _send_email_with_backoff(
         self,
         msg: Message,
@@ -75,29 +76,29 @@ class EmailManager:
 
     def send_verification_email(self, email, username, verification_url):
         """Send email verification link. Modified to handle new emails during update."""
-        from src.infrastructure.database import User, CommunicationLog, db
+        from src.infrastructure.database import CommunicationLog, User, db
         try:
             # Check if this is for an existing user or a new email address
             user = User.query.filter_by(email=email).first()
             is_new_email = True if not user else False
-            
+
             if is_new_email:
                 # This is a new email address for an existing user
                 # We need to find the user in the session data
                 from flask import session
                 pending_email = session.get('pending_email', {})
                 user_id = pending_email.get('user_id')
-                
+
                 if user_id:
                     user = User.query.get(user_id)
-                
+
                 if not user:
                     logger.error(f"Cannot find user for email verification: {email}")
                     return False
-            
+
             # Get email settings from cache
             support_email = self._get_support_email()
-            
+
             template = self._get_template_env().get_template('verification_email.html')
             html_content = template.render(
                 email=email,
@@ -161,17 +162,17 @@ class EmailManager:
             return False
 
     def send_welcome_email(self, email: str, username: str) -> bool:
-        from src.infrastructure.database import User, CommunicationLog, db
+        from src.infrastructure.database import CommunicationLog, User, db
         try:
             user = User.query.filter_by(email=email).first()
             if not user:
                 logger.error(f"Attempted to send welcome email to non-existent user: {email}")
                 return False
-                
+
             # Get email settings from cache
             support_email = self._get_support_email()
             base_url = self.app_settings.get('BASE_URL', 'http://localhost:5000')
-            
+
             template = self._get_template_env().get_template('welcome_email.html')
             try:
                 with current_app.app_context():
@@ -179,7 +180,7 @@ class EmailManager:
             except Exception as e:
                 logger.error(f"Failed to generate login_url for welcome email: {e}")
                 login_url = base_url + '/login'
-                
+
             html_content = template.render(
                 email=email,
                 username=username,
@@ -242,16 +243,16 @@ class EmailManager:
 
     def send_lockout_email(self, email: str, lockout_duration: int) -> bool:
         """Send account lockout notification email."""
-        from src.infrastructure.database import User, CommunicationLog, db
+        from src.infrastructure.database import CommunicationLog, User, db
         try:
             user = User.query.filter_by(email=email).first()
             if not user:
                 logger.error(f"Attempted to send lockout email to non-existent user: {email}")
                 return False
-                
+
             # Get email settings from cache
             support_email = self._get_support_email()
-            
+
             template = self._get_template_env().get_template('lockout_email.html')
             html_content = template.render(
                 email=email,
@@ -299,16 +300,16 @@ class EmailManager:
 
     def send_disable_email(self, email: str) -> bool:
         """Send account disable notification email."""
-        from src.infrastructure.database import User, CommunicationLog, db
+        from src.infrastructure.database import CommunicationLog, User, db
         try:
             user = User.query.filter_by(email=email).first()
             if not user:
                 logger.error(f"Attempted to send disable email to non-existent user: {email}")
                 return False
-                
+
             # Get email settings from cache
             support_email = self._get_support_email()
-            
+
             template = self._get_template_env().get_template('disable_email.html')
             html_content = template.render(
                 email=email,
@@ -355,16 +356,16 @@ class EmailManager:
 
     def send_reset_email(self, email: str, reset_url: str) -> bool:
         """Send password reset email."""
-        from src.infrastructure.database import User, CommunicationLog, db
+        from src.infrastructure.database import CommunicationLog, User, db
         try:
             user = User.query.filter_by(email=email).first()
             if not user:
                 logger.error(f"Attempted to send reset email to non-existent user: {email}")
                 return False
-                
+
             # Get email settings from cache
             support_email = self._get_support_email()
-            
+
             template = self._get_template_env().get_template('reset_email.html')
             html_content = template.render(
                 email=email,
@@ -409,9 +410,9 @@ class EmailManager:
                     logger.error(f"Failed to log reset communication attempt for {email}: {commit_error}")
                     db.session.rollback()
             return False
-            
+
     def send_change_password_email(self, email: str, username: str, change_time: str) -> bool:
-        from src.infrastructure.database import User, CommunicationLog, db
+        from src.infrastructure.database import CommunicationLog, User, db
         try:
             user = User.query.filter_by(email=email).first()
             if not user:
@@ -492,24 +493,24 @@ class EmailManager:
                         if attempt == max_commit_retries - 1:
                             logger.error(f"Max retries reached for communication log commit for {email}")
             return False
-    
+
     def send_email_change_notification(self, old_email, new_email, username, update_time=None):
         """Send notification when email address is changed to the old email address."""
-        from src.infrastructure.database import User, CommunicationLog, db
+        from src.infrastructure.database import CommunicationLog, User, db
         try:
             user = User.query.filter_by(email=old_email).first()
             if not user:
                 logger.error(f"Attempted to send email change notification to non-existent user: {old_email}")
                 return False
-                    
+
             # Get email settings from cache
             support_email = self._get_support_email()
             base_url = self.app_settings.get('BASE_URL', 'http://localhost:5000')
-            
+
             # Set update time if not provided
             if update_time is None:
-                update_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
-            
+                update_time = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')
+
             template = self._get_template_env().get_template('email_change_notification.html')
             try:
                 with current_app.app_context():
@@ -517,7 +518,7 @@ class EmailManager:
             except Exception as e:
                 logger.error(f"Failed to generate login_url for email change notification: {e}")
                 login_url = base_url + '/login'
-                
+
             html_content = template.render(
                 old_email=old_email,
                 new_email=new_email,
@@ -579,20 +580,20 @@ class EmailManager:
                         if attempt == max_commit_retries - 1:
                             logger.error(f"Max retries reached for communication log commit for {old_email}")
             return False
-    
+
     def send_subscription_reactivated_email(self, email, username, end_date):
         """Send email notification when subscription is reactivated."""
-        from src.infrastructure.database import User, CommunicationLog, db
+        from src.infrastructure.database import CommunicationLog, User, db
         try:
             user = User.query.filter_by(email=email).first()
             if not user:
                 logger.error(f"Attempted to send subscription reactivated email to non-existent user: {email}")
                 return False
-                    
+
             # Get email settings from cache
             support_email = self._get_support_email()
             base_url = self.app_settings.get('BASE_URL', 'http://localhost:5000')
-            
+
             template = self._get_template_env().get_template('subscription_reactivated_email.html')
             try:
                 with current_app.app_context():
@@ -600,7 +601,7 @@ class EmailManager:
             except Exception as e:
                 logger.error(f"Failed to generate login_url for subscription reactivated email: {e}")
                 login_url = base_url + '/login'
-                
+
             html_content = template.render(
                 email=email,
                 username=username,
@@ -661,24 +662,24 @@ class EmailManager:
                         if attempt == max_commit_retries - 1:
                             logger.error(f"Max retries reached for communication log commit for {email}")
             return False
-    
+
     def send_account_update_email(self, email, username, updated_field, update_time=None):
         """Send email notification when account details are updated."""
-        from src.infrastructure.database import User, CommunicationLog, db
+        from src.infrastructure.database import CommunicationLog, User, db
         try:
             user = User.query.filter_by(email=email).first()
             if not user:
                 logger.error(f"Attempted to send account update email to non-existent user: {email}")
                 return False
-                    
+
             # Get email settings from cache
             support_email = self._get_support_email()
             base_url = self.app_settings.get('BASE_URL', 'http://localhost:5000')
-            
+
             # Set update time if not provided
             if update_time is None:
-                update_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
-            
+                update_time = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')
+
             template = self._get_template_env().get_template('account_update_email.html')
             try:
                 with current_app.app_context():
@@ -686,7 +687,7 @@ class EmailManager:
             except Exception as e:
                 logger.error(f"Failed to generate login_url for account update email: {e}")
                 login_url = base_url + '/login'
-                
+
             html_content = template.render(
                 email=email,
                 username=username,
@@ -751,17 +752,17 @@ class EmailManager:
 
     def send_subscription_cancelled_email(self, email, username, end_date):
         """Send email notification when subscription is cancelled."""
-        from src.infrastructure.database import User, CommunicationLog, db
+        from src.infrastructure.database import CommunicationLog, User, db
         try:
             user = User.query.filter_by(email=email).first()
             if not user:
                 logger.error(f"Attempted to send subscription cancelled email to non-existent user: {email}")
                 return False
-                    
+
             # Get email settings from cache
             support_email = self._get_support_email()
             base_url = self.app_settings.get('BASE_URL', 'http://localhost:5000')
-            
+
             template = self._get_template_env().get_template('subscription_cancelled_email.html')
             try:
                 with current_app.app_context():
@@ -769,7 +770,7 @@ class EmailManager:
             except Exception as e:
                 logger.error(f"Failed to generate login_url for subscription cancelled email: {e}")
                 login_url = base_url + '/login'
-                
+
             html_content = template.render(
                 email=email,
                 username=username,

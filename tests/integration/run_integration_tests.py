@@ -6,17 +6,15 @@ These tests validate REAL integration points, not mocks.
 """
 
 import sys
-import os
 from pathlib import Path
 
 # Add project root to Python path to import src modules
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import time
 import subprocess
+import time
 from datetime import datetime
-import json
 
 # Test colors for terminal
 GREEN = '\033[92m'
@@ -68,13 +66,12 @@ def run_test_file(filepath, description):
                 if '[OK]' in line or '[PASS]' in line:
                     print(f"  {GREEN}{line.strip()}{RESET}")
             return True, elapsed, test_details
-        else:
-            print(f"{RED}[FAIL] FAILED{RESET} ({elapsed:.2f}s)")
-            # Show errors
-            for line in result.stderr.split('\n')[-5:]:
-                if line.strip():
-                    print(f"  {RED}{line.strip()}{RESET}")
-            return False, elapsed, test_details
+        print(f"{RED}[FAIL] FAILED{RESET} ({elapsed:.2f}s)")
+        # Show errors
+        for line in result.stderr.split('\n')[-5:]:
+            if line.strip():
+                print(f"  {RED}{line.strip()}{RESET}")
+        return False, elapsed, test_details
 
     except subprocess.TimeoutExpired:
         print(f"{RED}[FAIL] TIMEOUT{RESET} (>30s)")
@@ -217,6 +214,7 @@ def check_prerequisites():
     # Check PostgreSQL
     try:
         import psycopg2
+
         from src.core.services.config_manager import get_config
         config = get_config()
 
@@ -337,13 +335,12 @@ def main():
         print("  • Event structure compatibility")
         print("  • Performance within targets")
         return 0
-    else:
-        print(f"\n{RED}{BOLD}[FAIL] {failed_count} TEST(S) FAILED{RESET}")
-        print(f"{RED}Review the failures above and check:{RESET}")
-        print("  • Is TickStockAppV2 running?")
-        print("  • Is TickStockPL sending patterns?")
-        print("  • Are all services healthy?")
-        return 1
+    print(f"\n{RED}{BOLD}[FAIL] {failed_count} TEST(S) FAILED{RESET}")
+    print(f"{RED}Review the failures above and check:{RESET}")
+    print("  • Is TickStockAppV2 running?")
+    print("  • Is TickStockPL sending patterns?")
+    print("  • Are all services healthy?")
+    return 1
 
 if __name__ == "__main__":
     sys.exit(main())

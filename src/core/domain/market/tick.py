@@ -1,8 +1,7 @@
 # classes/market/tick.py - Enhanced version
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
 from datetime import datetime
-import time
+from typing import Any
 
 
 @dataclass
@@ -35,60 +34,60 @@ class TickData:
     price: float
     volume: int
     timestamp: float
-    
+
     # Source identification
     source: str = "unknown"  # 'polygon', 'synthetic', 'simulated', 'alpaca', etc.
     event_type: str = "A"  # A=Aggregate, T=Trade, Q=Quote
-    
+
     # Market data
-    bid: Optional[float] = None
-    ask: Optional[float] = None
+    bid: float | None = None
+    ask: float | None = None
     market_status: str = "REGULAR"  # 'PREMARKET', 'REGULAR', 'AFTERHOURS'
-    
+
     # Price fields (tick-level)
-    tick_open: Optional[float] = None
-    tick_high: Optional[float] = None
-    tick_low: Optional[float] = None
-    tick_close: Optional[float] = None
-    
+    tick_open: float | None = None
+    tick_high: float | None = None
+    tick_low: float | None = None
+    tick_close: float | None = None
+
     # Price fields (day-level)
-    day_high: Optional[float] = None
-    day_low: Optional[float] = None
-    open_price: Optional[float] = None  # Day open
-    market_open_price: Optional[float] = None  # Market session open
-    previous_close: Optional[float] = None
-    
+    day_high: float | None = None
+    day_low: float | None = None
+    open_price: float | None = None  # Day open
+    market_open_price: float | None = None  # Market session open
+    previous_close: float | None = None
+
     # Volume fields
-    tick_volume: Optional[int] = None  # Volume for this tick
-    tick_trade_size: Optional[int] = None  # Size of individual trade
-    accumulated_volume: Optional[int] = None  # Total day volume
-    
+    tick_volume: int | None = None  # Volume for this tick
+    tick_trade_size: int | None = None  # Size of individual trade
+    accumulated_volume: int | None = None  # Total day volume
+
     # VWAP fields
-    tick_vwap: Optional[float] = None
-    vwap: Optional[float] = None  # Day VWAP
-    
+    tick_vwap: float | None = None
+    vwap: float | None = None  # Day VWAP
+
     # Timing fields
-    tick_start_timestamp: Optional[float] = None
-    tick_end_timestamp: Optional[float] = None
-    
+    tick_start_timestamp: float | None = None
+    tick_end_timestamp: float | None = None
+
     # Processing fields (added during processing)
-    processed_at: Optional[float] = None
-    effective_volume: Optional[int] = None
-    effective_vwap: Optional[float] = None
-    
+    processed_at: float | None = None
+    effective_volume: int | None = None
+    effective_vwap: float | None = None
+
     def __post_init__(self):
         """Post-initialization processing."""
         # Ensure tick_close defaults to price if not set
         if self.tick_close is None:
             self.tick_close = self.price
-        
+
         # Ensure volume is properly set
         if self.tick_volume is None and self.volume:
             self.tick_volume = self.volume
-        
+
         # Validate on instantiation
         self.validate()
-    
+
     def validate(self) -> bool:
         """Validate tick data"""
         if self.price <= 0:
@@ -99,11 +98,11 @@ class TickData:
             raise ValueError("Empty ticker")
         if self.timestamp <= 0:
             raise ValueError(f"Invalid timestamp: {self.timestamp}")
-        
+
          # ADD: Ensure timestamp is numeric (not datetime object)
         if not isinstance(self.timestamp, (int, float)):
             raise ValueError(f"Timestamp must be numeric (int/float), got {type(self.timestamp).__name__}")
-        
+
         return True
     '''       
     @property
@@ -125,9 +124,9 @@ class TickData:
     def second(self) -> int:
         """Get second from timestamp."""
         return self.datetime.second
-    '''       
-    
-    def to_dict(self) -> Dict[str, Any]:
+    '''
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             'ticker': self.ticker,
@@ -156,7 +155,7 @@ class TickData:
             'tick_start_timestamp': self.tick_start_timestamp,
             'tick_end_timestamp': self.tick_end_timestamp
         }
-    
+
     @classmethod
     def from_polygon_ws(cls, data: dict) -> 'TickData':
         """Create from Polygon WebSocket data."""
@@ -174,21 +173,21 @@ class TickData:
             tick_vwap=data.get('vw'),
             tick_trade_size=data.get('s')
         )
-    
+
     @classmethod
-    def from_synthetic(cls, ticker: str, price: float, baseline: Dict, 
+    def from_synthetic(cls, ticker: str, price: float, baseline: dict,
                       market_status: str, current_time: datetime, is_up: bool) -> 'TickData':
         """Create synthetic tick data."""
         import random
-        
+
         # Generate realistic values
         tick_high = round(price * (1 + random.uniform(0, 0.002)), 2) if is_up else price
         tick_low = price if is_up else round(price * (1 - random.uniform(0, 0.002)), 2)
-        
+
         # Volume calculations
         avg_volume = baseline.get('avg_volume', 1000000)
         sector = baseline.get('sector', 'Unknown')
-        
+
         # Sector volume multipliers
         sector_volume_multipliers = {
             'Technology': 1.2,
@@ -203,23 +202,23 @@ class TickData:
             'Real Estate': 0.6,
             'Utilities': 0.5
         }
-        
+
         volume_multiplier = sector_volume_multipliers.get(sector, 1.0)
         adjusted_avg_volume = int(avg_volume * volume_multiplier)
-        
+
         # Make tick_volume between 0.5% and 2% of adjusted avg daily volume
         tick_volume = int(adjusted_avg_volume * random.uniform(0.005, 0.02))
         accumulated_volume = int(adjusted_avg_volume * random.uniform(0.1, 0.9))
-        
+
         # Generate VWAPs
         sector_volatility = baseline.get('volatility', 0.015)
         tick_vwap = round(price * (1 + random.uniform(-sector_volatility/3, sector_volatility/3)), 2)
         vwap = round(baseline.get('volume_weighted_price', price * (1 + random.uniform(-sector_volatility/2, sector_volatility/2))), 2)
-        
+
         # Timestamps
         end_timestamp = int(current_time.timestamp() * 1000)
         start_timestamp = end_timestamp - 1000
-        
+
         return cls(
             ticker=ticker,
             price=round(price, 2),

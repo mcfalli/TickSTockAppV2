@@ -4,8 +4,11 @@ Contains SQLAlchemy models and database-related utilities for TickStock.
 """
 
 # Import database instance and models
+# Import migration utilities
+from src.infrastructure.database.migrations.run_migrations import (
+    run_migration_command,
+)
 from src.infrastructure.database.models.base import (
-    db,
     AppSettings,
     BillingInfo,
     CacheEntry,
@@ -19,11 +22,7 @@ from src.infrastructure.database.models.base import (
     UserHistory,
     UserSettings,
     VerificationCode,
-)
-
-# Import migration utilities
-from src.infrastructure.database.migrations.run_migrations import (
-    run_migration_command,
+    db,
 )
 
 # Analytics models removed during Phase 2 cleanup
@@ -32,7 +31,7 @@ from src.infrastructure.database.migrations.run_migrations import (
 __all__ = [
     # Database instance
     'db',
-    
+
     # Models
     'AppSettings',
     'BillingInfo',
@@ -47,7 +46,7 @@ __all__ = [
     'UserHistory',
     'UserSettings',
     'VerificationCode',
-    
+
     # Migration utilities
     'run_migration_command',
 ]

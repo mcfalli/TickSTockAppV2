@@ -6,17 +6,16 @@ system integration and other market data processing components.
 """
 
 import time
-from datetime import datetime
-from typing import Dict, Any, Optional
-from unittest.mock import Mock, MagicMock
+from typing import Any
+from unittest.mock import Mock
 
 # Core domain imports
 from src.core.domain.market.tick import TickData
-from src.shared.models.data_types import OHLCVData, FMVData
+from src.shared.models.data_types import FMVData, OHLCVData
 
 
-def create_tick_data(ticker: str, price: float, volume: int, 
-                    timestamp: Optional[float] = None) -> TickData:
+def create_tick_data(ticker: str, price: float, volume: int,
+                    timestamp: float | None = None) -> TickData:
     """
     Create a TickData object for testing.
     
@@ -31,7 +30,7 @@ def create_tick_data(ticker: str, price: float, volume: int,
     """
     if timestamp is None:
         timestamp = time.time()
-    
+
     return TickData(
         ticker=ticker,
         price=price,
@@ -46,9 +45,9 @@ def create_tick_data(ticker: str, price: float, volume: int,
     )
 
 
-def create_ohlcv_data(ticker: str, open_price: float, high: float, 
+def create_ohlcv_data(ticker: str, open_price: float, high: float,
                      low: float, close: float, volume: int,
-                     timestamp: Optional[float] = None) -> OHLCVData:
+                     timestamp: float | None = None) -> OHLCVData:
     """
     Create an OHLCVData object for testing.
     
@@ -66,7 +65,7 @@ def create_ohlcv_data(ticker: str, open_price: float, high: float,
     """
     if timestamp is None:
         timestamp = time.time()
-    
+
     return OHLCVData(
         ticker=ticker,
         open=open_price,
@@ -83,7 +82,7 @@ def create_ohlcv_data(ticker: str, open_price: float, high: float,
 
 
 def create_fmv_data(ticker: str, fair_value: float, confidence: float,
-                   timestamp: Optional[float] = None) -> FMVData:
+                   timestamp: float | None = None) -> FMVData:
     """
     Create an FMVData object for testing.
     
@@ -98,7 +97,7 @@ def create_fmv_data(ticker: str, fair_value: float, confidence: float,
     """
     if timestamp is None:
         timestamp = time.time()
-    
+
     return FMVData(
         ticker=ticker,
         fair_market_value=fair_value,
@@ -126,7 +125,7 @@ def create_mock_market_service(include_websocket: bool = True,
         Mock: Configured mock market service
     """
     mock_service = Mock()
-    
+
     # Mock event processor
     if include_event_processor:
         event_processor = Mock()
@@ -137,22 +136,22 @@ def create_mock_market_service(include_websocket: bool = True,
         mock_service.event_processor = event_processor
     else:
         mock_service.event_processor = None
-    
+
     # Mock WebSocket publisher
     if include_websocket:
         websocket_publisher = Mock()
         websocket_mgr = Mock()
         websocket_mgr.get_active_connections = Mock(return_value=[Mock(), Mock()])
-        
+
         websocket_publisher.websocket_mgr = websocket_mgr
         websocket_publisher.market_service = mock_service
-        
+
         mock_service.websocket_publisher = websocket_publisher
         mock_service.websocket_mgr = websocket_mgr
     else:
         mock_service.websocket_publisher = None
         mock_service.websocket_mgr = None
-    
+
     # Mock priority manager
     if include_priority_manager:
         priority_manager = Mock()
@@ -160,16 +159,16 @@ def create_mock_market_service(include_websocket: bool = True,
         mock_service.priority_manager = priority_manager
     else:
         mock_service.priority_manager = None
-    
+
     # Mock other common components
     mock_service.config = create_test_config()
     mock_service.cache_control = Mock()
     mock_service.market_metrics = Mock()
-    
+
     return mock_service
 
 
-def create_test_config() -> Dict[str, Any]:
+def create_test_config() -> dict[str, Any]:
     """
     Create a test configuration dictionary.
     
@@ -181,45 +180,45 @@ def create_test_config() -> Dict[str, Any]:
         'ENABLE_TICK_CHANNEL': True,
         'ENABLE_OHLCV_CHANNEL': True,
         'ENABLE_FMV_CHANNEL': True,
-        
+
         # Performance settings
         'ROUTING_TIMEOUT_MS': 50.0,
         'MAX_QUEUE_SIZE': 1000,
         'WORKER_POOL_SIZE': 4,
-        
+
         # Monitoring settings
         'ENABLE_MONITORING': True,
         'HEALTH_CHECK_INTERVAL': 10.0,
         'METRICS_COLLECTION_INTERVAL': 5.0,
-        
+
         # Integration settings
         'ENABLE_WEBSOCKET_INTEGRATION': True,
         'ENABLE_PRIORITY_MANAGER_INTEGRATION': True,
         'ENABLE_ANALYTICS_INTEGRATION': True,
-        
+
         # Performance targets
         'TARGET_OHLCV_SYMBOLS': 8000,
         'TARGET_LATENCY_P99_MS': 50.0,
         'TARGET_MEMORY_LIMIT_GB': 2.0,
-        
+
         # Data source settings
         'USE_SYNTHETIC_DATA': True,
         'USE_POLYGON_API': False,
         'DATA_SOURCE': 'synthetic',
-        
+
         # Market settings
         'MARKET_TIMEZONE': 'US/Eastern',
-        
+
         # WebSocket settings
         'WEBSOCKET_PORT': 5000,
         'HEARTBEAT_INTERVAL': 2.0,
         'MAX_CONNECTIONS': 100,
-        
+
         # Event detection thresholds
         'SURGE_MULTIPLIER': 3.0,
         'HIGH_LOW_THRESHOLD': 0.1,
         'TREND_WINDOWS': [180, 360, 600],
-        
+
         # Sprint 108 specific settings
         'COLLECTION_INTERVAL': 0.5,
         'EMISSION_INTERVAL': 1.0,
@@ -227,7 +226,7 @@ def create_test_config() -> Dict[str, Any]:
     }
 
 
-def create_mock_channel(channel_name: str, channel_type: str, 
+def create_mock_channel(channel_name: str, channel_type: str,
                        is_healthy: bool = True) -> Mock:
     """
     Create a mock processing channel for testing.
@@ -241,11 +240,11 @@ def create_mock_channel(channel_name: str, channel_type: str,
         Mock: Configured mock channel
     """
     mock_channel = Mock()
-    
+
     # Basic channel properties
     mock_channel.name = channel_name
     mock_channel.channel_id = f"{channel_name}_id"
-    
+
     # Channel type enum
     from src.processing.channels.base_channel import ChannelType
     if channel_type == "tick":
@@ -257,53 +256,53 @@ def create_mock_channel(channel_name: str, channel_type: str,
     else:
         mock_channel.channel_type = Mock()
         mock_channel.channel_type.value = channel_type
-    
+
     # Health and status
     mock_channel.is_healthy = Mock(return_value=is_healthy)
-    
+
     from src.processing.channels.base_channel import ChannelStatus
     mock_channel.status = ChannelStatus.RUNNING if is_healthy else ChannelStatus.ERROR
-    
+
     # Processing methods
     async def mock_submit_data(data):
         """Mock data submission that returns success"""
         return True
-    
+
     mock_channel.submit_data = mock_submit_data
-    
+
     # Async lifecycle methods
     async def mock_start():
         pass
-    
+
     async def mock_stop():
         pass
-    
+
     mock_channel.start = mock_start
     mock_channel.stop = mock_stop
-    
+
     # Mock metrics
     mock_metrics = Mock()
     mock_metrics.processed_count = 0
     mock_metrics.error_count = 0
     mock_metrics.avg_processing_time_ms = 10.0
     mock_channel.metrics = mock_metrics
-    
+
     # Mock queue
     mock_queue = Mock()
     mock_queue.qsize = Mock(return_value=0)
     mock_channel.processing_queue = mock_queue
-    
+
     # Mock configuration
     mock_config = Mock()
     mock_config.max_queue_size = 1000
     mock_channel.config = mock_config
-    
+
     return mock_channel
 
 
-def create_mock_event_processor_result(success: bool = True, 
+def create_mock_event_processor_result(success: bool = True,
                                       events_processed: int = 1,
-                                      errors: Optional[list] = None) -> Mock:
+                                      errors: list | None = None) -> Mock:
     """
     Create a mock EventProcessingResult for testing.
     
@@ -322,12 +321,12 @@ def create_mock_event_processor_result(success: bool = True,
     result.warnings = []
     result.ticker = "TEST"
     result.processing_time_ms = 10.0
-    
+
     return result
 
 
-def create_mock_router_result(success: bool = True, 
-                             metadata: Optional[Dict] = None) -> Mock:
+def create_mock_router_result(success: bool = True,
+                             metadata: dict | None = None) -> Mock:
     """
     Create a mock routing result for testing.
     
@@ -339,18 +338,18 @@ def create_mock_router_result(success: bool = True,
         Mock: Configured mock routing result
     """
     from src.processing.channels.base_channel import ProcessingResult
-    
+
     result = Mock(spec=ProcessingResult)
     result.success = success
     result.metadata = metadata or {}
     result.events = []
     result.errors = [] if success else ["Routing failed"]
     result.processing_time_ms = 5.0
-    
+
     return result
 
 
-def create_test_market_data_batch(count: int = 100) -> Dict[str, list]:
+def create_test_market_data_batch(count: int = 100) -> dict[str, list]:
     """
     Create a batch of test market data for load testing.
     
@@ -361,11 +360,11 @@ def create_test_market_data_batch(count: int = 100) -> Dict[str, list]:
         Dict: Dictionary containing lists of tick, OHLCV, and FMV data
     """
     current_time = time.time()
-    
+
     tick_data = []
     ohlcv_data = []
     fmv_data = []
-    
+
     for i in range(count):
         # Create tick data
         tick_data.append(create_tick_data(
@@ -374,7 +373,7 @@ def create_test_market_data_batch(count: int = 100) -> Dict[str, list]:
             volume=1000 + (i * 10),
             timestamp=current_time + i
         ))
-        
+
         # Create OHLCV data
         base_price = 100.0 + (i % 50)
         ohlcv_data.append(create_ohlcv_data(
@@ -386,7 +385,7 @@ def create_test_market_data_batch(count: int = 100) -> Dict[str, list]:
             volume=10000 + (i * 100),
             timestamp=current_time + i
         ))
-        
+
         # Create FMV data
         fmv_data.append(create_fmv_data(
             ticker=f"FMV{i:03d}",
@@ -394,7 +393,7 @@ def create_test_market_data_batch(count: int = 100) -> Dict[str, list]:
             confidence=0.8 + (i % 20) * 0.01,
             timestamp=current_time + i
         ))
-    
+
     return {
         'tick_data': tick_data,
         'ohlcv_data': ohlcv_data,
@@ -411,15 +410,15 @@ def create_mock_alert_handler() -> Mock:
     """
     handler = Mock()
     handler.alerts_received = []
-    
+
     def record_alert(alert):
         handler.alerts_received.append(alert)
-    
+
     handler.side_effect = record_alert
     return handler
 
 
-def create_performance_test_data() -> Dict[str, Any]:
+def create_performance_test_data() -> dict[str, Any]:
     """
     Create test data specifically for performance testing.
     
@@ -450,7 +449,7 @@ def create_performance_test_data() -> Dict[str, Any]:
 
 
 # Convenience function for creating complete test scenarios
-def create_integration_test_scenario(scenario_name: str) -> Dict[str, Any]:
+def create_integration_test_scenario(scenario_name: str) -> dict[str, Any]:
     """
     Create a complete integration test scenario with all necessary components.
     
@@ -503,5 +502,5 @@ def create_integration_test_scenario(scenario_name: str) -> Dict[str, Any]:
             }
         }
     }
-    
+
     return scenarios.get(scenario_name, scenarios['basic_integration'])

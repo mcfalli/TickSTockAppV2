@@ -1,9 +1,11 @@
+import logging
 import re
-import json
+from datetime import UTC
+
 from flask import flash, url_for
 from itsdangerous import URLSafeTimedSerializer
+
 from src.infrastructure.database import User, db
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -21,24 +23,24 @@ class RegistrationManager:
             # Get config from ConfigManager for application defaults
             from src.core.services.config_manager import get_config
             config = get_config()
-            
+
             self.captcha_enabled = config.get('CAPTCHA_ENABLED', True)
-            
-            common_passwords_str = config.get('COMMON_PASSWORDS', 
+
+            common_passwords_str = config.get('COMMON_PASSWORDS',
                                             'password,password123,12345678,qwerty')
             self.common_passwords = set(common_passwords_str.split(','))
-            
-            self.email_verification_salt = config.get('EMAIL_VERIFICATION_SALT', 
+
+            self.email_verification_salt = config.get('EMAIL_VERIFICATION_SALT',
                                                     'email-verification')
-            
+
             # Update serializer if salt changed
-            self.serializer = URLSafeTimedSerializer(self.serializer.secret_key, 
+            self.serializer = URLSafeTimedSerializer(self.serializer.secret_key,
                                                 salt=self.email_verification_salt)
-            
+
             self.support_email = config.get('SUPPORT_EMAIL', 'support@tickstock.com')
-            
+
             logger.debug("RegistrationManager settings loaded: captcha_enabled=%s, "
-                        "common_passwords=%s", 
+                        "common_passwords=%s",
                         self.captcha_enabled, self.common_passwords)
         except Exception as e:
             logger.error(f"Error loading registration settings: {e}")
@@ -77,9 +79,8 @@ class RegistrationManager:
             if success:
                 logger.info(f"Register: Verification email sent to {user.email}: {verification_url}")
                 return True
-            else:
-                logger.error(f"Register: Failed to send verification email to {user.email}")
-                return False
+            logger.error(f"Register: Failed to send verification email to {user.email}")
+            return False
         except Exception as e:
             logger.error(f"Register: Failed to send verification email to {user.email}: {str(e)}", exc_info=True)
             return False
@@ -88,11 +89,11 @@ class RegistrationManager:
         import phonenumbers
         errors = []
         logger.debug(f"Validating inputs: email={email}, username={username}, phone={phone!r}, confirm_password={'set' if confirm_password else 'None'}")
-        
+
         if not email or not re.match(r"[^@]+@[^@]+\.[^@]+(\.[^@]+)*$", email):
             errors.append("Invalid email address. Must include a valid domain (e.g., .com, .org)")
         if not username or len(username) < 5 or len(username) > 50:
-            errors.append("Username must be 5-50 characters")        
+            errors.append("Username must be 5-50 characters")
         if not password:
             errors.append("Password is required")
         elif len(password) < 8 or len(password) > 64:
@@ -103,7 +104,7 @@ class RegistrationManager:
             errors.append("Password is too common")
         if confirm_password is not None and password != confirm_password:
             errors.append("Passwords do not match")
-        
+
         # Skip phone validation if phone is None or empty
         if phone is not None and phone != '':
             logger.debug(f"Validating phone number: {phone}")
@@ -132,14 +133,14 @@ class RegistrationManager:
                 errors.append("Invalid phone number format")
         else:
             logger.debug("Skipping phone validation (phone is None or empty)")
-        
+
         if errors:
             logger.debug(f"Validation errors: {errors}")
         return errors
 
-    def register_user(self, email, username, password, phone, captcha_response, fingerprint_data, 
+    def register_user(self, email, username, password, phone, captcha_response, fingerprint_data,
          confirm_password, first_name, last_name, subscription_tier='premium',  # Default to premium
-         address_line1=None, address_line2=None, city=None, state_province=None, 
+         address_line1=None, address_line2=None, city=None, state_province=None,
          postal_code=None, country=None, card_number=None, expiry=None, cvv=None):
         from src.infrastructure.messaging.email_service import EmailManager
         try:
@@ -154,23 +155,23 @@ class RegistrationManager:
             if not address_line1 or not city or not postal_code or not country:
                 flash("Billing address fields are required")
                 return False, None
-                
+
             # Validate payment information - NOW REQUIRED FOR ALL USERS
             if not card_number or not expiry or not cvv:
                 flash("Payment information is required")
                 return False, None
-                
+
             # Basic card validation
             card_digits = ''.join(filter(str.isdigit, card_number))
             if len(card_digits) < 13 or len(card_digits) > 16:
                 flash("Invalid card number")
                 return False, None
-                
+
             # Basic expiry validation (MM/YY format)
             if not re.match(r'^\d{2}/\d{2}$', expiry):
                 flash("Expiry must be in MM/YY format")
                 return False, None
-                
+
             # Basic CVV validation
             cvv_digits = ''.join(filter(str.isdigit, cvv))
             if len(cvv_digits) < 3 or len(cvv_digits) > 4:
@@ -190,24 +191,24 @@ class RegistrationManager:
                     latest_subscription = Subscription.query.filter_by(
                         user_id=existing_user.id
                     ).order_by(Subscription.created_at.desc()).first()
-                    
+
                     now = datetime.now(timezone.utc)
-                    
+
                     # If user has expired subscription, allow "re-registration" (reactivation)
                     if latest_subscription and latest_subscription.end_date < now and latest_subscription.status in ['expired', 'cancelled']:
                         logger.info(f"Register: Reactivating expired user account: {email}")
-                        
+
                         # Update user information
                         existing_user.username = username
                         existing_user.first_name = first_name
                         existing_user.last_name = last_name
                         existing_user.set_password(password)
-                        
+
                         # Update phone if provided
                         if phone:
                             normalized_phone = re.sub(r'[ -()]', '', phone)
                             existing_user.phone = normalized_phone
-                        
+
                         # Reset verification status to require re-verification
                         existing_user.is_verified = False
                         existing_user.is_active = True
@@ -215,18 +216,18 @@ class RegistrationManager:
                         existing_user.failed_login_attempts = 0
                         existing_user.account_locked_until = None
                         existing_user.lockout_count = 0
-                        
+
                         db.session.commit()
-                        
+
                         # Handle subscription renewal - UPDATE BILLING INFO
                         from src.infrastructure.database import BillingInfo, Subscription
-                        
+
                         # Update or create billing info
                         billing_info = BillingInfo.query.filter_by(
                             user_id=existing_user.id,
                             is_default=True
                         ).first()
-                        
+
                         if billing_info:
                             # Update existing billing info
                             billing_info.address_line1 = address_line1
@@ -237,7 +238,7 @@ class RegistrationManager:
                             billing_info.country = country
                             billing_info.last_four = card_digits[-4:]
                             billing_info.card_type = self._determine_card_type(card_digits)
-                            
+
                             expiry_parts = expiry.split('/')
                             billing_info.expiry_month = int(expiry_parts[0])
                             billing_info.expiry_year = int(expiry_parts[1]) + 2000
@@ -261,7 +262,7 @@ class RegistrationManager:
                                 is_default=True
                             )
                             db.session.add(billing_info)
-                        
+
                         # Reactivate subscription
                         end_date = now + timedelta(days=30)
                         latest_subscription.status = 'active'
@@ -269,10 +270,10 @@ class RegistrationManager:
                         latest_subscription.end_date = end_date
                         latest_subscription.next_billing_date = end_date
                         latest_subscription.canceled_at = None
-                        
+
                         db.session.commit()
                         logger.info(f"Register: Subscription reactivated for returning user {email}")
-                        
+
                         # Send verification email for reactivated account
                         email_manager = EmailManager(self.mail)
                         if not self.send_verification_email(existing_user):
@@ -280,20 +281,18 @@ class RegistrationManager:
                             flash("Account reactivated successfully, but failed to send verification email")
                         else:
                             flash("Welcome back! Your account has been reactivated. Please check your email for verification.")
-                        
+
                         logger.info(f"Register: Returning user account reactivated: {email}")
                         return True, existing_user
-                    
-                    else:
-                        # User has active subscription or recent account
-                        logger.debug(f"Register: Email already registered with active account: {email}")
-                        flash("Email already registered")
-                        return False, None
-                else:
-                    # Non-premium user trying to register again
-                    logger.debug(f"Register: Email already registered: {email}")
+
+                    # User has active subscription or recent account
+                    logger.debug(f"Register: Email already registered with active account: {email}")
                     flash("Email already registered")
                     return False, None
+                # Non-premium user trying to register again
+                logger.debug(f"Register: Email already registered: {email}")
+                flash("Email already registered")
+                return False, None
 
             # Create new user (ALL USERS NOW PREMIUM)
             user = User(
@@ -313,9 +312,10 @@ class RegistrationManager:
             logger.info(f"Register: New user data saved for {email}, username: {username}")
 
             # Create billing info and subscription records for ALL users
+            from datetime import datetime, timedelta
+
             from src.infrastructure.database import BillingInfo, Subscription
-            from datetime import datetime, timedelta, timezone
-            
+
             # Create billing info
             billing_info = BillingInfo(
                 user_id=user.id,
@@ -329,22 +329,22 @@ class RegistrationManager:
                 last_four=card_digits[-4:],
                 is_default=True
             )
-            
+
             # Extract expiry month and year
             expiry_parts = expiry.split('/')
             expiry_month = int(expiry_parts[0])
             expiry_year = int(expiry_parts[1]) + 2000
-            
+
             billing_info.expiry_month = expiry_month
             billing_info.expiry_year = expiry_year
             billing_info.card_type = self._determine_card_type(card_digits)
-            
+
             db.session.add(billing_info)
-            
+
             # Create subscription - monthly subscription with 30-day period
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             end_date = now + timedelta(days=30)
-            
+
             subscription = Subscription(
                 user_id=user.id,
                 subscription_type='monthly',
@@ -354,7 +354,7 @@ class RegistrationManager:
                 end_date=end_date,
                 next_billing_date=end_date
             )
-            
+
             db.session.add(subscription)
             db.session.commit()
             logger.info(f"Register: Billing and subscription created for {email}")
@@ -372,17 +372,16 @@ class RegistrationManager:
             db.session.rollback()
             flash("An error occurred during registration")
             return False, None
-        
+
 
     def _determine_card_type(self, card_digits):
         """Helper method to determine card type from card number."""
         if card_digits.startswith('4'):
             return 'Visa'
-        elif card_digits.startswith('5'):
+        if card_digits.startswith('5'):
             return 'MasterCard'
-        elif card_digits.startswith('3'):
+        if card_digits.startswith('3'):
             return 'American Express'
-        elif card_digits.startswith('6'):
+        if card_digits.startswith('6'):
             return 'Discover'
-        else:
-            return 'Other'
+        return 'Other'

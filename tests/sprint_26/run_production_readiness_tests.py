@@ -21,12 +21,10 @@ Usage:
     python tests/sprint_26/run_production_readiness_tests.py --integration-only
 """
 
-import sys
-import os
-import time
 import argparse
 import subprocess
-from typing import List, Dict, Any
+import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,7 +48,7 @@ class TestSuiteResult:
 
 class ProductionReadinessTestRunner:
     """Production readiness test suite runner."""
-    
+
     def __init__(self):
         self.project_root = Path(__file__).parent.parent.parent
         self.test_suites = {
@@ -97,14 +95,14 @@ class ProductionReadinessTestRunner:
                 'categories': ['error_handling', 'recovery', 'resilience']
             }
         }
-        
+
         self.results = []
-    
+
     def run_test_suite(self, suite_key: str, verbose: bool = True) -> TestSuiteResult:
         """Run a single test suite."""
         suite = self.test_suites[suite_key]
         test_file = self.project_root / suite['file']
-        
+
         if not test_file.exists():
             print(f"❌ Test file not found: {test_file}")
             return TestSuiteResult(
@@ -117,11 +115,11 @@ class ProductionReadinessTestRunner:
                 exit_code=1,
                 output=f"Test file not found: {test_file}"
             )
-        
+
         print(f"\n🧪 Running: {suite['name']}")
         print(f"📁 File: {suite['file']}")
         print("=" * 80)
-        
+
         # Prepare pytest command
         cmd = [
             sys.executable, '-m', 'pytest',
@@ -131,13 +129,13 @@ class ProductionReadinessTestRunner:
             '--disable-warnings',
             '--color=yes'
         ]
-        
+
         if verbose:
             cmd.append('-s')
-        
+
         # Run test suite
         start_time = time.time()
-        
+
         try:
             result = subprocess.run(
                 cmd,
@@ -146,13 +144,13 @@ class ProductionReadinessTestRunner:
                 text=True,
                 timeout=300  # 5 minute timeout per suite
             )
-            
+
             duration = time.time() - start_time
-            
+
             # Parse pytest output
             output_lines = result.stdout.split('\n')
             passed, failed, skipped = self._parse_pytest_output(output_lines)
-            
+
             # Create result
             test_result = TestSuiteResult(
                 suite_name=suite['name'],
@@ -164,19 +162,19 @@ class ProductionReadinessTestRunner:
                 exit_code=result.returncode,
                 output=result.stdout + result.stderr
             )
-            
+
             # Print summary
             status_icon = "✅" if result.returncode == 0 else "❌"
             print(f"\n{status_icon} {suite['name']}")
             print(f"   Passed: {passed}, Failed: {failed}, Skipped: {skipped}")
             print(f"   Duration: {duration:.2f}s")
-            
+
             if result.returncode != 0 and verbose:
-                print(f"\n📋 Error Output:")
+                print("\n📋 Error Output:")
                 print(result.stderr)
-            
+
             return test_result
-            
+
         except subprocess.TimeoutExpired:
             duration = time.time() - start_time
             return TestSuiteResult(
@@ -189,7 +187,7 @@ class ProductionReadinessTestRunner:
                 exit_code=1,
                 output=f"Test suite timed out after {duration:.2f}s"
             )
-        
+
         except Exception as e:
             duration = time.time() - start_time
             return TestSuiteResult(
@@ -202,11 +200,11 @@ class ProductionReadinessTestRunner:
                 exit_code=1,
                 output=f"Error running test suite: {str(e)}"
             )
-    
-    def _parse_pytest_output(self, output_lines: List[str]) -> tuple:
+
+    def _parse_pytest_output(self, output_lines: list[str]) -> tuple:
         """Parse pytest output to extract test counts."""
         passed, failed, skipped = 0, 0, 0
-        
+
         for line in output_lines:
             if 'passed' in line and 'failed' in line:
                 # Look for summary line like "5 failed, 10 passed, 2 skipped"
@@ -225,7 +223,7 @@ class ProductionReadinessTestRunner:
                     except ValueError:
                         continue
                 break
-            elif 'passed in' in line:
+            if 'passed in' in line:
                 # Look for line like "10 passed in 2.5s"
                 parts = line.split()
                 if len(parts) >= 1:
@@ -233,77 +231,77 @@ class ProductionReadinessTestRunner:
                         passed = int(parts[0])
                     except ValueError:
                         pass
-        
+
         return passed, failed, skipped
-    
-    def run_category_tests(self, category: str) -> List[TestSuiteResult]:
+
+    def run_category_tests(self, category: str) -> list[TestSuiteResult]:
         """Run all test suites in a specific category."""
         category_results = []
-        
+
         print(f"\n🏷️  Running {category.upper()} Tests")
         print("=" * 80)
-        
+
         for suite_key, suite_config in self.test_suites.items():
             if category in suite_config['categories']:
                 result = self.run_test_suite(suite_key)
                 category_results.append(result)
-        
+
         return category_results
-    
-    def run_all_tests(self, verbose: bool = True) -> List[TestSuiteResult]:
+
+    def run_all_tests(self, verbose: bool = True) -> list[TestSuiteResult]:
         """Run all production readiness test suites."""
         print("🚀 TICKSTOCK PRODUCTION READINESS TEST SUITE")
         print("=" * 80)
         print("Testing critical components for production deployment")
         print(f"Project Root: {self.project_root}")
         print(f"Test Suites: {len(self.test_suites)}")
-        
+
         all_results = []
-        
+
         for suite_key in self.test_suites.keys():
             result = self.run_test_suite(suite_key, verbose)
             all_results.append(result)
-        
+
         return all_results
-    
-    def print_summary_report(self, results: List[TestSuiteResult]):
+
+    def print_summary_report(self, results: list[TestSuiteResult]):
         """Print comprehensive test summary report."""
         print("\n" + "=" * 80)
         print("🏁 PRODUCTION READINESS TEST SUMMARY REPORT")
         print("=" * 80)
-        
+
         total_passed = sum(r.passed for r in results)
         total_failed = sum(r.failed for r in results)
         total_skipped = sum(r.skipped for r in results)
         total_duration = sum(r.duration for r in results)
-        
+
         # Overall status
         all_passed = all(r.exit_code == 0 for r in results)
         critical_failed = any(r.exit_code != 0 for r in results if self._is_critical_suite(r.suite_name))
-        
+
         status_icon = "✅" if all_passed else "❌"
         readiness_status = "READY" if all_passed else ("CRITICAL ISSUES" if critical_failed else "WARNINGS")
-        
+
         print(f"\n{status_icon} PRODUCTION READINESS STATUS: {readiness_status}")
         print(f"📊 OVERALL RESULTS: {total_passed} passed, {total_failed} failed, {total_skipped} skipped")
         print(f"⏱️  TOTAL DURATION: {total_duration:.2f}s")
         print(f"🧪 TEST SUITES RUN: {len(results)}")
-        
+
         # Detailed results by category
         categories = ['performance', 'integration', 'security', 'database', 'error_handling']
-        
+
         for category in categories:
             category_results = [r for r in results if self._suite_in_category(r.suite_name, category)]
             if category_results:
                 category_passed = all(r.exit_code == 0 for r in category_results)
                 category_icon = "✅" if category_passed else "❌"
                 category_count = len(category_results)
-                
+
                 print(f"\n{category_icon} {category.upper()} TESTS ({category_count} suites)")
                 for result in category_results:
                     suite_icon = "✅" if result.exit_code == 0 else "❌"
                     print(f"   {suite_icon} {result.suite_name}: {result.passed}P/{result.failed}F/{result.skipped}S ({result.duration:.1f}s)")
-        
+
         # Critical Issues
         failed_results = [r for r in results if r.exit_code != 0]
         if failed_results:
@@ -312,17 +310,17 @@ class ProductionReadinessTestRunner:
                 print(f"   • {result.suite_name}")
                 if result.failed > 0:
                     print(f"     └─ {result.failed} test(s) failed")
-        
+
         # Performance Summary
         perf_results = [r for r in results if 'performance' in self._get_suite_categories(r.suite_name)]
         if perf_results:
-            print(f"\n⚡ PERFORMANCE VALIDATION:")
+            print("\n⚡ PERFORMANCE VALIDATION:")
             for result in perf_results:
                 perf_icon = "✅" if result.exit_code == 0 else "❌"
                 print(f"   {perf_icon} {result.suite_name}: {result.duration:.2f}s")
-        
+
         # Deployment Recommendations
-        print(f"\n📋 DEPLOYMENT RECOMMENDATIONS:")
+        print("\n📋 DEPLOYMENT RECOMMENDATIONS:")
         if all_passed:
             print("   ✅ All tests passed - System ready for production deployment")
             print("   ✅ Performance requirements validated")
@@ -335,33 +333,33 @@ class ProductionReadinessTestRunner:
             else:
                 print("   ⚠️  WARNING: Minor issues detected - Review before deployment")
                 print("   📝 Action Recommended: Address warnings for optimal performance")
-        
+
         # Test Coverage Summary
-        print(f"\n📈 TEST COVERAGE SUMMARY:")
+        print("\n📈 TEST COVERAGE SUMMARY:")
         print(f"   🗄️  Database Persistence: {'✅ Tested' if any('database' in self._get_suite_categories(r.suite_name) for r in results) else '❌ Missing'}")
         print(f"   🔌 API Integration: {'✅ Tested' if any('api' in self._get_suite_categories(r.suite_name) for r in results) else '❌ Missing'}")
         print(f"   📡 WebSocket Communication: {'✅ Tested' if any('websocket' in self._get_suite_categories(r.suite_name) for r in results) else '❌ Missing'}")
         print(f"   🚀 Performance Benchmarks: {'✅ Tested' if any('performance' in self._get_suite_categories(r.suite_name) for r in results) else '❌ Missing'}")
         print(f"   🔒 Security Validation: {'✅ Tested' if any('security' in self._get_suite_categories(r.suite_name) for r in results) else '❌ Missing'}")
         print(f"   🛡️  Error Recovery: {'✅ Tested' if any('error_handling' in self._get_suite_categories(r.suite_name) for r in results) else '❌ Missing'}")
-        
+
         return all_passed
-    
+
     def _is_critical_suite(self, suite_name: str) -> bool:
         """Check if a test suite is marked as critical."""
         for suite_config in self.test_suites.values():
             if suite_config['name'] == suite_name:
                 return suite_config.get('critical', False)
         return False
-    
+
     def _suite_in_category(self, suite_name: str, category: str) -> bool:
         """Check if a suite belongs to a specific category."""
         for suite_config in self.test_suites.values():
             if suite_config['name'] == suite_name:
                 return category in suite_config.get('categories', [])
         return False
-    
-    def _get_suite_categories(self, suite_name: str) -> List[str]:
+
+    def _get_suite_categories(self, suite_name: str) -> list[str]:
         """Get categories for a test suite."""
         for suite_config in self.test_suites.values():
             if suite_config['name'] == suite_name:
@@ -379,11 +377,11 @@ def main():
     parser.add_argument('--suite', type=str, help='Run specific test suite by key')
     parser.add_argument('--list-suites', action='store_true', help='List all available test suites')
     parser.add_argument('--quiet', action='store_true', help='Quiet output mode')
-    
+
     args = parser.parse_args()
-    
+
     runner = ProductionReadinessTestRunner()
-    
+
     if args.list_suites:
         print("📋 Available Test Suites:")
         for key, suite in runner.test_suites.items():
@@ -392,8 +390,8 @@ def main():
             print(f"   {critical_marker} {key}: {suite['name']}")
             print(f"      Categories: {categories}")
             print(f"      File: {suite['file']}")
-        return
-    
+        return None
+
     # Run specific category or suite
     if args.performance_only:
         results = runner.run_category_tests('performance')
@@ -414,10 +412,10 @@ def main():
     else:
         # Run all tests
         results = runner.run_all_tests(not args.quiet)
-    
+
     # Print summary report
     all_passed = runner.print_summary_report(results)
-    
+
     # Exit with appropriate code
     return 0 if all_passed else 1
 

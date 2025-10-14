@@ -3,13 +3,11 @@ Sprint 14 Phase 1: Test Configuration and Fixtures
 Shared test configuration, fixtures, and utilities for Sprint 14 testing.
 """
 
-import pytest
-import os
 import tempfile
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
-from typing import Dict, List, Any, Optional
+from typing import Any
 
+import pytest
 
 # Test markers for Sprint 14
 pytest.mark.etf = pytest.mark.etf
@@ -24,7 +22,7 @@ def test_database_uri():
     return "postgresql://tickstock_test:test_pass@localhost:5432/tickstock_test_sprint14"
 
 
-@pytest.fixture(scope="session") 
+@pytest.fixture(scope="session")
 def test_redis_config():
     """Test Redis configuration for Sprint 14 tests."""
     return {
@@ -60,7 +58,7 @@ def sample_etf_data():
             'name': 'Invesco QQQ Trust ETF',
             'type': 'ETF',
             'composite_figi': 'BBG000BG7MM2',
-            'cik': '0000831641', 
+            'cik': '0000831641',
             'list_date': '1999-03-10',
             'market_cap': 220000000000
         },
@@ -78,7 +76,7 @@ def sample_etf_data():
 
 @pytest.fixture
 def sample_stock_data():
-    """Sample stock data for testing.""" 
+    """Sample stock data for testing."""
     return {
         'AAPL': {
             'ticker': 'AAPL',
@@ -97,7 +95,7 @@ def sample_stock_data():
             'market_cap': 2800000000000
         },
         'NVDA': {
-            'ticker': 'NVDA', 
+            'ticker': 'NVDA',
             'name': 'NVIDIA Corporation',
             'type': 'CS',
             'cik': '0001045810',
@@ -111,7 +109,7 @@ def sample_stock_data():
 def sample_ohlcv_data():
     """Sample OHLCV data for testing."""
     base_date = datetime(2024, 9, 1)
-    
+
     return [
         {
             'symbol': 'SPY',
@@ -187,20 +185,20 @@ def temp_test_directory():
 
 class MockPerformanceTimer:
     """Mock performance timer for consistent testing."""
-    
+
     def __init__(self):
         self.start_time = None
         self.end_time = None
         self.elapsed = 0
         self.mock_elapsed = 0.1  # Default mock time
-    
+
     def start(self):
         self.start_time = 0
-    
+
     def stop(self):
         self.end_time = self.mock_elapsed
         self.elapsed = self.mock_elapsed
-    
+
     def set_mock_elapsed(self, seconds: float):
         """Set mock elapsed time for testing."""
         self.mock_elapsed = seconds
@@ -213,40 +211,40 @@ def mock_performance_timer():
 
 
 # Test data generators
-def generate_etf_symbols(count: int = 50) -> List[str]:
+def generate_etf_symbols(count: int = 50) -> list[str]:
     """Generate ETF symbols for testing."""
     etf_prefixes = ['SPY', 'QQQ', 'IWM', 'VTI', 'VOO', 'IVV', 'VEA', 'IEFA', 'VWO', 'EEM']
     symbols = etf_prefixes[:min(count, len(etf_prefixes))]
-    
+
     # Generate additional symbols if needed
     for i in range(len(symbols), count):
         symbols.append(f'ETF{i:03d}')
-    
+
     return symbols[:count]
 
 
-def generate_stock_symbols(count: int = 100) -> List[str]:
+def generate_stock_symbols(count: int = 100) -> list[str]:
     """Generate stock symbols for testing."""
     stock_prefixes = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'BRK.B', 'JPM', 'JNJ']
     symbols = stock_prefixes[:min(count, len(stock_prefixes))]
-    
+
     # Generate additional symbols if needed
     for i in range(len(symbols), count):
         symbols.append(f'STOCK{i:04d}')
-    
+
     return symbols[:count]
 
 
-def generate_ohlcv_data(symbol: str, days: int = 30) -> List[Dict]:
+def generate_ohlcv_data(symbol: str, days: int = 30) -> list[dict]:
     """Generate OHLCV data for testing."""
     base_date = datetime.now().date()
     base_price = 100.0
-    
+
     data = []
     for i in range(days):
         date = base_date - timedelta(days=i)
         price_var = i * 0.1
-        
+
         data.append({
             'symbol': symbol,
             'date': date.strftime('%Y-%m-%d'),
@@ -258,41 +256,41 @@ def generate_ohlcv_data(symbol: str, days: int = 30) -> List[Dict]:
             'fmv_price': base_price + price_var + 0.55,
             'fmv_supported': True
         })
-    
+
     return data
 
 
 # Test utilities
-def assert_etf_metadata_complete(metadata: Dict[str, Any]):
+def assert_etf_metadata_complete(metadata: dict[str, Any]):
     """Assert ETF metadata contains all required fields."""
     required_fields = [
         'etf_type', 'fmv_supported', 'issuer', 'correlation_reference',
         'composite_figi', 'share_class_figi', 'cik', 'inception_date'
     ]
-    
+
     for field in required_fields:
         assert field in metadata, f"Missing required ETF metadata field: {field}"
 
 
-def assert_universe_structure_valid(universe_data: Dict[str, Any], universe_type: str = 'etf_universe'):
+def assert_universe_structure_valid(universe_data: dict[str, Any], universe_type: str = 'etf_universe'):
     """Assert universe data structure is valid."""
     assert 'name' in universe_data
     assert 'description' in universe_data
-    
+
     if universe_type == 'etf_universe':
         assert 'etfs' in universe_data
         assert isinstance(universe_data['etfs'], list)
         assert len(universe_data['etfs']) > 0
-        
+
         for etf in universe_data['etfs']:
             assert 'ticker' in etf
             assert 'name' in etf
-    
+
     elif universe_type == 'stock_universe':
         assert 'stocks' in universe_data
         assert isinstance(universe_data['stocks'], list)
         assert len(universe_data['stocks']) > 0
-        
+
         for stock in universe_data['stocks']:
             assert 'ticker' in stock
             assert 'name' in stock
@@ -321,19 +319,19 @@ def pytest_collection_modifyitems(config, items):
         # Add sprint14 marker to all tests in this directory
         if 'sprint_14' in str(item.fspath):
             item.add_marker(pytest.mark.sprint14)
-        
+
         # Add specific markers based on test file names
         if 'etf_integration' in str(item.fspath):
             item.add_marker(pytest.mark.etf)
-        
+
         if 'eod_processing' in str(item.fspath):
             item.add_marker(pytest.mark.eod)
-        
+
         if 'subset_universe' in str(item.fspath):
             item.add_marker(pytest.mark.development)
-        
+
         if 'integration' in str(item.fspath):
             item.add_marker(pytest.mark.integration)
-        
+
         if 'performance_benchmarks' in str(item.fspath):
             item.add_marker(pytest.mark.performance)

@@ -1,8 +1,8 @@
 # classes/market/state.py
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Deque
-from collections import deque
 import time
+from collections import deque
+from dataclasses import dataclass, field
+
 
 @dataclass
 class TickerState:
@@ -11,46 +11,46 @@ class TickerState:
     Replaces various dict-based state tracking.
     """
     ticker: str
-    
+
     # Price tracking
     current_price: float = 0.0
     previous_price: float = 0.0
-    open_price: Optional[float] = None
-    
+    open_price: float | None = None
+
     # High/Low tracking
     day_high: float = 0.0
     day_low: float = float('inf')
     session_high: float = 0.0
     session_low: float = float('inf')
-    
+
     # VWAP tracking
     vwap: float = 0.0
     vwap_numerator: float = 0.0
     vwap_denominator: float = 0.0
-    
+
     # Volume tracking
     total_volume: float = 0
     avg_volume: float = 0
     volume_30s: float = 0
-    
+
     # Momentum tracking
     momentum_score: float = 0.0
-    price_changes: Deque[float] = field(default_factory=lambda: deque(maxlen=20))
-    
+    price_changes: deque[float] = field(default_factory=lambda: deque(maxlen=20))
+
     # Event counts
     high_count: int = 0
     low_count: int = 0
     trend_count: int = 0
     surge_count: int = 0
-    
+
     # Timing
     last_update: float = field(default_factory=time.time)
-    last_event_time: Optional[float] = None
+    last_event_time: float | None = None
     session_start: float = field(default_factory=time.time)
-    
+
     # Market session
     market_session: str = 'REGULAR'  # 'PREMARKET', 'REGULAR', 'AFTERHOURS'
-    
+
     '''
     def update_price(self, price: float, volume: float = 0):
         """Update price and related calculations"""
@@ -138,4 +138,4 @@ class TickerState:
             'market_session': self.market_session,
             'last_update': self.last_update
         }
-    '''       
+    '''

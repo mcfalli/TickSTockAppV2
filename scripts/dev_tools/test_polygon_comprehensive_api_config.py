@@ -5,12 +5,12 @@ Comprehensive test script that checks:
 3. Polygon API connection
 4. Data provider factory behavior
 """
-import os
-import sys
-import logging
-import requests
 import json
+import logging
+import sys
 import traceback
+
+import requests
 
 # Import the ConfigManager
 from src.core.services.config_manager import ConfigManager
@@ -50,7 +50,7 @@ print("\nSTEP 2: CONFIG VALIDATION\n")
 
 # Check config types and values
 print(f"USE_POLYGON_API type: {type(use_polygon).__name__}, value: {use_polygon}")
-print(f"Other relevant config values:")
+print("Other relevant config values:")
 print(f"  - MARKET_TIMEZONE: {config.get('MARKET_TIMEZONE')}")
 print(f"  - UPDATE_INTERVAL: {config.get('UPDATE_INTERVAL')}")
 print(f"  - USE_SYNTHETIC_DATA: {config.get('USE_SYNTHETIC_DATA')}")
@@ -71,10 +71,10 @@ print(f"Using API key starting with: {api_key[:4]}..." if api_key else "No API k
 
 try:
     response = requests.get(url, params=params, timeout=10)
-    
+
     print(f"Status code: {response.status_code}")
     print(f"Rate limit remaining: {response.headers.get('X-Ratelimit-Remaining', 'N/A')}")
-    
+
     if response.status_code == 200:
         data = response.json()
         print(f"Response data: {json.dumps(data, indent=2)}")
@@ -95,39 +95,39 @@ try:
     print("Trying to import data_provider_factory...")
     from src.infrastructure.data_sources.factory import DataProviderFactory
     print("SUCCESS: DataProviderFactory imported")
-    
+
     print("\nTrying to import polygon_data_provider...")
     from src.infrastructure.data_sources.polygon.provider import PolygonDataProvider
     print("SUCCESS: PolygonDataProvider imported")
-    
+
     print("\nUsing DataProviderFactory with loaded config...")
     try:
         # Use the config from ConfigManager
         provider = DataProviderFactory.get_provider(config)
         provider_type = provider.__class__.__name__
         print(f"Provider created: {provider_type}")
-        
+
         # Test availability regardless of provider type
         print("Testing is_available() method...")
         is_available = provider.is_available()
         print(f"is_available() returned: {is_available}")
-        
+
         # If we got SimulatedDataProvider despite asking for Polygon
         if not use_polygon and provider_type == 'SimulatedDataProvider':
             print("NOTE: Using SimulatedDataProvider as configured")
         elif use_polygon and provider_type != 'PolygonDataProvider':
             print(f"WARNING: Received {provider_type} despite USE_POLYGON_API=True")
-            
+
             # Try PolygonDataProvider directly
             print("\nTesting PolygonDataProvider directly:")
             polygon_provider = PolygonDataProvider(config)
             polygon_available = polygon_provider.is_available()
             print(f"Direct PolygonDataProvider.is_available() returned: {polygon_available}")
-            
+
     except Exception as e:
         print(f"Error creating provider: {e}")
         print(traceback.format_exc())
-    
+
 except ImportError as e:
     print(f"ImportError: {str(e)}")
     print("Some modules are not available in this context. Skip DataProviderFactory test.")

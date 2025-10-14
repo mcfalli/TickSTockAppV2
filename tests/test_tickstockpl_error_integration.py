@@ -4,15 +4,16 @@ Sprint 32: Test TickStockPL Error Integration
 Monitors and verifies that TickStockPL errors are being received and processed
 """
 
+import json
 import os
 import sys
 import time
-import json
-import redis
-import psycopg2
-from datetime import datetime, timedelta
-from src.core.services.config_manager import get_config
+from datetime import datetime
 
+import psycopg2
+import redis
+
+from src.core.services.config_manager import get_config
 
 # Get configuration
 try:
@@ -53,7 +54,7 @@ try:
 
     # Get one message to confirm subscription
     message = pubsub.get_message(timeout=1)
-    print(f"  [OK] Subscribed successfully")
+    print("  [OK] Subscribed successfully")
 
     # Listen for real messages
     print("  [WAIT] Waiting for TickStockPL errors...")
@@ -141,7 +142,7 @@ try:
     log_file = 'logs/tickstock.log'
     if os.path.exists(log_file):
         # Read last 1000 lines
-        with open(log_file, 'r') as f:
+        with open(log_file) as f:
             lines = f.readlines()[-1000:]
 
         # Count TickStockPL references

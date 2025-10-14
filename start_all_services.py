@@ -4,12 +4,11 @@ TickStock Combined Startup Script
 Launches both TickStockAppV2 (Consumer) and TickStockPL (Producer) services
 """
 
-import os
-import sys
-import time
 import signal
 import subprocess
+import sys
 import threading
+import time
 from pathlib import Path
 
 # Service paths
@@ -92,11 +91,11 @@ def validate_tickstockpl_venv():
 
     if not TICKSTOCKPL_PYTHON.exists():
         print(f"[VALIDATION] ❌ CRITICAL: TickStockPL Python not found at {TICKSTOCKPL_PYTHON}")
-        print(f"[VALIDATION] Expected: C:/Users/McDude/TickStockPL/venv/Scripts/python.exe")
-        print(f"[VALIDATION] Action: Create TickStockPL virtual environment:")
-        print(f"[VALIDATION]   cd C:/Users/McDude/TickStockPL")
-        print(f"[VALIDATION]   python -m venv venv")
-        print(f"[VALIDATION]   venv\\Scripts\\pip install -r requirements.txt")
+        print("[VALIDATION] Expected: C:/Users/McDude/TickStockPL/venv/Scripts/python.exe")
+        print("[VALIDATION] Action: Create TickStockPL virtual environment:")
+        print("[VALIDATION]   cd C:/Users/McDude/TickStockPL")
+        print("[VALIDATION]   python -m venv venv")
+        print("[VALIDATION]   venv\\Scripts\\pip install -r requirements.txt")
         return False
 
     print(f"[VALIDATION] ✅ TickStockPL Python found: {TICKSTOCKPL_PYTHON}")
@@ -125,10 +124,10 @@ def validate_tickstockpl_venv():
 
     if missing_deps:
         print(f"\n[VALIDATION] ❌ CRITICAL: {len(missing_deps)} missing dependencies in TickStockPL venv")
-        print(f"[VALIDATION] Action: Install missing dependencies:")
-        print(f"[VALIDATION]   cd C:/Users/McDude/TickStockPL")
-        print(f"[VALIDATION]   venv\\Scripts\\pip install -r requirements.txt")
-        print(f"\n[VALIDATION] Missing packages:")
+        print("[VALIDATION] Action: Install missing dependencies:")
+        print("[VALIDATION]   cd C:/Users/McDude/TickStockPL")
+        print("[VALIDATION]   venv\\Scripts\\pip install -r requirements.txt")
+        print("\n[VALIDATION] Missing packages:")
         for dep, purpose in missing_deps:
             print(f"[VALIDATION]   - {dep}: {purpose}")
         return False
@@ -146,7 +145,7 @@ def validate_service_health(process, service_name, timeout=3):
     if process.poll() is not None:
         exit_code = process.poll()
         print(f"\n[VALIDATION] ❌ CRITICAL: {service_name} crashed immediately (exit code: {exit_code})")
-        print(f"[VALIDATION] Service failed to start - check logs above for error details")
+        print("[VALIDATION] Service failed to start - check logs above for error details")
         return False
 
     print(f"[VALIDATION] ✅ {service_name} running (PID: {process.pid})")
@@ -294,7 +293,7 @@ def start_tickstockapp():
 
     app_script = TICKSTOCKAPP_PATH / "src" / "app.py"
     if not app_script.exists():
-        print(f"[TickStockAppV2] ERROR: app.py not found")
+        print("[TickStockAppV2] ERROR: app.py not found")
         return None
 
     try:
@@ -390,8 +389,7 @@ def main():
         print("  - Windows: redis-server.exe")
         print("="*60)
         return 1
-    else:
-        print("[VALIDATION] ✅ Redis is running")
+    print("[VALIDATION] ✅ Redis is running")
 
     if not postgres_ok:
         print("\n" + "="*60)
@@ -403,8 +401,7 @@ def main():
         print("  - Linux: sudo systemctl start postgresql")
         print("="*60)
         return 1
-    else:
-        print("[VALIDATION] ✅ PostgreSQL is running")
+    print("[VALIDATION] ✅ PostgreSQL is running")
 
     # Check port availability
     PORT = 5000

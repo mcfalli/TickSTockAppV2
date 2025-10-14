@@ -12,9 +12,9 @@ Sprint: 23
 """
 
 import logging
-import asyncio
-from typing import Dict, Any, Optional
 from contextlib import asynccontextmanager
+from typing import Any
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -24,14 +24,14 @@ logger = logging.getLogger(__name__)
 
 class AsyncDatabaseConnection:
     """Async wrapper for database connections with cursor management"""
-    
+
     def __init__(self, connection):
         self.connection = connection
-        
+
     def cursor(self):
         """Return async cursor context manager"""
         return AsyncCursor(self.connection.cursor(cursor_factory=RealDictCursor))
-    
+
     async def close(self):
         """Close the database connection"""
         if self.connection:
@@ -39,35 +39,35 @@ class AsyncDatabaseConnection:
 
 class AsyncCursor:
     """Async wrapper for database cursor operations"""
-    
+
     def __init__(self, cursor):
         self.cursor = cursor
-        
+
     async def __aenter__(self):
         return self
-        
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.cursor.close()
-        
-    async def execute(self, query: str, params: Optional[tuple] = None):
+
+    async def execute(self, query: str, params: tuple | None = None):
         """Execute a database query"""
         if params:
             self.cursor.execute(query, params)
         else:
             self.cursor.execute(query)
-            
+
     async def fetchone(self):
         """Fetch one result row"""
         return self.cursor.fetchone()
-        
+
     async def fetchall(self):
         """Fetch all result rows"""
         return self.cursor.fetchall()
 
 class DatabaseConnectionPool:
     """Async database connection pool for Sprint 23 analytics services"""
-    
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize async database connection pool
         
         Args:
@@ -76,7 +76,7 @@ class DatabaseConnectionPool:
         self.config = config or {}
         self.tickstock_db = TickStockDatabase(self.config)
         self._test_connection()
-        
+
     def _test_connection(self):
         """Test that database connection works"""
         try:
@@ -89,7 +89,7 @@ class DatabaseConnectionPool:
         except Exception as e:
             logger.error(f"ANALYTICS-DB: Connection pool initialization failed: {e}")
             raise
-    
+
     @asynccontextmanager
     async def get_connection(self):
         """Get async database connection context manager
@@ -112,8 +112,8 @@ class DatabaseConnectionPool:
         finally:
             if connection:
                 connection.close()
-    
-    async def execute_analytics_function(self, function_name: str, params: Optional[tuple] = None) -> list:
+
+    async def execute_analytics_function(self, function_name: str, params: tuple | None = None) -> list:
         """Execute a Sprint 23 analytics function and return results
         
         Args:
@@ -124,43 +124,41 @@ class DatabaseConnectionPool:
             List of result rows
         """
         try:
-            async with self.get_connection() as conn:
-                async with conn.cursor() as cursor:
-                    query = f"SELECT * FROM {function_name}"
-                    if params:
-                        query += f"({', '.join(['%s'] * len(params))})"
-                    else:
-                        query += "()"
-                    
-                    await cursor.execute(query, params)
-                    results = await cursor.fetchall()
-                    
-                    logger.info(f"ANALYTICS-DB: Executed {function_name}, returned {len(results)} rows")
-                    return results
-                    
+            async with self.get_connection() as conn, conn.cursor() as cursor:
+                query = f"SELECT * FROM {function_name}"
+                if params:
+                    query += f"({', '.join(['%s'] * len(params))})"
+                else:
+                    query += "()"
+
+                await cursor.execute(query, params)
+                results = await cursor.fetchall()
+
+                logger.info(f"ANALYTICS-DB: Executed {function_name}, returned {len(results)} rows")
+                return results
+
         except Exception as e:
             logger.error(f"ANALYTICS-DB: Error executing {function_name}: {e}")
             raise
-    
-    def get_connection_info(self) -> Dict[str, Any]:
+
+    def get_connection_info(self) -> dict[str, Any]:
         """Get connection pool information"""
         return {
             'connection_url_safe': self.tickstock_db.connection_url.replace(
-                self.tickstock_db.connection_url.split('@')[0].split('//')[1], 
+                self.tickstock_db.connection_url.split('@')[0].split('//')[1],
                 '***:***'
             ),
             'status': 'connected',
             'database': 'tickstock'
         }
-    
-    async def health_check(self) -> Dict[str, Any]:
+
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check on connection pool"""
         try:
-            async with self.get_connection() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute("SELECT 1 as health_check")
-                    result = await cursor.fetchone()
-                    
+            async with self.get_connection() as conn, conn.cursor() as cursor:
+                await cursor.execute("SELECT 1 as health_check")
+                result = await cursor.fetchone()
+
             return {
                 'status': 'healthy',
                 'connection': 'available',

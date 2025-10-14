@@ -10,19 +10,20 @@ Test Fixtures:
 - Realistic test data generators
 """
 
-import pytest
 import time
-import json
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
+
+import pytest
 import redis
 from flask import Flask
 from flask_login import LoginManager
 
+from src.api.rest.tickstockpl_api import register_tickstockpl_routes
+from src.core.services.health_monitor import HealthMonitor, HealthStatus
+
 # Import the classes we're testing
 from src.infrastructure.database.tickstock_db import TickStockDatabase
-from src.core.services.health_monitor import HealthMonitor, HealthStatus
-from src.api.rest.tickstockpl_api import register_tickstockpl_routes
 
 
 @pytest.fixture
@@ -33,18 +34,18 @@ def performance_timer():
             self.start_time = None
             self.end_time = None
             self.elapsed = None
-            
+
         def start(self):
             self.start_time = time.time()
-            
+
         def stop(self):
             self.end_time = time.time()
             if self.start_time:
                 self.elapsed = self.end_time - self.start_time
-            
+
         def elapsed_ms(self):
             return (self.elapsed * 1000) if self.elapsed else None
-    
+
     return PerformanceTimer()
 
 
@@ -56,15 +57,15 @@ def mock_healthy_database():
     db = TickStockDatabase.__new__(TickStockDatabase)
     db.config = {}
     db.engine = Mock()
-    
+
     # Mock connection context manager
     mock_connection = Mock()
     db.engine.connect.return_value.__enter__ = Mock(return_value=mock_connection)
     db.engine.connect.return_value.__exit__ = Mock(return_value=None)
-    
+
     # Mock healthy query responses
     mock_connection.execute.return_value = Mock()
-    
+
     # Mock engine pool for health checks
     db.engine.pool = Mock()
     db.engine.pool.status.return_value = "Pool: size=5 checked_in=3 checked_out=2 invalid=0"
@@ -72,7 +73,7 @@ def mock_healthy_database():
     db.engine.pool.checkedin.return_value = 3
     db.engine.pool.checkedout.return_value = 2
     db.engine.pool.invalid.return_value = 0
-    
+
     return db
 
 
@@ -82,21 +83,21 @@ def mock_degraded_database():
     db = TickStockDatabase.__new__(TickStockDatabase)
     db.config = {}
     db.engine = Mock()
-    
+
     # Mock slow connection
     mock_connection = Mock()
-    
+
     def slow_execute(*args, **kwargs):
         time.sleep(0.120)  # 120ms - degraded performance
         result = Mock()
         result.scalar.return_value = 1000
         result.__iter__ = Mock(return_value=iter([('SLOW_SYMBOL',)]))
         return result
-    
+
     mock_connection.execute = slow_execute
     db.engine.connect.return_value.__enter__ = Mock(return_value=mock_connection)
     db.engine.connect.return_value.__exit__ = Mock(return_value=None)
-    
+
     # Mock degraded pool status
     db.engine.pool = Mock()
     db.engine.pool.status.return_value = "Pool: size=5 checked_in=1 checked_out=4 invalid=0"
@@ -104,7 +105,7 @@ def mock_degraded_database():
     db.engine.pool.checkedin.return_value = 1
     db.engine.pool.checkedout.return_value = 4
     db.engine.pool.invalid.return_value = 0
-    
+
     return db
 
 
@@ -114,7 +115,7 @@ def mock_error_database():
     db = TickStockDatabase.__new__(TickStockDatabase)
     db.config = {}
     db.engine = None  # Simulate uninitialized engine
-    
+
     return db
 
 
@@ -124,49 +125,49 @@ def mock_database_with_realistic_data():
     db = TickStockDatabase.__new__(TickStockDatabase)
     db.config = {}
     db.engine = Mock()
-    
+
     # Generate realistic symbols (4000 symbols like production)
     symbols_data = []
     major_symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NVDA', 'AMD']
-    
+
     # Add major symbols
     symbols_data.extend([(symbol,) for symbol in major_symbols])
-    
+
     # Add generated symbols
     for i in range(3992):
         symbols_data.append((f'SYM{i:04d}',))
-    
+
     # Mock connection with realistic query responses
     mock_connection = Mock()
-    
+
     def realistic_execute(query, *args, **kwargs):
         query_str = str(query)
-        
+
         if "DISTINCT symbol FROM symbols" in query_str:
             # Symbols query
             result = Mock()
             result.__iter__ = Mock(return_value=iter(symbols_data))
             return result
-            
-        elif "COUNT(*) FROM symbols" in query_str:
+
+        if "COUNT(*) FROM symbols" in query_str:
             # Symbols count
             result = Mock()
             result.scalar.return_value = len(symbols_data)
             return result
-            
-        elif "COUNT(*) FROM events" in query_str:
+
+        if "COUNT(*) FROM events" in query_str:
             # Events count
             result = Mock()
             result.scalar.return_value = 25000
             return result
-            
-        elif "MAX(created_at) FROM events" in query_str:
+
+        if "MAX(created_at) FROM events" in query_str:
             # Latest event time
             result = Mock()
             result.scalar.return_value = datetime.now() - timedelta(minutes=5)
             return result
-            
-        elif "FROM events WHERE user_id" in query_str:
+
+        if "FROM events WHERE user_id" in query_str:
             # User alerts
             test_alerts = []
             for i in range(10):
@@ -178,12 +179,12 @@ def mock_database_with_realistic_data():
                     test_time,
                     {'price': 150.0 + i}
                 ))
-            
+
             result = Mock()
             result.__iter__ = Mock(return_value=iter(test_alerts))
             return result
-            
-        elif "GROUP BY pattern" in query_str:
+
+        if "GROUP BY pattern" in query_str:
             # Pattern performance
             patterns_data = [
                 ('high_low', 5000, 0.78, 0.95, 0.45),
@@ -194,24 +195,23 @@ def mock_database_with_realistic_data():
             result = Mock()
             result.__iter__ = Mock(return_value=iter(patterns_data))
             return result
-            
-        elif "table_name FROM information_schema.tables" in query_str:
+
+        if "table_name FROM information_schema.tables" in query_str:
             # Health check tables
             tables_data = [('symbols',), ('events',), ('ohlcv_daily',), ('ohlcv_1min',), ('ticks',)]
             result = Mock()
             result.__iter__ = Mock(return_value=iter(tables_data))
             return result
-            
-        else:
-            # Default response
-            result = Mock()
-            result.scalar.return_value = 1
-            return result
-    
+
+        # Default response
+        result = Mock()
+        result.scalar.return_value = 1
+        return result
+
     mock_connection.execute = realistic_execute
     db.engine.connect.return_value.__enter__ = Mock(return_value=mock_connection)
     db.engine.connect.return_value.__exit__ = Mock(return_value=None)
-    
+
     # Mock healthy pool
     db.engine.pool = Mock()
     db.engine.pool.status.return_value = "Pool: healthy"
@@ -219,7 +219,7 @@ def mock_database_with_realistic_data():
     db.engine.pool.checkedin.return_value = 3
     db.engine.pool.checkedout.return_value = 2
     db.engine.pool.invalid.return_value = 0
-    
+
     return db
 
 
@@ -229,7 +229,7 @@ def mock_database_with_realistic_data():
 def mock_healthy_redis():
     """Mock Redis client in healthy state with fast responses."""
     redis_mock = Mock(spec=redis.Redis)
-    
+
     # Mock successful Redis operations
     redis_mock.ping.return_value = True
     redis_mock.set.return_value = True
@@ -243,7 +243,7 @@ def mock_healthy_redis():
         'total_connections_received': 1000,
         'instantaneous_ops_per_sec': 50
     }
-    
+
     # Mock pubsub for TickStockPL connectivity
     redis_mock.pubsub_numsub.side_effect = [
         [('tickstock.events.patterns', 2)],
@@ -251,7 +251,7 @@ def mock_healthy_redis():
         [('tickstock.events.backtesting.results', 1)]
     ]
     redis_mock.publish.return_value = 1
-    
+
     return redis_mock
 
 
@@ -259,20 +259,20 @@ def mock_healthy_redis():
 def mock_degraded_redis():
     """Mock Redis client in degraded state with slow responses."""
     redis_mock = Mock(spec=redis.Redis)
-    
+
     # Mock slow but successful operations
     def slow_ping():
         time.sleep(0.060)  # 60ms - degraded performance
         return True
-    
+
     def slow_set(key, value, **kwargs):
         time.sleep(0.055)
         return True
-    
+
     def slow_get(key):
         time.sleep(0.050)
         return 'test_value'
-    
+
     redis_mock.ping = slow_ping
     redis_mock.set = slow_set
     redis_mock.get = slow_get
@@ -283,7 +283,7 @@ def mock_degraded_redis():
         'redis_version': '6.2.0',
         'uptime_in_seconds': 86400
     }
-    
+
     # Mock reduced TickStockPL connectivity
     redis_mock.pubsub_numsub.side_effect = [
         [('tickstock.events.patterns', 1)],  # Reduced subscribers
@@ -291,7 +291,7 @@ def mock_degraded_redis():
         [('tickstock.events.backtesting.results', 0)]
     ]
     redis_mock.publish.return_value = 1
-    
+
     return redis_mock
 
 
@@ -299,7 +299,7 @@ def mock_degraded_redis():
 def mock_error_redis():
     """Mock Redis client in error state with connection failures."""
     redis_mock = Mock(spec=redis.Redis)
-    
+
     # Mock Redis connection errors
     redis_mock.ping.side_effect = redis.ConnectionError("Connection refused")
     redis_mock.set.side_effect = redis.ConnectionError("Connection refused")
@@ -308,14 +308,14 @@ def mock_error_redis():
     redis_mock.info.side_effect = redis.ConnectionError("Connection refused")
     redis_mock.pubsub_numsub.side_effect = redis.ConnectionError("Connection refused")
     redis_mock.publish.side_effect = redis.ConnectionError("Connection refused")
-    
+
     return redis_mock
 
 
 @pytest.fixture
 def mock_unavailable_redis():
     """Mock scenario where Redis client is not configured/available."""
-    return None
+    return
 
 
 # TickStockPL Connectivity Fixtures
@@ -324,14 +324,14 @@ def mock_unavailable_redis():
 def mock_active_tickstockpl(mock_healthy_redis):
     """Mock active TickStockPL connectivity with all services running."""
     redis_mock = mock_healthy_redis
-    
+
     # Mock active subscribers on all TickStockPL channels
     redis_mock.pubsub_numsub.side_effect = [
         [('tickstock.events.patterns', 3)],
         [('tickstock.events.backtesting.progress', 2)],
         [('tickstock.events.backtesting.results', 2)]
     ]
-    
+
     return redis_mock
 
 
@@ -339,14 +339,14 @@ def mock_active_tickstockpl(mock_healthy_redis):
 def mock_inactive_tickstockpl(mock_healthy_redis):
     """Mock inactive TickStockPL connectivity with no services running."""
     redis_mock = mock_healthy_redis
-    
+
     # Mock no subscribers on TickStockPL channels
     redis_mock.pubsub_numsub.side_effect = [
         [('tickstock.events.patterns', 0)],
         [('tickstock.events.backtesting.progress', 0)],
         [('tickstock.events.backtesting.results', 0)]
     ]
-    
+
     return redis_mock
 
 
@@ -354,14 +354,14 @@ def mock_inactive_tickstockpl(mock_healthy_redis):
 def mock_partial_tickstockpl(mock_healthy_redis):
     """Mock partial TickStockPL connectivity with some services running."""
     redis_mock = mock_healthy_redis
-    
+
     # Mock partial subscribers on TickStockPL channels
     redis_mock.pubsub_numsub.side_effect = [
         [('tickstock.events.patterns', 2)],  # Active
         [('tickstock.events.backtesting.progress', 0)],  # Inactive
         [('tickstock.events.backtesting.results', 1)]  # Partially active
     ]
-    
+
     return redis_mock
 
 
@@ -371,13 +371,13 @@ def mock_partial_tickstockpl(mock_healthy_redis):
 def health_monitor_healthy(mock_healthy_database, mock_healthy_redis):
     """HealthMonitor with all components healthy."""
     config = {}
-    
+
     with patch('src.core.services.health_monitor.TickStockDatabase') as mock_db_class:
         mock_db_class.return_value = mock_healthy_database
-        
+
         monitor = HealthMonitor(config, redis_client=mock_healthy_redis)
         monitor.tickstock_db = mock_healthy_database
-        
+
         return monitor
 
 
@@ -385,13 +385,13 @@ def health_monitor_healthy(mock_healthy_database, mock_healthy_redis):
 def health_monitor_degraded(mock_degraded_database, mock_degraded_redis):
     """HealthMonitor with degraded components."""
     config = {}
-    
+
     with patch('src.core.services.health_monitor.TickStockDatabase') as mock_db_class:
         mock_db_class.return_value = mock_degraded_database
-        
+
         monitor = HealthMonitor(config, redis_client=mock_degraded_redis)
         monitor.tickstock_db = mock_degraded_database
-        
+
         return monitor
 
 
@@ -399,12 +399,12 @@ def health_monitor_degraded(mock_degraded_database, mock_degraded_redis):
 def health_monitor_error(mock_error_database, mock_error_redis):
     """HealthMonitor with error components."""
     config = {}
-    
+
     monitor = HealthMonitor.__new__(HealthMonitor)
     monitor.config = config
     monitor.redis_client = mock_error_redis
     monitor.tickstock_db = mock_error_database
-    
+
     return monitor
 
 
@@ -416,11 +416,11 @@ def flask_app_with_auth():
     app = Flask(__name__)
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key-sprint10'
-    
+
     # Configure Flask-Login
     login_manager = LoginManager()
     login_manager.init_app(app)
-    
+
     @login_manager.user_loader
     def load_user(user_id):
         user = Mock()
@@ -430,7 +430,7 @@ def flask_app_with_auth():
         user.is_anonymous = False
         user.get_id = Mock(return_value=str(user_id))
         return user
-    
+
     return app
 
 
@@ -438,11 +438,11 @@ def flask_app_with_auth():
 def api_with_healthy_services(flask_app_with_auth, mock_healthy_database, mock_healthy_redis):
     """Flask app with TickStockPL API and healthy services."""
     app = flask_app_with_auth
-    
+
     extensions = {}
     cache_control = Mock()
     config = {'redis_client': mock_healthy_redis}
-    
+
     with patch('src.api.rest.tickstockpl_api.HealthMonitor') as mock_health_monitor:
         with patch('src.api.rest.tickstockpl_api.TickStockDatabase') as mock_db:
             # Configure healthy services
@@ -462,7 +462,7 @@ def api_with_healthy_services(flask_app_with_auth, mock_healthy_database, mock_h
                 'quick_stats': {'symbols_count': 4000, 'events_count': 25000},
                 'alerts': []
             }
-            
+
             mock_db_instance = mock_healthy_database
             mock_db_instance.get_symbols_for_dropdown.return_value = ['AAPL', 'GOOGL', 'MSFT', 'TSLA'] + [f'SYM{i:04d}' for i in range(3996)]
             mock_db_instance.get_basic_dashboard_stats.return_value = {
@@ -473,12 +473,12 @@ def api_with_healthy_services(flask_app_with_auth, mock_healthy_database, mock_h
             }
             mock_db_instance.get_user_alert_history.return_value = []
             mock_db_instance.get_pattern_performance.return_value = []
-            
+
             mock_health_monitor.return_value = mock_health_instance
             mock_db.return_value = mock_db_instance
-            
+
             register_tickstockpl_routes(app, extensions, cache_control, config)
-            
+
             return app
 
 
@@ -486,11 +486,11 @@ def api_with_healthy_services(flask_app_with_auth, mock_healthy_database, mock_h
 def api_with_degraded_services(flask_app_with_auth, mock_degraded_database, mock_degraded_redis):
     """Flask app with TickStockPL API and degraded services."""
     app = flask_app_with_auth
-    
+
     extensions = {}
     cache_control = Mock()
     config = {'redis_client': mock_degraded_redis}
-    
+
     with patch('src.api.rest.tickstockpl_api.HealthMonitor') as mock_health_monitor:
         with patch('src.api.rest.tickstockpl_api.TickStockDatabase') as mock_db:
             # Configure degraded services
@@ -505,13 +505,13 @@ def api_with_degraded_services(flask_app_with_auth, mock_degraded_database, mock
                 },
                 'summary': {'healthy': 0, 'degraded': 2, 'error': 0, 'unknown': 1}
             }
-            
+
             mock_db_instance = mock_degraded_database
             mock_health_monitor.return_value = mock_health_instance
             mock_db.return_value = mock_db_instance
-            
+
             register_tickstockpl_routes(app, extensions, cache_control, config)
-            
+
             return app
 
 
@@ -519,19 +519,19 @@ def api_with_degraded_services(flask_app_with_auth, mock_degraded_database, mock
 def api_with_error_services(flask_app_with_auth):
     """Flask app with TickStockPL API and error services."""
     app = flask_app_with_auth
-    
+
     extensions = {}
     cache_control = Mock()
     config = {}
-    
+
     with patch('src.api.rest.tickstockpl_api.HealthMonitor') as mock_health_monitor:
         with patch('src.api.rest.tickstockpl_api.TickStockDatabase') as mock_db:
             # Simulate service initialization failures
             mock_health_monitor.side_effect = Exception("Health monitor initialization failed")
             mock_db.side_effect = Exception("Database initialization failed")
-            
+
             register_tickstockpl_routes(app, extensions, cache_control, config)
-            
+
             return app
 
 
@@ -549,17 +549,17 @@ def authenticated_user_context():
             self.user.is_active = True
             self.user.is_anonymous = False
             self.user.get_id = Mock(return_value=self.user_id)
-        
+
         def apply_to_session(self, session):
             """Apply authentication to Flask test session."""
             session['_user_id'] = self.user_id
             session['_fresh'] = True
             return session
-            
+
         def mock_current_user(self):
             """Return mock for flask_login.current_user."""
             return patch('flask_login.utils._get_user', return_value=self.user)
-    
+
     return AuthContext()
 
 
@@ -567,7 +567,7 @@ def authenticated_user_context():
 def test_data_generator():
     """Generate realistic test data for TickStock scenarios."""
     class TestDataGenerator:
-        
+
         def generate_symbols(self, count=4000):
             """Generate realistic stock symbols."""
             major_symbols = [
@@ -575,21 +575,21 @@ def test_data_generator():
                 'SPY', 'QQQ', 'IWM', 'GLD', 'BTCUSD', 'ETHUSD', 'ADBE', 'CRM',
                 'NFLX', 'TWTR', 'UBER', 'LYFT', 'SNAP', 'SQ', 'PYPL', 'ZM'
             ]
-            
+
             symbols = major_symbols.copy()
-            
+
             # Generate additional symbols
             for i in range(count - len(major_symbols)):
                 symbols.append(f'SYM{i:04d}')
-            
+
             return symbols[:count]
-        
+
         def generate_alerts(self, user_id, count=50):
             """Generate realistic user alerts."""
             symbols = self.generate_symbols(20)
             patterns = ['high_low', 'trend', 'surge', 'breakout']
             alerts = []
-            
+
             for i in range(count):
                 alert_time = datetime.now() - timedelta(hours=i, minutes=i*2)
                 alerts.append({
@@ -602,9 +602,9 @@ def test_data_generator():
                         'volume': 1000 + i * 10
                     }
                 })
-            
+
             return alerts
-        
+
         def generate_pattern_performance(self):
             """Generate realistic pattern performance data."""
             return [
@@ -623,7 +623,7 @@ def test_data_generator():
                     'min_confidence': 0.52
                 },
                 {
-                    'pattern': 'surge', 
+                    'pattern': 'surge',
                     'detection_count': 2000,
                     'avg_confidence': 0.75,
                     'max_confidence': 0.92,
@@ -637,7 +637,7 @@ def test_data_generator():
                     'min_confidence': 0.50
                 }
             ]
-    
+
     return TestDataGenerator()
 
 

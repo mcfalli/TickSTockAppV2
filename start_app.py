@@ -5,11 +5,11 @@ Handles port conflicts and provides clean startup/shutdown
 """
 
 import os
+import subprocess
 import sys
 import time
-import signal
-import subprocess
 from pathlib import Path
+
 
 def check_port_available(port):
     """Check if a port is available."""
@@ -28,10 +28,10 @@ def kill_process_on_port(port):
     try:
         # Get process using the port
         result = subprocess.run([
-            "powershell", "-c", 
+            "powershell", "-c",
             f"Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1"
         ], capture_output=True, text=True)
-        
+
         if result.stdout.strip():
             pid = result.stdout.strip()
             print(f"Killing process {pid} using port {port}...")
@@ -48,9 +48,9 @@ def main():
     print("="*60)
     print("TickStockAppV2 Startup Script")
     print("="*60)
-    
+
     PORT = 5000
-    
+
     # Check if port is available
     if not check_port_available(PORT):
         print(f"WARNING: Port {PORT} is in use. Attempting to free it...")
@@ -59,14 +59,14 @@ def main():
         else:
             print(f"ERROR: Could not free port {PORT}. Please check manually.")
             return 1
-    
+
     print(f"SUCCESS: Port {PORT} is available")
     print("Starting TickStockAppV2...")
     print("="*60)
-    
+
     # Change to the correct directory
     os.chdir(Path(__file__).parent)
-    
+
     try:
         # Start the application
         subprocess.run([sys.executable, "src/app.py"], check=True)

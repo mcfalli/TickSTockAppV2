@@ -5,12 +5,13 @@ Sprint 31 Implementation
 """
 
 import json
-import redis
-import threading
 import logging
+import threading
+from typing import Any
+
+import redis
 import requests
-from datetime import datetime
-from typing import Dict, Any, Optional
+
 from src.core.services.config_manager import get_config
 
 logger = logging.getLogger(__name__)
@@ -151,7 +152,7 @@ class MonitoringSubscriber:
         except Exception as e:
             logger.error(f"Error handling message: {e}")
 
-    def _forward_to_app(self, event: Dict[str, Any]):
+    def _forward_to_app(self, event: dict[str, Any]):
         """
         Forward event to Flask app for storage.
 
@@ -171,7 +172,7 @@ class MonitoringSubscriber:
         except requests.RequestException as e:
             logger.error(f"Error forwarding event to app: {e}")
 
-    def _handle_metric_update(self, event: Dict[str, Any]):
+    def _handle_metric_update(self, event: dict[str, Any]):
         """Handle metric update events."""
         metrics = event.get('metrics', {})
         health_score = event.get('health_score', {})
@@ -186,7 +187,7 @@ class MonitoringSubscriber:
         if health_score.get('overall', 100) < 70:
             logger.warning(f"LOW HEALTH SCORE: {health_score['overall']}")
 
-    def _handle_alert_triggered(self, event: Dict[str, Any]):
+    def _handle_alert_triggered(self, event: dict[str, Any]):
         """Handle alert triggered events."""
         alert = event.get('alert', {})
         level = alert.get('level', 'INFO')
@@ -199,12 +200,12 @@ class MonitoringSubscriber:
             logger.critical(f"CRITICAL ALERT: {message}")
             # Could send email, SMS, or other notifications here
 
-    def _handle_alert_resolved(self, event: Dict[str, Any]):
+    def _handle_alert_resolved(self, event: dict[str, Any]):
         """Handle alert resolved events."""
         alert_id = event.get('alert_id')
         logger.info(f"Alert resolved: {alert_id}")
 
-    def _handle_health_check(self, event: Dict[str, Any]):
+    def _handle_health_check(self, event: dict[str, Any]):
         """Handle health check events."""
         health = event.get('health', {})
         overall_score = health.get('overall_score', 0)
@@ -218,7 +219,7 @@ class MonitoringSubscriber:
             if component.get('status') != 'OK':
                 logger.warning(f"Component {name}: {component.get('status')} - {component.get('details')}")
 
-    def _handle_system_status(self, event: Dict[str, Any]):
+    def _handle_system_status(self, event: dict[str, Any]):
         """Handle system status events."""
         status = event.get('status')
         details = event.get('details', {})
@@ -243,7 +244,7 @@ class MonitoringSubscriber:
             logger.error("Failed to reconnect to Redis")
             # Could implement exponential backoff here
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """
         Get the current status of the subscriber.
 
@@ -289,7 +290,7 @@ def stop_monitoring_subscriber():
         logger.info("Global monitoring subscriber stopped")
 
 
-def get_subscriber_status() -> Dict[str, Any]:
+def get_subscriber_status() -> dict[str, Any]:
     """
     Get the status of the global monitoring subscriber.
 
@@ -298,13 +299,12 @@ def get_subscriber_status() -> Dict[str, Any]:
     """
     if _subscriber is not None:
         return _subscriber.get_status()
-    else:
-        return {
-            'running': False,
-            'connected': False,
-            'channel': None,
-            'thread_alive': False
-        }
+    return {
+        'running': False,
+        'connected': False,
+        'channel': None,
+        'thread_alive': False
+    }
 
 
 # Example usage for testing

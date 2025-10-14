@@ -1,11 +1,13 @@
 # classes/transport/models.py
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from src.core.domain.events.base import BaseEvent
 import time
+from dataclasses import dataclass, field
+from typing import Any
+
+from src.core.domain.events.base import BaseEvent
 from src.core.domain.events.highlow import HighLowEvent
-from src.core.domain.events.trend import TrendEvent
 from src.core.domain.events.surge import SurgeEvent
+from src.core.domain.events.trend import TrendEvent
+
 
 @dataclass
 class EventCounts:
@@ -14,7 +16,7 @@ class EventCounts:
     lows: int = 0
     trends: int = 0
     surges: int = 0
-    
+
     '''
     def increment(self, event_type: str):
         """Increment count for event type"""
@@ -28,7 +30,7 @@ class EventCounts:
             self.surges += 1
     '''
 
-    def to_dict(self) -> Dict[str, int]:
+    def to_dict(self) -> dict[str, int]:
         return {
             'highs': self.highs,
             'lows': self.lows,
@@ -41,7 +43,7 @@ class HighLowBar:
     """High/Low percentage bar calculations"""
     high_count: int = 0
     low_count: int = 0
-    
+
     '''
     @property
     def total(self) -> int:
@@ -55,8 +57,8 @@ class HighLowBar:
     def low_percentage(self) -> float:
         return (self.low_count / self.total * 100) if self.total > 0 else 50.0
     '''
-        
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'high_count': self.high_count,
             'low_count': self.low_count,
@@ -75,34 +77,34 @@ class StockData:
     ticker: str
     last_price: float = 0.0
     last_update: float = field(default_factory=lambda: time.time())
-    
+
     # Event collections - only store high/low events
-    highs: List[HighLowEvent] = field(default_factory=list)
-    lows: List[HighLowEvent] = field(default_factory=list)
-    
+    highs: list[HighLowEvent] = field(default_factory=list)
+    lows: list[HighLowEvent] = field(default_factory=list)
+
     # DEPRECATED: Keep empty for backward compatibility
-    trends: List[TrendEvent] = field(default_factory=list)  # DO NOT USE - events flow through queue
-    surges: List[SurgeEvent] = field(default_factory=list)  # DO NOT USE - events flow through queue
-    
+    trends: list[TrendEvent] = field(default_factory=list)  # DO NOT USE - events flow through queue
+    surges: list[SurgeEvent] = field(default_factory=list)  # DO NOT USE - events flow through queue
+
     # Combined events list - only high/low events stored
-    events: List[BaseEvent] = field(default_factory=list)
-    
+    events: list[BaseEvent] = field(default_factory=list)
+
     # Statistics
     event_counts: EventCounts = field(default_factory=EventCounts)
     highlow_bar: HighLowBar = field(default_factory=HighLowBar)
-    
+
     # Additional metrics
-    vwap: Optional[float] = None
+    vwap: float | None = None
     volume: float = 0
     rel_volume: float = 0.0
     momentum: float = 0.0
     volatility: float = 0.0
-    
+
     # Market status
     market_status: str = 'REGULAR'
-    session_high: Optional[float] = None
-    session_low: Optional[float] = None
-    
+    session_high: float | None = None
+    session_low: float | None = None
+
     # Trend tracking fields (for current state, not storage)
     trend_direction: str = '->'  # '^', 'v', '->'
     trend_strength: str = 'neutral'  # 'weak', 'moderate', 'strong', 'extreme'
@@ -110,7 +112,7 @@ class StockData:
     trend_count: int = 0
     trend_count_up: int = 0
     trend_count_down: int = 0
-    
+
     # Surge tracking fields (for current state, not storage)
     surge_active: bool = False
     surge_last_magnitude: float = 0.0
@@ -118,21 +120,21 @@ class StockData:
     surge_count: int = 0
     surge_count_up: int = 0
     surge_count_down: int = 0
-    
+
     # Additional fields for compatibility
     high_count: int = 0
     low_count: int = 0
     percent_change: float = 0.0
     vwap_divergence: float = 0.0
     vwap_position: str = 'unknown'  # 'above', 'below', 'at'
-    
+
     # Price history for trend/surge detection
-    price_history: List[Dict[str, Any]] = field(default_factory=list)
-    surge_data: Optional[Dict[str, Any]] = None
-    
+    price_history: list[dict[str, Any]] = field(default_factory=list)
+    surge_data: dict[str, Any] | None = None
+
     # Market open price for percent change calculations
-    market_open_price: Optional[float] = None
-    
+    market_open_price: float | None = None
+
     def add_event(self, event: BaseEvent):
         """
         Add typed event to appropriate collection.
@@ -152,7 +154,7 @@ class StockData:
                 self.highlow_bar.low_count += 1
                 self.low_count += 1
                 self.event_counts.lows += 1
-                
+
         elif isinstance(event, TrendEvent):
             # DON'T STORE - just update tracking fields
             self.trend_direction = event.direction
@@ -162,7 +164,7 @@ class StockData:
             self.trend_count_up = event.count_up
             self.trend_count_down = event.count_down
             self.event_counts.trends += 1
-            
+
         elif isinstance(event, SurgeEvent):
             # DON'T STORE - just update tracking fields
             self.surge_active = True
@@ -172,15 +174,15 @@ class StockData:
             self.surge_count_up = event.count_up
             self.surge_count_down = event.count_down
             self.event_counts.surges += 1
-            
+
         # Always update price and time
         self.last_price = event.price
         self.last_update = event.time
-        
+
         # Update percent change if we have market open price
         if self.market_open_price and self.market_open_price > 0:
             self.percent_change = ((event.price - self.market_open_price) / self.market_open_price) * 100
-            
+
         # Update VWAP divergence
         if event.vwap and event.vwap > 0:
             self.vwap = event.vwap
@@ -207,7 +209,7 @@ class StockData:
                 
         return sorted(events, key=lambda e: e.time, reverse=True)
     '''
-    def to_transport_dict(self) -> Dict[str, Any]:
+    def to_transport_dict(self) -> dict[str, Any]:
         """Convert to S18/19/20 compliant transport structure"""
         return {
             'ticker': self.ticker,
@@ -243,8 +245,8 @@ class StockData:
             'surge_count_up': self.surge_count_up,
             'surge_count_down': self.surge_count_down
         }
-        
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dict for external boundaries (WebSocket, etc)"""
         return self.to_transport_dict()
 
@@ -283,7 +285,7 @@ class StockData:
             'event_totals': self.event_counts.to_dict()
         }
     '''
-    
+
 # PHASE 4: Dict compatibility methods removed - use direct attribute access
 
 @dataclass
@@ -294,8 +296,8 @@ class GaugeAnalytics:
     alpha_used: float = 0.0
     sample_count: int = 0
     last_updated: str = ""
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'ema_net_score': self.ema_net_score,
             'current_net_score': self.current_net_score,
@@ -313,8 +315,8 @@ class VerticalAnalytics:
     volume_weight: float = 0.0
     max_activity_seen: float = 0.0
     last_updated: str = ""
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'ema_net_score': self.ema_net_score,
             'current_weighted_score': self.current_weighted_score,
@@ -331,8 +333,8 @@ class SimpleAverages:
     avg_net_score_60sec: float = 0.0
     avg_net_score_300sec: float = 0.0
     avg_activity_60sec: float = 0.0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'avg_net_score_10sec': self.avg_net_score_10sec,
             'avg_net_score_60sec': self.avg_net_score_60sec,
@@ -349,8 +351,8 @@ class CurrentState:
     selling_count: int = 0
     activity_count: int = 0
     universe_size: int = 0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'net_score': self.net_score,
             'activity_level': self.activity_level,
@@ -367,23 +369,23 @@ class AggregationInfo:
     records_aggregated: int = 0
     session_calculation_count: int = 0
     database_sync_active: bool = False
-    last_database_sync: Optional[str] = None
-    last_update: Optional[str] = None  # Used in user_universe
-    
-    def to_dict(self) -> Dict[str, Any]:
+    last_database_sync: str | None = None
+    last_update: str | None = None  # Used in user_universe
+
+    def to_dict(self) -> dict[str, Any]:
         result = {
             'aggregation_interval_seconds': self.aggregation_interval_seconds,
             'records_aggregated': self.records_aggregated,
             'session_calculation_count': self.session_calculation_count,
             'database_sync_active': self.database_sync_active
         }
-        
+
         # Include the appropriate last update field
         if self.last_database_sync is not None:
             result['last_database_sync'] = self.last_database_sync
         if self.last_update is not None:
             result['last_update'] = self.last_update
-            
+
         return result
 
 @dataclass
@@ -397,8 +399,8 @@ class UniverseAnalytics:
     simple_averages: SimpleAverages = field(default_factory=SimpleAverages)
     current_state: CurrentState = field(default_factory=CurrentState)
     aggregation_info: AggregationInfo = field(default_factory=AggregationInfo)
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'gauge_analytics': self.gauge_analytics.to_dict(),
             'vertical_analytics': self.vertical_analytics.to_dict(),
@@ -415,13 +417,13 @@ class MarketAnalyticsV1:
     """
     core_universe_analytics: UniverseAnalytics = field(default_factory=UniverseAnalytics)
     user_universe_analytics: UniverseAnalytics = field(default_factory=UniverseAnalytics)
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'core_universe_analytics': self.core_universe_analytics.to_dict(),
             'user_universe_analytics': self.user_universe_analytics.to_dict()
         }
-    
+
 @dataclass
 class MarketCounts:
     """Market-wide event counts"""
@@ -433,8 +435,8 @@ class MarketCounts:
     session_total_lows: int = 0
     session_total_events: int = 0
     session_active_tickers: int = 0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'highs': self.highs,
             'lows': self.lows,
@@ -451,9 +453,9 @@ class ActivityWindow:
     """Activity metrics for a time window"""
     count: int = 0
     events_per_second: float = 0.0
-    level: Optional[str] = None  # Not used in 1s window
-    
-    def to_dict(self) -> Dict[str, Any]:
+    level: str | None = None  # Not used in 1s window
+
+    def to_dict(self) -> dict[str, Any]:
         result = {
             'count': self.count,
             'events_per_second': self.events_per_second
@@ -468,8 +470,8 @@ class ActivityMetrics:
     one_s_activity: ActivityWindow = field(default_factory=ActivityWindow)
     ten_s_activity: ActivityWindow = field(default_factory=ActivityWindow)
     thirty_s_activity: ActivityWindow = field(default_factory=ActivityWindow)
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'one_s_activity': self.one_s_activity.to_dict(),
             'ten_s_activity': self.ten_s_activity.to_dict(),
@@ -487,8 +489,8 @@ class BuySellMetrics:
     calc_time: float = 0.0
     _deprecated: bool = True
     _replacement: str = "Use universe_analytics instead"
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'net_score': self.net_score,
             'buying_count': self.buying_count,
@@ -506,8 +508,8 @@ class MemoryEfficiency:
     dirty_tickers: int = 0
     last_sync_ago: float = 0.0
     sync_needed: bool = False
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'dirty_tickers': self.dirty_tickers,
             'last_sync_ago': self.last_sync_ago,
@@ -523,8 +525,8 @@ class PerformanceMetrics:
     total_events_tracked: int = 0
     sync_success_rate: float = 1.0
     memory_efficiency: MemoryEfficiency = field(default_factory=MemoryEfficiency)
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'system_health': self.system_health,
             'avg_operation_time_ms': self.avg_operation_time_ms,
@@ -539,8 +541,8 @@ class SyncStatus:
     """Database sync status"""
     should_sync: bool = False
     last_sync_ago: float = 0.0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'should_sync': self.should_sync,
             'last_sync_ago': self.last_sync_ago
@@ -556,8 +558,8 @@ class SessionAccumulation:
     performance_metrics: PerformanceMetrics = field(default_factory=PerformanceMetrics)
     sync_status: SyncStatus = field(default_factory=SyncStatus)
     zero_flask_context_errors: bool = True
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             'session_date': self.session_date,
             'universe_size': self.universe_size,

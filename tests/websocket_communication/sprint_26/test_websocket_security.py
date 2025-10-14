@@ -13,24 +13,21 @@ Test Categories:
 - Session Management Tests: Session lifecycle, timeout handling
 """
 
-import pytest
-import time
 import json
-import hashlib
-import secrets
-from unittest.mock import Mock, patch, MagicMock
-from typing import Dict, Any, List
+import os
+import sys
+import time
+from dataclasses import dataclass
+from unittest.mock import Mock, patch
+
+import pytest
 from flask import Flask
 from flask_socketio import SocketIO
-import jwt
-from dataclasses import dataclass
 
-import sys
-import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from src.core.services.websocket_broadcaster import WebSocketBroadcaster, ConnectedUser
 from src.api.rest.pattern_consumer import pattern_consumer_bp
+from src.core.services.websocket_broadcaster import ConnectedUser, WebSocketBroadcaster
 
 
 @dataclass
@@ -40,8 +37,8 @@ class MockUser:
     username: str
     email: str
     is_authenticated: bool = True
-    permissions: List[str] = None
-    
+    permissions: list[str] = None
+
     def __post_init__(self):
         if self.permissions is None:
             self.permissions = ['read_patterns', 'websocket_access']
@@ -110,10 +107,10 @@ class TestWebSocketSecurity:
         # Mock unauthenticated connection attempt
         with patch('flask_login.current_user') as mock_current_user:
             mock_current_user.is_authenticated = False
-            
+
             # Simulate connection attempt
             session_id = 'unauth_session'
-            
+
             # Connection should be rejected or limited
             connected_user = ConnectedUser(
                 user_id='anonymous',
@@ -122,17 +119,17 @@ class TestWebSocketSecurity:
                 last_seen=time.time(),
                 subscriptions=set()
             )
-            
+
             # Verify anonymous user is tracked as such
             assert connected_user.user_id == 'anonymous'
-            
+
             # Anonymous users should have limited functionality
             assert len(connected_user.subscriptions) == 0
 
     def test_websocket_session_validation(self, websocket_broadcaster, mock_authenticated_user):
         """Test WebSocket session validation and management."""
         session_id = 'valid_session_123'
-        
+
         # Create authenticated user connection
         connected_user = ConnectedUser(
             user_id=mock_authenticated_user.id,
@@ -141,20 +138,20 @@ class TestWebSocketSecurity:
             last_seen=time.time(),
             subscriptions={'Breakout'}
         )
-        
+
         websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Verify session is properly tracked
         assert session_id in websocket_broadcaster.connected_users
         assert websocket_broadcaster.connected_users[session_id].user_id == mock_authenticated_user.id
-        
+
         # Test session timeout handling
         old_timestamp = time.time() - 3600  # 1 hour ago
         connected_user.last_seen = old_timestamp
-        
+
         # Cleanup should identify stale session
         stale_count = websocket_broadcaster.cleanup_stale_connections(max_idle_seconds=1800)  # 30 min
-        
+
         # Session should be identified as stale
         # (In real implementation, this would trigger disconnection)
         assert connected_user.last_seen == old_timestamp
@@ -164,11 +161,11 @@ class TestWebSocketSecurity:
         with flask_app.app_context():
             # Mock unauthenticated request
             response = client.get('/api/patterns/scan')
-            
+
             # Should succeed but with limited data (public patterns only)
             # or require authentication based on configuration
             assert response.status_code in [200, 401, 403]
-            
+
             if response.status_code == 200:
                 # If public access allowed, should have limited functionality
                 data = json.loads(response.data)
@@ -183,7 +180,7 @@ class TestWebSocketSecurity:
                 mock_current_user.is_authenticated = True
                 mock_current_user.id = 'auth_user'
                 mock_current_user.permissions = ['api_access', 'read_patterns']
-                
+
                 # Mock pattern cache
                 mock_cache = Mock()
                 mock_cache.scan_patterns.return_value = {
@@ -191,15 +188,15 @@ class TestWebSocketSecurity:
                     'pagination': {'total': 1}
                 }
                 flask_app.pattern_cache = mock_cache
-                
+
                 response = client.get('/api/patterns/scan')
                 assert response.status_code == 200
-                
+
                 # Test unauthorized user (no read_patterns permission)
                 mock_current_user.permissions = ['basic_access']
-                
+
                 response = client.get('/api/patterns/scan?admin=true')  # Privileged parameter
-                
+
                 # Should either filter results or deny access
                 assert response.status_code in [200, 403]
 
@@ -209,7 +206,7 @@ class TestWebSocketSecurity:
             # Mock pattern cache
             mock_cache = Mock()
             flask_app.pattern_cache = mock_cache
-            
+
             # Test malicious SQL injection attempts
             malicious_inputs = [
                 "'; DROP TABLE patterns; --",
@@ -218,7 +215,7 @@ class TestWebSocketSecurity:
                 "' OR '1'='1",
                 "'; DELETE FROM cache_entries; --"
             ]
-            
+
             for malicious_input in malicious_inputs:
                 # Test various parameters
                 test_params = {
@@ -227,13 +224,13 @@ class TestWebSocketSecurity:
                     'rs_min': malicious_input,
                     'confidence_min': malicious_input
                 }
-                
+
                 for param, value in test_params.items():
                     response = client.get(f'/api/patterns/scan?{param}={value}')
-                    
+
                     # Should handle gracefully (400 error or sanitized)
                     assert response.status_code in [200, 400]
-                    
+
                     if response.status_code == 200:
                         # Verify no malicious data in response
                         response_text = response.get_data(as_text=True)
@@ -246,7 +243,7 @@ class TestWebSocketSecurity:
         with flask_app.app_context():
             mock_cache = Mock()
             flask_app.pattern_cache = mock_cache
-            
+
             # Test XSS injection attempts
             xss_payloads = [
                 "<script>alert('xss')</script>",
@@ -255,12 +252,12 @@ class TestWebSocketSecurity:
                 "';alert('xss');//",
                 "<svg onload=alert('xss')>"
             ]
-            
+
             for payload in xss_payloads:
                 response = client.get(f'/api/patterns/scan?symbols={payload}')
-                
+
                 assert response.status_code in [200, 400]
-                
+
                 if response.status_code == 200:
                     # Verify XSS payload is not reflected in response
                     response_text = response.get_data(as_text=True)
@@ -275,7 +272,7 @@ class TestWebSocketSecurity:
             mock_cache = Mock()
             mock_cache.scan_patterns.return_value = {'patterns': [], 'pagination': {}}
             flask_app.pattern_cache = mock_cache
-            
+
             # Test parameter limits
             test_cases = [
                 ('per_page', '999999'),     # Excessive page size
@@ -284,20 +281,20 @@ class TestWebSocketSecurity:
                 ('rs_min', '-100'),         # Negative RS value
                 ('rsi_range', '200,300'),   # Invalid RSI range
             ]
-            
+
             for param, value in test_cases:
                 response = client.get(f'/api/patterns/scan?{param}={value}')
-                
+
                 # Should handle with validation (400 error or clamping)
                 assert response.status_code in [200, 400]
-                
+
                 if response.status_code == 200:
                     data = json.loads(response.data)
-                    
+
                     # Verify parameters are within acceptable ranges
                     if param == 'per_page' and 'pagination' in data:
                         assert data['pagination'].get('per_page', 30) <= 100
-                    
+
                     if param == 'confidence_min':
                         # Should not process invalid confidence values
                         assert 'error' not in data or 'Invalid parameter' in data['error']
@@ -308,31 +305,31 @@ class TestWebSocketSecurity:
             mock_cache = Mock()
             mock_cache.scan_patterns.return_value = {'patterns': [], 'pagination': {}}
             flask_app.pattern_cache = mock_cache
-            
+
             # Rapid fire requests to test rate limiting
             rapid_requests = 50
             request_times = []
             status_codes = []
-            
+
             for i in range(rapid_requests):
                 start_time = time.perf_counter()
                 response = client.get('/api/patterns/scan')
                 end_time = time.perf_counter()
-                
+
                 request_times.append(end_time - start_time)
                 status_codes.append(response.status_code)
-                
+
                 # Small delay to avoid overwhelming test
                 if i % 10 == 0:
                     time.sleep(0.01)
-            
+
             # Analyze response patterns
             success_count = sum(1 for code in status_codes if code == 200)
             rate_limited_count = sum(1 for code in status_codes if code == 429)
-            
+
             # Should handle requests without complete failure
             assert success_count > 0, "All requests failed - may indicate overprotective rate limiting"
-            
+
             # If rate limiting is implemented, some requests should be limited
             # If not implemented, all should succeed (depends on production configuration)
             total_requests = success_count + rate_limited_count
@@ -354,25 +351,25 @@ class TestWebSocketSecurity:
                     'price': '150.25'
                 }
             ]
-            
+
             mock_cache.scan_patterns.return_value = {
                 'patterns': mock_patterns,
                 'pagination': {'total': 1}
             }
             flask_app.pattern_cache = mock_cache
-            
+
             response = client.get('/api/patterns/scan')
-            
+
             assert response.status_code == 200
             response_text = response.get_data(as_text=True)
-            
+
             # Verify sensitive data is not exposed
             assert 'internal_id' not in response_text
             assert 'user_email' not in response_text
             assert 'api_key' not in response_text
             assert 'secret_key' not in response_text
             assert 'password' not in response_text.lower()
-            
+
             # Verify legitimate data is present
             assert 'pattern' in response_text
             assert 'symbol' in response_text
@@ -390,7 +387,7 @@ class TestWebSocketSecurity:
             subscriptions={'Breakout'}
         )
         websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Test pattern event with potentially sensitive data
         pattern_event = {
             'type': 'pattern_alert',
@@ -406,24 +403,24 @@ class TestWebSocketSecurity:
             },
             'timestamp': time.time()
         }
-        
+
         # Broadcast pattern event
         websocket_broadcaster.broadcast_pattern_alert(pattern_event)
-        
+
         # Verify WebSocket emission occurred
         mock_socketio.emit.assert_called_once()
-        
+
         # Get emitted message
         emit_call = mock_socketio.emit.call_args
         emitted_data = emit_call[0][1]  # Second argument is the data
-        
+
         # Verify sensitive data is not included in WebSocket message
         message_str = json.dumps(emitted_data)
         assert 'internal_user_id' not in message_str
         assert 'database_query' not in message_str
         assert 'api_secret' not in message_str
         assert 'secret_key' not in message_str
-        
+
         # Verify legitimate data is present
         assert 'pattern' in message_str
         assert 'Breakout' in message_str
@@ -435,15 +432,15 @@ class TestWebSocketSecurity:
             mock_cache = Mock()
             mock_cache.scan_patterns.return_value = {'patterns': [], 'pagination': {}}
             flask_app.pattern_cache = mock_cache
-            
+
             response = client.get('/api/patterns/scan')
-            
+
             # Check for important security headers
             headers = dict(response.headers)
-            
+
             # Content security headers
             assert response.content_type.startswith('application/json')
-            
+
             # Verify no sensitive information in headers
             for header_name, header_value in headers.items():
                 header_lower = f"{header_name}:{header_value}".lower()
@@ -457,17 +454,17 @@ class TestWebSocketSecurity:
             mock_cache = Mock()
             mock_cache.scan_patterns.return_value = {'patterns': [], 'pagination': {}}
             flask_app.pattern_cache = mock_cache
-            
+
             # Test CORS preflight request
-            response = client.options('/api/patterns/scan', 
+            response = client.options('/api/patterns/scan',
                                     headers={
                                         'Origin': 'https://malicious-site.com',
                                         'Access-Control-Request-Method': 'GET'
                                     })
-            
+
             # Should handle CORS appropriately
             assert response.status_code in [200, 204, 405]
-            
+
             # Check CORS headers if present
             cors_origin = response.headers.get('Access-Control-Allow-Origin')
             if cors_origin:
@@ -482,10 +479,10 @@ class TestWebSocketSecurity:
             ('basic_user', ['websocket_access'], {'Breakout', 'Volume'}),
             ('limited_user', ['read_only'], set()),  # No websocket access
         ]
-        
+
         for user_id, permissions, expected_subscriptions in users_data:
             session_id = f'session_{user_id}'
-            
+
             # Create connected user with specific permissions
             connected_user = ConnectedUser(
                 user_id=user_id,
@@ -494,24 +491,24 @@ class TestWebSocketSecurity:
                 last_seen=time.time(),
                 subscriptions=set()
             )
-            
+
             # Simulate subscription request based on permissions
             if 'websocket_access' in permissions:
                 # User can subscribe to basic patterns
                 basic_patterns = {'Breakout', 'Volume'}
                 connected_user.subscriptions.update(basic_patterns)
-                
+
                 if 'premium_patterns' in permissions:
                     # Premium user can subscribe to advanced patterns
                     premium_patterns = {'Advanced', 'Custom'}
                     connected_user.subscriptions.update(premium_patterns)
-            
+
             # Verify subscription authorization
             if 'websocket_access' not in permissions:
                 assert len(connected_user.subscriptions) == 0
             else:
                 assert len(connected_user.subscriptions) > 0
-                
+
                 # Premium users should have more subscriptions
                 if 'premium_patterns' in permissions:
                     assert len(connected_user.subscriptions) >= 3
@@ -526,14 +523,14 @@ class TestWebSocketSecurity:
                 'pagination': {'total': 1}
             }
             flask_app.pattern_cache = mock_cache
-            
+
             # Measure performance with security measures
             request_count = 20
             response_times = []
-            
+
             for i in range(request_count):
                 start_time = time.perf_counter()
-                
+
                 # Include common security headers and parameters
                 response = client.get('/api/patterns/scan?symbols=AAPL&confidence_min=0.8',
                                     headers={
@@ -541,16 +538,16 @@ class TestWebSocketSecurity:
                                         'Accept': 'application/json',
                                         'X-Requested-With': 'XMLHttpRequest'
                                     })
-                
+
                 end_time = time.perf_counter()
                 response_times.append((end_time - start_time) * 1000)  # Convert to ms
-                
+
                 assert response.status_code == 200
-            
+
             # Calculate performance metrics
             avg_response_time = sum(response_times) / len(response_times)
             max_response_time = max(response_times)
-            
+
             # Security measures should not significantly impact performance
             # Allow slightly higher latency due to validation overhead
             assert avg_response_time < 150, f"Average response time {avg_response_time:.2f}ms too high with security"
@@ -562,7 +559,7 @@ class TestWebSocketSecurity:
             # Mock cache to raise different types of errors
             mock_cache = Mock()
             flask_app.pattern_cache = mock_cache
-            
+
             # Test various error scenarios
             error_scenarios = [
                 (Exception("Database connection failed: postgresql://user:password@host:5432/db"), "database error"),
@@ -570,24 +567,24 @@ class TestWebSocketSecurity:
                 (Exception("Internal API key validation failed for key: sk_12345"), "auth error"),
                 (FileNotFoundError("/etc/config/secrets.yaml not found"), "config error"),
             ]
-            
+
             for error, scenario in error_scenarios:
                 mock_cache.scan_patterns.side_effect = error
-                
+
                 response = client.get('/api/patterns/scan')
-                
+
                 # Should return error but not expose sensitive details
                 assert response.status_code in [500, 503]
-                
+
                 response_text = response.get_data(as_text=True)
-                
+
                 # Verify sensitive information is not exposed
                 assert 'password' not in response_text.lower()
                 assert 'sk_' not in response_text  # API key prefix
                 assert '192.168.' not in response_text  # Internal IP
                 assert '/etc/' not in response_text  # System paths
                 assert 'postgresql://' not in response_text  # Connection strings
-                
+
                 # Should contain generic error message
                 assert 'error' in response_text.lower()
 
@@ -600,7 +597,7 @@ class TestWebSocketSecurity:
             ('user_org_b_1', 'org_b', {'Breakout'}),
             ('user_org_b_2', 'org_b', {'Momentum'}),
         ]
-        
+
         for user_id, org, subscriptions in users_data:
             session_id = f'session_{user_id}'
             connected_user = ConnectedUser(
@@ -611,7 +608,7 @@ class TestWebSocketSecurity:
                 subscriptions=subscriptions
             )
             websocket_broadcaster.connected_users[session_id] = connected_user
-        
+
         # Test organization-specific pattern event
         org_specific_event = {
             'type': 'pattern_alert',
@@ -623,14 +620,14 @@ class TestWebSocketSecurity:
             },
             'timestamp': time.time()
         }
-        
+
         # In production, this would filter by organization
         # For testing, we verify the mechanism exists
         websocket_broadcaster.broadcast_pattern_alert(org_specific_event)
-        
+
         # Verify broadcast occurred (real implementation would filter by org)
         assert mock_socketio.emit.call_count > 0
-        
+
         # In real implementation, should only emit to org_a users
         # This test verifies the structure exists for such filtering
 

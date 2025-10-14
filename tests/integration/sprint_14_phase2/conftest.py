@@ -8,15 +8,14 @@ Date: 2025-09-01
 Sprint: 14 Phase 2
 """
 
+import time
+from dataclasses import dataclass
+
+import psycopg2
 import pytest
 import redis
-import psycopg2
-import os
+
 from src.core.services.config_manager import get_config
-import time
-import asyncio
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
 
 # Initialize configuration with fallback
 try:
@@ -41,11 +40,11 @@ TEST_DATABASE_URI = config.get(
 @dataclass
 class IntegrationTestEnvironment:
     """Test environment configuration and state"""
-    redis_client: Optional[redis.Redis] = None
-    db_connection: Optional[psycopg2.extensions.connection] = None
-    test_channels: Dict[str, str] = None
+    redis_client: redis.Redis | None = None
+    db_connection: psycopg2.extensions.connection | None = None
+    test_channels: dict[str, str] = None
     test_data_prefix: str = 'INTEGRATION_TEST'
-    
+
     def __post_init__(self):
         if self.test_channels is None:
             self.test_channels = {
@@ -61,12 +60,12 @@ class IntegrationTestEnvironment:
 def integration_test_env():
     """Session-scoped integration test environment"""
     env = IntegrationTestEnvironment()
-    
+
     # Setup Redis connection
     try:
         env.redis_client = redis.Redis(
             host=TEST_REDIS_HOST,
-            port=TEST_REDIS_PORT, 
+            port=TEST_REDIS_PORT,
             db=TEST_REDIS_DB,
             decode_responses=True,
             socket_timeout=5.0
@@ -75,7 +74,7 @@ def integration_test_env():
         print(f"✓ Redis connected: {TEST_REDIS_HOST}:{TEST_REDIS_PORT}/{TEST_REDIS_DB}")
     except Exception as e:
         pytest.skip(f"Redis connection failed: {e}")
-    
+
     # Setup database connection
     try:
         env.db_connection = psycopg2.connect(TEST_DATABASE_URI)
@@ -83,9 +82,9 @@ def integration_test_env():
         print(f"✓ Database connected: {TEST_DATABASE_URI.split('@')[1] if '@' in TEST_DATABASE_URI else 'localhost'}")
     except Exception as e:
         pytest.skip(f"Database connection failed: {e}")
-    
+
     yield env
-    
+
     # Cleanup
     if env.redis_client:
         try:
@@ -93,7 +92,7 @@ def integration_test_env():
             env.redis_client.close()
         except:
             pass
-    
+
     if env.db_connection:
         try:
             env.db_connection.close()
@@ -105,9 +104,9 @@ def clean_redis(integration_test_env):
     """Function-scoped Redis cleanup"""
     # Clear test database before test
     integration_test_env.redis_client.flushdb()
-    
+
     yield integration_test_env.redis_client
-    
+
     # Clear test database after test
     try:
         integration_test_env.redis_client.flushdb()
@@ -118,44 +117,44 @@ def clean_redis(integration_test_env):
 def clean_database(integration_test_env):
     """Function-scoped database cleanup"""
     cursor = integration_test_env.db_connection.cursor()
-    
+
     # Clean up any test data before test
     try:
-        cursor.execute("DELETE FROM equity_processing_queue WHERE symbol LIKE %s", 
-                      (f"{integration_test_env.test_data_prefix}_%",))
-        cursor.execute("DELETE FROM equity_types WHERE type_name LIKE %s",
-                      (f"{integration_test_env.test_data_prefix}_%",))
-    except:
-        pass
-    
-    yield cursor
-    
-    # Clean up test data after test
-    try:
-        cursor.execute("DELETE FROM equity_processing_queue WHERE symbol LIKE %s", 
+        cursor.execute("DELETE FROM equity_processing_queue WHERE symbol LIKE %s",
                       (f"{integration_test_env.test_data_prefix}_%",))
         cursor.execute("DELETE FROM equity_types WHERE type_name LIKE %s",
                       (f"{integration_test_env.test_data_prefix}_%",))
     except:
         pass
 
-@pytest.fixture(scope="function") 
+    yield cursor
+
+    # Clean up test data after test
+    try:
+        cursor.execute("DELETE FROM equity_processing_queue WHERE symbol LIKE %s",
+                      (f"{integration_test_env.test_data_prefix}_%",))
+        cursor.execute("DELETE FROM equity_types WHERE type_name LIKE %s",
+                      (f"{integration_test_env.test_data_prefix}_%",))
+    except:
+        pass
+
+@pytest.fixture(scope="function")
 def redis_message_collector():
     """Utility fixture for collecting Redis messages during tests"""
-    
+
     class MessageCollector:
         def __init__(self):
             self.messages = []
             self.channels = {}
             self.start_time = time.time()
-            
+
         def add_subscriber(self, redis_client, channels):
             """Add subscriber for specified channels"""
             pubsub = redis_client.pubsub()
             pubsub.subscribe(channels)
-            self.channels.update({ch: pubsub for ch in channels})
+            self.channels.update(dict.fromkeys(channels, pubsub))
             return pubsub
-            
+
         def collect_message(self, message):
             """Collect a message with timestamp"""
             if message['type'] == 'message':
@@ -164,16 +163,16 @@ def redis_message_collector():
                     'data': message['data'],
                     'timestamp': time.time() - self.start_time
                 })
-                
+
         def get_messages_for_channel(self, channel):
             """Get all messages for a specific channel"""
             return [msg for msg in self.messages if msg['channel'] == channel]
-            
+
         def get_latest_message(self, channel):
             """Get the most recent message for a channel"""
             channel_messages = self.get_messages_for_channel(channel)
             return channel_messages[-1] if channel_messages else None
-            
+
         def cleanup(self):
             """Cleanup all subscriptions"""
             for pubsub in self.channels.values():
@@ -181,7 +180,7 @@ def redis_message_collector():
                     pubsub.close()
                 except:
                     pass
-    
+
     collector = MessageCollector()
     yield collector
     collector.cleanup()
@@ -189,16 +188,16 @@ def redis_message_collector():
 @pytest.fixture(scope="function")
 def performance_monitor():
     """Performance monitoring fixture for integration tests"""
-    
+
     class PerformanceMonitor:
         def __init__(self):
             self.metrics = {}
             self.start_times = {}
-            
+
         def start_timer(self, operation_name):
             """Start timing an operation"""
             self.start_times[operation_name] = time.perf_counter()
-            
+
         def end_timer(self, operation_name):
             """End timing and record duration"""
             if operation_name in self.start_times:
@@ -206,11 +205,11 @@ def performance_monitor():
                 self.metrics[operation_name] = duration * 1000  # Convert to milliseconds
                 return self.metrics[operation_name]
             return None
-            
+
         def get_metric(self, operation_name):
             """Get recorded metric"""
             return self.metrics.get(operation_name)
-            
+
         def assert_performance(self, operation_name, max_duration_ms):
             """Assert performance requirement"""
             duration = self.get_metric(operation_name)
@@ -220,7 +219,7 @@ def performance_monitor():
                 raise AssertionError(
                     f"{operation_name} took {duration:.2f}ms, exceeds {max_duration_ms}ms requirement"
                 )
-                
+
         def get_summary(self):
             """Get performance summary"""
             return {
@@ -228,18 +227,18 @@ def performance_monitor():
                 'total_operations': len(self.metrics),
                 'avg_duration_ms': sum(self.metrics.values()) / len(self.metrics) if self.metrics else 0
             }
-    
+
     return PerformanceMonitor()
 
 @pytest.fixture(scope="function")
 def mock_automation_services():
     """Mock automation services for testing"""
-    
+
     class MockAutomationServices:
         def __init__(self, redis_client):
             self.redis_client = redis_client
             self.published_messages = []
-            
+
         def publish_ipo_notification(self, symbol_data):
             """Mock IPO monitor notification"""
             event = {
@@ -248,17 +247,17 @@ def mock_automation_services():
                 'event_type': 'new_symbol',
                 'data': symbol_data
             }
-            
+
             channel = 'tickstock.automation.symbols.new'
             result = self.redis_client.publish(channel, json.dumps(event))
-            
+
             self.published_messages.append({
                 'channel': channel,
                 'event': event
             })
-            
+
             return result > 0
-            
+
         def publish_quality_alert(self, alert_data):
             """Mock data quality monitor alert"""
             event = {
@@ -267,7 +266,7 @@ def mock_automation_services():
                 'alert_type': alert_data.get('alert_type', 'unknown'),
                 'data': alert_data
             }
-            
+
             # Route to appropriate channel based on alert type
             channel_map = {
                 'price_anomaly': 'tickstock.quality.price_anomaly',
@@ -275,17 +274,17 @@ def mock_automation_services():
                 'volume_drought': 'tickstock.quality.volume_anomaly',
                 'data_gap': 'tickstock.quality.data_gap'
             }
-            
+
             channel = channel_map.get(alert_data.get('alert_type'), 'tickstock.quality.price_anomaly')
             result = self.redis_client.publish(channel, json.dumps(event))
-            
+
             self.published_messages.append({
                 'channel': channel,
                 'event': event
             })
-            
+
             return result > 0
-            
+
         def publish_maintenance_event(self, maintenance_data):
             """Mock maintenance completion event"""
             event = {
@@ -294,28 +293,28 @@ def mock_automation_services():
                 'event_type': 'maintenance_completed',
                 'data': maintenance_data
             }
-            
+
             channel = 'tickstock.automation.maintenance.completed'
             result = self.redis_client.publish(channel, json.dumps(event))
-            
+
             self.published_messages.append({
                 'channel': channel,
                 'event': event
             })
-            
+
             return result > 0
-            
+
         def get_published_count(self):
             """Get count of published messages"""
             return len(self.published_messages)
-            
+
         def get_messages_for_channel(self, channel):
             """Get published messages for specific channel"""
             return [msg for msg in self.published_messages if msg['channel'] == channel]
-    
+
     def _create_mock_services(redis_client):
         return MockAutomationServices(redis_client)
-        
+
     return _create_mock_services
 
 # Test markers for different integration test categories
@@ -393,7 +392,7 @@ def generate_quality_alert_data(symbol, alert_type, **kwargs):
         'severity': kwargs.get('severity', 'medium'),
         'timestamp': kwargs.get('timestamp', time.time())
     }
-    
+
     if alert_type == 'price_anomaly':
         base_data.update({
             'price_change_pct': kwargs.get('price_change_pct', 0.25),
@@ -411,5 +410,5 @@ def generate_quality_alert_data(symbol, alert_type, **kwargs):
             'days_stale': kwargs.get('days_stale', 3),
             'last_data_date': kwargs.get('last_data_date', '2025-08-29')
         })
-    
+
     return base_data

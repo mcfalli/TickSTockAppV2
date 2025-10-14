@@ -5,10 +5,11 @@ Sprint 33 Phase 4 - Based on TickStockPL Integration Response
 Communicates with TickStockPL via HTTP API for commands and status.
 """
 
-import requests
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Any
+
+import requests
+
 from src.core.services.config_manager import get_config
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class TickStockPLAPIClient:
     Based on actual TickStockPL API specifications.
     """
 
-    def __init__(self, base_url: Optional[str] = None):
+    def __init__(self, base_url: str | None = None):
         config = get_config()
         self.base_url = base_url or config.get('TICKSTOCKPL_API_URL', 'http://localhost:8080')
         self.session = requests.Session()
@@ -29,9 +30,9 @@ class TickStockPLAPIClient:
     def trigger_processing(
         self,
         skip_market_check: bool = False,
-        phases: Optional[List[str]] = None,
-        universe: Optional[str] = None
-    ) -> Dict[str, Any]:
+        phases: list[str] | None = None,
+        universe: str | None = None
+    ) -> dict[str, Any]:
         """
         Trigger manual processing in TickStockPL.
 
@@ -86,7 +87,7 @@ class TickStockPLAPIClient:
                 'message': str(e)
             }
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """
         Get current processing status from TickStockPL.
 
@@ -122,7 +123,7 @@ class TickStockPLAPIClient:
                 'message': str(e)
             }
 
-    def get_history(self, days: int = 7) -> Dict[str, Any]:
+    def get_history(self, days: int = 7) -> dict[str, Any]:
         """
         Get processing history from TickStockPL.
 
@@ -173,7 +174,7 @@ class TickStockPLAPIClient:
                 'message': str(e)
             }
 
-    def cancel_processing(self) -> Dict[str, Any]:
+    def cancel_processing(self) -> dict[str, Any]:
         """
         Cancel current processing run in TickStockPL.
 
@@ -202,7 +203,7 @@ class TickStockPLAPIClient:
                 'message': str(e)
             }
 
-    def get_schedule(self) -> Dict[str, Any]:
+    def get_schedule(self) -> dict[str, Any]:
         """
         Get current processing schedule from TickStockPL.
 
@@ -237,11 +238,11 @@ class TickStockPLAPIClient:
 
     def update_schedule(
         self,
-        enabled: Optional[bool] = None,
-        trigger_time: Optional[str] = None,
-        market_check: Optional[bool] = None,
-        universes: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        enabled: bool | None = None,
+        trigger_time: str | None = None,
+        market_check: bool | None = None,
+        universes: list[str] | None = None
+    ) -> dict[str, Any]:
         """
         Update processing schedule in TickStockPL.
 
@@ -290,10 +291,10 @@ class TickStockPLAPIClient:
 
     def trigger_data_import(
         self,
-        universes: List[str],
-        timeframes: Optional[List[str]] = None,
+        universes: list[str],
+        timeframes: list[str] | None = None,
         lookback_days: int = 30
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Trigger data import in TickStockPL.
 
@@ -337,10 +338,10 @@ class TickStockPLAPIClient:
 
     def trigger_indicator_processing(
         self,
-        symbols: Optional[List[str]] = None,
-        indicators: Optional[List[str]] = None,
+        symbols: list[str] | None = None,
+        indicators: list[str] | None = None,
         timeframe: str = 'daily'
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Trigger indicator processing in TickStockPL.
 
@@ -387,8 +388,8 @@ class TickStockPLAPIClient:
     def retry_failed_imports(
         self,
         run_id: str,
-        symbols: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        symbols: list[str] | None = None
+    ) -> dict[str, Any]:
         """
         Retry failed data imports from a previous run.
 
@@ -447,10 +448,10 @@ class TickStockPLAPIClient:
 
 
 # Singleton instance
-_api_client_instance: Optional[TickStockPLAPIClient] = None
+_api_client_instance: TickStockPLAPIClient | None = None
 
 
-def get_tickstockpl_client(base_url: Optional[str] = None) -> TickStockPLAPIClient:
+def get_tickstockpl_client(base_url: str | None = None) -> TickStockPLAPIClient:
     """Get or create singleton TickStockPLAPIClient instance"""
     global _api_client_instance
     if _api_client_instance is None:

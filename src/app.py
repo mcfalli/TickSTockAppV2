@@ -12,63 +12,64 @@ Removed: EventDetectionManager, complex initialization, extensive error handling
 
 # CRITICAL: eventlet monkey patch must be FIRST before any other imports
 import eventlet
+
 eventlet.monkey_patch(
-    os=True, 
-    select=True, 
-    socket=True, 
-    thread=True, 
+    os=True,
+    select=True,
+    socket=True,
+    thread=True,
     time=True
 )
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import os
-import time
 import json
 import logging
+import time
 from datetime import datetime, timedelta
 
 # Import Redis and Flask components after monkey patch
 import redis
-from flask import Flask, render_template, request, jsonify
-from flask_login import login_required, current_user
-from flask_socketio import SocketIO, emit, disconnect
+from flask import jsonify, render_template, request
+from flask_login import current_user, login_required
+from flask_socketio import emit
 
 # Core application imports
 from config.app_config import create_flask_app, initialize_flask_extensions, initialize_socketio
 from config.logging_config import configure_logging
-from src.core.services.startup_service import run_startup_sequence
-from src.core.services.market_data_service import MarketDataService
-from src.presentation.websocket.manager import WebSocketManager
-
-# Sprint 10 Phase 2: Enhanced Redis Event Consumption
-from src.core.services.redis_event_subscriber import RedisEventSubscriber
-from src.core.services.websocket_broadcaster import WebSocketBroadcaster
-
-# Sprint 25: Fallback Pattern Detection
-from src.core.services.fallback_pattern_detector import FallbackPatternDetector
 
 # Sprint 10 Phase 3: Real Pattern Discovery API Integration
 from src.api.rest.pattern_discovery import init_app as init_pattern_discovery_app
-
-# Mandatory Redis validation for TickStockPL integration
-from src.core.services.redis_validator import (
-    initialize_redis_mandatory,
-    generate_redis_failure_report
-)
 from src.core.exceptions.redis_exceptions import (
-    RedisConnectionError,
     RedisChannelError,
+    RedisConfigurationError,
+    RedisConnectionError,
     RedisPerformanceError,
-    RedisConfigurationError
 )
+from src.core.services.config_manager import LoggingConfig
 
 # Sprint 32: Enhanced Error Handling System
 from src.core.services.enhanced_logger import create_enhanced_logger, set_enhanced_logger
 from src.core.services.error_subscriber import create_error_subscriber, set_error_subscriber
-from src.core.services.config_manager import LoggingConfig
+
+# Sprint 25: Fallback Pattern Detection
+from src.core.services.fallback_pattern_detector import FallbackPatternDetector
+from src.core.services.market_data_service import MarketDataService
+
+# Sprint 10 Phase 2: Enhanced Redis Event Consumption
+from src.core.services.redis_event_subscriber import RedisEventSubscriber
+
+# Mandatory Redis validation for TickStockPL integration
+from src.core.services.redis_validator import (
+    generate_redis_failure_report,
+    initialize_redis_mandatory,
+)
+from src.core.services.startup_service import run_startup_sequence
+from src.core.services.websocket_broadcaster import WebSocketBroadcaster
+from src.presentation.websocket.manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
 
@@ -118,9 +119,9 @@ def initialize_redis(config):
     redis_host = config.get('REDIS_HOST') or config.get('REDIS_HOST', 'localhost')
     redis_port = int(config.get('REDIS_PORT') or config.get('REDIS_PORT', 6379))
     redis_db = int(config.get('REDIS_DB') or config.get('REDIS_DB', 0))
-    
+
     logger.info(f"REDIS: Attempting to connect to {redis_host}:{redis_port} db={redis_db}")
-    
+
     try:
         redis_client = redis.Redis(
             host=redis_host,
@@ -131,15 +132,15 @@ def initialize_redis(config):
             socket_connect_timeout=2,
             health_check_interval=30
         )
-        
+
         # Test connection with timeout
         redis_client.ping()
         logger.info(f"REDIS: Connected successfully to {redis_host}:{redis_port} db={redis_db}")
-        
+
         # Add Redis client to config for other components
         config['redis_client'] = redis_client
         return True
-        
+
     except Exception as e:
         logger.warning(f"REDIS: Connection failed: {e}")
         redis_client = None
@@ -149,13 +150,13 @@ def initialize_market_service(config, socketio):
     """Initialize simplified market data service."""
     try:
         logger.info("MARKET-SERVICE: Initializing simplified market data service")
-        
+
         # Create market service with SocketIO
         market_service = MarketDataService(config, socketio)
-        
+
         logger.info("MARKET-SERVICE: Service initialized successfully")
         return market_service
-        
+
     except Exception as e:
         logger.error(f"MARKET-SERVICE: Initialization failed: {e}")
         raise
@@ -163,20 +164,20 @@ def initialize_market_service(config, socketio):
 def initialize_tickstockpl_services(config, socketio, redis_client, flask_app=None):
     """Initialize TickStockPL integration services for Phase 2-4."""
     global redis_event_subscriber, websocket_broadcaster, pattern_alert_manager
-    
+
     try:
         logger.info("TICKSTOCKPL-SERVICES: Initializing integration services...")
-        
+
         # Initialize WebSocket broadcaster
         websocket_broadcaster = WebSocketBroadcaster(socketio, redis_client)
         logger.info("TICKSTOCKPL-SERVICES: WebSocket broadcaster initialized")
-        
+
         # Initialize Pattern Alert Manager (Phase 4)
         if redis_client:
             from src.core.services.pattern_alert_manager import PatternAlertManager
             pattern_alert_manager = PatternAlertManager(redis_client, config)
             logger.info("TICKSTOCKPL-SERVICES: Pattern alert manager initialized")
-        
+
 
         # Initialize Redis event subscriber if Redis is available
         if redis_client:
@@ -199,10 +200,10 @@ def initialize_tickstockpl_services(config, socketio, redis_client, flask_app=No
 
             # Connect event subscriber to broadcaster
             from src.core.services.redis_event_subscriber import EventType
-            
+
             # Register broadcaster handlers with subscriber
             redis_event_subscriber.add_event_handler(
-                EventType.PATTERN_DETECTED, 
+                EventType.PATTERN_DETECTED,
                 lambda event: websocket_broadcaster.broadcast_pattern_alert(event.to_websocket_dict())
             )
             redis_event_subscriber.add_event_handler(
@@ -217,7 +218,7 @@ def initialize_tickstockpl_services(config, socketio, redis_client, flask_app=No
                 EventType.SYSTEM_HEALTH,
                 lambda event: websocket_broadcaster.broadcast_system_health(event.to_websocket_dict())
             )
-            
+
             # Start subscriber
             if redis_event_subscriber.start():
                 logger.info("TICKSTOCKPL-SERVICES: Redis event subscriber started successfully")
@@ -225,7 +226,7 @@ def initialize_tickstockpl_services(config, socketio, redis_client, flask_app=No
                 logger.warning("TICKSTOCKPL-SERVICES: Redis event subscriber failed to start")
         else:
             logger.warning("TICKSTOCKPL-SERVICES: Redis not available - event subscriber disabled")
-        
+
         # Initialize fallback pattern detector for when TickStockPL is offline
         global fallback_pattern_detector
         logger.info("TICKSTOCKPL-SERVICES: Initializing fallback pattern detector...")
@@ -234,19 +235,19 @@ def initialize_tickstockpl_services(config, socketio, redis_client, flask_app=No
                 websocket_publisher=websocket_broadcaster,
                 redis_client=redis_client
             )
-            
-            # Start fallback detector 
+
+            # Start fallback detector
             if fallback_pattern_detector.start():
                 logger.info("TICKSTOCKPL-SERVICES: Fallback pattern detector started successfully")
             else:
                 logger.warning("TICKSTOCKPL-SERVICES: Fallback pattern detector failed to start")
-                
+
         except Exception as e:
             logger.error(f"TICKSTOCKPL-SERVICES: Failed to initialize fallback pattern detector: {e}")
-        
+
         logger.info("TICKSTOCKPL-SERVICES: All integration services initialized")
         return True
-        
+
     except Exception as e:
         logger.error(f"TICKSTOCKPL-SERVICES: Initialization failed: {e}")
         return False
@@ -255,35 +256,37 @@ def initialize_sprint23_services(config):
     """Initialize Sprint 23 Advanced Analytics Services."""
     global db_connection_pool, analytics_advanced_service, market_condition_service
     global correlation_analyzer_service, temporal_analytics_service, comparison_tools_service
-    
+
     try:
         logger.info("SPRINT23-SERVICES: Initializing advanced analytics services...")
-        
+
         # Initialize database connection pool
         from src.infrastructure.database.connection_pool import DatabaseConnectionPool
         db_connection_pool = DatabaseConnectionPool(config)
         logger.info("SPRINT23-SERVICES: Database connection pool initialized")
-        
+
         # Initialize pattern registry service first (required by analytics services)
         from src.core.services.pattern_registry_service import PatternRegistryService
         pattern_registry = PatternRegistryService()
-        
+
         # Initialize analytics services
-        from src.core.services.pattern_analytics_advanced_service import PatternAnalyticsAdvancedService
-        from src.core.services.market_condition_service import MarketConditionService  
-        from src.core.services.correlation_analyzer_service import CorrelationAnalyzerService
-        from src.core.services.temporal_analytics_service import TemporalAnalyticsService
         from src.core.services.comparison_tools_service import ComparisonToolsService
-        
+        from src.core.services.correlation_analyzer_service import CorrelationAnalyzerService
+        from src.core.services.market_condition_service import MarketConditionService
+        from src.core.services.pattern_analytics_advanced_service import (
+            PatternAnalyticsAdvancedService,
+        )
+        from src.core.services.temporal_analytics_service import TemporalAnalyticsService
+
         analytics_advanced_service = PatternAnalyticsAdvancedService(db_connection_pool, pattern_registry)
         market_condition_service = MarketConditionService(db_connection_pool)
         correlation_analyzer_service = CorrelationAnalyzerService(db_connection_pool)
         temporal_analytics_service = TemporalAnalyticsService(db_connection_pool)
         comparison_tools_service = ComparisonToolsService(db_connection_pool)
-        
+
         logger.info("SPRINT23-SERVICES: All advanced analytics services initialized")
         return True
-        
+
     except Exception as e:
         logger.error(f"SPRINT23-SERVICES: Initialization failed: {e}")
         # Set services to None so API endpoints can use mock data
@@ -374,37 +377,37 @@ def initialize_error_handling(config, redis_client=None):
 
 def register_socketio_handlers(socketio, market_service):
     """Register essential SocketIO event handlers."""
-    
+
     @socketio.on('connect')
     def handle_connect():
-        logger.info(f"CLIENT-CONNECT: User connected")
+        logger.info("CLIENT-CONNECT: User connected")
         if hasattr(market_service, 'websocket_publisher'):
             user_id = getattr(current_user, 'id', 'anonymous')
             market_service.websocket_publisher.add_user(user_id, request.sid)
-    
+
     @socketio.on('disconnect')
     def handle_disconnect():
-        logger.info(f"CLIENT-DISCONNECT: User disconnected")
+        logger.info("CLIENT-DISCONNECT: User disconnected")
         if hasattr(market_service, 'websocket_publisher'):
             user_id = getattr(current_user, 'id', 'anonymous')
             market_service.websocket_publisher.remove_user(user_id)
-    
+
     @socketio.on('subscribe_tickers')
     def handle_subscribe_tickers(data):
         """Handle ticker subscription requests."""
         try:
             tickers = data.get('tickers', [])
             user_id = getattr(current_user, 'id', 'anonymous')
-            
+
             if hasattr(market_service, 'websocket_publisher'):
                 market_service.websocket_publisher.update_user_subscriptions(user_id, tickers)
                 emit('subscription_updated', {'tickers': tickers})
                 logger.info(f"USER-SUBSCRIPTION: Updated for {user_id}: {len(tickers)} tickers")
-            
+
         except Exception as e:
             logger.error(f"SUBSCRIPTION-ERROR: {e}")
             emit('error', {'message': 'Subscription failed'})
-    
+
     # Sprint 12 Phase 2: TickStockPL Integration WebSocket Handlers
     @socketio.on('subscribe_tickstockpl_watchlist')
     def handle_subscribe_watchlist(data):
@@ -413,7 +416,7 @@ def register_socketio_handlers(socketio, market_service):
             symbols = data.get('symbols', [])
             user_id = data.get('user_id') or getattr(current_user, 'id', 'anonymous')
             subscription_types = data.get('subscription_types', ['price_update', 'pattern_alert'])
-            
+
             # Add user to TickStockPL subscription via market data subscriber
             if hasattr(market_service, 'market_data_subscriber'):
                 market_service.market_data_subscriber.subscribe_user_to_symbols(
@@ -427,29 +430,29 @@ def register_socketio_handlers(socketio, market_service):
             else:
                 logger.warning("TICKSTOCKPL-SUBSCRIPTION: Market data subscriber not available")
                 emit('error', {'message': 'TickStockPL integration not available'})
-            
+
         except Exception as e:
             logger.error(f"TICKSTOCKPL-SUBSCRIPTION-ERROR: {e}")
             emit('error', {'message': 'TickStockPL subscription failed'})
-    
+
     @socketio.on('unsubscribe_tickstockpl_symbol')
     def handle_unsubscribe_symbol(data):
         """Handle unsubscription from specific symbol."""
         try:
             symbol = data.get('symbol')
             user_id = data.get('user_id') or getattr(current_user, 'id', 'anonymous')
-            
+
             if hasattr(market_service, 'market_data_subscriber'):
                 market_service.market_data_subscriber.unsubscribe_user_from_symbol(
                     user_id, symbol
                 )
                 emit('tickstockpl_unsubscription_confirmed', {'symbol': symbol})
                 logger.info(f"TICKSTOCKPL-UNSUBSCRIPTION: {user_id} unsubscribed from {symbol}")
-                
+
         except Exception as e:
             logger.error(f"TICKSTOCKPL-UNSUBSCRIPTION-ERROR: {e}")
             emit('error', {'message': 'TickStockPL unsubscription failed'})
-    
+
     @socketio.on('request_tickstockpl_chart_data')
     def handle_chart_data_request(data):
         """Handle chart data requests via WebSocket."""
@@ -457,13 +460,13 @@ def register_socketio_handlers(socketio, market_service):
             symbol = data.get('symbol')
             timeframe = data.get('timeframe', '1d')
             user_id = data.get('user_id') or getattr(current_user, 'id', 'anonymous')
-            
+
             if hasattr(market_service, 'market_data_subscriber'):
                 # Request historical data from TickStockPL
                 chart_data = market_service.market_data_subscriber.get_historical_data(
                     symbol, timeframe
                 )
-                
+
                 if chart_data:
                     emit('tickstockpl_chart_data_response', {
                         'symbol': symbol,
@@ -480,25 +483,25 @@ def register_socketio_handlers(socketio, market_service):
                     })
             else:
                 emit('error', {'message': 'Chart data service not available'})
-                
+
         except Exception as e:
             logger.error(f"TICKSTOCKPL-CHART-REQUEST-ERROR: {e}")
             emit('error', {'message': 'Chart data request failed'})
 
 def register_basic_routes(app):
     """Register essential application routes."""
-    
+
     @app.errorhandler(500)
     def internal_error(error):
         logger.error(f"FLASK-ERROR-500: {error}")
         logger.error(f"FLASK-ERROR-500: Exception details: {error.__dict__ if hasattr(error, '__dict__') else 'No details available'}")
         return {"error": "Internal server error", "message": str(error)}, 500
-    
+
     @app.errorhandler(404)
     def not_found(error):
         logger.warning(f"FLASK-ERROR-404: {error}")
         return {"error": "Not found", "message": str(error)}, 404
-    
+
     @app.route('/')
     @login_required
     def index():
@@ -508,7 +511,7 @@ def register_basic_routes(app):
         except Exception as e:
             logger.error(f"ROUTE-ERROR: Index route failed: {e}")
             raise
-    
+
     @app.route('/sprint25')
     @login_required
     def sprint25_dashboard():
@@ -519,13 +522,13 @@ def register_basic_routes(app):
         except Exception as e:
             logger.error(f"ROUTE-ERROR: Sprint 25 dashboard route failed: {e}")
             raise
-    
+
     @app.route('/health')
     @login_required
     def health_check():
         """Health check endpoint for monitoring."""
         return {"status": "healthy", "version": APP_VERSION}
-    
+
     @app.route('/api/health/redis')
     def api_health_redis():
         """
@@ -542,7 +545,7 @@ def register_basic_routes(app):
                 "timestamp": time.time(),
                 "error": "Redis connectivity is mandatory for TickStockAppV2"
             }), 503
-        
+
         health_data = {
             "status": "UNKNOWN",
             "connectivity": False,
@@ -552,21 +555,21 @@ def register_basic_routes(app):
             "server_info": {},
             "timestamp": time.time()
         }
-        
+
         try:
             # Test basic connectivity with performance measurement
             start_time = time.time()
             ping_result = redis_client.ping()
             ping_time = (time.time() - start_time) * 1000
-            
+
             if not ping_result:
                 health_data["status"] = "CRITICAL"
                 health_data["error"] = "Redis ping returned False"
                 return jsonify(health_data), 503
-            
+
             health_data["connectivity"] = True
             health_data["performance"]["ping_ms"] = round(ping_time, 2)
-            
+
             # Get server information
             server_info = redis_client.info('server')
             health_data["server_info"] = {
@@ -575,7 +578,7 @@ def register_basic_routes(app):
                 "used_memory_human": server_info.get('used_memory_human'),
                 "connected_clients": server_info.get('connected_clients')
             }
-            
+
             # Test pub-sub channels required for TickStockPL integration
             required_channels = [
                 'tickstock.events.patterns',
@@ -583,10 +586,10 @@ def register_basic_routes(app):
                 'tickstock.events.backtesting.results',
                 'tickstock.health.status'
             ]
-            
+
             channel_test_results = {}
             pubsub_errors = []
-            
+
             for channel in required_channels:
                 try:
                     # Test publish capability (validates permissions and functionality)
@@ -602,10 +605,10 @@ def register_basic_routes(app):
                         "error": str(e)
                     }
                     pubsub_errors.append(f"{channel}: {e}")
-            
+
             health_data["channels"] = channel_test_results
             health_data["pubsub_status"] = len(pubsub_errors) == 0
-            
+
             # Determine overall status based on performance and functionality
             if ping_time > 50:
                 health_data["status"] = "CRITICAL"
@@ -618,7 +621,7 @@ def register_basic_routes(app):
                     health_data["pubsub_errors"] = pubsub_errors
             else:
                 health_data["status"] = "HEALTHY"
-            
+
             # Additional performance metrics
             health_data["performance"]["target_ping_ms"] = 50
             health_data["performance"]["optimal_ping_ms"] = 25
@@ -627,7 +630,7 @@ def register_basic_routes(app):
                 "real_time_capable": ping_time < 50,
                 "optimal_performance": ping_time < 25
             }
-            
+
         except redis.ConnectionError as e:
             health_data["status"] = "CRITICAL"
             health_data["error"] = f"Redis connection error: {e}"
@@ -636,21 +639,20 @@ def register_basic_routes(app):
             health_data["status"] = "CRITICAL"
             health_data["error"] = f"Redis health check failed: {e}"
             return jsonify(health_data), 503
-        
+
         # Return appropriate HTTP status based on health
         if health_data["status"] == "HEALTHY":
             return jsonify(health_data), 200
-        elif health_data["status"] == "DEGRADED":
+        if health_data["status"] == "DEGRADED":
             return jsonify(health_data), 200  # Still functional
-        else:
-            return jsonify(health_data), 503  # Critical issues
-    
+        return jsonify(health_data), 503  # Critical issues
+
     @app.route('/test')
-    @login_required  
+    @login_required
     def test_route():
         """Simple test route to verify routing works."""
         return "TickStock Test Route - Working!"
-    
+
     @app.route('/stats')
     @login_required
     def stats():
@@ -659,18 +661,18 @@ def register_basic_routes(app):
             'app_version': APP_VERSION,
             'redis_connected': redis_client is not None,
         }
-        
+
         if market_service:
             stats_data['market_service'] = market_service.get_stats()
-        
+
         return stats_data
-    
+
     # SPRINT 20 MOCK API REMOVED - Pattern Discovery now uses real APIs
     # Real pattern discovery endpoints provided via blueprint registration from:
     # src/api/rest/pattern_consumer.py - /api/patterns/scan, /api/patterns/stats, /api/patterns/summary, /api/patterns/health
-    
+
     # Pattern alert simulation removed - real pattern alerts now come from TickStockPL via Redis pub-sub
-    
+
     # SPRINT 21 MOCK API - Watchlist Management System
     @app.route('/api/watchlists', methods=['GET'])
     @login_required
@@ -678,7 +680,7 @@ def register_basic_routes(app):
         """Get all user watchlists - Sprint 21."""
         import random
         logger.info("WATCHLIST-API: Get all watchlists requested")
-        
+
         # Mock watchlist data for UI testing
         mock_watchlists = [
             {
@@ -703,28 +705,28 @@ def register_basic_routes(app):
                 "updated_at": "2025-01-16T12:00:00Z"
             }
         ]
-        
+
         return {
             "watchlists": mock_watchlists,
             "count": len(mock_watchlists),
             "response_time_ms": round(random.uniform(10, 25), 1)
         }
-    
+
     @app.route('/api/watchlists', methods=['POST'])
     @login_required
     def api_watchlists_create():
         """Create new watchlist - Sprint 21."""
         import uuid
         from datetime import datetime
-        
+
         try:
             data = request.get_json()
             logger.info(f"WATCHLIST-API: Create watchlist '{data.get('name')}'")
-            
+
             # Validate input
             if not data or not data.get('name'):
                 return {"error": "Watchlist name is required"}, 400
-            
+
             # Create new watchlist
             new_watchlist = {
                 "id": str(uuid.uuid4())[:8],  # Short ID for demo
@@ -733,30 +735,30 @@ def register_basic_routes(app):
                 "created_at": datetime.now().isoformat() + "Z",
                 "updated_at": datetime.now().isoformat() + "Z"
             }
-            
+
             # In real implementation, save to database here
             logger.info(f"WATCHLIST-API: Created watchlist {new_watchlist['id']} with {len(new_watchlist['symbols'])} symbols")
-            
+
             return new_watchlist
-            
+
         except Exception as e:
             logger.error(f"WATCHLIST-API: Create failed: {e}")
             return {"error": "Failed to create watchlist"}, 500
-    
+
     @app.route('/api/watchlists/<watchlist_id>', methods=['PUT'])
     @login_required
     def api_watchlists_update(watchlist_id):
         """Update existing watchlist - Sprint 21."""
         from datetime import datetime
-        
+
         try:
             data = request.get_json()
             logger.info(f"WATCHLIST-API: Update watchlist {watchlist_id}")
-            
+
             # Validate input
             if not data:
                 return {"error": "Update data is required"}, 400
-            
+
             # Mock updated watchlist (in real implementation, update in database)
             updated_watchlist = {
                 "id": watchlist_id,
@@ -765,90 +767,90 @@ def register_basic_routes(app):
                 "created_at": "2025-01-16T10:00:00Z",  # Would come from database
                 "updated_at": datetime.now().isoformat() + "Z"
             }
-            
+
             logger.info(f"WATCHLIST-API: Updated watchlist {watchlist_id} with {len(updated_watchlist['symbols'])} symbols")
-            
+
             return updated_watchlist
-            
+
         except Exception as e:
             logger.error(f"WATCHLIST-API: Update failed: {e}")
             return {"error": "Failed to update watchlist"}, 500
-    
+
     @app.route('/api/watchlists/<watchlist_id>', methods=['DELETE'])
     @login_required
     def api_watchlists_delete(watchlist_id):
         """Delete watchlist - Sprint 21."""
         try:
             logger.info(f"WATCHLIST-API: Delete watchlist {watchlist_id}")
-            
+
             # In real implementation, delete from database here
             logger.info(f"WATCHLIST-API: Deleted watchlist {watchlist_id}")
-            
+
             return {"status": "deleted", "id": watchlist_id}
-            
+
         except Exception as e:
             logger.error(f"WATCHLIST-API: Delete failed: {e}")
             return {"error": "Failed to delete watchlist"}, 500
-    
+
     @app.route('/api/watchlists/<watchlist_id>/symbols', methods=['POST'])
     @login_required
     def api_watchlists_add_symbol(watchlist_id):
         """Add symbol to watchlist - Sprint 21."""
         from datetime import datetime
-        
+
         try:
             data = request.get_json()
             symbol = data.get('symbol', '').upper()
-            
+
             logger.info(f"WATCHLIST-API: Add {symbol} to watchlist {watchlist_id}")
-            
+
             if not symbol:
                 return {"error": "Symbol is required"}, 400
-            
+
             # In real implementation, add to database here
             logger.info(f"WATCHLIST-API: Added {symbol} to watchlist {watchlist_id}")
-            
+
             return {
                 "status": "added",
                 "watchlist_id": watchlist_id,
                 "symbol": symbol,
                 "updated_at": datetime.now().isoformat() + "Z"
             }
-            
+
         except Exception as e:
             logger.error(f"WATCHLIST-API: Add symbol failed: {e}")
             return {"error": "Failed to add symbol"}, 500
-    
+
     @app.route('/api/watchlists/<watchlist_id>/symbols/<symbol>', methods=['DELETE'])
     @login_required
     def api_watchlists_remove_symbol(watchlist_id, symbol):
         """Remove symbol from watchlist - Sprint 21."""
         from datetime import datetime
-        
+
         try:
             logger.info(f"WATCHLIST-API: Remove {symbol} from watchlist {watchlist_id}")
-            
+
             # In real implementation, remove from database here
             logger.info(f"WATCHLIST-API: Removed {symbol} from watchlist {watchlist_id}")
-            
+
             return {
                 "status": "removed",
                 "watchlist_id": watchlist_id,
                 "symbol": symbol.upper(),
                 "updated_at": datetime.now().isoformat() + "Z"
             }
-            
+
         except Exception as e:
             logger.error(f"WATCHLIST-API: Remove symbol failed: {e}")
             return {"error": "Failed to remove symbol"}, 500
-    
+
     # SPRINT 21 MOCK API - Filter Presets System
     @app.route('/api/filters/presets', methods=['GET'])
     @login_required
     def api_filter_presets_list():
         """Get all user filter presets - Sprint 21."""
         logger.info("FILTER-PRESETS-API: Get all presets requested")
-        
+
         # Mock filter presets data for UI testing
         mock_presets = [
             {
@@ -918,27 +920,27 @@ def register_basic_routes(app):
                 "updated_at": "2025-01-16T12:00:00Z"
             }
         ]
-        
+
         return mock_presets
-    
+
     @app.route('/api/filters/presets', methods=['POST'])
     @login_required
     def api_filter_presets_create():
         """Create new filter preset - Sprint 21."""
         import uuid
         from datetime import datetime
-        
+
         try:
             data = request.get_json()
             logger.info(f"FILTER-PRESETS-API: Create preset '{data.get('name')}'")
-            
+
             # Validate input
             if not data or not data.get('name'):
                 return {"error": "Preset name is required"}, 400
-            
+
             if not data.get('filters'):
                 return {"error": "Filter configuration is required"}, 400
-            
+
             # Create new preset
             new_preset = {
                 "id": str(uuid.uuid4())[:8],  # Short ID for demo
@@ -948,30 +950,30 @@ def register_basic_routes(app):
                 "created_at": datetime.now().isoformat() + "Z",
                 "updated_at": datetime.now().isoformat() + "Z"
             }
-            
+
             # In real implementation, save to database here
             logger.info(f"FILTER-PRESETS-API: Created preset {new_preset['id']} with {len(new_preset['filters'].get('conditions', []))} conditions")
-            
+
             return new_preset
-            
+
         except Exception as e:
             logger.error(f"FILTER-PRESETS-API: Create failed: {e}")
             return {"error": "Failed to create filter preset"}, 500
-    
+
     @app.route('/api/filters/presets/<preset_id>', methods=['PUT'])
     @login_required
     def api_filter_presets_update(preset_id):
         """Update existing filter preset - Sprint 21."""
         from datetime import datetime
-        
+
         try:
             data = request.get_json()
             logger.info(f"FILTER-PRESETS-API: Update preset {preset_id}")
-            
+
             # Validate input
             if not data:
                 return {"error": "Update data is required"}, 400
-            
+
             # Mock updated preset (in real implementation, update in database)
             updated_preset = {
                 "id": preset_id,
@@ -981,85 +983,85 @@ def register_basic_routes(app):
                 "created_at": "2025-01-16T10:00:00Z",  # Would come from database
                 "updated_at": datetime.now().isoformat() + "Z"
             }
-            
+
             logger.info(f"FILTER-PRESETS-API: Updated preset {preset_id}")
-            
+
             return updated_preset
-            
+
         except Exception as e:
             logger.error(f"FILTER-PRESETS-API: Update failed: {e}")
             return {"error": "Failed to update filter preset"}, 500
-    
+
     @app.route('/api/filters/presets/<preset_id>', methods=['DELETE'])
     @login_required
     def api_filter_presets_delete(preset_id):
         """Delete filter preset - Sprint 21."""
         try:
             logger.info(f"FILTER-PRESETS-API: Delete preset {preset_id}")
-            
+
             # In real implementation, delete from database here
             logger.info(f"FILTER-PRESETS-API: Deleted preset {preset_id}")
-            
+
             return {"status": "deleted", "id": preset_id}
-            
+
         except Exception as e:
             logger.error(f"FILTER-PRESETS-API: Delete failed: {e}")
             return {"error": "Failed to delete filter preset"}, 500
-    
+
     # SPRINT 21 WEEK 2 MOCK API - Pattern Analytics System
     @app.route('/api/patterns/analytics', methods=['GET'])
     @login_required
     def api_patterns_analytics():
         """Get pattern performance analytics - Sprint 21 Week 2."""
         import random
-        
+
         logger.info("ANALYTICS-API: Pattern analytics requested")
-        
+
         # Mock pattern performance analytics
         patterns = ['WeeklyBO', 'DailyBO', 'Doji', 'Hammer', 'ShootingStar', 'Engulfing', 'Harami']
-        
+
         analytics_data = {
             "success_rates": {},
             "avg_performance": {},
             "reliability_score": {},
             "volume_correlation": {}
         }
-        
+
         for pattern in patterns:
             # Generate realistic success rates (declining over time)
             success_1d = random.uniform(0.4, 0.8)
             success_5d = success_1d * random.uniform(0.7, 0.9)
             success_30d = success_5d * random.uniform(0.7, 0.9)
-            
+
             analytics_data["success_rates"][pattern] = {
                 "1d": round(success_1d, 2),
-                "5d": round(success_5d, 2), 
+                "5d": round(success_5d, 2),
                 "30d": round(success_30d, 2)
             }
-            
+
             # Average performance percentages
             analytics_data["avg_performance"][pattern] = {
                 "1d": round(random.uniform(0.5, 3.0), 1),
                 "5d": round(random.uniform(1.0, 5.0), 1),
                 "30d": round(random.uniform(2.0, 10.0), 1)
             }
-            
+
             analytics_data["reliability_score"][pattern] = round(random.uniform(0.5, 0.85), 2)
             analytics_data["volume_correlation"][pattern] = round(random.uniform(0.3, 0.8), 2)
-        
+
         return analytics_data
-    
+
     @app.route('/api/patterns/distribution', methods=['GET'])
     @login_required
     def api_patterns_distribution():
         """Get pattern distribution data - Sprint 21 Week 2."""
         import random
-        
+
         logger.info("ANALYTICS-API: Pattern distribution requested")
-        
+
         patterns = ['WeeklyBO', 'DailyBO', 'Doji', 'Hammer', 'ShootingStar', 'Engulfing', 'Harami']
         sectors = ['Technology', 'Healthcare', 'Financial', 'Industrial', 'Consumer', 'Energy']
-        
+
         distribution_data = {
             "pattern_frequency": {pattern: random.randint(15, 70) for pattern in patterns},
             "confidence_distribution": {
@@ -1074,27 +1076,27 @@ def register_basic_routes(app):
                 } for sector in sectors
             }
         }
-        
+
         return distribution_data
-    
+
     @app.route('/api/patterns/history', methods=['GET'])
-    @login_required  
+    @login_required
     def api_patterns_history():
         """Get historical pattern data - Sprint 21 Week 2."""
         import random
         from datetime import datetime, timedelta
-        
+
         logger.info("ANALYTICS-API: Pattern history requested")
-        
+
         # Generate 30 days of historical data
         history_data = []
         base_date = datetime.now() - timedelta(days=30)
-        
+
         for i in range(30):
             date = base_date + timedelta(days=i)
             daily_patterns = random.randint(150, 350)
             avg_confidence = random.uniform(0.65, 0.8)
-            
+
             history_data.append({
                 "date": date.strftime("%Y-%m-%d"),
                 "patterns_detected": daily_patterns,
@@ -1102,37 +1104,37 @@ def register_basic_routes(app):
                 "high_confidence_count": int(daily_patterns * random.uniform(0.2, 0.4)),
                 "success_rate_1d": round(random.uniform(0.5, 0.75), 2)
             })
-        
+
         return {"historical_data": history_data}
-    
+
     @app.route('/api/patterns/success-rates', methods=['GET'])
     @login_required
     def api_patterns_success_rates():
         """Get pattern success rate analysis - Sprint 21 Week 2."""
         import random
-        
+
         logger.info("ANALYTICS-API: Success rates requested")
-        
+
         patterns = ['WeeklyBO', 'DailyBO', 'Doji', 'Hammer', 'EngulfingBullish']
-        
+
         success_rates = {}
         for pattern in patterns:
             # Generate realistic success rates with time decay
             base_1d = random.uniform(0.45, 0.78)
-            success_5d = base_1d * random.uniform(0.75, 0.95)  
+            success_5d = base_1d * random.uniform(0.75, 0.95)
             success_30d = success_5d * random.uniform(0.70, 0.90)
-            
+
             # Assign trend based on success rates
             if base_1d > 0.7:
                 trend = 'improving'
                 correlation = random.uniform(0.80, 0.86)
             elif base_1d > 0.6:
-                trend = 'stable' 
+                trend = 'stable'
                 correlation = random.uniform(0.70, 0.80)
             else:
                 trend = 'declining'
                 correlation = random.uniform(0.55, 0.70)
-            
+
             success_rates[pattern] = {
                 '1d': round(base_1d, 2),
                 '5d': round(success_5d, 2),
@@ -1140,69 +1142,69 @@ def register_basic_routes(app):
                 'trend': trend,
                 'confidence_correlation': round(correlation, 2)
             }
-        
+
         return success_rates
-    
+
     @app.route('/api/patterns/backtest', methods=['POST'])
     @login_required
     def api_patterns_backtest():
         """Perform strategy backtesting - Sprint 21 Week 2."""
         import random
         from datetime import datetime, timedelta
-        
+
         logger.info("ANALYTICS-API: Backtest requested")
-        
+
         data = request.get_json()
         if not data:
             return {"error": "No backtest parameters provided"}, 400
-            
+
         preset = data.get('preset', {})
         days = data.get('days', 30)
         preset_name = preset.get('name', 'Custom Preset')
-        
+
         logger.info(f"ANALYTICS-API: Backtesting {preset_name} for {days} days")
-        
+
         # Generate backtest results
         base_success_rate = random.uniform(0.55, 0.75)
         total_signals = random.randint(50, 150)
         successful_trades = int(total_signals * base_success_rate)
-        
+
         # Generate daily performance data
         daily_performance = []
         cumulative_return = 1.0
         peak = 1.0
-        
+
         for i in range(days):
             # Generate daily return with slight positive bias
             daily_return = random.normalvariate(0.001, 0.025)  # ~0.1% daily return, 2.5% volatility
             cumulative_return *= (1 + daily_return)
-            
+
             # Track peak for drawdown calculation
             if cumulative_return > peak:
                 peak = cumulative_return
-            
+
             drawdown = (cumulative_return - peak) / peak
-            
+
             date = (datetime.now() - timedelta(days=days-i)).strftime('%Y-%m-%d')
-            
+
             daily_performance.append({
                 'date': date,
                 'daily_return': round(daily_return, 4),
                 'cumulative_return': round(cumulative_return - 1, 4),
                 'drawdown': round(drawdown, 4)
             })
-        
+
         # Calculate performance metrics
         final_return = cumulative_return - 1
         max_drawdown = min([d['drawdown'] for d in daily_performance])
-        
+
         # Calculate volatility (annualized)
         returns = [d['daily_return'] for d in daily_performance]
         volatility = (sum([(r - sum(returns)/len(returns))**2 for r in returns]) / len(returns))**0.5 * (252**0.5)
-        
+
         # Simple Sharpe ratio approximation
         sharpe_ratio = (final_return * 252 / days) / volatility if volatility > 0 else 0
-        
+
         backtest_result = {
             'preset_name': preset_name,
             'backtest_period': days,
@@ -1227,9 +1229,9 @@ def register_basic_routes(app):
                 'max_consecutive_losses': random.randint(1, 5)
             }
         }
-        
+
         return backtest_result
-    
+
     # SPRINT 21 WEEK 2 ENHANCED PATTERN VISUALIZATION API ENDPOINTS
     @app.route('/api/patterns/enhanced/<symbol>', methods=['POST'])
     @login_required
@@ -1237,9 +1239,9 @@ def register_basic_routes(app):
         """Get enhanced pattern data with trend indicators and context - Sprint 21 Week 2."""
         import random
         from datetime import datetime
-        
+
         logger.info(f"VISUALIZATION-API: Enhanced data requested for {symbol}")
-        
+
         try:
             data = request.get_json() or {}
             pattern = data.get('pattern', {})
@@ -1247,12 +1249,12 @@ def register_basic_routes(app):
         except Exception as e:
             logger.error(f"VISUALIZATION-API: JSON parsing error for {symbol}: {e}")
             return {'error': 'Invalid JSON data'}, 400
-        
+
         # Generate realistic enhancement data
         trend_strength = random.uniform(30, 95)
         volume_change = random.uniform(-80, 150)  # -80% to +150%
         sector_performance = random.uniform(-8, 12)  # -8% to +12%
-        
+
         # Pattern-specific success rates
         pattern_success_rates = {
             'WeeklyBO': {'1d': random.uniform(70, 85), '5d': random.uniform(60, 75)},
@@ -1262,10 +1264,10 @@ def register_basic_routes(app):
             'EngulfingBullish': {'1d': random.uniform(65, 80), '5d': random.uniform(60, 75)},
             'ShootingStar': {'1d': random.uniform(45, 65), '5d': random.uniform(40, 60)}
         }
-        
+
         pattern_type = pattern.get('pattern', 'Unknown')
         success_rates = pattern_success_rates.get(pattern_type, {'1d': random.uniform(45, 65), '5d': random.uniform(40, 60)})
-        
+
         enhancement_data = {
             'symbol': symbol,
             'trend_direction': 'up' if trend_strength > 65 else 'down' if trend_strength < 45 else 'sideways',
@@ -1282,17 +1284,17 @@ def register_basic_routes(app):
             'risk_level': random.choice(['Low', 'Medium', 'High']),
             'timestamp': datetime.now().isoformat()
         }
-        
+
         return enhancement_data
-    
+
     @app.route('/api/patterns/trends', methods=['GET'])
-    @login_required  
+    @login_required
     def api_patterns_trends():
         """Get pattern trend analysis data - Sprint 21 Week 2."""
         import random
-        
+
         logger.info("VISUALIZATION-API: Trend analysis requested")
-        
+
         # Generate trend data for different time periods
         trends_data = {
             'current_trends': {
@@ -1321,9 +1323,9 @@ def register_basic_routes(app):
                 for pattern in ['WeeklyBO', 'DailyBO', 'Doji', 'Hammer', 'EngulfingBullish', 'ShootingStar']
             }
         }
-        
+
         return trends_data
-    
+
     # SPRINT 21 WEEK 2 REAL-TIME MARKET STATISTICS API ENDPOINTS
     @app.route('/api/market/statistics', methods=['GET'])
     @login_required
@@ -1331,13 +1333,13 @@ def register_basic_routes(app):
         """Get live market statistics and pattern detection metrics - Sprint 21 Week 2."""
         import random
         from datetime import datetime
-        
+
         logger.info("MARKET-STATS-API: Live statistics requested")
-        
+
         # Generate realistic market statistics
         market_hours = datetime.now().hour >= 9 and datetime.now().hour <= 16
         base_activity = 1.5 if market_hours else 0.3
-        
+
         statistics = {
             'patterns_detected_today': random.randint(85, 165),
             'pattern_velocity_per_hour': round(random.uniform(2.5, 12.0) * base_activity, 1),
@@ -1349,19 +1351,19 @@ def register_basic_routes(app):
             'timestamp': datetime.now().isoformat(),
             'market_hours': market_hours
         }
-        
+
         logger.debug(f"MARKET-STATS-API: Generated statistics: {statistics}")
         return statistics
-    
+
     @app.route('/api/market/breadth', methods=['GET'])
     @login_required
     def api_market_breadth():
         """Get market breadth analysis by sector - Sprint 21 Week 2."""
         import random
         from datetime import datetime
-        
+
         logger.info("MARKET-STATS-API: Market breadth requested")
-        
+
         # Generate realistic sector distribution
         sectors = {
             'Technology': random.randint(25, 55),
@@ -1375,7 +1377,7 @@ def register_basic_routes(app):
             'Real Estate': random.randint(4, 15),
             'Materials': random.randint(6, 20)
         }
-        
+
         breadth_data = {
             'sector_breakdown': sectors,
             'total_patterns': sum(sectors.values()),
@@ -1383,25 +1385,25 @@ def register_basic_routes(app):
             'least_active_sector': min(sectors.keys(), key=lambda k: sectors[k]),
             'timestamp': datetime.now().isoformat()
         }
-        
+
         logger.debug(f"MARKET-STATS-API: Generated breadth data for {len(sectors)} sectors")
         return breadth_data
-    
+
     @app.route('/api/market/pattern-frequency', methods=['GET'])
-    @login_required  
+    @login_required
     def api_market_pattern_frequency():
         """Get pattern detection frequency over time periods - Sprint 21 Week 2."""
         import random
         from datetime import datetime
-        
+
         logger.info("MARKET-STATS-API: Pattern frequency requested")
-        
+
         # Generate realistic frequency data with time-decay
         current_hour = datetime.now().hour
         market_hours = current_hour >= 9 and current_hour <= 16
-        
+
         base_multiplier = 1.2 if market_hours else 0.4
-        
+
         frequency_data = {
             'last_hour': int(random.randint(4, 18) * base_multiplier),
             'last_4h': int(random.randint(15, 45) * base_multiplier),
@@ -1420,18 +1422,18 @@ def register_basic_routes(app):
             'timestamp': datetime.now().isoformat(),
             'market_hours': market_hours
         }
-        
+
         logger.debug(f"MARKET-STATS-API: Generated frequency data with {frequency_data['last_24h']} patterns in 24h")
         return frequency_data
-    
+
     @app.route('/api/patterns/context', methods=['GET'])
     @login_required
     def api_patterns_context():
         """Get market context data for pattern analysis - Sprint 21 Week 2."""
         import random
-        
+
         logger.info("VISUALIZATION-API: Context data requested")
-        
+
         context_data = {
             'market_conditions': {
                 'overall_sentiment': random.choice(['bullish', 'bearish', 'neutral']),
@@ -1457,9 +1459,9 @@ def register_basic_routes(app):
                 'earnings_season': random.choice([True, False])
             }
         }
-        
+
         return context_data
-    
+
     # SPRINT 22 PATTERN REGISTRY API - Dynamic Pattern Management
     @app.route('/api/patterns/definitions', methods=['GET'])
     @login_required
@@ -1467,44 +1469,44 @@ def register_basic_routes(app):
         """Get all enabled pattern definitions for UI loading - Sprint 22."""
         try:
             from src.core.services.pattern_registry_service import pattern_registry
-            
+
             start_time = time.time()
             patterns = pattern_registry.get_enabled_patterns()
             response_time_ms = round((time.time() - start_time) * 1000, 1)
-            
+
             pattern_data = [pattern.to_dict() for pattern in patterns]
-            
+
             logger.info(f"PATTERN-REGISTRY-API: Returned {len(pattern_data)} enabled patterns in {response_time_ms}ms")
-            
+
             return {
                 "patterns": pattern_data,
                 "count": len(pattern_data),
                 "response_time_ms": response_time_ms,
                 "timestamp": datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"PATTERN-REGISTRY-API: Failed to get pattern definitions: {e}")
             return {"error": "Failed to load pattern definitions"}, 500
-    
+
     @app.route('/api/patterns/definitions/admin', methods=['GET'])
     @login_required
     def api_pattern_definitions_admin():
         """Get all pattern definitions (enabled and disabled) for admin use - Sprint 22."""
         try:
             from src.core.services.pattern_registry_service import pattern_registry
-            
+
             start_time = time.time()
             patterns = pattern_registry.get_all_patterns()
             response_time_ms = round((time.time() - start_time) * 1000, 1)
-            
+
             pattern_data = [pattern.to_dict() for pattern in patterns]
-            
+
             # Add service statistics for admin monitoring
             service_stats = pattern_registry.get_service_stats()
-            
+
             logger.info(f"PATTERN-REGISTRY-API: Admin returned {len(pattern_data)} total patterns in {response_time_ms}ms")
-            
+
             return {
                 "patterns": pattern_data,
                 "count": len(pattern_data),
@@ -1514,21 +1516,21 @@ def register_basic_routes(app):
                 "response_time_ms": response_time_ms,
                 "timestamp": datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"PATTERN-REGISTRY-API: Admin failed to get pattern definitions: {e}")
             return {"error": "Failed to load pattern definitions"}, 500
-    
+
     @app.route('/api/patterns/definitions/<int:pattern_id>/toggle', methods=['POST'])
     @login_required
     def api_pattern_toggle(pattern_id):
         """Toggle pattern enabled status - Sprint 22."""
         try:
             from src.core.services.pattern_registry_service import pattern_registry
-            
+
             data = request.get_json() or {}
             enabled = data.get('enabled')
-            
+
             # If enabled status not provided, we'll toggle current status
             if enabled is None:
                 # Get current pattern to determine new status
@@ -1537,11 +1539,11 @@ def register_basic_routes(app):
                 if not current_pattern:
                     return {"error": "Pattern not found"}, 404
                 enabled = not current_pattern.enabled
-            
+
             start_time = time.time()
             success = pattern_registry.update_pattern_status(pattern_id, enabled)
             response_time_ms = round((time.time() - start_time) * 1000, 1)
-            
+
             if success:
                 logger.info(f"PATTERN-REGISTRY-API: Pattern {pattern_id} {'enabled' if enabled else 'disabled'} in {response_time_ms}ms")
                 return {
@@ -1551,25 +1553,24 @@ def register_basic_routes(app):
                     "response_time_ms": response_time_ms,
                     "timestamp": datetime.now().isoformat()
                 }
-            else:
-                logger.error(f"PATTERN-REGISTRY-API: Failed to toggle pattern {pattern_id}")
-                return {"error": "Failed to update pattern status"}, 500
-                
+            logger.error(f"PATTERN-REGISTRY-API: Failed to toggle pattern {pattern_id}")
+            return {"error": "Failed to update pattern status"}, 500
+
         except Exception as e:
             logger.error(f"PATTERN-REGISTRY-API: Toggle pattern {pattern_id} failed: {e}")
             return {"error": "Failed to toggle pattern"}, 500
-    
+
     @app.route('/api/patterns/definitions/<pattern_name>/toggle-by-name', methods=['POST'])
     @login_required
     def api_pattern_toggle_by_name(pattern_name):
         """Toggle pattern enabled status by name - Sprint 22."""
         try:
             from src.core.services.pattern_registry_service import pattern_registry
-            
+
             start_time = time.time()
             success = pattern_registry.toggle_pattern_by_name(pattern_name)
             response_time_ms = round((time.time() - start_time) * 1000, 1)
-            
+
             if success:
                 logger.info(f"PATTERN-REGISTRY-API: Pattern {pattern_name} toggled in {response_time_ms}ms")
                 return {
@@ -1578,33 +1579,32 @@ def register_basic_routes(app):
                     "response_time_ms": response_time_ms,
                     "timestamp": datetime.now().isoformat()
                 }
-            else:
-                logger.warning(f"PATTERN-REGISTRY-API: Pattern {pattern_name} not found for toggle")
-                return {"error": "Pattern not found"}, 404
-                
+            logger.warning(f"PATTERN-REGISTRY-API: Pattern {pattern_name} not found for toggle")
+            return {"error": "Pattern not found"}, 404
+
         except Exception as e:
             logger.error(f"PATTERN-REGISTRY-API: Toggle pattern {pattern_name} failed: {e}")
             return {"error": "Failed to toggle pattern"}, 500
-    
+
     @app.route('/api/patterns/definitions/<pattern_name>/success-rates', methods=['GET'])
-    @login_required 
+    @login_required
     def api_pattern_success_rates(pattern_name):
         """Get real-time success rates for a pattern - Sprint 22."""
         try:
             from src.core.services.pattern_registry_service import pattern_registry
-            
+
             # Get days parameter from query string
             days = int(request.args.get('days', 30))
-            
+
             # First get the pattern to find its ID
             pattern = pattern_registry.get_pattern_by_name(pattern_name)
             if not pattern:
                 return {"error": "Pattern not found"}, 404
-            
+
             start_time = time.time()
             success_data = pattern_registry.calculate_success_rates(pattern.id, days)
             response_time_ms = round((time.time() - start_time) * 1000, 1)
-            
+
             if success_data:
                 logger.info(f"PATTERN-REGISTRY-API: Success rates for {pattern_name} calculated in {response_time_ms}ms")
                 success_data.update({
@@ -1612,87 +1612,86 @@ def register_basic_routes(app):
                     "timestamp": datetime.now().isoformat()
                 })
                 return success_data
-            else:
-                logger.warning(f"PATTERN-REGISTRY-API: No success rate data for {pattern_name}")
-                return {
-                    "pattern_name": pattern_name,
-                    "total_detections": 0,
-                    "success_rate_1d": None,
-                    "avg_confidence": None,
-                    "days_analyzed": days,
-                    "response_time_ms": response_time_ms,
-                    "timestamp": datetime.now().isoformat()
-                }
-                
+            logger.warning(f"PATTERN-REGISTRY-API: No success rate data for {pattern_name}")
+            return {
+                "pattern_name": pattern_name,
+                "total_detections": 0,
+                "success_rate_1d": None,
+                "avg_confidence": None,
+                "days_analyzed": days,
+                "response_time_ms": response_time_ms,
+                "timestamp": datetime.now().isoformat()
+            }
+
         except ValueError:
             return {"error": "Invalid days parameter"}, 400
         except Exception as e:
             logger.error(f"PATTERN-REGISTRY-API: Success rates for {pattern_name} failed: {e}")
             return {"error": "Failed to calculate success rates"}, 500
-    
+
     @app.route('/api/patterns/distribution/real', methods=['GET'])
     @login_required
     def api_pattern_distribution_real():
         """Get real pattern distribution from database - Sprint 22."""
         try:
             from src.core.services.pattern_registry_service import pattern_registry
-            
+
             # Get days parameter from query string
             days = int(request.args.get('days', 7))
-            
+
             start_time = time.time()
             distribution = pattern_registry.get_pattern_distribution(days)
             response_time_ms = round((time.time() - start_time) * 1000, 1)
-            
+
             logger.info(f"PATTERN-REGISTRY-API: Pattern distribution for {days} days calculated in {response_time_ms}ms")
-            
+
             return {
                 "distribution": distribution,
                 "days_analyzed": days,
                 "response_time_ms": response_time_ms,
                 "timestamp": datetime.now().isoformat()
             }
-            
+
         except ValueError:
             return {"error": "Invalid days parameter"}, 400
         except Exception as e:
             logger.error(f"PATTERN-REGISTRY-API: Pattern distribution failed: {e}")
             return {"error": "Failed to get pattern distribution"}, 500
-    
+
     @app.route('/api/patterns/registry/stats', methods=['GET'])
     @login_required
     def api_pattern_registry_stats():
         """Get pattern registry service statistics - Sprint 22."""
         try:
             from src.core.services.pattern_registry_service import pattern_registry
-            
+
             service_stats = pattern_registry.get_service_stats()
-            
+
             return {
                 "service_stats": service_stats,
                 "timestamp": datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"PATTERN-REGISTRY-API: Stats failed: {e}")
             return {"error": "Failed to get registry statistics"}, 500
-    
+
     @app.route('/api/patterns/registry/clear-cache', methods=['POST'])
     @login_required
     def api_pattern_registry_clear_cache():
         """Clear pattern registry cache to force refresh - Sprint 22."""
         try:
             from src.core.services.pattern_registry_service import pattern_registry
-            
+
             pattern_registry.clear_cache()
-            
+
             logger.info("PATTERN-REGISTRY-API: Cache cleared successfully")
-            
+
             return {
                 "status": "cache_cleared",
                 "timestamp": datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"PATTERN-REGISTRY-API: Clear cache failed: {e}")
             return {"error": "Failed to clear cache"}, 500
@@ -1702,7 +1701,7 @@ def register_basic_routes(app):
     # ==============================================================
     # Advanced Pattern Analytics API Routes
     # ==============================================================
-    
+
     def run_async_in_flask(coroutine_func):
         """Helper to run async functions in Flask routes"""
         import asyncio
@@ -1712,9 +1711,9 @@ def register_basic_routes(app):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         return loop.run_until_complete(coroutine_func)
-    
+
     # SPRINT 23 ANALYTICS ENDPOINTS - Advanced Pattern Analytics Dashboard
-    
+
     @app.route('/api/analytics/correlations', methods=['GET'])
     @login_required
     def api_analytics_correlations():
@@ -1723,46 +1722,46 @@ def register_basic_routes(app):
             days_back = int(request.args.get('days_back', 30))
             min_correlation = float(request.args.get('min_correlation', 0.3))
             format_type = request.args.get('format', 'heatmap')
-            
+
             # Try to use real analytics service first
             if analytics_advanced_service:
                 try:
                     correlations = sync_call(analytics_advanced_service.get_pattern_correlations(
                         days_back=days_back, min_correlation=min_correlation
                     ))
-                    
+
                     if format_type == 'matrix':
                         return sync_call(correlation_analyzer_service.get_correlation_matrix(
                             days_back=days_back, min_correlation=min_correlation
                         ))
-                    elif format_type == 'network':
+                    if format_type == 'network':
                         return sync_call(correlation_analyzer_service.get_network_data(
                             days_back=days_back, min_correlation=min_correlation
                         ))
-                    else:  # heatmap format (default)
-                        return sync_call(correlation_analyzer_service.get_heatmap_data(
-                            correlations, days_back=days_back, min_correlation=min_correlation
-                        ))
-                        
+                    # heatmap format (default)
+                    return sync_call(correlation_analyzer_service.get_heatmap_data(
+                        correlations, days_back=days_back, min_correlation=min_correlation
+                    ))
+
                 except Exception as e:
                     logger.error(f"ANALYTICS-API: Real correlation service failed, using mock: {e}")
                     # Fall through to mock data
-            
+
             # Fallback to mock data if service not available or failed
-            
+
             if format_type == 'matrix':
                 return {
                     'patterns': ['WeeklyBO', 'DailyBO', 'TrendFollower', 'MomentumBO'],
                     'matrix': [
                         [1.0, 0.75, 0.45, 0.32],
-                        [0.75, 1.0, 0.58, 0.61], 
+                        [0.75, 1.0, 0.58, 0.61],
                         [0.45, 0.58, 1.0, 0.73],
                         [0.32, 0.61, 0.73, 1.0]
                     ],
                     'significance_matrix': [[True, True, True, False], [True, True, True, True], [True, True, True, True], [False, True, True, True]],
                     'generated_at': datetime.now().isoformat()
                 }
-            elif format_type == 'network':
+            if format_type == 'network':
                 return {
                     'nodes': [
                         {'id': 'WeeklyBO', 'label': 'Weekly Breakout', 'degree': 2},
@@ -1775,18 +1774,18 @@ def register_basic_routes(app):
                     ],
                     'clusters': [['WeeklyBO', 'DailyBO'], ['TrendFollower', 'MomentumBO']]
                 }
-            else:  # heatmap
-                return {
-                    'pattern_pairs': [
-                        {'pattern_a': 'WeeklyBO', 'pattern_b': 'DailyBO', 'correlation': 0.75, 'is_significant': True, 'strength': 'Strong'},
-                        {'pattern_a': 'TrendFollower', 'pattern_b': 'MomentumBO', 'correlation': 0.73, 'is_significant': True, 'strength': 'Strong'}
-                    ],
-                    'max_correlation': 0.75,
-                    'min_correlation': 0.61,
-                    'significant_pairs_count': 2,
-                    'total_pairs_count': 2
-                }
-                
+            # heatmap
+            return {
+                'pattern_pairs': [
+                    {'pattern_a': 'WeeklyBO', 'pattern_b': 'DailyBO', 'correlation': 0.75, 'is_significant': True, 'strength': 'Strong'},
+                    {'pattern_a': 'TrendFollower', 'pattern_b': 'MomentumBO', 'correlation': 0.73, 'is_significant': True, 'strength': 'Strong'}
+                ],
+                'max_correlation': 0.75,
+                'min_correlation': 0.61,
+                'significant_pairs_count': 2,
+                'total_pairs_count': 2
+            }
+
         except Exception as e:
             logger.error(f"ANALYTICS-API: Correlation analysis failed: {e}")
             return {'error': 'Failed to generate correlation analysis'}, 500
@@ -1797,7 +1796,7 @@ def register_basic_routes(app):
         """Get temporal analysis for a specific pattern"""
         try:
             analysis_type = request.args.get('type', 'heatmap')
-            
+
             if analysis_type == 'hourly':
                 return {
                     'pattern_name': pattern_name,
@@ -1808,7 +1807,7 @@ def register_basic_routes(app):
                         {'time_bucket': 'Hour_14', 'detection_count': 16, 'success_rate': 81.3, 'statistical_significance': True}
                     ]
                 }
-            elif analysis_type == 'daily':
+            if analysis_type == 'daily':
                 return {
                     'pattern_name': pattern_name,
                     'analysis_type': 'daily',
@@ -1818,27 +1817,27 @@ def register_basic_routes(app):
                         {'time_bucket': 'Thursday', 'detection_count': 41, 'success_rate': 78.0, 'statistical_significance': True}
                     ]
                 }
-            else:  # heatmap
-                return {
-                    'pattern_name': pattern_name,
-                    'hourly_data': [{'time_bucket': 'Hour_10', 'success_rate': 80.0, 'detection_count': 15}, {'time_bucket': 'Hour_14', 'success_rate': 81.3, 'detection_count': 16}],
-                    'daily_data': [{'time_bucket': 'Tuesday', 'success_rate': 73.1, 'detection_count': 52}, {'time_bucket': 'Thursday', 'success_rate': 78.0, 'detection_count': 41}],
-                    'session_data': [{'time_bucket': 'Regular Hours', 'success_rate': 69.2, 'detection_count': 156}],
-                    'best_time_recommendation': 'Hour_14 (Success: 81.3%); Thursday (Success: 78.0%)',
-                    'worst_time_warning': 'Avoid: Hour_12 (Success: 37.5%); Friday (Success: 50.0%)'
-                }
-                
+            # heatmap
+            return {
+                'pattern_name': pattern_name,
+                'hourly_data': [{'time_bucket': 'Hour_10', 'success_rate': 80.0, 'detection_count': 15}, {'time_bucket': 'Hour_14', 'success_rate': 81.3, 'detection_count': 16}],
+                'daily_data': [{'time_bucket': 'Tuesday', 'success_rate': 73.1, 'detection_count': 52}, {'time_bucket': 'Thursday', 'success_rate': 78.0, 'detection_count': 41}],
+                'session_data': [{'time_bucket': 'Regular Hours', 'success_rate': 69.2, 'detection_count': 156}],
+                'best_time_recommendation': 'Hour_14 (Success: 81.3%); Thursday (Success: 78.0%)',
+                'worst_time_warning': 'Avoid: Hour_12 (Success: 37.5%); Friday (Success: 50.0%)'
+            }
+
         except Exception as e:
             logger.error(f"ANALYTICS-API: Temporal analysis failed for {pattern_name}: {e}")
             return {'error': f'Failed to generate temporal analysis for {pattern_name}'}, 500
 
     @app.route('/api/analytics/market-context', methods=['GET'])
-    @login_required 
+    @login_required
     def api_analytics_market_context():
         """Get market context analysis"""
         try:
             context_type = request.args.get('type', 'summary')
-            
+
             if context_type == 'summary':
                 return {
                     'timestamp': datetime.now().isoformat(),
@@ -1850,7 +1849,7 @@ def register_basic_routes(app):
                     'session': 'Regular',
                     'major_indexes': {'sp500': 0.85, 'nasdaq': 1.23, 'dow': 0.67}
                 }
-            elif context_type == 'pattern':
+            if context_type == 'pattern':
                 pattern_name = request.args.get('pattern_name', 'Unknown')
                 return {
                     'pattern_name': pattern_name,
@@ -1859,14 +1858,14 @@ def register_basic_routes(app):
                         {'condition_type': 'Market Trend', 'condition_value': 'BULLISH', 'detection_count': 32, 'success_rate': 72.1, 'vs_overall_performance': 5.6}
                     ]
                 }
-            else:  # history
-                return {
-                    'history': [
-                        {'timestamp': datetime.now().isoformat(), 'market_volatility': 18.5, 'market_trend': 'bullish', 'session_type': 'regular'},
-                        {'timestamp': (datetime.now() - timedelta(hours=1)).isoformat(), 'market_volatility': 19.2, 'market_trend': 'neutral', 'session_type': 'regular'}
-                    ]
-                }
-                
+            # history
+            return {
+                'history': [
+                    {'timestamp': datetime.now().isoformat(), 'market_volatility': 18.5, 'market_trend': 'bullish', 'session_type': 'regular'},
+                    {'timestamp': (datetime.now() - timedelta(hours=1)).isoformat(), 'market_volatility': 19.2, 'market_trend': 'neutral', 'session_type': 'regular'}
+                ]
+            }
+
         except Exception as e:
             logger.error(f"ANALYTICS-API: Market context analysis failed: {e}")
             return {'error': 'Failed to generate market context analysis'}, 500
@@ -1887,7 +1886,7 @@ def register_basic_routes(app):
                 'avg_recovery_time': 24.5,
                 'statistical_significance': True
             }
-            
+
         except Exception as e:
             logger.error(f"ANALYTICS-API: Advanced metrics failed for {pattern_name}: {e}")
             return {'error': f'Failed to get advanced metrics for {pattern_name}'}, 500
@@ -1898,7 +1897,7 @@ def register_basic_routes(app):
         """Get pattern comparison analysis"""
         try:
             comparison_type = request.args.get('type', 'table')
-            
+
             if comparison_type == 'two-pattern':
                 pattern_a = request.args.get('pattern_a', 'PatternA')
                 pattern_b = request.args.get('pattern_b', 'PatternB')
@@ -1914,7 +1913,7 @@ def register_basic_routes(app):
                     'confidence_level': 98.0,
                     'recommendation': f'Pattern {pattern_a} significantly outperforms {pattern_b}'
                 }
-            elif comparison_type == 'top-performers':
+            if comparison_type == 'top-performers':
                 limit = int(request.args.get('limit', 5))
                 return {
                     'top_performers': [
@@ -1923,19 +1922,19 @@ def register_basic_routes(app):
                         {'pattern_name': 'TrendFollower', 'success_rate': 68.3, 'sharpe_ratio': 1.18, 'rank': 3, 'percentile': 50.0}
                     ][:limit]
                 }
-            else:  # table
-                return {
-                    'patterns': [
-                        {'pattern_name': 'WeeklyBO', 'success_rate': 78.5, 'sharpe_ratio': 1.45, 'rank': 1, 'statistical_significance': True},
-                        {'pattern_name': 'DailyBO', 'success_rate': 72.1, 'sharpe_ratio': 1.32, 'rank': 2, 'statistical_significance': True},
-                        {'pattern_name': 'TrendFollower', 'success_rate': 68.3, 'sharpe_ratio': 1.18, 'rank': 3, 'statistical_significance': True}
-                    ],
-                    'comparison_metric': 'success_rate',
-                    'total_patterns': 3,
-                    'significant_patterns': 3,
-                    'generated_at': datetime.now().isoformat()
-                }
-                
+            # table
+            return {
+                'patterns': [
+                    {'pattern_name': 'WeeklyBO', 'success_rate': 78.5, 'sharpe_ratio': 1.45, 'rank': 1, 'statistical_significance': True},
+                    {'pattern_name': 'DailyBO', 'success_rate': 72.1, 'sharpe_ratio': 1.32, 'rank': 2, 'statistical_significance': True},
+                    {'pattern_name': 'TrendFollower', 'success_rate': 68.3, 'sharpe_ratio': 1.18, 'rank': 3, 'statistical_significance': True}
+                ],
+                'comparison_metric': 'success_rate',
+                'total_patterns': 3,
+                'significant_patterns': 3,
+                'generated_at': datetime.now().isoformat()
+            }
+
         except Exception as e:
             logger.error(f"ANALYTICS-API: Comparison analysis failed: {e}")
             return {'error': 'Failed to generate comparison analysis'}, 500
@@ -1971,7 +1970,7 @@ def register_basic_routes(app):
                 },
                 'generated_at': datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"ANALYTICS-API: Deep dive analysis failed for {pattern_name}: {e}")
             return {'error': f'Failed to generate deep dive analysis for {pattern_name}'}, 500
@@ -1983,7 +1982,7 @@ def register_basic_routes(app):
         try:
             limit = int(request.args.get('limit', 100))
             days_back = int(request.args.get('days_back', 30))
-            
+
             # Mock detection history data
             detections = [
                 {
@@ -2005,7 +2004,7 @@ def register_basic_routes(app):
                     'pattern_name': 'WeeklyBO'
                 }
             ]
-            
+
             return {
                 'pattern_id': pattern_id,
                 'detection_history': detections[:limit],
@@ -2013,7 +2012,7 @@ def register_basic_routes(app):
                 'days_analyzed': days_back,
                 'generated_at': datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             logger.error(f"ANALYTICS-API: Detection history failed for pattern {pattern_id}: {e}")
             return {'error': f'Failed to get detection history for pattern {pattern_id}'}, 500
@@ -2026,13 +2025,13 @@ def register_basic_routes(app):
             data = request.get_json()
             if not data:
                 return {'error': 'Request body required'}, 400
-            
+
             test_type = data.get('test_type', 'two_sample_t_test')
             patterns = data.get('patterns', [])
-            
+
             if len(patterns) < 2:
                 return {'error': 'At least 2 patterns required for statistical testing'}, 400
-            
+
             return {
                 'test_type': 'Two-Sample T-Test',
                 'null_hypothesis': f'No difference between {patterns[0]} and {patterns[1]}',
@@ -2045,7 +2044,7 @@ def register_basic_routes(app):
                 'interpretation': f'Pattern {patterns[0]} significantly outperforms {patterns[1]}',
                 'generated_at': datetime.now().isoformat()
             }
-                
+
         except Exception as e:
             logger.error(f"ANALYTICS-API: Statistical test failed: {e}")
             return {'error': 'Failed to perform statistical test'}, 500
@@ -2054,28 +2053,28 @@ def register_basic_routes(app):
 def main():
     """Main application entry point."""
     global app, market_service, socketio
-    
+
     try:
         logger.info("=" * 60)
         logger.info("[STARTUP] TICKSTOCK APPLICATION STARTING (Simplified)")
         logger.info("=" * 60)
-        
+
         # Run startup sequence
         logger.info("STARTUP: Running startup sequence...")
         startup_result = run_startup_sequence()
         config = startup_result['config']
         cache_control = startup_result['cache_control']
-        
+
         # Configure logging with the loaded config
         logger.info("STARTUP: Configuring logging...")
         configure_logging(config)
         logger.info("STARTUP: Logging configured successfully")
-        
+
         # Create Flask application
         logger.info("STARTUP: Creating Flask application...")
         app = create_flask_app(startup_result['env_config'], cache_control, config)
         extensions = initialize_flask_extensions(app)
-        
+
         # IMMEDIATE LOGIN MANAGER CONFIGURATION - Force it here
         login_manager = extensions.get('login_manager')
         if login_manager:
@@ -2087,8 +2086,8 @@ def main():
 
         # Initialize integration logging from environment
         try:
-            from src.core.services.integration_logger import configure_integration_logging
             from src.core.services.config_manager import get_config
+            from src.core.services.integration_logger import configure_integration_logging
 
             config = get_config()
             integration_enabled = config.get('INTEGRATION_LOGGING_ENABLED', True)
@@ -2104,7 +2103,7 @@ def main():
             logger.info(f"STARTUP: Integration logging configured (enabled={integration_enabled})")
         except ImportError:
             logger.warning("STARTUP: Integration logging not available")
-        
+
         # Initialize Redis (MANDATORY for TickStockPL integration)
         logger.info("STARTUP: Initializing Redis (MANDATORY)...")
         try:
@@ -2135,11 +2134,11 @@ def main():
             logger.critical(f"STARTUP: Unexpected Redis initialization error: {e}")
             print(generate_redis_failure_report('connection', f"Unexpected error: {e}"))
             sys.exit(1)
-        
+
         # Initialize SocketIO
         logger.info("STARTUP: Initializing SocketIO...")
         socketio = initialize_socketio(app, cache_control, config)
-        
+
         # Initialize WebSocket manager
         logger.info("STARTUP: Initializing WebSocket manager...")
         try:
@@ -2148,7 +2147,7 @@ def main():
         except Exception as e:
             logger.error(f"STARTUP: WebSocket manager initialization failed: {e}")
             raise
-        
+
         # Initialize market data service
         logger.info("STARTUP: Initializing market data service...")
         try:
@@ -2158,7 +2157,7 @@ def main():
         except Exception as e:
             logger.error(f"STARTUP: Market data service initialization failed: {e}")
             raise
-        
+
         # Register handlers and routes
         logger.info("STARTUP: Registering SocketIO handlers...")
         try:
@@ -2167,9 +2166,9 @@ def main():
         except Exception as e:
             logger.error(f"STARTUP: SocketIO handler registration failed: {e}")
             raise
-        
+
         # Routes are registered in the following functions
-            
+
         logger.info("STARTUP: Registering basic routes...")
         try:
             register_basic_routes(app)
@@ -2177,16 +2176,16 @@ def main():
         except Exception as e:
             logger.error(f"STARTUP: Basic route registration failed: {e}")
             raise
-        
+
         # Import and register API routes
         logger.info("STARTUP: Registering API routes...")
         try:
+            from src.api.rest.admin_historical_data_redis import register_admin_historical_routes
+            from src.api.rest.api import register_api_routes
             from src.api.rest.auth import register_auth_routes
             from src.api.rest.main import register_main_routes
-            from src.api.rest.api import register_api_routes
             from src.api.rest.tickstockpl_api import register_tickstockpl_routes
-            from src.api.rest.admin_historical_data_redis import register_admin_historical_routes
-            
+
             logger.info("STARTUP: Registering auth routes...")
             try:
                 register_auth_routes(app, extensions, cache_control, config)
@@ -2196,33 +2195,33 @@ def main():
                 import traceback
                 logger.error(f"STARTUP: Auth routes traceback:\n{traceback.format_exc()}")
                 raise
-            
+
             logger.info("STARTUP: Registering main routes...")
             register_main_routes(app, extensions, cache_control, config)
             logger.info("STARTUP: Main routes registered successfully")
-            
+
             logger.info("STARTUP: Registering API routes...")
             register_api_routes(app, extensions, cache_control, config)
             logger.info("STARTUP: API routes registered successfully")
-            
+
             # Sprint 25 Week 2: Register tier patterns API
             logger.info("STARTUP: Registering Sprint 25 tier patterns API...")
             try:
-                from src.api.rest.tier_patterns import tier_patterns_bp, init_tier_patterns_api
-                
+                from src.api.rest.tier_patterns import init_tier_patterns_api, tier_patterns_bp
+
                 # Initialize and register the tier patterns API with database integration
                 init_tier_patterns_api()
                 app.register_blueprint(tier_patterns_bp)
                 logger.info("STARTUP: Sprint 25 tier patterns API registered successfully")
-                
+
             except Exception as tier_error:
                 logger.warning(f"STARTUP: Tier patterns API registration failed: {tier_error}")
                 # Don't fail startup for this - it's optional Sprint 25 functionality
-            
+
             logger.info("STARTUP: Registering TickStockPL API routes...")
             register_tickstockpl_routes(app, extensions, cache_control, config)
             logger.info("STARTUP: TickStockPL API routes registered successfully")
-            
+
             logger.info("STARTUP: Registering admin historical data routes...")
             register_admin_historical_routes(app)
             logger.info("STARTUP: Admin historical data routes registered successfully")
@@ -2238,8 +2237,12 @@ def main():
 
             logger.info("STARTUP: Registering admin daily processing routes...")
             try:
-                from src.api.rest.admin_daily_processing import register_admin_daily_processing_routes
-                from src.infrastructure.redis.processing_subscriber import create_processing_subscriber
+                from src.api.rest.admin_daily_processing import (
+                    register_admin_daily_processing_routes,
+                )
+                from src.infrastructure.redis.processing_subscriber import (
+                    create_processing_subscriber,
+                )
 
                 register_admin_daily_processing_routes(app)
                 logger.info("STARTUP: Admin daily processing routes registered successfully")
@@ -2260,7 +2263,7 @@ def main():
             from src.api.streaming_routes import streaming_bp
             app.register_blueprint(streaming_bp)
             logger.info("STARTUP: Streaming dashboard routes registered successfully")
-            
+
             # Register Real Pattern Discovery APIs (Sprint 10 Complete)
             logger.info("STARTUP: Registering real pattern discovery APIs...")
             try:
@@ -2270,7 +2273,9 @@ def main():
 
                     # Register pattern discovery service with main Redis subscriber to avoid duplicate subscriptions
                     if redis_event_subscriber:
-                        from src.core.services.pattern_discovery_service import register_pattern_discovery_with_subscriber
+                        from src.core.services.pattern_discovery_service import (
+                            register_pattern_discovery_with_subscriber,
+                        )
                         if register_pattern_discovery_with_subscriber(redis_event_subscriber):
                             logger.info("STARTUP: Pattern discovery service registered with main Redis subscriber")
                         else:
@@ -2280,26 +2285,26 @@ def main():
             except Exception as pattern_error:
                 logger.error(f"STARTUP: Pattern discovery API registration error: {pattern_error}")
                 # Don't fail startup - this is a warning but not critical
-            
+
         except ImportError as e:
             logger.warning(f"STARTUP: Some API routes failed to load: {e}")
         except Exception as e:
             logger.error(f"STARTUP: API route registration failed: {e}")
             raise
-        
+
         # CONFIGURE LOGIN MANAGER UNAUTHORIZED HANDLER AFTER ROUTES ARE REGISTERED
         login_manager = extensions.get('login_manager')
         if login_manager:
             @login_manager.unauthorized_handler
             def unauthorized_handler():
-                from flask import redirect, flash
+                from flask import flash, redirect
                 logger.info("LOGIN-MANAGER: Unauthorized access, redirecting to login")
                 flash('Please log in to access this page.', 'info')
                 return redirect('/login')  # Use direct path instead of url_for
             logger.info("STARTUP: LOGIN-MANAGER unauthorized handler configured after route registration")
         else:
             logger.error("STARTUP: LOGIN-MANAGER not found when configuring unauthorized handler!")
-        
+
         # Sprint 32: Initialize Enhanced Error Handling System
         logger.info("STARTUP: Initializing enhanced error handling system...")
         try:
@@ -2329,7 +2334,7 @@ def main():
                 logger.warning("STARTUP: TickStockPL integration services initialization incomplete")
         except Exception as e:
             logger.error(f"STARTUP: TickStockPL services failed: {e}")
-        
+
         # Initialize Sprint 23 Advanced Analytics Services
         logger.info("STARTUP: Initializing Sprint 23 analytics services...")
         try:
@@ -2340,7 +2345,7 @@ def main():
         except Exception as e:
             logger.error(f"STARTUP: Sprint 23 analytics services initialization failed: {e}")
             # Don't fail startup - continue with mock data
-        
+
         # After API routes are registered, connect backtest manager to redis subscriber
         try:
             if redis_event_subscriber and hasattr(app, 'backtest_manager'):
@@ -2348,12 +2353,12 @@ def main():
                 logger.info("STARTUP: Backtest manager connected to Redis subscriber")
         except Exception as e:
             logger.error(f"STARTUP: Failed to connect backtest manager: {e}")
-        
+
         # Make pattern alert manager available to Flask app context
         if pattern_alert_manager:
             app.pattern_alert_manager = pattern_alert_manager
             logger.info("STARTUP: Pattern alert manager attached to Flask app")
-        
+
         # Start monitoring subscriber for TickStockPL monitoring events
         logger.info("STARTUP: Starting monitoring subscriber...")
         try:
@@ -2375,23 +2380,23 @@ def main():
         except Exception as e:
             logger.error(f"STARTUP: Market data service start failed: {e}")
             raise
-        
+
         logger.info("=" * 60)
         logger.info("[SUCCESS] TICKSTOCK APPLICATION READY")
         logger.info(f"[INFO] Data Source: {'Synthetic' if config.get('USE_SYNTHETIC_DATA') else 'Polygon API'}")
         logger.info(f"[INFO] Redis: {'Connected' if redis_client else 'Disabled'}")
-        logger.info(f"[INFO] SocketIO: Enabled")
+        logger.info("[INFO] SocketIO: Enabled")
         logger.info("=" * 60)
-        
+
         # Start the application
         host = config.get('APP_HOST', '0.0.0.0')
         port = config.get('APP_PORT', 5000)
         debug = config.get('APP_DEBUG', False)
-        
+
         logger.info(f"STARTUP: Starting server on {host}:{port} (debug={debug})")
         # Use SocketIO server (required for WebSocket functionality)
         socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
-        
+
     except KeyboardInterrupt:
         logger.info("SHUTDOWN: Application interrupted by user")
     except Exception as e:
@@ -2431,7 +2436,7 @@ def main():
 
         if redis_client:
             redis_client.close()
-            
+
         logger.info("SHUTDOWN: Application stopped")
 
 if __name__ == '__main__':

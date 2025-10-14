@@ -1,12 +1,14 @@
 # authentication.py (updated check_rate_limit and login)
-from flask import flash, url_for
-from flask_login import login_user, logout_user
-from src.infrastructure.database import User, db
-from itsdangerous import URLSafeTimedSerializer
-from datetime import datetime, timedelta, timezone
 import logging
 import random
 import string
+from datetime import UTC, datetime, timedelta
+
+from flask import flash, url_for
+from flask_login import login_user, logout_user
+from itsdangerous import URLSafeTimedSerializer
+
+from src.infrastructure.database import User, db
 
 logger = logging.getLogger(__name__)
 
@@ -24,30 +26,30 @@ class AuthenticationManager:
         try:
             # First try to get from cache_control for environment-specific settings
             app_settings = cache_control.get_cache('app_settings') or {}
-            
+
             # Get config from ConfigManager for application defaults if not in cache
             from src.core.services.config_manager import get_config
             config = get_config()
-            
+
             # Load all authentication settings
-            self.max_attempts = app_settings.get('MAX_LOGIN_ATTEMPTS', 
+            self.max_attempts = app_settings.get('MAX_LOGIN_ATTEMPTS',
                                             config.get('MAX_LOGIN_ATTEMPTS', 5))
-            
-            lockout_minutes = app_settings.get('LOCKOUT_DURATION_MINUTES', 
+
+            lockout_minutes = app_settings.get('LOCKOUT_DURATION_MINUTES',
                                             config.get('LOCKOUT_DURATION_MINUTES', 20))
             self.lockout_duration = timedelta(minutes=lockout_minutes)
-            
-            self.max_lockouts = app_settings.get('MAX_LOCKOUTS', 
+
+            self.max_lockouts = app_settings.get('MAX_LOCKOUTS',
                                             config.get('MAX_LOCKOUTS', 3))
-            
+
             self.password_reset_salt = config.get('PASSWORD_RESET_SALT', 'password-reset')
-            
+
             # Update serializer if salt changed
-            self.serializer = URLSafeTimedSerializer(self.serializer.secret_key, 
+            self.serializer = URLSafeTimedSerializer(self.serializer.secret_key,
                                                 salt=self.password_reset_salt)
-            
+
             logger.debug("AuthenticationManager settings loaded: max_attempts=%s, "
-                        "lockout_minutes=%s, max_lockouts=%s", 
+                        "lockout_minutes=%s, max_lockouts=%s",
                         self.max_attempts, lockout_minutes, self.max_lockouts)
         except Exception as e:
             logger.error(f"Error loading authentication settings: {e}")
@@ -74,10 +76,11 @@ class AuthenticationManager:
 
     def initiate_password_reset(self, email):
         """Update to send both email and SMS verification."""
+        from flask import current_app
+
         from src.infrastructure.messaging.email_service import EmailManager
         from src.infrastructure.messaging.sms_service import SMSManager
-        from flask import current_app
-        
+
         user = User.query.filter_by(email=email).first()
         if not user:
             flash("No account found with that email")
@@ -91,36 +94,36 @@ class AuthenticationManager:
             # Generate email token
             token = self.generate_reset_token(email)
             reset_url = url_for('reset_password', token=token, _external=True)
-            
+
             # Generate SMS verification code
             code_length = current_app.config.get('SMS_VERIFICATION_CODE_LENGTH', 6)
             verification_code = self.generate_verification_code(code_length)
-            
+
             # Store verification code
             expiry_minutes = current_app.config.get('SMS_VERIFICATION_CODE_EXPIRY', 10)
             if not self.store_verification_code(user.id, verification_code, expiry_minutes):
                 logger.error(f"Failed to store verification code for {email}")
                 flash("Failed to initiate password reset. Please try again later.")
                 return False
-            
+
             # Send SMS if phone is available
             sms_sent = False
             is_test_mode = current_app.config.get('SMS_TEST_MODE', True)
-            
+
             if user.phone:
                 sms_manager = SMSManager(current_app)
                 sms_sent = sms_manager.send_verification_code(user.id, user.phone, verification_code)
                 if not sms_sent:
                     logger.warning(f"Failed to send verification code to {user.phone}")
                     # We'll still continue with email
-            
+
             # Send reset email
             email_manager = EmailManager(self.mail)
             email_sent = email_manager.send_reset_email(user.email, reset_url)
-            
+
             if email_sent:
                 logger.info(f"Password reset email sent for {email}: {reset_url}")
-                
+
                 # Different message based on test mode and SMS success
                 if sms_sent:
                     if is_test_mode:
@@ -129,12 +132,11 @@ class AuthenticationManager:
                         flash("Password reset initiated. Check your email for instructions and enter the verification code sent to your phone.")
                 else:
                     flash("Password reset initiated. Check your email for instructions.")
-                    
+
                 return True
-            else:
-                logger.error(f"Failed to send password reset email for {email}")
-                flash("Failed to send reset email. Please try again later.")
-                return False
+            logger.error(f"Failed to send password reset email for {email}")
+            flash("Failed to send reset email. Please try again later.")
+            return False
         except Exception as e:
             logger.error(f"Error initiating password reset for {email}: {e}", exc_info=True)
             flash("An error occurred while initiating password reset")
@@ -179,7 +181,7 @@ class AuthenticationManager:
             # Send confirmation email
             email_manager = EmailManager(self.mail)
             success = email_manager.send_change_password_email(
-                user.email, user.username, datetime.now(timezone.utc).isoformat()
+                user.email, user.username, datetime.now(UTC).isoformat()
             )
             if not success:
                 logger.warning(f"Failed to send change password email to {user_email}")
@@ -207,43 +209,43 @@ class AuthenticationManager:
             if captcha_response and not self.validate_captcha(captcha_response):
                 flash("Please complete the CAPTCHA")
                 return False
-                
+
             # Only validate password requirements, not phone number
             # Using a more targeted approach instead of the full registration validation
             if not new_password or len(new_password) < 8 or len(new_password) > 64:
                 flash("Password must be 8-64 characters")
                 return False
-                
+
             import re
             if not re.search(r"[A-Za-z]", new_password) or not re.search(r"[0-9]", new_password) or not re.search(r"[!@#$%^&*(),.?\":{}|<>]", new_password):
                 flash("Password must include letters, numbers, and special characters")
                 return False
-                
+
             # Check for common passwords
             if new_password.lower() in {'password', 'password123', '12345678', 'qwerty'}:
                 flash("Password is too common")
                 return False
-                
+
             user.set_password(new_password)
             db.session.commit()
             logger.info(f"Password reset for user: {user.email}")
-            
+
             # Send confirmation email
             email_manager = EmailManager(self.mail)
-            from datetime import datetime, timezone
-            change_time = datetime.now(timezone.utc).isoformat()
+            from datetime import datetime
+            change_time = datetime.now(UTC).isoformat()
             success = email_manager.send_change_password_email(
-                user.email, 
-                user.username, 
+                user.email,
+                user.username,
                 change_time
             )
-            
+
             if not success:
                 logger.warning(f"Failed to send password change confirmation email to {user.email}")
                 # Don't flash message here as it would appear on login page after redirect
             else:
                 logger.info(f"Password change confirmation email sent to {user.email}")
-                
+
             return True
         except Exception as e:
             logger.error(f"Error resetting password for {user.email}: {e}", exc_info=True)
@@ -253,10 +255,10 @@ class AuthenticationManager:
 
     def check_rate_limit(self, email):
         from src.infrastructure.messaging.email_service import EmailManager
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if email not in self.failed_attempts:
             self.failed_attempts[email] = {'count': 0, 'last_attempt': now, 'lockout_count': 0}
-        
+
         record = self.failed_attempts[email]
         user = User.query.filter_by(email=email).first()
         max_attempts = self.max_attempts if self.max_attempts is not None else 5
@@ -269,7 +271,7 @@ class AuthenticationManager:
         if user and user.account_locked_until and user.account_locked_until > now:
             flash("Your account is temporarily locked out")
             return False
-        
+
         if record['count'] >= max_attempts:
             if now - record['last_attempt'] < self.lockout_duration:
                 flash("Your account is temporarily locked out")
@@ -286,20 +288,20 @@ class AuthenticationManager:
                     else:
                         email_manager.send_lockout_email(email, 20)  # Duration in minutes
                 return False
-            else:
-                record['count'] = 0
-                record['last_attempt'] = now
-                if user:
-                    user.account_locked_until = None
-                    db.session.commit()
-        
+            record['count'] = 0
+            record['last_attempt'] = now
+            if user:
+                user.account_locked_until = None
+                db.session.commit()
+
         return True
 
     def login(self, email, password, session_manager, fingerprint_data=None, captcha_response=None, terms_accepted=None, ip_address=None):
-        from src.infrastructure.messaging.email_service import EmailManager
+        from datetime import datetime
+
         from src.infrastructure.database import Subscription
-        from datetime import datetime, timezone
-        
+        from src.infrastructure.messaging.email_service import EmailManager
+
         try:
             if not self.validate_captcha(captcha_response):
                 flash("Please complete the CAPTCHA")
@@ -314,9 +316,9 @@ class AuthenticationManager:
 
             user = User.query.filter_by(email=email).first()
             if not user:
-                self.failed_attempts.setdefault(email, {'count': 0, 'last_attempt': datetime.now(timezone.utc), 'lockout_count': 0})
+                self.failed_attempts.setdefault(email, {'count': 0, 'last_attempt': datetime.now(UTC), 'lockout_count': 0})
                 self.failed_attempts[email]['count'] += 1
-                self.failed_attempts[email]['last_attempt'] = datetime.now(timezone.utc)
+                self.failed_attempts[email]['last_attempt'] = datetime.now(UTC)
                 flash("Failure to authenticate")
                 return False, None
 
@@ -329,15 +331,15 @@ class AuthenticationManager:
                 return False, None
 
             if not user.check_password(password):
-                self.failed_attempts.setdefault(email, {'count': 0, 'last_attempt': datetime.now(timezone.utc), 'lockout_count': 0})
+                self.failed_attempts.setdefault(email, {'count': 0, 'last_attempt': datetime.now(UTC), 'lockout_count': 0})
                 self.failed_attempts[email]['count'] += 1
-                self.failed_attempts[email]['last_attempt'] = datetime.now(timezone.utc)
+                self.failed_attempts[email]['last_attempt'] = datetime.now(UTC)
                 user.failed_login_attempts = self.failed_attempts[email]['count']
                 db.session.commit()
                 email_manager = EmailManager(self.mail)
                 if self.failed_attempts[email]['count'] >= self.max_attempts:
                     new_lockout_count = (user.lockout_count or 0) + 1
-                    user.account_locked_until = datetime.now(timezone.utc) + self.lockout_duration
+                    user.account_locked_until = datetime.now(UTC) + self.lockout_duration
                     user.lockout_count = new_lockout_count
                     db.session.commit()
                     if new_lockout_count >= self.max_lockouts:
@@ -346,27 +348,26 @@ class AuthenticationManager:
                         email_manager.send_disable_email(email)
                         flash("Your account is disabled, contact support")
                         return False, None
-                    else:
-                        email_manager.send_lockout_email(email, 20)
-                        flash("Your account is temporarily locked out")
-                        return False, None
+                    email_manager.send_lockout_email(email, 20)
+                    flash("Your account is temporarily locked out")
+                    return False, None
                 flash("Failure to authenticate")
                 return False, None
 
             # NEW: Check subscription status for premium users
             if user.subscription_tier == 'premium':
-                now = datetime.now(timezone.utc)
-                
+                now = datetime.now(UTC)
+
                 # Get the most recent subscription regardless of status
                 latest_subscription = Subscription.query.filter_by(
                     user_id=user.id
                 ).order_by(Subscription.created_at.desc()).first()
-                
+
                 if not latest_subscription:
                     # No subscription record found at all
                     flash("Your account requires an active subscription. Please contact support.")
                     return False, None
-                
+
                 # Check if subscription is still valid (regardless of status)
                 if latest_subscription.end_date >= now:
                     # Subscription is still valid - allow access
@@ -378,18 +379,18 @@ class AuthenticationManager:
                         # Update status to expired if it's still marked as active
                         latest_subscription.status = 'expired'
                         db.session.commit()
-                    
+
                     # Check if user has phone on file
                     if not user.phone:
                         flash("Your subscription has expired and no phone number is on file. Please contact support to renew.")
                         return False, None
-                    
+
                     # Store user info in session for potential renewal
                     from flask import session
                     session['expired_user_id'] = user.id
                     session['expired_user_email'] = user.email
                     session['expired_user_phone'] = user.phone
-                    
+
                     # Return special flag to show renewal modal
                     return False, {'redirect': 'show_renewal_modal'}
 
@@ -397,20 +398,20 @@ class AuthenticationManager:
             current_terms_version = "1.0"
             if not user.terms_accepted or user.terms_version != current_terms_version:
                 user.terms_accepted = True
-                user.terms_accepted_at = datetime.now(timezone.utc)
+                user.terms_accepted_at = datetime.now(UTC)
                 user.terms_version = current_terms_version
 
             session_manager.invalidate_prior_sessions(user.id)
             user.failed_login_attempts = 0
             user.account_locked_until = None
-            user.last_login_at = datetime.now(timezone.utc)
+            user.last_login_at = datetime.now(UTC)
             db.session.commit()
 
             if email in self.failed_attempts:
                 self.failed_attempts[email]['count'] = 0
 
             login_user(user)
-            
+
             session = session_manager.create_session(user.id, fingerprint_data, ip_address)
             if not session:
                 flash("Failed to create session")
@@ -422,7 +423,7 @@ class AuthenticationManager:
         except Exception as e:
             logger.error(f"Error during login: {e}")
             user = User.query.filter_by(email=email).first()
-            if user and user.account_locked_until and user.account_locked_until > datetime.now(timezone.utc):
+            if user and user.account_locked_until and user.account_locked_until > datetime.now(UTC):
                 flash("Your account is temporarily locked out")
             elif user and user.is_disabled:
                 flash("Your account is disabled, contact support")
@@ -440,7 +441,7 @@ class AuthenticationManager:
         except Exception as e:
             logger.error(f"Error during logout: {e}")
             return False
-        
+
 
     def generate_verification_code(self, length=6):
         """Generate a numeric verification code."""
@@ -448,15 +449,17 @@ class AuthenticationManager:
 
     def store_verification_code(self, user_id, code, expiry_minutes=10):
         """Store the verification code in the database with expiry time."""
-        from src.infrastructure.database import VerificationCode, db, User
         from datetime import datetime, timedelta
+
         from sqlalchemy.exc import SQLAlchemyError
-        
+
+        from src.infrastructure.database import VerificationCode, db
+
         try:
             # Try to delete any existing codes first (wrapped in try/except)
             try:
                 VerificationCode.query.filter_by(
-                    user_id=user_id, 
+                    user_id=user_id,
                     verification_type='password_reset'
                 ).delete()
                 db.session.commit()
@@ -464,7 +467,7 @@ class AuthenticationManager:
                 # If this fails, just continue - it could be permissions or the table doesn't exist
                 db.session.rollback()
                 logger.warning(f"Unable to delete existing verification codes for user {user_id}")
-            
+
             # Create new verification code in memory first
             expires_at = datetime.utcnow() + timedelta(minutes=expiry_minutes)
             verification = VerificationCode(
@@ -473,17 +476,17 @@ class AuthenticationManager:
                 expires_at=expires_at,
                 verification_type='password_reset'
             )
-            
+
             # Store in memory regardless of whether we successfully save to DB
             if not hasattr(self, '_verification_codes'):
                 self._verification_codes = {}
-            
+
             self._verification_codes[user_id] = {
                 'code': code,
                 'expires_at': expires_at,
                 'verification_type': 'password_reset'
             }
-            
+
             # Now try to save to database
             try:
                 db.session.add(verification)
@@ -492,15 +495,15 @@ class AuthenticationManager:
             except SQLAlchemyError as e:
                 db.session.rollback()
                 logger.warning(f"Failed to store verification code in database for user {user_id}: {e}")
-                logger.info(f"Using in-memory fallback for verification code")
-            
+                logger.info("Using in-memory fallback for verification code")
+
             return True
         except Exception as e:
             logger.error(f"Failed to store verification code for user {user_id}: {e}", exc_info=True)
             # Still try to store in memory
             if not hasattr(self, '_verification_codes'):
                 self._verification_codes = {}
-            
+
             expires_at = datetime.utcnow() + timedelta(minutes=expiry_minutes)
             self._verification_codes[user_id] = {
                 'code': code,
@@ -509,23 +512,25 @@ class AuthenticationManager:
             }
             logger.info(f"Verification code stored in memory for user {user_id} (fallback)")
             return True
-        
+
     def verify_code(self, user_id, code):
         """Verify the provided code against stored code and log the attempt."""
-        from src.infrastructure.database import VerificationCode, CommunicationLog, db
         from datetime import datetime
+
         from sqlalchemy.exc import SQLAlchemyError
-        
+
+        from src.infrastructure.database import CommunicationLog, VerificationCode, db
+
         try:
             success = False
             error_message = None
             verification = None
-            
+
             # First check if we have the code in memory
             in_memory_verified = False
             if hasattr(self, '_verification_codes') and user_id in self._verification_codes:
                 stored_data = self._verification_codes[user_id]
-                
+
                 if stored_data['verification_type'] != 'password_reset':
                     error_message = "Invalid verification code type"
                     logger.warning(f"Invalid verification code type for user {user_id}")
@@ -541,7 +546,7 @@ class AuthenticationManager:
                     in_memory_verified = True
                     success = True
                     logger.info(f"In-memory verification code validated for user {user_id}")
-            
+
             # If not verified in memory, try the database
             if not in_memory_verified:
                 try:
@@ -549,7 +554,7 @@ class AuthenticationManager:
                         user_id=user_id,
                         verification_type='password_reset'
                     ).first()
-                    
+
                     if not verification:
                         error_message = "No verification code found"
                         logger.warning(f"No verification code found for user {user_id}")
@@ -571,8 +576,8 @@ class AuthenticationManager:
                     # If we already verified in memory, don't override success
                     if not in_memory_verified:
                         error_message = "Verification system error"
-            
-            # Log the verification attempt 
+
+            # Log the verification attempt
             try:
                 comm_log = CommunicationLog(
                     user_id=user_id,
@@ -585,7 +590,7 @@ class AuthenticationManager:
             except Exception as log_error:
                 logger.error(f"Failed to log verification attempt: {log_error}")
                 db.session.rollback()
-            
+
             return success
         except Exception as e:
             logger.error(f"Error verifying code for user {user_id}: {e}", exc_info=True)
@@ -603,4 +608,4 @@ class AuthenticationManager:
                 logger.error(f"Failed to log verification error: {log_error}")
                 db.session.rollback()
             return False
-        
+

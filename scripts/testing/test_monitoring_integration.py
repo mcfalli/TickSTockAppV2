@@ -3,12 +3,12 @@
 Test script to verify real monitoring data flow from TickStockPL
 """
 
-import os
-import sys
 import json
-import redis
+import sys
 import time
 from pathlib import Path
+
+import redis
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -92,14 +92,13 @@ def check_redis_monitoring_events():
         print("  2. Navigate to: http://localhost:5000/admin/monitoring")
         print("  3. Data will update automatically every 5 seconds")
         return True
-    else:
-        print("\n[WARNING] No events received!")
-        print("\nTroubleshooting:")
-        print("  1. Is TickStockPL monitoring running?")
-        print("     cd ../TickStockPL && python scripts/run_monitoring.py")
-        print("  2. Is Redis running on localhost:6379?")
-        print("  3. Check TickStockPL logs for errors")
-        return False
+    print("\n[WARNING] No events received!")
+    print("\nTroubleshooting:")
+    print("  1. Is TickStockPL monitoring running?")
+    print("     cd ../TickStockPL && python scripts/run_monitoring.py")
+    print("  2. Is Redis running on localhost:6379?")
+    print("  3. Check TickStockPL logs for errors")
+    return False
 
 
 def test_app_endpoint():
@@ -132,9 +131,8 @@ def test_app_endpoint():
                 print("[WARNING] No monitoring data received yet")
 
             return True
-        else:
-            print(f"[FAIL] Endpoint returned status: {response.status_code}")
-            return False
+        print(f"[FAIL] Endpoint returned status: {response.status_code}")
+        return False
 
     except requests.ConnectionError:
         print("[FAIL] Cannot connect to TickStockAppV2")

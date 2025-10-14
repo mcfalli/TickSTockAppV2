@@ -8,13 +8,14 @@ Subscribes to TickStockPL processing events and updates dashboard state.
 import json
 import logging
 import threading
-import time
 from datetime import datetime
-from typing import Dict, Any, Optional, Callable
 from enum import Enum
-import redis
+from typing import Any
+
 import psycopg2
+import redis
 from psycopg2.extras import RealDictCursor
+
 from src.core.services.config_manager import get_config
 
 logger = logging.getLogger(__name__)
@@ -251,7 +252,7 @@ class ProcessingEventSubscriber:
         except Exception as e:
             logger.error(f"Error processing message: {e}")
 
-    def _handle_processing_started(self, event: Dict[str, Any], channel: str):
+    def _handle_processing_started(self, event: dict[str, Any], channel: str):
         """Handle processing started event"""
         payload = event.get('payload', {})
         run_id = payload.get('run_id')
@@ -278,7 +279,7 @@ class ProcessingEventSubscriber:
 
         logger.info(f"Processing started: {run_id}")
 
-    def _handle_processing_progress(self, event: Dict[str, Any], channel: str):
+    def _handle_processing_progress(self, event: dict[str, Any], channel: str):
         """Handle processing progress event"""
         payload = event.get('payload', {})
 
@@ -294,7 +295,7 @@ class ProcessingEventSubscriber:
         if self.current_state['run_id']:
             self._update_processing_run()
 
-    def _handle_processing_completed(self, event: Dict[str, Any], channel: str):
+    def _handle_processing_completed(self, event: dict[str, Any], channel: str):
         """Handle processing completed event"""
         payload = event.get('payload', {})
 
@@ -316,7 +317,7 @@ class ProcessingEventSubscriber:
 
         logger.info(f"Processing completed: {self.current_state['run_id']}")
 
-    def _handle_import_started(self, event: Dict[str, Any], channel: str):
+    def _handle_import_started(self, event: dict[str, Any], channel: str):
         """Handle data import phase started"""
         payload = event.get('payload', {})
 
@@ -333,7 +334,7 @@ class ProcessingEventSubscriber:
 
         logger.info("Data import phase started")
 
-    def _handle_import_completed(self, event: Dict[str, Any], channel: str):
+    def _handle_import_completed(self, event: dict[str, Any], channel: str):
         """Handle data import phase completed"""
         payload = event.get('payload', {})
 
@@ -350,7 +351,7 @@ class ProcessingEventSubscriber:
 
         logger.info(f"Data import completed: {payload.get('success_count')} successful")
 
-    def _handle_indicator_started(self, event: Dict[str, Any], channel: str):
+    def _handle_indicator_started(self, event: dict[str, Any], channel: str):
         """Handle indicator processing started"""
         payload = event.get('payload', {})
 
@@ -368,7 +369,7 @@ class ProcessingEventSubscriber:
 
         logger.info("Indicator processing phase started")
 
-    def _handle_indicator_progress(self, event: Dict[str, Any], channel: str):
+    def _handle_indicator_progress(self, event: dict[str, Any], channel: str):
         """Handle indicator processing progress"""
         payload = event.get('payload', {})
 
@@ -384,7 +385,7 @@ class ProcessingEventSubscriber:
         phase_details['indicators'] = indicators
         self.current_state['phase_details'] = phase_details
 
-    def _handle_indicator_completed(self, event: Dict[str, Any], channel: str):
+    def _handle_indicator_completed(self, event: dict[str, Any], channel: str):
         """Handle indicator processing completed"""
         payload = event.get('payload', {})
 
@@ -405,7 +406,7 @@ class ProcessingEventSubscriber:
 
         logger.info(f"Indicator processing completed: {indicators['success_rate']}% success rate")
 
-    def _handle_processing_error(self, event: Dict[str, Any], channel: str):
+    def _handle_processing_error(self, event: dict[str, Any], channel: str):
         """Handle processing error event"""
         payload = event.get('payload', {})
 
@@ -421,7 +422,7 @@ class ProcessingEventSubscriber:
 
         logger.error(f"Processing error: {self.current_state['error_message']}")
 
-    def _handle_job_progress(self, event: Dict[str, Any], channel: str):
+    def _handle_job_progress(self, event: dict[str, Any], channel: str):
         """Handle generic job progress update from monitoring channel"""
         payload = event.get('payload', {})
         source = event.get('source', '')
@@ -498,7 +499,7 @@ class ProcessingEventSubscriber:
         finally:
             conn.close()
 
-    def _complete_processing_run(self, success: bool = True, duration: Optional[int] = None, error: Optional[str] = None):
+    def _complete_processing_run(self, success: bool = True, duration: int | None = None, error: str | None = None):
         """Mark processing run as completed in database"""
         if not self.current_state['run_id']:
             return
@@ -549,7 +550,7 @@ class ProcessingEventSubscriber:
             except Exception as e:
                 logger.error(f"Failed to emit WebSocket update: {e}")
 
-    def _get_current_status_dict(self) -> Dict[str, Any]:
+    def _get_current_status_dict(self) -> dict[str, Any]:
         """Get current status as dictionary for API/WebSocket"""
         return {
             'is_running': self.current_state['is_running'],
@@ -567,7 +568,7 @@ class ProcessingEventSubscriber:
             'indicator_status': self.current_state['phase_details'].get('indicators', {})
         }
 
-    def get_current_status(self) -> Dict[str, Any]:
+    def get_current_status(self) -> dict[str, Any]:
         """Public method to get current processing status"""
         return self._get_current_status_dict()
 
@@ -606,7 +607,7 @@ class ProcessingEventSubscriber:
 
 
 # Singleton instance
-_subscriber_instance: Optional[ProcessingEventSubscriber] = None
+_subscriber_instance: ProcessingEventSubscriber | None = None
 
 
 def get_processing_subscriber(redis_client: redis.Redis, socketio=None) -> ProcessingEventSubscriber:

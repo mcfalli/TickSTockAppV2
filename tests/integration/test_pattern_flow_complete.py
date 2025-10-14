@@ -6,23 +6,25 @@ Validates complete pattern journey from TickStockPL to UI readiness.
 
 # CRITICAL: eventlet monkey patch must be FIRST
 import eventlet
+
 eventlet.monkey_patch()
 
 import sys
-import os
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import time
 import json
-import uuid
-import redis
-import psycopg2
-from datetime import datetime, timedelta
-import numpy as np
 import re
+import time
+import uuid
+from datetime import datetime
+
+import psycopg2
+import redis
 
 from src.core.services.config_manager import get_config
+
 
 class TestPatternFlowComplete:
     """Test complete pattern flow from publication to UI readiness."""
@@ -69,9 +71,9 @@ class TestPatternFlowComplete:
                     'confidence': 0.85,
                     'current_price': 150.50,
                     'indicators': {
-                        'rsi': float(65.5),  # Convert numpy types
+                        'rsi': 65.5,  # Convert numpy types
                         'macd': {'value': 0.5, 'signal': 0.3},
-                        'volume': int(1000000)
+                        'volume': 1000000
                     },
                     'metadata': {
                         'crossover_point': 149.75,
@@ -231,7 +233,7 @@ class TestPatternFlowComplete:
         pattern_keys = self.redis_client.keys('tickstock:patterns:*')
         api_cache_keys = self.redis_client.keys('tickstock:api:*')
 
-        print(f"[OK] Redis cache status:")
+        print("[OK] Redis cache status:")
         print(f"  Pattern entries: {len(pattern_keys)}")
         print(f"  API cache entries: {len(api_cache_keys)}")
 

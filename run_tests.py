@@ -7,8 +7,8 @@ Usage:
     python run_tests.py
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Simply run the integration test suite

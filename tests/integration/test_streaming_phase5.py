@@ -10,13 +10,14 @@ Simulates streaming events from TickStockPL to test the complete integration:
 Run this script to test outside market hours.
 """
 
-import redis
 import json
-import time
 import random
+import time
 import uuid
-from datetime import datetime, timezone
-from typing import Dict, Any, List
+from datetime import UTC, datetime
+from typing import Any
+
+import redis
 
 # Configuration
 REDIS_HOST = 'localhost'
@@ -44,7 +45,7 @@ class StreamingEventSimulator:
             decode_responses=False
         )
         self.session_id = str(uuid.uuid4())
-        self.start_time = datetime.now(timezone.utc)
+        self.start_time = datetime.now(UTC)
 
         print(f"Initialized simulator with session ID: {self.session_id}")
 
@@ -52,7 +53,7 @@ class StreamingEventSimulator:
         """Simulate streaming session start."""
         event = {
             "event": "session_started",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "data": {
                 "session_id": self.session_id,
                 "symbol_universe_key": "test_universe:top_10",
@@ -75,11 +76,11 @@ class StreamingEventSimulator:
             event = {
                 "event": "pattern_detected",
                 "session_id": self.session_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "detection": {
                     "pattern_type": pattern_type,
                     "symbol": symbol,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "confidence": round(confidence, 3),
                     "parameters": {
                         "open": round(random.uniform(100, 200), 2),
@@ -128,11 +129,11 @@ class StreamingEventSimulator:
             event = {
                 "event": "indicator_calculated",
                 "session_id": self.session_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "calculation": {
                     "indicator_type": indicator_type,
                     "symbol": symbol,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "values": values,
                     "timeframe": "1min"
                 }
@@ -151,12 +152,12 @@ class StreamingEventSimulator:
 
             time.sleep(random.uniform(0.05, 0.2))
 
-    def send_indicator_alert(self, alert_type: str, symbol: str, data: Dict[str, Any]):
+    def send_indicator_alert(self, alert_type: str, symbol: str, data: dict[str, Any]):
         """Send indicator alert event."""
         alert = {
             "alert_type": alert_type,
             "symbol": symbol,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "session_id": self.session_id,
             "data": data
         }
@@ -171,7 +172,7 @@ class StreamingEventSimulator:
 
         health = {
             "event": "streaming_health",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "session_id": self.session_id,
             "status": "healthy",
             "issues": [],
@@ -206,7 +207,7 @@ class StreamingEventSimulator:
             "type": "CONNECTION_LOST",
             "message": "Lost connection to Polygon WebSocket",
             "severity": "critical",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "data": {
                 "reconnect_attempts": 3,
                 "last_error": "Connection timeout"
@@ -220,16 +221,16 @@ class StreamingEventSimulator:
         """Simulate streaming session stop."""
         event = {
             "event": "session_stopped",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "data": {
                 "session_id": self.session_id,
-                "stop_time": datetime.now(timezone.utc).isoformat(),
+                "stop_time": datetime.now(UTC).isoformat(),
                 "reason": "test_complete"
             }
         }
 
         self.redis_client.publish('tickstock:streaming:session_stopped', json.dumps(event))
-        print(f"Published session stop event")
+        print("Published session stop event")
 
     def run_continuous_simulation(self, duration_seconds: int = 60):
         """Run continuous simulation for testing."""
@@ -273,7 +274,7 @@ class StreamingEventSimulator:
         self.stop_session()
 
         print(f"\n{'='*60}")
-        print(f"Simulation complete!")
+        print("Simulation complete!")
         print(f"Total pattern batches: {pattern_counter}")
         print(f"Total indicator batches: {indicator_counter}")
         print(f"{'='*60}\n")

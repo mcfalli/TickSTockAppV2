@@ -9,8 +9,10 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any
+
 import redis
+
 from src.core.services.config_manager import get_config
 
 logger = logging.getLogger(__name__)
@@ -37,9 +39,9 @@ class ProcessingCommandPublisher:
     def trigger_daily_processing(
         self,
         skip_market_check: bool = False,
-        phases: Optional[List[str]] = None,
+        phases: list[str] | None = None,
         trigger_type: str = 'manual'
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Trigger daily processing in TickStockPL.
 
@@ -87,18 +89,17 @@ class ProcessingCommandPublisher:
                 'run_id': run_id,
                 'message': 'Processing triggered successfully'
             }
-        else:
-            return {
-                'success': False,
-                'message': 'No subscribers listening on trigger channels'
-            }
+        return {
+            'success': False,
+            'message': 'No subscribers listening on trigger channels'
+        }
 
     def trigger_data_import(
         self,
-        universes: List[str],
-        timeframes: List[str] = None,
+        universes: list[str],
+        timeframes: list[str] = None,
         lookback_days: int = 30
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Trigger data import phase in TickStockPL.
 
@@ -145,18 +146,17 @@ class ProcessingCommandPublisher:
                 'run_id': run_id,
                 'message': 'Data import triggered successfully'
             }
-        else:
-            return {
-                'success': False,
-                'message': 'No subscribers listening on trigger channels'
-            }
+        return {
+            'success': False,
+            'message': 'No subscribers listening on trigger channels'
+        }
 
     def trigger_indicator_processing(
         self,
-        symbols: Optional[List[str]] = None,
-        indicators: Optional[List[str]] = None,
+        symbols: list[str] | None = None,
+        indicators: list[str] | None = None,
         timeframe: str = 'daily'
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Trigger indicator processing phase in TickStockPL.
 
@@ -200,13 +200,12 @@ class ProcessingCommandPublisher:
                 'run_id': run_id,
                 'message': 'Indicator processing triggered successfully'
             }
-        else:
-            return {
-                'success': False,
-                'message': 'No subscribers listening on trigger channels'
-            }
+        return {
+            'success': False,
+            'message': 'No subscribers listening on trigger channels'
+        }
 
-    def cancel_processing(self, run_id: Optional[str] = None) -> Dict[str, Any]:
+    def cancel_processing(self, run_id: str | None = None) -> dict[str, Any]:
         """
         Cancel current processing in TickStockPL.
 
@@ -240,13 +239,12 @@ class ProcessingCommandPublisher:
                 'success': True,
                 'message': 'Cancel command sent successfully'
             }
-        else:
-            return {
-                'success': False,
-                'message': 'No subscribers listening on cancel channels'
-            }
+        return {
+            'success': False,
+            'message': 'No subscribers listening on cancel channels'
+        }
 
-    def retry_failed_imports(self, run_id: str, symbols: Optional[List[str]] = None) -> Dict[str, Any]:
+    def retry_failed_imports(self, run_id: str, symbols: list[str] | None = None) -> dict[str, Any]:
         """
         Retry failed data imports from a previous run.
 
@@ -288,13 +286,12 @@ class ProcessingCommandPublisher:
                 'run_id': new_run_id,
                 'message': 'Retry command sent successfully'
             }
-        else:
-            return {
-                'success': False,
-                'message': 'No subscribers listening on retry channels'
-            }
+        return {
+            'success': False,
+            'message': 'No subscribers listening on retry channels'
+        }
 
-    def request_status(self, run_id: Optional[str] = None) -> Dict[str, Any]:
+    def request_status(self, run_id: str | None = None) -> dict[str, Any]:
         """
         Request status update from TickStockPL.
 
@@ -328,18 +325,17 @@ class ProcessingCommandPublisher:
                 'success': True,
                 'message': 'Status request sent'
             }
-        else:
-            return {
-                'success': False,
-                'message': 'No subscribers listening on status channels'
-            }
+        return {
+            'success': False,
+            'message': 'No subscribers listening on status channels'
+        }
 
     def update_schedule(
         self,
         enabled: bool,
         trigger_time: str,
         market_check: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Update processing schedule in TickStockPL.
 
@@ -381,17 +377,16 @@ class ProcessingCommandPublisher:
                 'success': True,
                 'message': 'Schedule updated successfully'
             }
-        else:
-            # Store locally if TickStockPL not listening
-            logger.warning("Schedule update not delivered - TickStockPL may not be listening")
-            return {
-                'success': True,
-                'message': 'Schedule saved locally (TickStockPL not responding)'
-            }
+        # Store locally if TickStockPL not listening
+        logger.warning("Schedule update not delivered - TickStockPL may not be listening")
+        return {
+            'success': True,
+            'message': 'Schedule saved locally (TickStockPL not responding)'
+        }
 
 
 # Singleton instance
-_publisher_instance: Optional[ProcessingCommandPublisher] = None
+_publisher_instance: ProcessingCommandPublisher | None = None
 
 
 def get_command_publisher(redis_client: redis.Redis) -> ProcessingCommandPublisher:

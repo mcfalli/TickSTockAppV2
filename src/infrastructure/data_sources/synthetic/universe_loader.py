@@ -5,7 +5,6 @@ providing realistic baseline prices and sector information.
 """
 import logging
 import random
-from typing import Dict, List, Optional, Set
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -74,8 +73,8 @@ class UniverseLoader:
 
     def __init__(self, universe_key: str = 'market_leaders:top_500'):
         self.universe_key = universe_key
-        self.symbols: Dict[str, SymbolInfo] = {}
-        self.tickers: List[str] = []
+        self.symbols: dict[str, SymbolInfo] = {}
+        self.tickers: list[str] = []
         self._load_universe()
 
     def _load_universe(self):
@@ -102,7 +101,7 @@ class UniverseLoader:
             logger.error(f"UNIVERSE-LOADER: Error loading universe: {e}")
             self._use_fallback_universe()
 
-    def _populate_symbols_from_tickers(self, tickers: List[str]):
+    def _populate_symbols_from_tickers(self, tickers: list[str]):
         """Populate symbol info from ticker list."""
         # Sector assignments (realistic distribution)
         sectors = [
@@ -142,7 +141,7 @@ class UniverseLoader:
         self.tickers = list(self.symbols.keys())
         logger.info(f"UNIVERSE-LOADER: Initialized {len(self.symbols)} symbols with sector data")
 
-    def _assign_sector(self, ticker: str, sectors: List[tuple]) -> str:
+    def _assign_sector(self, ticker: str, sectors: list[tuple]) -> str:
         """Assign sector to ticker based on distribution."""
         # Use ticker hash for consistent sector assignment
         ticker_hash = abs(hash(ticker)) / (2**32)  # Normalize to 0-1
@@ -215,24 +214,24 @@ class UniverseLoader:
         self.tickers = list(self.symbols.keys())
         logger.info(f"UNIVERSE-LOADER: Using fallback universe with {len(self.symbols)} symbols")
 
-    def get_symbol_info(self, ticker: str) -> Optional[SymbolInfo]:
+    def get_symbol_info(self, ticker: str) -> SymbolInfo | None:
         """Get symbol information."""
         return self.symbols.get(ticker.upper())
 
-    def get_random_symbols(self, count: int) -> List[str]:
+    def get_random_symbols(self, count: int) -> list[str]:
         """Get random symbols from universe."""
         if count >= len(self.tickers):
             return self.tickers.copy()
         return random.sample(self.tickers, count)
 
-    def get_all_tickers(self) -> List[str]:
+    def get_all_tickers(self) -> list[str]:
         """Get all tickers in universe."""
         return self.tickers.copy()
 
-    def get_sectors(self) -> Set[str]:
+    def get_sectors(self) -> set[str]:
         """Get all unique sectors in universe."""
         return {info.sector for info in self.symbols.values()}
 
-    def get_symbols_by_sector(self, sector: str) -> List[str]:
+    def get_symbols_by_sector(self, sector: str) -> list[str]:
         """Get all symbols in a specific sector."""
         return [ticker for ticker, info in self.symbols.items() if info.sector == sector]

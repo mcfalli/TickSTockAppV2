@@ -15,14 +15,14 @@ def test_fixtures_are_available(event_builder, mock_tick):
     # Test event builder
     event = event_builder.high_low_event(ticker="TEST", price=100.0)
     assert event is not None
-    
+
     if isinstance(event, dict):
         assert event['ticker'] == "TEST"
         assert event['price'] == 100.0
     else:
         assert event.ticker == "TEST"
         assert event.price == 100.0
-    
+
     # Test mock tick
     assert mock_tick.ticker is not None
     assert mock_tick.price > 0
@@ -40,11 +40,11 @@ def test_mock_data_generator(market_data_generator):
 def test_performance_timer(performance_timer):
     """Test performance timing fixture"""
     import time
-    
+
     performance_timer.start()
     time.sleep(0.01)  # 10ms
     performance_timer.stop()
-    
+
     assert performance_timer.elapsed >= 0.01
     assert performance_timer.elapsed < 0.1  # Should be much less than 100ms
 
@@ -61,7 +61,7 @@ def test_unit_marker():
     assert True
 
 
-@pytest.mark.integration  
+@pytest.mark.integration
 def test_integration_marker():
     """Test with integration marker"""
     assert True
@@ -73,12 +73,12 @@ def test_mock_providers(mock_database, mock_redis, mock_websocket_manager):
     assert mock_database is not None
     result = mock_database.execute("SELECT 1")
     assert result is not None
-    
+
     # Test redis mock
     assert mock_redis is not None
     mock_redis.set("test_key", "test_value")
     # Should not raise exception
-    
+
     # Test websocket mock
     assert mock_websocket_manager is not None
     result = mock_websocket_manager.broadcast_event({"test": "event"})

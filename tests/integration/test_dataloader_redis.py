@@ -4,11 +4,13 @@ DataLoader Redis Test Script
 Tests if TickStockPL DataLoader is receiving and processing jobs from Redis
 """
 
-import redis
 import json
-import uuid
-import time
 import sys
+import time
+import uuid
+
+import redis
+
 
 def test_dataloader():
     """Test if DataLoader is processing jobs."""
@@ -41,7 +43,7 @@ def test_dataloader():
         if subscriber_count > 0:
             print(f"   ✅ DataLoader subscribed: {subscriber_count} subscriber(s)")
         else:
-            print(f"   ❌ DataLoader NOT subscribed: 0 subscribers")
+            print("   ❌ DataLoader NOT subscribed: 0 subscribers")
             print("\n   ISSUE: DataLoader service is not listening to Redis!")
             print("   FIX: Restart start_all_services.py and check for:")
             print("        '[TickStockPL DataLoader] Subscribed to tickstock.jobs.data_load'")
@@ -65,8 +67,8 @@ def test_dataloader():
     }
 
     print(f"   Job ID: {job_id}")
-    print(f"   Type: csv_universe_load")
-    print(f"   Data: 1 day (very small test)")
+    print("   Type: csv_universe_load")
+    print("   Data: 1 day (very small test)")
 
     try:
         r.publish('tickstock.jobs.data_load', json.dumps(test_job))
@@ -113,16 +115,16 @@ def test_dataloader():
         time.sleep(1)
 
     # Timeout
-    print(f"\n\n   ❌ TIMEOUT: Job did not complete in 30 seconds")
-    print(f"\n   DIAGNOSIS:")
-    print(f"   - Job was published to Redis ✅")
+    print("\n\n   ❌ TIMEOUT: Job did not complete in 30 seconds")
+    print("\n   DIAGNOSIS:")
+    print("   - Job was published to Redis ✅")
     print(f"   - DataLoader has {subscriber_count} subscriber(s)")
-    print(f"   - No status updates received ❌")
-    print(f"\n   LIKELY CAUSE: DataLoader received job but crashed/hung during processing")
-    print(f"\n   CHECK:")
-    print(f"   1. DataLoader console output for errors")
-    print(f"   2. Python processes: tasklist | findstr python")
-    print(f"   3. Restart services: python start_all_services.py")
+    print("   - No status updates received ❌")
+    print("\n   LIKELY CAUSE: DataLoader received job but crashed/hung during processing")
+    print("\n   CHECK:")
+    print("   1. DataLoader console output for errors")
+    print("   2. Python processes: tasklist | findstr python")
+    print("   3. Restart services: python start_all_services.py")
 
     return False
 
@@ -150,19 +152,19 @@ def check_processes():
         for line in lines:
             if 'app.py' in line or 'src\\app.py' in line:
                 found_app = True
-                print(f"   ✅ TickStockAppV2: Running")
+                print("   ✅ TickStockAppV2: Running")
             if 'data_load_handler' in line:
                 found_dataloader = True
-                print(f"   ✅ DataLoader: Running")
+                print("   ✅ DataLoader: Running")
             if 'start_api_server' in line or 'api_server.py' in line:
                 found_api = True
-                print(f"   ✅ TickStockPL API: Running")
+                print("   ✅ TickStockPL API: Running")
 
         if not found_dataloader:
-            print(f"   ❌ DataLoader: NOT RUNNING")
-            print(f"\n   FIX: Restart start_all_services.py")
+            print("   ❌ DataLoader: NOT RUNNING")
+            print("\n   FIX: Restart start_all_services.py")
 
-        print(f"\n   Summary:")
+        print("\n   Summary:")
         print(f"   - TickStockAppV2: {'✅' if found_app else '❌'}")
         print(f"   - DataLoader: {'✅' if found_dataloader else '❌'}")
         print(f"   - TickStockPL API: {'✅' if found_api else '❌'}")

@@ -11,11 +11,11 @@ Test Coverage:
 - Error handling for component failures
 """
 
-import pytest
 import time
-import json
-from unittest.mock import Mock, patch, MagicMock
 from dataclasses import asdict
+from unittest.mock import Mock, patch
+
+import pytest
 import redis
 
 from src.core.services.health_monitor import HealthMonitor, HealthStatus
@@ -33,7 +33,7 @@ class TestHealthStatus:
             message='All systems operational',
             details={'component': 'database', 'tables': 5}
         )
-        
+
         assert status.status == 'healthy'
         assert status.response_time_ms == 25.5
         assert status.last_check == 1642234567.0
@@ -43,7 +43,7 @@ class TestHealthStatus:
     def test_health_status_minimal_creation(self):
         """Test HealthStatus creation with only required parameters."""
         status = HealthStatus(status='error')
-        
+
         assert status.status == 'error'
         assert status.response_time_ms is None
         assert status.last_check is None
@@ -57,9 +57,9 @@ class TestHealthStatus:
             response_time_ms=150.0,
             message='Slow response time'
         )
-        
+
         status_dict = asdict(status)
-        
+
         assert status_dict['status'] == 'degraded'
         assert status_dict['response_time_ms'] == 150.0
         assert status_dict['message'] == 'Slow response time'
@@ -73,13 +73,13 @@ class TestHealthMonitorInitialization:
         """Test successful initialization with Redis client."""
         mock_redis = Mock(spec=redis.Redis)
         config = {'test_config': 'value'}
-        
+
         with patch('src.core.services.health_monitor.TickStockDatabase') as mock_db_class:
             mock_db_instance = Mock()
             mock_db_class.return_value = mock_db_instance
-            
+
             monitor = HealthMonitor(config, redis_client=mock_redis)
-            
+
             assert monitor.config == config
             assert monitor.redis_client == mock_redis
             assert monitor.tickstock_db == mock_db_instance
@@ -88,13 +88,13 @@ class TestHealthMonitorInitialization:
     def test_initialization_without_redis(self):
         """Test initialization without Redis client."""
         config = {'test_config': 'value'}
-        
+
         with patch('src.core.services.health_monitor.TickStockDatabase') as mock_db_class:
             mock_db_instance = Mock()
             mock_db_class.return_value = mock_db_instance
-            
+
             monitor = HealthMonitor(config, redis_client=None)
-            
+
             assert monitor.config == config
             assert monitor.redis_client is None
             assert monitor.tickstock_db == mock_db_instance
@@ -103,13 +103,13 @@ class TestHealthMonitorInitialization:
         """Test initialization when database connection fails."""
         config = {'test_config': 'value'}
         mock_redis = Mock(spec=redis.Redis)
-        
+
         with patch('src.core.services.health_monitor.TickStockDatabase') as mock_db_class:
             mock_db_class.side_effect = Exception("Database connection failed")
-            
+
             # Should not raise exception, but log warning
             monitor = HealthMonitor(config, redis_client=mock_redis)
-            
+
             assert monitor.config == config
             assert monitor.redis_client == mock_redis
             assert monitor.tickstock_db is None
@@ -134,13 +134,13 @@ class TestHealthMonitorOverallHealth:
         with patch.object(mock_monitor, '_check_database_health') as mock_db_health:
             with patch.object(mock_monitor, '_check_redis_health') as mock_redis_health:
                 with patch.object(mock_monitor, '_check_tickstockpl_connectivity') as mock_pl_health:
-                    
+
                     mock_db_health.return_value = HealthStatus(status='healthy')
                     mock_redis_health.return_value = HealthStatus(status='healthy')
                     mock_pl_health.return_value = HealthStatus(status='healthy')
-                    
+
                     health = mock_monitor.get_overall_health()
-                    
+
                     assert health['overall_status'] == 'healthy'
                     assert health['summary']['healthy'] == 3
                     assert health['summary']['degraded'] == 0
@@ -152,13 +152,13 @@ class TestHealthMonitorOverallHealth:
         with patch.object(mock_monitor, '_check_database_health') as mock_db_health:
             with patch.object(mock_monitor, '_check_redis_health') as mock_redis_health:
                 with patch.object(mock_monitor, '_check_tickstockpl_connectivity') as mock_pl_health:
-                    
+
                     mock_db_health.return_value = HealthStatus(status='error')
                     mock_redis_health.return_value = HealthStatus(status='healthy')
                     mock_pl_health.return_value = HealthStatus(status='healthy')
-                    
+
                     health = mock_monitor.get_overall_health()
-                    
+
                     assert health['overall_status'] == 'error'
                     assert health['summary']['healthy'] == 2
                     assert health['summary']['error'] == 1
@@ -168,13 +168,13 @@ class TestHealthMonitorOverallHealth:
         with patch.object(mock_monitor, '_check_database_health') as mock_db_health:
             with patch.object(mock_monitor, '_check_redis_health') as mock_redis_health:
                 with patch.object(mock_monitor, '_check_tickstockpl_connectivity') as mock_pl_health:
-                    
+
                     mock_db_health.return_value = HealthStatus(status='healthy')
                     mock_redis_health.return_value = HealthStatus(status='degraded')
                     mock_pl_health.return_value = HealthStatus(status='healthy')
-                    
+
                     health = mock_monitor.get_overall_health()
-                    
+
                     assert health['overall_status'] == 'degraded'
                     assert health['summary']['healthy'] == 2
                     assert health['summary']['degraded'] == 1
@@ -184,13 +184,13 @@ class TestHealthMonitorOverallHealth:
         with patch.object(mock_monitor, '_check_database_health') as mock_db_health:
             with patch.object(mock_monitor, '_check_redis_health') as mock_redis_health:
                 with patch.object(mock_monitor, '_check_tickstockpl_connectivity') as mock_pl_health:
-                    
+
                     mock_db_health.return_value = HealthStatus(status='healthy')
                     mock_redis_health.return_value = HealthStatus(status='healthy')
                     mock_pl_health.return_value = HealthStatus(status='unknown')
-                    
+
                     health = mock_monitor.get_overall_health()
-                    
+
                     assert health['overall_status'] == 'unknown'
                     assert health['summary']['healthy'] == 2
                     assert health['summary']['unknown'] == 1
@@ -200,24 +200,24 @@ class TestHealthMonitorOverallHealth:
         with patch.object(mock_monitor, '_check_database_health') as mock_db_health:
             with patch.object(mock_monitor, '_check_redis_health') as mock_redis_health:
                 with patch.object(mock_monitor, '_check_tickstockpl_connectivity') as mock_pl_health:
-                    
+
                     mock_db_health.return_value = HealthStatus(status='healthy')
                     mock_redis_health.return_value = HealthStatus(status='healthy')
                     mock_pl_health.return_value = HealthStatus(status='healthy')
-                    
+
                     start_time = time.time()
                     health = mock_monitor.get_overall_health()
                     end_time = time.time()
-                    
+
                     # Validate structure
                     assert 'timestamp' in health
                     assert 'overall_status' in health
                     assert 'components' in health
                     assert 'summary' in health
-                    
+
                     # Validate timestamp is recent
                     assert start_time <= health['timestamp'] <= end_time
-                    
+
                     # Validate components structure
                     assert 'database' in health['components']
                     assert 'redis' in health['components']
@@ -246,10 +246,10 @@ class TestHealthMonitorDatabaseHealthCheck:
             'connection_pool': {'size': 5, 'checked_in': 3}
         }
         mock_monitor.tickstock_db.health_check.return_value = mock_db_health
-        
+
         with patch('time.time', side_effect=[0.0, 0.030]):  # 30ms execution time
             health = mock_monitor._check_database_health()
-            
+
             assert health.status == 'healthy'
             assert health.response_time_ms == 30.0
             assert health.details['tables_accessible'] == ['symbols', 'events']
@@ -258,18 +258,18 @@ class TestHealthMonitorDatabaseHealthCheck:
     def test_database_health_check_not_initialized(self, mock_monitor):
         """Test database health check when database is not initialized."""
         mock_monitor.tickstock_db = None
-        
+
         health = mock_monitor._check_database_health()
-        
+
         assert health.status == 'error'
         assert 'TickStock database not initialized' in health.message
 
     def test_database_health_check_failure(self, mock_monitor):
         """Test database health check when database check fails."""
         mock_monitor.tickstock_db.health_check.side_effect = Exception("Connection timeout")
-        
+
         health = mock_monitor._check_database_health()
-        
+
         assert health.status == 'error'
         assert 'Database check failed: Connection timeout' in health.message
 
@@ -281,9 +281,9 @@ class TestHealthMonitorDatabaseHealthCheck:
             'query_performance': None
         }
         mock_monitor.tickstock_db.health_check.return_value = mock_db_health
-        
+
         health = mock_monitor._check_database_health()
-        
+
         assert health.status == 'error'
         assert health.message == 'Connection pool exhausted'
 
@@ -295,9 +295,9 @@ class TestHealthMonitorDatabaseHealthCheck:
             'query_performance': 15.0
         }
         mock_monitor.tickstock_db.health_check.return_value = mock_db_health
-        
+
         health = mock_monitor._check_database_health()
-        
+
         assert health.status == 'warning'
         assert health.message == 'No tables found'
 
@@ -328,10 +328,10 @@ class TestHealthMonitorRedisHealthCheck:
             'redis_version': '6.2.0',
             'uptime_in_seconds': 86400
         }
-        
+
         with patch('time.time', side_effect=[0.0, 0.025]):  # 25ms execution time
             health = mock_monitor._check_redis_health()
-            
+
             assert health.status == 'healthy'
             assert health.response_time_ms == 25.0
             assert health.details['connected_clients'] == 5
@@ -340,18 +340,18 @@ class TestHealthMonitorRedisHealthCheck:
     def test_redis_health_check_not_configured(self, mock_monitor):
         """Test Redis health check when Redis client is not configured."""
         mock_monitor.redis_client = None
-        
+
         health = mock_monitor._check_redis_health()
-        
+
         assert health.status == 'unknown'
         assert 'Redis client not configured' in health.message
 
     def test_redis_health_check_ping_failure(self, mock_monitor):
         """Test Redis health check when ping fails."""
         mock_monitor.redis_client.ping.return_value = False
-        
+
         health = mock_monitor._check_redis_health()
-        
+
         assert health.status == 'error'
         assert 'Redis ping failed' in health.message
 
@@ -360,9 +360,9 @@ class TestHealthMonitorRedisHealthCheck:
         mock_monitor.redis_client.ping.return_value = True
         mock_monitor.redis_client.set.return_value = True
         mock_monitor.redis_client.get.return_value = 'wrong_value'  # Test value doesn't match
-        
+
         health = mock_monitor._check_redis_health()
-        
+
         assert health.status == 'error'
         assert 'Redis operations test failed' in health.message
 
@@ -373,19 +373,19 @@ class TestHealthMonitorRedisHealthCheck:
         mock_monitor.redis_client.get.return_value = 'test_value'
         mock_monitor.redis_client.delete.return_value = 1
         mock_monitor.redis_client.info.return_value = {}
-        
+
         with patch('time.time', side_effect=[0.0, 0.075]):  # 75ms execution time
             health = mock_monitor._check_redis_health()
-            
+
             assert health.status == 'degraded'
             assert health.response_time_ms == 75.0
 
     def test_redis_health_check_connection_error(self, mock_monitor):
         """Test Redis health check with connection error."""
         mock_monitor.redis_client.ping.side_effect = redis.ConnectionError("Connection refused")
-        
+
         health = mock_monitor._check_redis_health()
-        
+
         assert health.status == 'error'
         assert 'Redis check failed: Connection refused' in health.message
 
@@ -408,7 +408,7 @@ class TestHealthMonitorTickStockPLConnectivity:
         # Mock Redis pubsub_numsub responses
         mock_responses = [
             ('tickstock.events.patterns', 2),
-            ('tickstock.events.backtesting.progress', 1), 
+            ('tickstock.events.backtesting.progress', 1),
             ('tickstock.events.backtesting.results', 1)
         ]
         mock_monitor.redis_client.pubsub_numsub.side_effect = [
@@ -416,10 +416,10 @@ class TestHealthMonitorTickStockPLConnectivity:
             [mock_responses[1]],
             [mock_responses[2]]
         ]
-        
+
         with patch('time.time', side_effect=[0.0, 0.020]):  # 20ms execution time
             health = mock_monitor._check_tickstockpl_connectivity()
-            
+
             assert health.status == 'healthy'
             assert health.response_time_ms == 20.0
             assert 'TickStockPL detected with 4 active subscriptions' in health.message
@@ -430,9 +430,9 @@ class TestHealthMonitorTickStockPLConnectivity:
         # Mock no subscribers on any channel
         mock_monitor.redis_client.pubsub_numsub.return_value = [('test_channel', 0)]
         mock_monitor.redis_client.publish.return_value = 1
-        
+
         health = mock_monitor._check_tickstockpl_connectivity()
-        
+
         assert health.status == 'unknown'
         assert 'TickStockPL services not detected' in health.message
         assert health.details['total_subscribers'] == 0
@@ -440,9 +440,9 @@ class TestHealthMonitorTickStockPLConnectivity:
     def test_tickstockpl_connectivity_redis_not_available(self, mock_monitor):
         """Test TickStockPL connectivity check when Redis is not available."""
         mock_monitor.redis_client = None
-        
+
         health = mock_monitor._check_tickstockpl_connectivity()
-        
+
         assert health.status == 'unknown'
         assert 'Cannot check TickStockPL - Redis not available' in health.message
 
@@ -452,18 +452,18 @@ class TestHealthMonitorTickStockPLConnectivity:
         mock_monitor.redis_client.pubsub_numsub.return_value = [('test_channel', 0)]
         # Mock publish failure
         mock_monitor.redis_client.publish.side_effect = Exception("Redis publish error")
-        
+
         health = mock_monitor._check_tickstockpl_connectivity()
-        
+
         assert health.status == 'error'
         assert 'Cannot communicate with TickStockPL' in health.message
 
     def test_tickstockpl_connectivity_channel_check_failure(self, mock_monitor):
         """Test TickStockPL connectivity when channel check fails."""
         mock_monitor.redis_client.pubsub_numsub.side_effect = Exception("Channel check failed")
-        
+
         health = mock_monitor._check_tickstockpl_connectivity()
-        
+
         assert health.status == 'error'
         assert 'TickStockPL check failed: Channel check failed' in health.message
 
@@ -471,15 +471,15 @@ class TestHealthMonitorTickStockPLConnectivity:
         """Test that all expected TickStockPL channels are checked."""
         mock_monitor.redis_client.pubsub_numsub.return_value = [('test_channel', 1)]
         mock_monitor.redis_client.publish.return_value = 1
-        
+
         health = mock_monitor._check_tickstockpl_connectivity()
-        
+
         expected_channels = [
             'tickstock.events.patterns',
-            'tickstock.events.backtesting.progress', 
+            'tickstock.events.backtesting.progress',
             'tickstock.events.backtesting.results'
         ]
-        
+
         assert health.details['expected_channels'] == expected_channels
 
 
@@ -509,7 +509,7 @@ class TestHealthMonitorDashboardData:
             },
             'summary': {'healthy': 3, 'degraded': 0, 'error': 0, 'unknown': 0}
         }
-        
+
         # Mock database stats
         mock_stats = {
             'symbols_count': 4000,
@@ -517,12 +517,12 @@ class TestHealthMonitorDashboardData:
             'latest_event_time': '2025-01-15T10:30:00',
             'database_status': 'connected'
         }
-        
+
         with patch.object(mock_monitor, 'get_overall_health', return_value=mock_health):
             mock_monitor.tickstock_db.get_basic_dashboard_stats.return_value = mock_stats
-            
+
             dashboard_data = mock_monitor.get_dashboard_data()
-            
+
             assert 'health' in dashboard_data
             assert 'quick_stats' in dashboard_data
             assert 'alerts' in dashboard_data
@@ -542,14 +542,14 @@ class TestHealthMonitorDashboardData:
             },
             'summary': {'healthy': 1, 'degraded': 1, 'error': 1, 'unknown': 0}
         }
-        
+
         with patch.object(mock_monitor, 'get_overall_health', return_value=mock_health):
             mock_monitor.tickstock_db.get_basic_dashboard_stats.return_value = {}
-            
+
             dashboard_data = mock_monitor.get_dashboard_data()
-            
+
             assert len(dashboard_data['alerts']) == 2  # Error + degraded components
-            
+
             # Check alert details
             alerts = dashboard_data['alerts']
             alert_components = [alert['component'] for alert in alerts]
@@ -564,12 +564,12 @@ class TestHealthMonitorDashboardData:
             'components': {},
             'summary': {'healthy': 3, 'degraded': 0, 'error': 0, 'unknown': 0}
         }
-        
+
         with patch.object(mock_monitor, 'get_overall_health', return_value=mock_health):
             mock_monitor.tickstock_db.get_basic_dashboard_stats.side_effect = Exception("Stats error")
-            
+
             dashboard_data = mock_monitor.get_dashboard_data()
-            
+
             assert 'error' in dashboard_data['quick_stats']
             assert dashboard_data['quick_stats']['error'] == 'Stats unavailable'
 
@@ -581,12 +581,12 @@ class TestHealthMonitorDashboardData:
             'components': {},
             'summary': {'healthy': 3, 'degraded': 0, 'error': 0, 'unknown': 0}
         }
-        
+
         mock_monitor.tickstock_db = None
-        
+
         with patch.object(mock_monitor, 'get_overall_health', return_value=mock_health):
             dashboard_data = mock_monitor.get_dashboard_data()
-            
+
             assert dashboard_data['quick_stats'] == {}
 
 
@@ -597,14 +597,14 @@ class TestHealthMonitorCleanup:
         """Test proper cleanup when closing with database connection."""
         config = {}
         mock_redis = Mock(spec=redis.Redis)
-        
+
         with patch('src.core.services.health_monitor.TickStockDatabase') as mock_db_class:
             mock_db_instance = Mock()
             mock_db_class.return_value = mock_db_instance
-            
+
             monitor = HealthMonitor(config, redis_client=mock_redis)
             monitor.close()
-            
+
             mock_db_instance.close.assert_called_once()
 
     def test_close_cleanup_without_database(self):
@@ -614,7 +614,7 @@ class TestHealthMonitorCleanup:
         monitor.config = config
         monitor.redis_client = Mock(spec=redis.Redis)
         monitor.tickstock_db = None
-        
+
         # Should not raise exception
         monitor.close()
 
@@ -640,15 +640,15 @@ class TestHealthMonitorPerformance:
         with patch.object(mock_monitor, '_check_database_health') as mock_db_health:
             with patch.object(mock_monitor, '_check_redis_health') as mock_redis_health:
                 with patch.object(mock_monitor, '_check_tickstockpl_connectivity') as mock_pl_health:
-                    
+
                     mock_db_health.return_value = HealthStatus(status='healthy')
                     mock_redis_health.return_value = HealthStatus(status='healthy')
                     mock_pl_health.return_value = HealthStatus(status='healthy')
-                    
+
                     start_time = time.time()
                     health = mock_monitor.get_overall_health()
                     execution_time = (time.time() - start_time) * 1000  # Convert to milliseconds
-                    
+
                     assert health['overall_status'] == 'healthy'
                     assert execution_time < 100.0, f"Health check took {execution_time:.2f}ms, should be <100ms"
 
@@ -661,17 +661,17 @@ class TestHealthMonitorPerformance:
             'components': {},
             'summary': {'healthy': 3, 'degraded': 0, 'error': 0, 'unknown': 0}
         }
-        
+
         with patch.object(mock_monitor, 'get_overall_health', return_value=mock_health):
             mock_monitor.tickstock_db.get_basic_dashboard_stats.return_value = {
                 'symbols_count': 4000,
                 'events_count': 25000
             }
-            
+
             start_time = time.time()
             dashboard_data = mock_monitor.get_dashboard_data()
             execution_time = (time.time() - start_time) * 1000
-            
+
             assert 'health' in dashboard_data
             assert execution_time < 100.0, f"Dashboard data took {execution_time:.2f}ms, should be <100ms"
 
@@ -694,12 +694,12 @@ class TestHealthMonitorErrorHandling:
         with patch.object(mock_monitor, '_check_database_health') as mock_db_health:
             with patch.object(mock_monitor, '_check_redis_health') as mock_redis_health:
                 with patch.object(mock_monitor, '_check_tickstockpl_connectivity') as mock_pl_health:
-                    
+
                     # Database times out
                     mock_db_health.side_effect = TimeoutError("Database timeout")
                     mock_redis_health.return_value = HealthStatus(status='healthy')
                     mock_pl_health.return_value = HealthStatus(status='healthy')
-                    
+
                     # Should handle the timeout gracefully
                     with pytest.raises(TimeoutError):
                         mock_monitor.get_overall_health()
@@ -709,13 +709,13 @@ class TestHealthMonitorErrorHandling:
         with patch.object(mock_monitor, '_check_database_health') as mock_db_health:
             with patch.object(mock_monitor, '_check_redis_health') as mock_redis_health:
                 with patch.object(mock_monitor, '_check_tickstockpl_connectivity') as mock_pl_health:
-                    
+
                     mock_db_health.return_value = HealthStatus(status='error', message='DB failed')
                     mock_redis_health.return_value = HealthStatus(status='healthy')
                     mock_pl_health.return_value = HealthStatus(status='unknown', message='Cannot connect')
-                    
+
                     health = mock_monitor.get_overall_health()
-                    
+
                     # Should still return a valid health response
                     assert health['overall_status'] == 'error'  # Worst status wins
                     assert health['summary']['error'] == 1
@@ -730,9 +730,9 @@ class TestHealthMonitorErrorHandling:
         mock_monitor.redis_client.get.return_value = b'test_value'  # Bytes instead of string
         mock_monitor.redis_client.delete.return_value = 1
         mock_monitor.redis_client.info.return_value = {}
-        
+
         health = mock_monitor._check_redis_health()
-        
+
         # Should handle bytes vs string comparison gracefully
         assert health.status in ['healthy', 'error']
 
@@ -743,9 +743,9 @@ class TestHealthMonitorErrorHandling:
             # Missing query_performance, tables_accessible, connection_pool
         }
         mock_monitor.tickstock_db.health_check.return_value = mock_db_health
-        
+
         health = mock_monitor._check_database_health()
-        
+
         assert health.status == 'healthy'
         assert health.details['query_performance_ms'] is None
         assert health.details['tables_accessible'] == []

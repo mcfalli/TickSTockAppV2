@@ -2,15 +2,15 @@
 Pytest configuration and shared fixtures for TickStock tests.
 """
 
-import pytest
+import json
 import os
 import sys
 import tempfile
-import json
-from unittest.mock import Mock, MagicMock
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
+from unittest.mock import Mock
+
+import pytest
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -25,12 +25,12 @@ try:
     from src.core.domain.events.highlow import HighLowEvent
 except ImportError:
     HighLowEvent = None
-    
+
 try:
     from src.core.domain.events.surge import SurgeEvent
 except ImportError:
     SurgeEvent = None
-    
+
 try:
     from src.core.domain.events.trend import TrendEvent
 except ImportError:
@@ -41,9 +41,9 @@ try:
     from src.core.domain.events.aggregate import PerMinuteAggregateEvent
 except ImportError:
     PerMinuteAggregateEvent = None
-    
+
 try:
-    from src.core.domain.events.fmv import FairMarketValueEvent  
+    from src.core.domain.events.fmv import FairMarketValueEvent
 except ImportError:
     FairMarketValueEvent = None
 
@@ -64,19 +64,19 @@ def app():
     """Create Flask application for testing."""
     if Flask is None:
         pytest.skip("Flask not available for web interface testing")
-    
+
     app = Flask(__name__)
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False
-    
+
     # Add basic routes for testing
     @app.route('/api/test')
     def test_route():
         return {'success': True, 'message': 'Test route'}
-    
+
     return app
 
-@pytest.fixture 
+@pytest.fixture
 def client(app):
     """Create Flask test client."""
     return app.test_client()
@@ -86,23 +86,23 @@ def client_no_auth():
     """Create Flask test client without authentication."""
     if Flask is None:
         pytest.skip("Flask not available for web interface testing")
-    
+
     app = Flask(__name__)
     app.config['TESTING'] = True
-    
+
     # Routes that require authentication
     @app.route('/api/symbols/search')
     def symbols_search():
         return {'error': 'Authentication required'}, 401
-    
-    @app.route('/api/watchlist') 
+
+    @app.route('/api/watchlist')
     def watchlist():
         return {'error': 'Authentication required'}, 401
-    
+
     @app.route('/api/chart-data/<symbol>')
     def chart_data(symbol):
         return {'error': 'Authentication required'}, 401
-    
+
     return app.test_client()
 
 @pytest.fixture
@@ -114,7 +114,7 @@ def live_server(app):
         def __init__(self, app):
             self.app = app
             self.url = "http://localhost:5000"
-    
+
     return MockServer(app)
 
 try:
@@ -132,7 +132,7 @@ class MockTick:
     timestamp: float
     bid: float = 0.0
     ask: float = 0.0
-    
+
     @classmethod
     def create(cls, ticker: str = "AAPL", price: float = 150.0, volume: int = 1000) -> 'MockTick':
         return cls(
@@ -147,7 +147,7 @@ class MockTick:
 
 class EventBuilder:
     """Builder pattern for creating test events"""
-    
+
     @staticmethod
     def high_low_event(
         ticker: str = "AAPL",
@@ -172,7 +172,7 @@ class EventBuilder:
             direction="up" if event_type == "high" else "down",
             **kwargs
         )
-    
+
     @staticmethod
     def surge_event(
         ticker: str = "AAPL",
@@ -200,7 +200,7 @@ class EventBuilder:
             volume_ratio=volume_ratio,
             **kwargs
         )
-    
+
     @staticmethod
     def trend_event(
         ticker: str = "AAPL",
@@ -228,7 +228,7 @@ class EventBuilder:
             period=period,
             **kwargs
         )
-    
+
     # SPRINT 101: Multi-frequency event builders
     @staticmethod
     def per_minute_aggregate_event(
@@ -266,7 +266,7 @@ class EventBuilder:
             volume=minute_volume,
             **kwargs
         )
-    
+
     @staticmethod
     def fair_market_value_event(
         ticker: str = "AAPL",
@@ -343,7 +343,7 @@ def mock_polygon_am_data():
     timestamp_ms = int(time.time() * 1000)
     return {
         "ev": "AM",
-        "sym": "AAPL", 
+        "sym": "AAPL",
         "v": 4110,  # Volume
         "av": 9470157,  # Accumulated volume
         "op": 149.80,  # Daily open
@@ -359,7 +359,7 @@ def mock_polygon_am_data():
     }
 
 
-@pytest.fixture  
+@pytest.fixture
 def mock_polygon_fmv_data():
     """Mock Polygon FMV (fair market value) event data"""
     return {
@@ -432,7 +432,7 @@ def temp_trace_file():
                 },
                 {
                     "timestamp": time.time() + 0.1,
-                    "ticker": "AAPL", 
+                    "ticker": "AAPL",
                     "component": "websocket_publisher",
                     "action": "event_emitted",
                     "data": {
@@ -444,9 +444,9 @@ def temp_trace_file():
         }
         json.dump(trace_data, f)
         temp_file = f.name
-    
+
     yield temp_file
-    
+
     # Cleanup
     if os.path.exists(temp_file):
         os.unlink(temp_file)
@@ -506,9 +506,9 @@ def setup_test_environment(test_config):
     # Set environment variables for testing
     for key, value in test_config.items():
         os.environ[key] = str(value)
-    
+
     yield
-    
+
     # Cleanup environment variables
     for key in test_config.keys():
         os.environ.pop(key, None)
@@ -522,19 +522,19 @@ def performance_timer():
         def __init__(self):
             self.start_time = None
             self.end_time = None
-        
+
         def start(self):
             self.start_time = time.perf_counter()
-        
+
         def stop(self):
             self.end_time = time.perf_counter()
-        
+
         @property
         def elapsed(self) -> float:
             if self.start_time and self.end_time:
                 return self.end_time - self.start_time
             return 0.0
-    
+
     return Timer()
 
 
@@ -549,41 +549,41 @@ def market_data_generator():
             base_price: float = 100.0,
             count: int = 100,
             volatility: float = 0.02
-        ) -> List[MockTick]:
+        ) -> list[MockTick]:
             """Generate a price series with realistic movement"""
             import random
-            
+
             ticks = []
             current_price = base_price
-            
+
             for i in range(count):
                 # Simulate price movement
                 change = random.gauss(0, volatility)
                 current_price *= (1 + change)
-                
+
                 tick = MockTick.create(
                     ticker=ticker,
                     price=round(current_price, 2),
                     volume=random.randint(1000, 10000)
                 )
                 ticks.append(tick)
-            
+
             return ticks
-        
+
         @staticmethod
-        def surge_scenario(ticker: str) -> List[MockTick]:
+        def surge_scenario(ticker: str) -> list[MockTick]:
             """Generate a volume surge scenario"""
             normal_volume = 5000
             surge_volume = 50000
-            
+
             # Normal trading
             ticks = [MockTick.create(ticker=ticker, volume=normal_volume) for _ in range(10)]
-            
+
             # Volume surge
             surge_ticks = [MockTick.create(ticker=ticker, volume=surge_volume) for _ in range(3)]
-            
+
             return ticks + surge_ticks
-    
+
     return MarketDataGenerator()
 
 
@@ -617,11 +617,11 @@ def pytest_collection_modifyitems(config, items):
         # Add unit marker to tests in unit/ directory
         if "unit" in str(item.fspath):
             item.add_marker(pytest.mark.unit)
-        
+
         # Add integration marker to tests in integration/ directory
         elif "integration" in str(item.fspath):
             item.add_marker(pytest.mark.integration)
-        
+
         # Add performance marker to tests in performance/ directory
         elif "performance" in str(item.fspath):
             item.add_marker(pytest.mark.performance)

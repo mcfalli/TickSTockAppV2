@@ -1,10 +1,10 @@
-import os
 import ast
-from pathlib import Path
+import os
 import re
-from typing import List, Dict, Set, Tuple, Optional
+from pathlib import Path
 
-def generate_project_structure(root_dir: str, ignore_dirs: List[str], output_dir: str) -> str:
+
+def generate_project_structure(root_dir: str, ignore_dirs: list[str], output_dir: str) -> str:
     """
     Generate a single comprehensive markdown file documenting the TickStock project structure
     with focus on technical architecture and data flow.
@@ -20,13 +20,13 @@ def generate_project_structure(root_dir: str, ignore_dirs: List[str], output_dir
         'analytics_services': [],
         'database_models': []
     }
-    
+
     # Updated ignore list including web
     ignore_dirs = ignore_dirs + ['web'] if 'web' not in ignore_dirs else ignore_dirs
     exclude_patterns = [r'^test_.*\.py$', r'^util_.*\.py$', r'.*/temp/.*\.py$']
-    
+
     output_file = os.path.join(output_dir, 'project_structure_detailed.md')
-    
+
     # First pass: collect and categorize
     for root, dirs, files in os.walk(root_dir):
         dirs[:] = [d for d in dirs if d not in ignore_dirs]
@@ -34,71 +34,71 @@ def generate_project_structure(root_dir: str, ignore_dirs: List[str], output_dir
             if file.endswith('.py') and not any(re.match(pattern, os.path.join(root, file)) for pattern in exclude_patterns):
                 file_path = os.path.join(root, file)
                 relative_path = str(Path(file_path).relative_to(root_dir)).replace('\\', '/')
-                
+
                 # Only process src/ and config/ files
                 if not (relative_path.startswith('src/') or relative_path.startswith('config/')):
                     continue
-                
+
                 try:
                     file_data = parse_python_file_optimized(file_path, class_dependencies, file == '__init__.py')
                     project_structure[relative_path] = file_data
-                    
+
                     # Categorize components for architectural overview
                     categorize_component(relative_path, file_data, architectural_components)
-                    
+
                 except (SyntaxError, UnicodeDecodeError) as e:
                     project_structure[relative_path] = {'error': f'Parse error: {str(e)}'}
-    
+
     # Generate optimized markdown
     os.makedirs(output_dir, exist_ok=True)
-    
+
     with open(output_file, 'w', encoding='utf-8') as f:
         # Header
         f.write('# TickStock Technical Architecture\n\n')
         f.write('*Real-time market data processing system with WebSocket distribution*\n\n')
-        
+
         # Executive Summary
         write_executive_summary(f, project_structure, architectural_components)
-        
+
         # Data Flow Architecture
         write_data_flow_architecture(f, architectural_components)
-        
+
         # Component Interactions
         write_component_interactions(f)
-        
+
         # Core Components by Layer
         write_layered_architecture(f, project_structure, class_dependencies)
-        
+
         # Critical Classes and Interfaces
         write_critical_classes(f, project_structure, architectural_components)
-        
+
         # Configuration & Deployment
         write_configuration_notes(f)
-        
+
         # Configuration Components
         write_config_section(f, project_structure)
-        
+
         # Inter-Component Dependencies
         write_dependency_matrix(f, class_dependencies, project_structure)
-        
+
         # Quick Reference Index
         write_quick_reference(f, project_structure)
-    
+
     return output_file
 
 
-def parse_python_file_optimized(file_path: str, class_dependencies: Dict, is_init: bool) -> Dict:
+def parse_python_file_optimized(file_path: str, class_dependencies: dict, is_init: bool) -> dict:
     """
     Parse Python file focusing on essential technical information.
     """
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, encoding='utf-8') as f:
         source = f.read()
-    
+
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return {'error': 'Syntax error'}
-    
+
     result = {
         'classes': {},
         'functions': [],
@@ -107,19 +107,19 @@ def parse_python_file_optimized(file_path: str, class_dependencies: Dict, is_ini
         'decorators': set(),
         'init_content': None
     }
-    
+
     # Handle __init__.py special content
     if is_init:
         result['init_content'] = {'all': [], 'imports': []}
-    
+
     class OptimizedVisitor(ast.NodeVisitor):
         def __init__(self):
             self.current_class = None
-            
+
         def visit_ClassDef(self, node):
             class_name = node.name
             self.current_class = class_name
-            
+
             bases = []
             for base in node.bases:
                 try:
@@ -127,54 +127,54 @@ def parse_python_file_optimized(file_path: str, class_dependencies: Dict, is_ini
                     bases.append(base_str)
                 except:
                     pass
-            
+
             # Only capture key methods (init, public API, handlers)
             key_methods = []
             for item in node.body:
                 if isinstance(item, ast.FunctionDef):
-                    if (item.name == '__init__' or 
-                        not item.name.startswith('_') or 
-                        'handle' in item.name or 
+                    if (item.name == '__init__' or
+                        not item.name.startswith('_') or
+                        'handle' in item.name or
                         'process' in item.name or
                         'emit' in item.name):
                         # Simplified signature
                         params = [arg.arg for arg in item.args.args if arg.arg != 'self']
                         key_methods.append(f"{item.name}({', '.join(params[:3])}{'...' if len(params) > 3 else ''})")
-            
+
             result['classes'][class_name] = {
                 'extends': bases[0] if bases else None,
                 'methods': key_methods[:10],  # Limit to 10 most important
                 'is_abstract': any(isinstance(d, ast.Name) and d.id == 'ABC' for d in node.decorator_list)
             }
-            
+
             self.generic_visit(node)
             self.current_class = None
-        
+
         def visit_FunctionDef(self, node):
             # Only module-level functions (not class methods)
             if not self.current_class:
                 params = [arg.arg for arg in node.args.args]
                 result['functions'].append(f"{node.name}({', '.join(params[:2])}{'...' if len(params) > 2 else ''})")
             self.generic_visit(node)
-        
+
         def visit_ImportFrom(self, node):
             if node.module:
                 for name in node.names:
                     if isinstance(name.name, str) and name.name[0].isupper():
                         result['imports'].add(name.name)
-                        
+
                 # Special handling for __init__.py
                 if is_init and node.module:
                     for name in node.names:
                         result['init_content']['imports'].append(f"{node.module}.{name.name}")
             self.generic_visit(node)
-        
+
         def visit_Import(self, node):
             if is_init:
                 for name in node.names:
                     result['init_content']['imports'].append(name.name)
             self.generic_visit(node)
-        
+
         def visit_Assign(self, node):
             # Check for __all__ in __init__.py
             if is_init:
@@ -182,34 +182,34 @@ def parse_python_file_optimized(file_path: str, class_dependencies: Dict, is_ini
                     if isinstance(target, ast.Name) and target.id == '__all__':
                         if isinstance(node.value, (ast.List, ast.Tuple)):
                             result['init_content']['all'] = [
-                                elt.value for elt in node.value.elts 
+                                elt.value for elt in node.value.elts
                                 if isinstance(elt, ast.Constant)
                             ]
-            
+
             # Check for constants
             for target in node.targets:
                 if isinstance(target, ast.Name) and target.id.isupper():
                     result['constants'].append(target.id)
-            
+
             self.generic_visit(node)
-    
+
     visitor = OptimizedVisitor()
     visitor.visit(tree)
-    
+
     # Track dependencies with relative path as key
     relative_path = str(Path(file_path).relative_to(ROOT_DIR)).replace('\\', '/')
     if relative_path not in class_dependencies:
         class_dependencies[relative_path] = result['imports']
-    
+
     return result
 
-def categorize_component(path: str, data: Dict, categories: Dict):
+def categorize_component(path: str, data: dict, categories: dict):
     """
     Categorize components by their architectural role.
     """
     if 'error' in data:
         return
-    
+
     # Map paths to categories
     if 'websocket' in path:
         categories['websocket_layer'].append(path)
@@ -227,28 +227,28 @@ def categorize_component(path: str, data: Dict, categories: Dict):
         categories['real_time_pipeline'].append(path)
 
 
-def write_executive_summary(f, structure: Dict, components: Dict):
+def write_executive_summary(f, structure: dict, components: dict):
     """Write a concise executive summary with key insights."""
     f.write('## Executive Summary\n\n')
-    
+
     # Calculate statistics
     total_files = len([p for p in structure if not structure[p].get('error')])
     total_classes = sum(len(s.get('classes', {})) for s in structure.values())
-    
+
     f.write('### System Overview\n')
     f.write('Real-time financial data processing system with:\n')
     f.write(f'- **{total_files}** Python modules across `src/` and `config/`\n')
     f.write(f'- **{total_classes}** classes implementing the architecture\n')
     f.write(f'- **{len(components["websocket_layer"])}** WebSocket components for real-time distribution\n')
     f.write(f'- **{len(components["event_detectors"])}** event detection engines\n\n')
-    
+
     f.write('### Core Capabilities\n')
     f.write('- **Event Detection**: HighLow, Surge, and Trend detection in real-time\n')
     f.write('- **Universe Filtering**: Core universe and user-specific stock filtering\n')
     f.write('- **Session Management**: Market session state tracking (pre-market, market, after-hours)\n')
     f.write('- **Priority Processing**: Queue-based priority management for event handling\n')
     f.write('- **Analytics**: Real-time accumulation and aggregation of market metrics\n\n')
-    
+
     f.write('### Key Technologies\n')
     f.write('- **Backend**: Python 3.x, Flask, Flask-SocketIO\n')
     f.write('- **Real-time Data**: Polygon.io WebSocket API, Socket.IO\n')
@@ -257,10 +257,10 @@ def write_executive_summary(f, structure: Dict, components: Dict):
     f.write('- **Caching**: In-memory caching with CacheControl\n\n')
 
 
-def write_data_flow_architecture(f, components: Dict):
+def write_data_flow_architecture(f, components: dict):
     """Write the data flow architecture section with more detail."""
     f.write('## Data Flow Architecture\n\n')
-    
+
     f.write('### Primary Data Pipeline\n')
     f.write('```\n')
     f.write('[Polygon WebSocket API]\n')
@@ -285,7 +285,7 @@ def write_data_flow_architecture(f, components: Dict):
     f.write('         ↓\n')
     f.write('  [User Clients]\n')
     f.write('```\n\n')
-    
+
     f.write('### Key Processing Stages\n')
     f.write('1. **Data Ingestion**: WebSocket connection to Polygon for real-time ticks\n')
     f.write('2. **Event Detection**: Pattern recognition for market events\n')
@@ -297,7 +297,7 @@ def write_data_flow_architecture(f, components: Dict):
 def write_component_interactions(f):
     """Add a section describing key component interactions."""
     f.write('## Component Interactions\n\n')
-    
+
     f.write('### Session Management Flow\n')
     f.write('```\n')
     f.write('SessionManager determines market session\n')
@@ -306,7 +306,7 @@ def write_component_interactions(f):
     f.write('    ↓\n')
     f.write('Resets: Detectors, Accumulation, Analytics\n')
     f.write('```\n\n')
-    
+
     f.write('### Universe Filtering Flow\n')
     f.write('```\n')
     f.write('User selects universes → UserUniverseManager\n')
@@ -315,17 +315,17 @@ def write_component_interactions(f):
     f.write('                              ↓\n')
     f.write('           Updates: BuySellTracker, WebSocketPublisher\n')
     f.write('```\n\n')
-    
+
     f.write('### Event Lifecycle\n')
     f.write('```\n')
     f.write('Tick → Detection → Priority Queue → Collection → Filter → Emit\n')
     f.write('```\n\n')
 
 
-def write_layered_architecture(f, structure: Dict, dependencies: Dict):
+def write_layered_architecture(f, structure: dict, dependencies: dict):
     """Write components organized by architectural layer."""
     f.write('## Component Layers\n\n')
-    
+
     layers = {
         'API Layer': ['src/api/rest/', 'src/api/websocket/'],
         'Core Services': ['src/core/services/'],
@@ -334,16 +334,16 @@ def write_layered_architecture(f, structure: Dict, dependencies: Dict):
         'Presentation': ['src/presentation/websocket/'],
         'Monitoring': ['src/monitoring/']
     }
-    
+
     for layer_name, prefixes in layers.items():
         f.write(f'### {layer_name}\n\n')
-        
-        layer_files = [p for p in structure.keys() if any(p.startswith(prefix) for prefix in prefixes)]
-        
+
+        layer_files = [p for p in structure if any(p.startswith(prefix) for prefix in prefixes)]
+
         if not layer_files:
             f.write('*No components*\n\n')
             continue
-        
+
         # Group by subdirectory
         subdirs = {}
         for file_path in sorted(layer_files):
@@ -351,7 +351,7 @@ def write_layered_architecture(f, structure: Dict, dependencies: Dict):
             subdir = '/'.join(parts[:-1])
             if subdir not in subdirs:
                 subdirs[subdir] = []
-            
+
             file_info = structure[file_path]
             if file_info.get('classes'):
                 for class_name, class_data in file_info['classes'].items():
@@ -360,10 +360,10 @@ def write_layered_architecture(f, structure: Dict, dependencies: Dict):
                     subdirs[subdir].append(f"**{class_name}**{extends} ({methods} methods)")
             elif file_info.get('functions'):
                 subdirs[subdir].append(f"*{parts[-1]}* - {len(file_info['functions'])} functions")
-        
+
         # Track already written classes to avoid duplicates
         written_classes = set()
-        
+
         for subdir in sorted(subdirs.keys()):
             if subdirs[subdir]:
                 f.write(f'**{subdir}/**\n')
@@ -378,10 +378,10 @@ def write_layered_architecture(f, structure: Dict, dependencies: Dict):
                 f.write('\n')
 
 
-def write_critical_classes(f, structure: Dict, components: Dict):
+def write_critical_classes(f, structure: dict, components: dict):
     """Write the most important classes with context."""
     f.write('## Critical Components\n\n')
-    
+
     critical_components = {
         'Core Processing': {
             'MarketDataService': 'Central orchestrator for market data flow',
@@ -404,10 +404,10 @@ def write_critical_classes(f, structure: Dict, components: Dict):
             'UserUniverseManager': 'Handles user-specific universe selections'
         }
     }
-    
+
     for category, classes in critical_components.items():
         f.write(f'### {category}\n\n')
-        
+
         for class_name, description in classes.items():
             # Find the class in structure
             for file_path, file_data in structure.items():
@@ -415,13 +415,13 @@ def write_critical_classes(f, structure: Dict, components: Dict):
                     f.write(f'#### {class_name}\n')
                     f.write(f'*{description}*\n\n')
                     f.write(f'Location: `{file_path}`\n\n')
-                    
+
                     class_info = file_data['classes'][class_name]
                     if class_info.get('extends'):
                         f.write(f'Extends: `{class_info["extends"]}`\n\n')
-                    
+
                     # Only show the most important methods
-                    important_methods = [m for m in class_info.get('methods', []) 
+                    important_methods = [m for m in class_info.get('methods', [])
                                        if not m.startswith('_') or m == '__init__'][:5]
                     if important_methods:
                         f.write('Key Methods:\n')
@@ -434,18 +434,18 @@ def write_critical_classes(f, structure: Dict, components: Dict):
 def write_configuration_notes(f):
     """Add configuration and deployment notes."""
     f.write('## Configuration & Deployment\n\n')
-    
+
     f.write('### Environment Variables\n')
     f.write('- `POLYGON_API_KEY`: Required for real-time data\n')
     f.write('- `USE_REAL_DATA`: Toggle between real/simulated data\n')
     f.write('- `DATABASE_URL`: PostgreSQL connection string\n')
     f.write('- `REDIS_URL`: Optional Redis cache\n\n')
-    
+
     f.write('### Key Configuration Files\n')
     f.write('- `config/app_config.py`: Main configuration loader\n')
     f.write('- `config/environments/`: Environment-specific settings\n')
     f.write('- `config/logging_config.py`: Logging configuration\n\n')
-    
+
     f.write('### Performance Tuning\n')
     f.write('- Worker pool size: Configurable based on load\n')
     f.write('- Queue sizes: Adjustable for memory/latency tradeoff\n')
@@ -453,20 +453,20 @@ def write_configuration_notes(f):
     f.write('- Cache TTLs: Optimize for data freshness vs API calls\n\n')
 
 
-def write_config_section(f, structure: Dict):
+def write_config_section(f, structure: dict):
     """Write configuration components section."""
     f.write('## Configuration Components\n\n')
-    
-    config_files = [p for p in structure.keys() if p.startswith('config/')]
-    
+
+    config_files = [p for p in structure if p.startswith('config/')]
+
     if not config_files:
         f.write('*No configuration files found*\n\n')
         return
-    
+
     for file_path in sorted(config_files):
         file_data = structure[file_path]
         f.write(f'**{file_path}**\n')
-        
+
         if file_data.get('classes'):
             f.write(f"- Classes: {', '.join(file_data['classes'].keys())}\n")
         if file_data.get('functions'):
@@ -476,17 +476,17 @@ def write_config_section(f, structure: Dict):
         f.write('\n')
 
 
-def write_dependency_matrix(f, dependencies: Dict, structure: Dict):
+def write_dependency_matrix(f, dependencies: dict, structure: dict):
     """Write a simplified dependency matrix focusing on cross-module dependencies."""
     f.write('## Key Dependencies\n\n')
-    
+
     # Focus on service-to-service dependencies
-    key_services = ['MarketDataService', 'EventProcessor', 'UniverseCoordinator', 
+    key_services = ['MarketDataService', 'EventProcessor', 'UniverseCoordinator',
                     'WebSocketPublisher', 'DataPublisher', 'PriorityManager']
-    
+
     has_dependencies = False
     dependency_rows = []
-    
+
     for file_path, deps in dependencies.items():
         file_classes = structure.get(file_path, {}).get('classes', {})
         for class_name in file_classes:
@@ -495,7 +495,7 @@ def write_dependency_matrix(f, dependencies: Dict, structure: Dict):
                 if key_deps:
                     dependency_rows.append(f'| {class_name} | {", ".join(key_deps[:5])} |')
                     has_dependencies = True
-    
+
     if has_dependencies:
         f.write('| Service | Dependencies |\n')
         f.write('|---------|-------------|\n')
@@ -503,14 +503,14 @@ def write_dependency_matrix(f, dependencies: Dict, structure: Dict):
             f.write(row + '\n')
     else:
         f.write('*No cross-service dependencies detected*\n')
-    
+
     f.write('\n')
 
 
-def write_quick_reference(f, structure: Dict):
+def write_quick_reference(f, structure: dict):
     """Write a quick reference index."""
     f.write('## Quick Reference Index\n\n')
-    
+
     # Group by component type
     groups = {
         'Services': [],
@@ -519,7 +519,7 @@ def write_quick_reference(f, structure: Dict):
         'Models': [],
         'Utils': []
     }
-    
+
     for path, data in structure.items():
         if 'classes' in data:
             for class_name in data['classes']:
@@ -533,7 +533,7 @@ def write_quick_reference(f, structure: Dict):
                     groups['Models'].append((class_name, path))
                 elif '/utils/' in path:
                     groups['Utils'].append((class_name, path))
-    
+
     for group_name, items in groups.items():
         if items:
             f.write(f'### {group_name}\n')
@@ -545,8 +545,8 @@ def write_quick_reference(f, structure: Dict):
 if __name__ == '__main__':
     # Configuration
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-    IGNORE_DIRS = ['venv', '__pycache__', 'tests', '.git', 'migrations', 'scripts', 
-                   'requirements', 'logs', 'docs', 'build', 'dist', 'static', 
+    IGNORE_DIRS = ['venv', '__pycache__', 'tests', '.git', 'migrations', 'scripts',
+                   'requirements', 'logs', 'docs', 'build', 'dist', 'static',
                    'templates', 'web']  # Added 'web' to ignore list
     OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../docs'))
 

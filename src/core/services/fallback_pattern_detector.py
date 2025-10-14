@@ -10,15 +10,15 @@ Date: 2025-09-12
 Sprint: 25 - Redis Integration Repair
 """
 
-import logging
-import time
 import json
-import threading
+import logging
 import queue
-from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime, timedelta
+import threading
+import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
+
 import redis
 from flask_socketio import SocketIO
 
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class PatternType(Enum):
     """Basic pattern types for fallback detection."""
     DOJI = "Doji"
-    HAMMER = "Hammer" 
+    HAMMER = "Hammer"
     SHOOTING_STAR = "Shooting_Star"
     ENGULFING_BULL = "Engulfing_Bull"
     ENGULFING_BEAR = "Engulfing_Bear"
@@ -41,9 +41,9 @@ class TickData:
     price: float
     volume: int
     timestamp: float
-    high: Optional[float] = None
-    low: Optional[float] = None
-    open: Optional[float] = None
+    high: float | None = None
+    low: float | None = None
+    open: float | None = None
 
 @dataclass
 class PatternDetection:
@@ -55,7 +55,7 @@ class PatternDetection:
     price: float
     volume: int
     direction: str
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
 
 class FallbackPatternDetector:
     """
@@ -64,25 +64,25 @@ class FallbackPatternDetector:
     Implements basic candlestick and volume pattern detection using
     market data from the existing TickStock processing pipeline.
     """
-    
-    def __init__(self, redis_client: redis.Redis, socketio: SocketIO, 
-                 config: Dict[str, Any]):
+
+    def __init__(self, redis_client: redis.Redis, socketio: SocketIO,
+                 config: dict[str, Any]):
         """Initialize fallback pattern detector."""
         self.redis_client = redis_client
         self.socketio = socketio
         self.config = config
-        
+
         # Pattern detection state
         self.is_active = False
         self.detection_thread = None
-        
+
         # Market data buffer (symbol -> list of recent ticks)
-        self.market_data_buffer: Dict[str, List[TickData]] = {}
+        self.market_data_buffer: dict[str, list[TickData]] = {}
         self.max_buffer_size = 100  # Keep last 100 ticks per symbol
-        
+
         # Pattern detection queue
         self.detection_queue = queue.Queue(maxsize=1000)
-        
+
         # Detection statistics
         self.stats = {
             'patterns_detected': 0,
@@ -91,23 +91,23 @@ class FallbackPatternDetector:
             'start_time': None,
             'last_detection': None
         }
-        
+
         # TickStockPL fallback mode flag
         self.tickstock_pl_available = False
         self.last_pl_heartbeat = 0
-        
+
         logger.info("FALLBACK-DETECTOR: Initialized fallback pattern detector")
-    
+
     def start(self) -> bool:
         """Start the fallback pattern detection service."""
         if self.is_active:
             logger.warning("FALLBACK-DETECTOR: Already active")
             return True
-        
+
         try:
             self.is_active = True
             self.stats['start_time'] = time.time()
-            
+
             # Start pattern detection thread
             self.detection_thread = threading.Thread(
                 target=self._detection_loop,
@@ -115,149 +115,149 @@ class FallbackPatternDetector:
                 daemon=True
             )
             self.detection_thread.start()
-            
+
             # Start TickStockPL monitoring
             self._start_pl_monitoring()
-            
+
             logger.info("FALLBACK-DETECTOR: Service started successfully")
             return True
-            
+
         except Exception as e:
             logger.error(f"FALLBACK-DETECTOR: Failed to start: {e}")
             self.is_active = False
             return False
-    
+
     def stop(self):
         """Stop the fallback pattern detection service."""
         if not self.is_active:
             return
-        
+
         logger.info("FALLBACK-DETECTOR: Stopping service...")
         self.is_active = False
-        
+
         # Wait for threads to complete
         if self.detection_thread and self.detection_thread.is_alive():
             self.detection_thread.join(timeout=5)
-        
+
         logger.info("FALLBACK-DETECTOR: Service stopped")
-    
-    def add_market_tick(self, symbol: str, price: float, volume: int, 
-                       timestamp: Optional[float] = None):
+
+    def add_market_tick(self, symbol: str, price: float, volume: int,
+                       timestamp: float | None = None):
         """Add new market tick for pattern analysis."""
         if not self.is_active:
             return
-        
+
         if timestamp is None:
             timestamp = time.time()
-        
+
         tick = TickData(
             symbol=symbol,
             price=price,
             volume=volume,
             timestamp=timestamp
         )
-        
+
         # Add to buffer
         if symbol not in self.market_data_buffer:
             self.market_data_buffer[symbol] = []
-            
+
         buffer = self.market_data_buffer[symbol]
         buffer.append(tick)
-        
+
         # Maintain buffer size
         if len(buffer) > self.max_buffer_size:
             buffer.pop(0)
-        
+
         # Queue for pattern detection
         try:
             self.detection_queue.put_nowait(tick)
         except queue.Full:
             logger.warning("FALLBACK-DETECTOR: Detection queue full, dropping tick")
-    
+
     def _detection_loop(self):
         """Main pattern detection loop."""
         logger.info("FALLBACK-DETECTOR: Starting detection loop")
-        
+
         while self.is_active:
             try:
                 # Check if TickStockPL is back online
                 self._check_tickstock_pl_status()
-                
+
                 # Skip detection if TickStockPL is available
                 if self.tickstock_pl_available:
                     time.sleep(1)
                     continue
-                
+
                 # Get tick from queue
                 try:
                     tick = self.detection_queue.get(timeout=1.0)
                 except queue.Empty:
                     continue
-                
+
                 # Run pattern detection
                 start_time = time.time()
                 patterns = self._detect_patterns(tick)
                 detection_time = (time.time() - start_time) * 1000
-                
+
                 # Update statistics
                 self.stats['detection_latency_ms'] = (
                     self.stats['detection_latency_ms'] * 0.9 + detection_time * 0.1
                 )
-                
+
                 # Publish detected patterns
                 for pattern in patterns:
                     self._publish_pattern(pattern)
                     self.stats['patterns_detected'] += 1
                     self.stats['last_detection'] = time.time()
-                
+
                 self.detection_queue.task_done()
-                
+
             except Exception as e:
                 logger.error(f"FALLBACK-DETECTOR: Error in detection loop: {e}")
                 time.sleep(1)
-        
+
         logger.info("FALLBACK-DETECTOR: Exited detection loop")
-    
-    def _detect_patterns(self, tick: TickData) -> List[PatternDetection]:
+
+    def _detect_patterns(self, tick: TickData) -> list[PatternDetection]:
         """Detect patterns for the given tick."""
         patterns = []
-        
+
         if tick.symbol not in self.market_data_buffer:
             return patterns
-        
+
         buffer = self.market_data_buffer[tick.symbol]
         if len(buffer) < 5:  # Need minimum history
             return patterns
-        
+
         # Get recent price action
         recent_ticks = buffer[-10:]  # Last 10 ticks
         current_tick = recent_ticks[-1]
-        
+
         # Pattern 1: High Volume Surge
         volume_pattern = self._detect_high_volume_surge(recent_ticks)
         if volume_pattern:
             patterns.append(volume_pattern)
-        
+
         # Pattern 2: Simple Doji (price oscillation)
         doji_pattern = self._detect_simple_doji(recent_ticks)
         if doji_pattern:
             patterns.append(doji_pattern)
-        
+
         # Pattern 3: Price Gap
         gap_pattern = self._detect_price_gap(recent_ticks)
         if gap_pattern:
             patterns.append(gap_pattern)
-        
+
         return patterns
-    
-    def _detect_high_volume_surge(self, ticks: List[TickData]) -> Optional[PatternDetection]:
+
+    def _detect_high_volume_surge(self, ticks: list[TickData]) -> PatternDetection | None:
         """Detect high volume surge pattern."""
         if len(ticks) < 5:
             return None
-        
+
         current_tick = ticks[-1]
         avg_volume = sum(t.volume for t in ticks[:-1]) / len(ticks[:-1])
-        
+
         # Volume surge threshold (3x average)
         if current_tick.volume > avg_volume * 3 and avg_volume > 100:
             # Calculate price change from previous tick
@@ -281,21 +281,21 @@ class FallbackPatternDetector:
                     "source": "fallback_detector"
                 }
             )
-        
+
         return None
-    
-    def _detect_simple_doji(self, ticks: List[TickData]) -> Optional[PatternDetection]:
+
+    def _detect_simple_doji(self, ticks: list[TickData]) -> PatternDetection | None:
         """Detect simple doji-like pattern (price oscillation)."""
         if len(ticks) < 7:
             return None
-        
+
         # Look for price oscillation pattern
         recent_prices = [t.price for t in ticks[-7:]]
         price_range = max(recent_prices) - min(recent_prices)
         avg_price = sum(recent_prices) / len(recent_prices)
-        
+
         current_tick = ticks[-1]
-        
+
         # Doji-like: price near middle of recent range
         middle_threshold = 0.3  # Within 30% of middle
         price_middle_distance = abs(current_tick.price - avg_price) / price_range
@@ -321,25 +321,25 @@ class FallbackPatternDetector:
                     "source": "fallback_detector"
                 }
             )
-        
+
         return None
-    
-    def _detect_price_gap(self, ticks: List[TickData]) -> Optional[PatternDetection]:
+
+    def _detect_price_gap(self, ticks: list[TickData]) -> PatternDetection | None:
         """Detect significant price gaps."""
         if len(ticks) < 3:
             return None
-        
+
         current_tick = ticks[-1]
         prev_tick = ticks[-2]
-        
+
         # Calculate price gap percentage
         price_change = abs(current_tick.price - prev_tick.price)
         gap_percentage = (price_change / prev_tick.price) * 100
-        
+
         # Gap threshold (2% or more)
         if gap_percentage > 2.0:
             direction = "bullish" if current_tick.price > prev_tick.price else "bearish"
-            
+
             return PatternDetection(
                 pattern=PatternType.PRICE_GAP,
                 symbol=current_tick.symbol,
@@ -355,9 +355,9 @@ class FallbackPatternDetector:
                     "source": "fallback_detector"
                 }
             )
-        
+
         return None
-    
+
     def _publish_pattern(self, pattern: PatternDetection):
         """Publish detected pattern via Redis and WebSocket."""
         try:
@@ -383,24 +383,24 @@ class FallbackPatternDetector:
                     "source": "fallback"  # Data source tier
                 }
             }
-            
+
             # Publish to Redis channel (same as TickStockPL)
             message = json.dumps(pattern_event)
             self.redis_client.publish('tickstock.events.patterns', message)
-            
+
             # Direct WebSocket broadcast (backup)
             websocket_data = {
                 'type': 'pattern_alert',
                 'event': pattern_event
             }
-            
+
             self.socketio.emit('pattern_alert', websocket_data, namespace='/')
-            
+
             logger.info(f"FALLBACK-DETECTOR: Published {pattern.pattern.value} on {pattern.symbol} (confidence: {pattern.confidence:.2f})")
-            
+
         except Exception as e:
             logger.error(f"FALLBACK-DETECTOR: Failed to publish pattern: {e}")
-    
+
     def _start_pl_monitoring(self):
         """Start monitoring TickStockPL availability."""
         def monitor():
@@ -410,36 +410,36 @@ class FallbackPatternDetector:
                     heartbeat = self.redis_client.get('tickstock:producer:heartbeat')
                     if heartbeat:
                         self.last_pl_heartbeat = float(heartbeat)
-                    
+
                     time.sleep(5)  # Check every 5 seconds
-                    
+
                 except Exception as e:
                     logger.debug(f"FALLBACK-DETECTOR: PL monitoring error: {e}")
                     time.sleep(5)
-        
+
         monitor_thread = threading.Thread(target=monitor, daemon=True)
         monitor_thread.start()
-    
+
     def _check_tickstock_pl_status(self) -> bool:
         """Check if TickStockPL is available."""
         current_time = time.time()
-        
+
         # Consider TickStockPL available if heartbeat is recent (within 30 seconds)
         pl_available = (current_time - self.last_pl_heartbeat) < 30
-        
+
         if pl_available != self.tickstock_pl_available:
             if pl_available:
                 logger.info("FALLBACK-DETECTOR: TickStockPL detected as ONLINE - switching to passive mode")
             else:
                 logger.info("FALLBACK-DETECTOR: TickStockPL detected as OFFLINE - activating fallback detection")
-        
+
         self.tickstock_pl_available = pl_available
         return pl_available
-    
-    def get_stats(self) -> Dict[str, Any]:
+
+    def get_stats(self) -> dict[str, Any]:
         """Get detector statistics."""
         runtime = time.time() - (self.stats['start_time'] or time.time())
-        
+
         return {
             **self.stats,
             'runtime_seconds': round(runtime, 1),
@@ -449,11 +449,11 @@ class FallbackPatternDetector:
             'buffer_sizes': {symbol: len(buffer) for symbol, buffer in self.market_data_buffer.items()},
             'queue_size': self.detection_queue.qsize()
         }
-    
-    def get_health_status(self) -> Dict[str, Any]:
+
+    def get_health_status(self) -> dict[str, Any]:
         """Get health status for monitoring."""
         stats = self.get_stats()
-        
+
         if not self.is_active:
             status = 'inactive'
             message = 'Fallback detector not running'
@@ -466,7 +466,7 @@ class FallbackPatternDetector:
         else:
             status = 'active'
             message = 'Fallback detection active'
-        
+
         return {
             'status': status,
             'message': message,

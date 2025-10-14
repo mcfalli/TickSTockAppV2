@@ -12,22 +12,20 @@ Test Categories:
 - Data Integrity: Zero loss guarantee validation
 """
 
-import pytest
-import time
-import threading
-from unittest.mock import Mock, patch, MagicMock
-from dataclasses import dataclass
-from typing import Dict, Any, List
-import psycopg2
-from datetime import datetime, timedelta
-
-import sys
 import os
+import sys
+import threading
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from unittest.mock import Mock, patch
+
+import psycopg2
+import pytest
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from src.core.services.market_data_service import MarketDataService, ServiceStats
-from src.core.domain.market.tick import TickData
-from src.presentation.websocket.data_publisher import DataPublisher
+from src.core.services.market_data_service import MarketDataService
 
 
 @dataclass
@@ -114,12 +112,12 @@ class TestMarketDataServicePersistence:
         """Test database connection establishment for OHLCV persistence."""
         mock_conn, mock_cursor = mock_database_connection
         mock_connect.return_value = mock_conn
-        
+
         # Test connection establishment
         with patch.object(market_data_service.data_publisher, 'establish_db_connection') as mock_establish:
             mock_establish.return_value = mock_conn
             connection = mock_establish()
-            
+
             assert connection is not None
             mock_establish.assert_called_once()
 
@@ -128,7 +126,7 @@ class TestMarketDataServicePersistence:
         """Test OHLCV table creation with proper schema."""
         mock_conn, mock_cursor = mock_database_connection
         mock_connect.return_value = mock_conn
-        
+
         expected_table_schema = """
         CREATE TABLE IF NOT EXISTS ohlcv_1min (
             id SERIAL PRIMARY KEY,
@@ -144,12 +142,12 @@ class TestMarketDataServicePersistence:
             created_at TIMESTAMPTZ DEFAULT NOW(),
             UNIQUE(symbol, timestamp)
         )"""
-        
+
         # Test table creation
         with patch.object(market_data_service.data_publisher, 'create_ohlcv_table') as mock_create:
             mock_create.return_value = True
             result = mock_create()
-            
+
             assert result is True
             mock_create.assert_called_once()
 
@@ -159,44 +157,44 @@ class TestMarketDataServicePersistence:
         # Performance test: <1ms per tick processing
         iterations = 100
         start_time = time.perf_counter()
-        
+
         for i in range(iterations):
             # Mock the tick processing without actual database operations
             with patch.object(market_data_service, '_handle_tick_data') as mock_handle:
                 mock_handle.return_value = None
                 market_data_service._handle_tick_data(sample_tick_data)
-        
+
         end_time = time.perf_counter()
         avg_time = (end_time - start_time) / iterations
-        
+
         # Assert: <1ms per tick processing
         assert avg_time < 0.001, f"Tick processing took {avg_time:.4f}s, exceeds 1ms requirement"
 
-    @pytest.mark.performance  
+    @pytest.mark.performance
     @patch('src.core.services.market_data_service.psycopg2.connect')
     def test_database_persistence_performance(self, mock_connect, market_data_service, mock_database_connection, sample_tick_data):
         """Test database persistence meets <50ms performance requirement."""
         mock_conn, mock_cursor = mock_database_connection
         mock_connect.return_value = mock_conn
-        
+
         # Configure mock to simulate successful database operations
         mock_cursor.execute.return_value = None
         mock_cursor.fetchone.return_value = None
         mock_conn.commit.return_value = None
-        
+
         # Performance test: <50ms database persistence
         iterations = 20
         start_time = time.perf_counter()
-        
+
         for i in range(iterations):
             # Mock database persistence operation
             with patch.object(market_data_service.data_publisher, 'persist_ohlcv_data') as mock_persist:
                 mock_persist.return_value = True
                 mock_persist(sample_tick_data)
-        
+
         end_time = time.perf_counter()
         avg_time = (end_time - start_time) / iterations
-        
+
         # Assert: <50ms per database operation
         assert avg_time < 0.050, f"Database persistence took {avg_time:.4f}s, exceeds 50ms requirement"
 
@@ -205,14 +203,14 @@ class TestMarketDataServicePersistence:
         """Test accurate tick data persistence to OHLCV table."""
         mock_conn, mock_cursor = mock_database_connection
         mock_connect.return_value = mock_conn
-        
+
         # Configure mock to capture SQL operations
         executed_queries = []
         def capture_execute(query, params=None):
             executed_queries.append((query, params))
-            
+
         mock_cursor.execute.side_effect = capture_execute
-        
+
         # Test data persistence
         with patch.object(market_data_service.data_publisher, 'persist_ohlcv_data') as mock_persist:
             def mock_persistence(tick_data):
@@ -233,20 +231,20 @@ class TestMarketDataServicePersistence:
                     datetime.fromtimestamp(tick_data.timestamp),
                     tick_data.tick_open,
                     tick_data.tick_high,
-                    tick_data.tick_low, 
+                    tick_data.tick_low,
                     tick_data.tick_close,
                     tick_data.tick_volume,
                     tick_data.tick_vwap
                 )
                 mock_cursor.execute(query, params)
                 return True
-            
+
             mock_persist.side_effect = mock_persistence
             result = mock_persist(sample_tick_data)
-            
+
             assert result is True
             assert len(executed_queries) == 1
-            
+
             query, params = executed_queries[0]
             assert "INSERT INTO ohlcv_1min" in query
             assert params[0] == "AAPL"  # ticker
@@ -259,13 +257,13 @@ class TestMarketDataServicePersistence:
         """Test zero event loss guarantee through Pull Model architecture."""
         # Test data publisher buffering
         processed_ticks = []
-        
+
         def mock_buffer_tick(tick_data):
             processed_ticks.append(tick_data)
-        
+
         with patch.object(market_data_service.data_publisher, 'publish_tick_data') as mock_publish:
             mock_publish.side_effect = lambda tick: mock_buffer_tick(tick)
-            
+
             # Process multiple ticks
             test_tickers = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMZN"]
             for ticker in test_tickers:
@@ -276,7 +274,7 @@ class TestMarketDataServicePersistence:
                     timestamp=time.time()
                 )
                 market_data_service._handle_tick_data(tick)
-        
+
         # Verify: No ticks lost in processing
         assert len(processed_ticks) == len(test_tickers)
         assert all(tick.ticker in test_tickers for tick in processed_ticks)
@@ -285,7 +283,7 @@ class TestMarketDataServicePersistence:
     def test_database_connection_recovery(self, mock_connect, market_data_service, mock_database_connection):
         """Test database connection recovery on failure."""
         mock_conn, mock_cursor = mock_database_connection
-        
+
         # Simulate connection failure then recovery
         connection_attempts = []
         def mock_connect_with_failure(*args, **kwargs):
@@ -293,9 +291,9 @@ class TestMarketDataServicePersistence:
             if len(connection_attempts) <= 2:
                 raise psycopg2.OperationalError("Connection failed")
             return mock_conn
-        
+
         mock_connect.side_effect = mock_connect_with_failure
-        
+
         # Test connection recovery logic
         with patch.object(market_data_service.data_publisher, 'reconnect_database') as mock_reconnect:
             def mock_reconnect_logic():
@@ -304,9 +302,9 @@ class TestMarketDataServicePersistence:
                 except psycopg2.OperationalError:
                     time.sleep(0.1)  # Brief retry delay
                     return mock_connect()
-            
+
             mock_reconnect.side_effect = mock_reconnect_logic
-            
+
             # Should succeed after retries
             connection = mock_reconnect()
             assert connection is not None
@@ -317,7 +315,7 @@ class TestMarketDataServicePersistence:
         """Test efficient batch persistence for high-volume tick data."""
         mock_conn, mock_cursor = mock_database_connection
         mock_connect.return_value = mock_conn
-        
+
         # Generate batch of tick data
         batch_size = 100
         tick_batch = []
@@ -328,18 +326,18 @@ class TestMarketDataServicePersistence:
                 volume=1000 + i,
                 timestamp=time.time() + i
             ))
-        
+
         # Test batch persistence
         with patch.object(market_data_service.data_publisher, 'persist_batch_ohlcv') as mock_batch:
             mock_batch.return_value = True
-            
+
             start_time = time.perf_counter()
             result = mock_batch(tick_batch)
             end_time = time.perf_counter()
-            
+
             # Verify batch processing completed
             assert result is True
-            
+
             # Performance: Batch should be faster than individual inserts
             batch_time = end_time - start_time
             assert batch_time < 0.1, f"Batch persistence took {batch_time:.4f}s, too slow"
@@ -348,7 +346,7 @@ class TestMarketDataServicePersistence:
         """Test concurrent tick processing without data corruption."""
         processed_ticks = []
         lock = threading.Lock()
-        
+
         def process_tick_batch(ticker, count):
             for i in range(count):
                 tick = TestTickData(
@@ -357,34 +355,34 @@ class TestMarketDataServicePersistence:
                     volume=1000,
                     timestamp=time.time()
                 )
-                
+
                 # Mock processing with thread-safe collection
                 with lock:
                     processed_ticks.append(tick)
-        
+
         # Create multiple threads processing different tickers
         threads = []
         tickers = ["AAPL", "GOOGL", "MSFT"]
         ticks_per_ticker = 50
-        
+
         for ticker in tickers:
             thread = threading.Thread(target=process_tick_batch, args=(ticker, ticks_per_ticker))
             threads.append(thread)
             thread.start()
-        
+
         # Wait for all threads to complete
         for thread in threads:
             thread.join()
-        
+
         # Verify: All ticks processed without loss
         expected_total = len(tickers) * ticks_per_ticker
         assert len(processed_ticks) == expected_total
-        
+
         # Verify: No data corruption
         ticker_counts = {}
         for tick in processed_ticks:
             ticker_counts[tick.ticker] = ticker_counts.get(tick.ticker, 0) + 1
-        
+
         for ticker in tickers:
             assert ticker_counts[ticker] == ticks_per_ticker
 
@@ -393,7 +391,7 @@ class TestMarketDataServicePersistence:
         """Test database constraints prevent data corruption."""
         mock_conn, mock_cursor = mock_database_connection
         mock_connect.return_value = mock_conn
-        
+
         # Test duplicate prevention (UNIQUE constraint)
         duplicate_tick = TestTickData(
             ticker="AAPL",
@@ -401,18 +399,18 @@ class TestMarketDataServicePersistence:
             volume=1000,
             timestamp=1234567890.0  # Fixed timestamp
         )
-        
+
         with patch.object(market_data_service.data_publisher, 'persist_ohlcv_data') as mock_persist:
             def mock_upsert_logic(tick_data):
                 # Simulate UPSERT behavior (INSERT ... ON CONFLICT)
                 return True  # Handled gracefully
-            
+
             mock_persist.side_effect = mock_upsert_logic
-            
+
             # Process same tick twice
             result1 = mock_persist(duplicate_tick)
             result2 = mock_persist(duplicate_tick)
-            
+
             # Both should succeed (upsert handles duplicates)
             assert result1 is True
             assert result2 is True
@@ -420,12 +418,13 @@ class TestMarketDataServicePersistence:
     def test_memory_usage_stability(self, market_data_service):
         """Test memory usage remains stable during sustained processing."""
         import gc
-        import psutil
         import os
-        
+
+        import psutil
+
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss
-        
+
         # Process large number of ticks
         tick_count = 1000
         for i in range(tick_count):
@@ -435,19 +434,19 @@ class TestMarketDataServicePersistence:
                 volume=1000,
                 timestamp=time.time() + i
             )
-            
+
             # Mock processing to avoid actual database operations
             with patch.object(market_data_service, '_handle_tick_data'):
                 market_data_service.stats.ticks_processed += 1
-            
+
             # Periodic garbage collection
             if i % 100 == 0:
                 gc.collect()
-        
+
         # Check final memory usage
         final_memory = process.memory_info().rss
         memory_growth = final_memory - initial_memory
-        
+
         # Memory growth should be reasonable (< 100MB for test)
         max_acceptable_growth = 100 * 1024 * 1024  # 100MB
         assert memory_growth < max_acceptable_growth, f"Memory grew by {memory_growth / 1024 / 1024:.2f}MB"
@@ -458,7 +457,7 @@ class TestMarketDataServicePersistence:
         initial_stats = market_data_service.get_stats()
         assert initial_stats['ticks_processed'] == 0
         assert initial_stats['events_published'] == 0
-        
+
         # Process some ticks
         tick_count = 25
         for i in range(tick_count):
@@ -469,7 +468,7 @@ class TestMarketDataServicePersistence:
                 timestamp=time.time()
             )
             market_data_service._handle_tick_data(tick)
-        
+
         # Verify stats updated
         updated_stats = market_data_service.get_stats()
         assert updated_stats['ticks_processed'] == tick_count
@@ -479,15 +478,15 @@ class TestMarketDataServicePersistence:
         """Test Redis integration for TickStockPL data publishing."""
         with patch.object(market_data_service.data_publisher, 'redis_client') as mock_redis:
             mock_redis.publish.return_value = None
-            
+
             # Process tick - should publish to Redis
             market_data_service._handle_tick_data(sample_tick_data)
-            
+
             # Verify Redis publication
             mock_redis.publish.assert_called_once()
             call_args = mock_redis.publish.call_args
             assert call_args[0][0] == 'tickstock.data.raw'  # Channel name
-            
+
             # Verify JSON data structure
             import json
             published_data = json.loads(call_args[0][1])
@@ -503,11 +502,11 @@ class TestMarketDataServicePersistence:
         assert 'ticks_processed' in health
         assert 'data_adapter_connected' in health
         assert 'redis_connected' in health
-        
+
         # Test after processing data
         market_data_service.stats.ticks_processed = 100
         market_data_service.stats.last_tick_time = time.time()
-        
+
         health = market_data_service.get_health_status()
         assert health['ticks_processed'] == 100
         assert health['last_tick_age_seconds'] is not None

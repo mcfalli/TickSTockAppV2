@@ -16,7 +16,7 @@ from .user_settings_service import UserSettingsService
 # Define public API
 __all__ = [
     'ConfigManager',
-    'DatabaseSyncService', 
+    'DatabaseSyncService',
     'MarketDataService',
     'SessionManager',
     'run_startup_sequence',

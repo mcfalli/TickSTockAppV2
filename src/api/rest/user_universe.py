@@ -11,10 +11,9 @@ Architecture:
 
 import logging
 import time
-from typing import Dict, Any, List, Optional
-from flask import Blueprint, request, jsonify, current_app
-from werkzeug.exceptions import BadRequest, NotFound, Unauthorized
-import json
+
+from flask import Blueprint, current_app, jsonify, request
+from werkzeug.exceptions import BadRequest
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +25,7 @@ def get_tickstock_db():
     return getattr(current_app, 'tickstock_db', None)
 
 def get_cache_control():
-    """Get cache control service from Flask app context."""  
+    """Get cache control service from Flask app context."""
     return getattr(current_app, 'cache_control', None)
 
 def get_current_user_id():
@@ -51,7 +50,7 @@ def get_symbols():
     """
     try:
         start_time = time.time()
-        
+
         # Get database service
         tickstock_db = get_tickstock_db()
         if not tickstock_db:
@@ -60,35 +59,35 @@ def get_symbols():
                 'error': 'Database service unavailable',
                 'symbols': []
             }), 503
-        
+
         # Parse query parameters
         market = request.args.get('market')
         search_term = request.args.get('search', '').strip()
         limit = min(int(request.args.get('limit', 1000)), 5000)
-        
+
         # Get symbols from database (read-only)
         symbols = tickstock_db.get_symbols_for_dropdown()
-        
+
         # Apply filters
         filtered_symbols = symbols
-        
+
         if market:
             filtered_symbols = [s for s in filtered_symbols if s.get('market') == market]
-        
+
         if search_term:
             search_lower = search_term.lower()
             filtered_symbols = [
-                s for s in filtered_symbols 
-                if search_lower in s['symbol'].lower() or 
+                s for s in filtered_symbols
+                if search_lower in s['symbol'].lower() or
                    search_lower in s.get('name', '').lower()
             ]
-        
+
         # Apply limit
         filtered_symbols = filtered_symbols[:limit]
-        
+
         # Performance metrics
         response_time = (time.time() - start_time) * 1000
-        
+
         response = {
             'symbols': filtered_symbols,
             'count': len(filtered_symbols),
@@ -102,17 +101,17 @@ def get_symbols():
                 'source': 'tickstock_database'
             }
         }
-        
+
         # Log performance
         if response_time > 50:
-            logger.warning("UNIVERSE-API: Slow symbols query - %.2f ms for %d symbols", 
+            logger.warning("UNIVERSE-API: Slow symbols query - %.2f ms for %d symbols",
                           response_time, len(filtered_symbols))
         else:
             logger.debug("UNIVERSE-API: Symbols query completed - %.2f ms for %d symbols",
                         response_time, len(filtered_symbols))
-        
+
         return jsonify(response)
-        
+
     except Exception as e:
         logger.error("UNIVERSE-API: Error getting symbols: %s", e)
         return jsonify({
@@ -133,26 +132,26 @@ def get_symbol_details(symbol: str):
     """
     try:
         start_time = time.time()
-        
+
         # Get database service
         tickstock_db = get_tickstock_db()
         if not tickstock_db:
             return jsonify({'error': 'Database service unavailable'}), 503
-        
+
         # Get symbol details
         symbol_data = tickstock_db.get_symbol_details(symbol.upper())
-        
+
         if not symbol_data:
             return jsonify({'error': f'Symbol {symbol} not found'}), 404
-        
+
         response_time = (time.time() - start_time) * 1000
         symbol_data['performance'] = {
             'api_response_time_ms': round(response_time, 2),
             'source': 'tickstock_database'
         }
-        
+
         return jsonify(symbol_data)
-        
+
     except Exception as e:
         logger.error("UNIVERSE-API: Error getting symbol details for %s: %s", symbol, e)
         return jsonify({'error': 'Failed to retrieve symbol details'}), 500
@@ -168,7 +167,7 @@ def get_user_universes():
     """
     try:
         start_time = time.time()
-        
+
         # Get cache control service
         cache_control = get_cache_control()
         if not cache_control:
@@ -177,10 +176,10 @@ def get_user_universes():
                 'error': 'Cache service unavailable',
                 'universes': {}
             }), 503
-        
+
         # Get available universes
         universes_metadata = cache_control.get_available_universes()
-        
+
         # Format for API response
         formatted_universes = []
         for universe_key, metadata in universes_metadata.items():
@@ -191,12 +190,12 @@ def get_user_universes():
                 'count': metadata.get('count', 0),
                 'category': universe_key.split('_')[0] if '_' in universe_key else 'unknown'
             })
-        
+
         # Sort by category and count
         formatted_universes.sort(key=lambda u: (u['category'], -u['count']))
-        
+
         response_time = (time.time() - start_time) * 1000
-        
+
         response = {
             'universes': formatted_universes,
             'total_universes': len(formatted_universes),
@@ -205,12 +204,12 @@ def get_user_universes():
                 'source': 'cache_control'
             }
         }
-        
-        logger.debug("UNIVERSE-API: Retrieved %d universes - %.2f ms", 
+
+        logger.debug("UNIVERSE-API: Retrieved %d universes - %.2f ms",
                     len(formatted_universes), response_time)
-        
+
         return jsonify(response)
-        
+
     except Exception as e:
         logger.error("UNIVERSE-API: Error getting universes: %s", e)
         return jsonify({
@@ -231,21 +230,21 @@ def get_universe_tickers(universe_key: str):
     """
     try:
         start_time = time.time()
-        
+
         # Get cache control service
         cache_control = get_cache_control()
         if not cache_control:
             return jsonify({'error': 'Cache service unavailable'}), 503
-        
+
         # Get universe tickers
         tickers = cache_control.get_universe_tickers(universe_key)
         metadata = cache_control.get_universe_metadata(universe_key)
-        
+
         if not tickers:
             return jsonify({'error': f'Universe {universe_key} not found'}), 404
-        
+
         response_time = (time.time() - start_time) * 1000
-        
+
         response = {
             'universe_key': universe_key,
             'tickers': tickers,
@@ -256,9 +255,9 @@ def get_universe_tickers(universe_key: str):
                 'source': 'cache_control'
             }
         }
-        
+
         return jsonify(response)
-        
+
     except Exception as e:
         logger.error("UNIVERSE-API: Error getting universe tickers for %s: %s", universe_key, e)
         return jsonify({'error': 'Failed to retrieve universe tickers'}), 500
@@ -274,7 +273,7 @@ def get_user_watchlists():
     """
     try:
         user_id = get_current_user_id()
-        
+
         # TODO: Query user watchlists from database
         # For now, return sample data
         sample_watchlists = [
@@ -293,13 +292,13 @@ def get_user_watchlists():
                 'updated_at': time.time() - 1800    # 30 minutes ago
             }
         ]
-        
+
         return jsonify({
             'watchlists': sample_watchlists,
             'user_id': user_id,
             'count': len(sample_watchlists)
         })
-        
+
     except Exception as e:
         logger.error("UNIVERSE-API: Error getting user watchlists: %s", e)
         return jsonify({'error': 'Failed to retrieve watchlists'}), 500
@@ -315,24 +314,24 @@ def create_user_watchlist():
     """
     try:
         user_id = get_current_user_id()
-        
+
         # Parse request data
         data = request.get_json()
         if not data:
             raise BadRequest("Request body is required")
-        
+
         name = data.get('name', '').strip()
         symbols = data.get('symbols', [])
-        
+
         if not name:
             raise BadRequest("Watchlist name is required")
-        
+
         if not isinstance(symbols, list):
             raise BadRequest("Symbols must be a list")
-        
+
         # Validate symbols (basic validation)
         symbols = [s.upper().strip() for s in symbols if s.strip()]
-        
+
         # TODO: Store watchlist in database
         # For now, return sample response
         new_watchlist = {
@@ -343,12 +342,12 @@ def create_user_watchlist():
             'created_at': time.time(),
             'updated_at': time.time()
         }
-        
+
         return jsonify({
             'watchlist': new_watchlist,
             'message': f'Watchlist "{name}" created successfully'
         }), 201
-        
+
     except BadRequest as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
@@ -366,7 +365,7 @@ def get_user_filter_presets():
     """
     try:
         user_id = get_current_user_id()
-        
+
         # TODO: Query user filter presets from database
         # For now, return sample presets
         sample_presets = [
@@ -394,13 +393,13 @@ def get_user_filter_presets():
                 'created_at': time.time() - 172800
             }
         ]
-        
+
         return jsonify({
             'presets': sample_presets,
             'user_id': user_id,
             'count': len(sample_presets)
         })
-        
+
     except Exception as e:
         logger.error("UNIVERSE-API: Error getting filter presets: %s", e)
         return jsonify({'error': 'Failed to retrieve filter presets'}), 500
@@ -416,22 +415,22 @@ def create_user_filter_preset():
     """
     try:
         user_id = get_current_user_id()
-        
+
         # Parse request data
         data = request.get_json()
         if not data:
             raise BadRequest("Request body is required")
-        
+
         name = data.get('name', '').strip()
         filters = data.get('filters', {})
         is_default = bool(data.get('is_default', False))
-        
+
         if not name:
             raise BadRequest("Preset name is required")
-        
+
         if not isinstance(filters, dict):
             raise BadRequest("Filters must be an object")
-        
+
         # TODO: Store filter preset in database
         # For now, return sample response
         new_preset = {
@@ -442,12 +441,12 @@ def create_user_filter_preset():
             'user_id': user_id,
             'created_at': time.time()
         }
-        
+
         return jsonify({
             'preset': new_preset,
             'message': f'Filter preset "{name}" created successfully'
         }), 201
-        
+
     except BadRequest as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
@@ -465,23 +464,23 @@ def get_dashboard_stats():
     """
     try:
         start_time = time.time()
-        
+
         # Get database service
         tickstock_db = get_tickstock_db()
         if not tickstock_db:
             return jsonify({'error': 'Database service unavailable'}), 503
-        
+
         # Get basic dashboard stats
         stats = tickstock_db.get_basic_dashboard_stats()
-        
+
         response_time = (time.time() - start_time) * 1000
         stats['performance'] = {
             'api_response_time_ms': round(response_time, 2),
             'source': 'tickstock_database'
         }
-        
+
         return jsonify(stats)
-        
+
     except Exception as e:
         logger.error("UNIVERSE-API: Error getting dashboard stats: %s", e)
         return jsonify({'error': 'Failed to retrieve dashboard statistics'}), 500
@@ -496,11 +495,11 @@ def get_api_health():
     """
     try:
         start_time = time.time()
-        
+
         # Check database service
         tickstock_db = get_tickstock_db()
         db_healthy = tickstock_db is not None
-        
+
         if db_healthy:
             try:
                 # Quick database health check
@@ -508,17 +507,17 @@ def get_api_health():
                 db_healthy = db_health.get('status') == 'healthy'
             except Exception:
                 db_healthy = False
-        
+
         # Check cache service
         cache_control = get_cache_control()
         cache_healthy = cache_control is not None and cache_control._initialized
-        
+
         # Determine overall health
         healthy = db_healthy and cache_healthy
         status = 'healthy' if healthy else 'degraded'
-        
+
         response_time = (time.time() - start_time) * 1000
-        
+
         health_info = {
             'status': status,
             'healthy': healthy,
@@ -531,9 +530,9 @@ def get_api_health():
             },
             'last_check': time.time()
         }
-        
+
         return jsonify(health_info)
-        
+
     except Exception as e:
         logger.error("UNIVERSE-API: Health check error: %s", e)
         return jsonify({

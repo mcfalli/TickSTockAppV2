@@ -4,17 +4,17 @@ Sprint 32: Comprehensive tests for Enhanced Error Handling System
 Tests file logging, database storage, severity thresholds, and Redis integration
 """
 
+import json
 import os
 import sys
-import json
-import time
 import tempfile
+import time
+from pathlib import Path
+
 import psycopg2
 import redis
-from datetime import datetime
-from pathlib import Path
-from src.core.services.config_manager import get_config
 
+from src.core.services.config_manager import get_config
 
 # Get configuration
 try:
@@ -25,10 +25,10 @@ except:
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+from src.core.models.error_models import ErrorMessage
 from src.core.services.config_manager import LoggingConfig
-from src.core.services.enhanced_logger import EnhancedLogger, create_enhanced_logger
-from src.core.services.error_subscriber import ErrorSubscriber, create_error_subscriber
-from src.core.models.error_models import ErrorMessage, SEVERITY_LEVELS
+from src.core.services.enhanced_logger import create_enhanced_logger
+from src.core.services.error_subscriber import create_error_subscriber
 
 # Test configuration
 TEST_RESULTS = []
@@ -91,7 +91,7 @@ def test_2_file_logging():
             )
 
         # Read log file
-        with open(temp_log, 'r') as f:
+        with open(temp_log) as f:
             content = f.read()
 
         # Verify all messages were logged
@@ -237,7 +237,7 @@ def test_4_redis_error_subscriber():
         db_conn.close()
 
         test_result("Redis Error Subscriber", result is not None,
-                   f"Received and stored TickStockPL error via Redis")
+                   "Received and stored TickStockPL error via Redis")
         return result is not None
     except Exception as e:
         test_result("Redis Error Subscriber", False, str(e))
@@ -282,7 +282,7 @@ def test_5_error_models():
             pass
 
         test_result("Error Model Validation", True,
-                   f"Models validate and serialize correctly")
+                   "Models validate and serialize correctly")
         return True
     except Exception as e:
         test_result("Error Model Validation", False, str(e))

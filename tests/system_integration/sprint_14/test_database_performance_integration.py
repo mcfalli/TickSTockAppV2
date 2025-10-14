@@ -18,43 +18,41 @@ VALIDATION REQUIREMENTS:
 - ETF-specific query performance benchmarks
 """
 
-import pytest
 import json
-import time
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, call
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass, field
 import random
-import string
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
+from typing import Any
+from unittest.mock import patch
+
+import psycopg2
+import pytest
 
 
 @dataclass
 class DatabasePerformanceMetrics:
     """Track database performance metrics for integration testing."""
-    query_execution_times: List[float] = field(default_factory=list)
-    connection_acquisition_times: List[float] = field(default_factory=list)
-    index_scan_counts: List[int] = field(default_factory=list)
-    sequential_scan_counts: List[int] = field(default_factory=list)
-    cache_hit_ratios: List[float] = field(default_factory=list)
-    concurrent_query_times: List[float] = field(default_factory=list)
-    
+    query_execution_times: list[float] = field(default_factory=list)
+    connection_acquisition_times: list[float] = field(default_factory=list)
+    index_scan_counts: list[int] = field(default_factory=list)
+    sequential_scan_counts: list[int] = field(default_factory=list)
+    cache_hit_ratios: list[float] = field(default_factory=list)
+    concurrent_query_times: list[float] = field(default_factory=list)
+
     def add_query_time(self, execution_time_ms: float):
         """Add query execution time measurement."""
         self.query_execution_times.append(execution_time_ms)
-    
-    def get_query_stats(self) -> Dict[str, float]:
+
+    def get_query_stats(self) -> dict[str, float]:
         """Get query performance statistics."""
         if not self.query_execution_times:
             return {'avg': 0, 'p50': 0, 'p95': 0, 'max': 0, 'min': 0}
-        
+
         sorted_times = sorted(self.query_execution_times)
         count = len(sorted_times)
-        
+
         return {
             'avg': sum(sorted_times) / count,
             'p50': sorted_times[count // 2],
@@ -64,7 +62,7 @@ class DatabasePerformanceMetrics:
             'min': sorted_times[0],
             'count': count
         }
-    
+
     def add_connection_time(self, acquisition_time_ms: float):
         """Add connection acquisition time measurement."""
         self.connection_acquisition_times.append(acquisition_time_ms)
@@ -72,28 +70,28 @@ class DatabasePerformanceMetrics:
 
 class MockDatabaseConnection:
     """Mock database connection with performance simulation."""
-    
+
     def __init__(self, simulate_load: bool = False):
         self.simulate_load = simulate_load
         self.query_count = 0
         self.connection_pool_size = 20
         self.active_connections = 0
         self.lock = threading.Lock()
-    
+
     def cursor(self):
         """Create mock cursor with performance tracking."""
         return MockDatabaseCursor(self.simulate_load)
-    
+
     def commit(self):
         """Mock commit operation."""
         if self.simulate_load:
             time.sleep(0.001)  # 1ms commit overhead
-    
+
     def rollback(self):
         """Mock rollback operation."""
         if self.simulate_load:
             time.sleep(0.0005)  # 0.5ms rollback overhead
-    
+
     def close(self):
         """Mock connection close."""
         with self.lock:
@@ -102,7 +100,7 @@ class MockDatabaseConnection:
 
 class MockDatabaseCursor:
     """Mock database cursor with realistic performance simulation."""
-    
+
     def __init__(self, simulate_load: bool = False):
         self.simulate_load = simulate_load
         self.fetchall_data = []
@@ -113,19 +111,19 @@ class MockDatabaseCursor:
             'seq_scans': 0,
             'execution_time': 0
         }
-    
+
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
-    
+
     def execute(self, sql: str, params=None):
         """Mock query execution with performance simulation."""
         if self.simulate_load:
             # Simulate different query types with realistic timing
             sql_upper = sql.strip().upper()
-            
+
             if sql_upper.startswith('SELECT'):
                 if 'WHERE' in sql_upper and ('ticker' in sql.lower() or 'symbol' in sql.lower()):
                     # Index scan - fast lookup
@@ -143,7 +141,7 @@ class MockDatabaseCursor:
                     # Full table scan - slowest
                     time.sleep(0.030)  # 30ms for seq scan
                     self.query_plan_stats['seq_scans'] += 1
-            
+
             elif sql_upper.startswith('INSERT'):
                 time.sleep(0.003)  # 3ms for insert
             elif sql_upper.startswith('UPDATE'):
@@ -152,21 +150,21 @@ class MockDatabaseCursor:
                 time.sleep(0.004)  # 4ms for delete
             else:
                 time.sleep(0.001)  # 1ms for other operations
-    
+
     def fetchall(self):
         """Mock fetchall with pre-configured data."""
         return self.fetchall_data
-    
+
     def fetchone(self):
         """Mock fetchone with pre-configured data."""
         return self.fetchone_data
-    
-    def set_fetchall_data(self, data: List[Dict[str, Any]]):
+
+    def set_fetchall_data(self, data: list[dict[str, Any]]):
         """Set data to be returned by fetchall."""
         self.fetchall_data = data
         self.rowcount = len(data)
-    
-    def set_fetchone_data(self, data: Dict[str, Any]):
+
+    def set_fetchone_data(self, data: dict[str, Any]):
         """Set data to be returned by fetchone."""
         self.fetchone_data = data
         self.rowcount = 1 if data else 0
@@ -174,14 +172,14 @@ class MockDatabaseCursor:
 
 class TestEnhancedSymbolsTablePerformance:
     """Test performance of enhanced symbols table with ETF-specific fields."""
-    
+
     @patch('psycopg2.connect')
     def test_etf_symbol_lookup_performance(self, mock_connect, db_performance_metrics: DatabasePerformanceMetrics):
         """Test ETF symbol lookup performance with enhanced schema."""
         # Arrange: Mock enhanced symbols table data
         mock_conn = MockDatabaseConnection(simulate_load=True)
         mock_connect.return_value = mock_conn
-        
+
         # Sample enhanced ETF symbols data
         etf_symbols_data = [
             {
@@ -211,7 +209,7 @@ class TestEnhancedSymbolsTablePerformance:
                 'inception_date': '1999-03-10'
             }
         ]
-        
+
         # Act: Test various ETF lookup queries
         etf_queries = [
             # Query 1: Single ETF lookup by ticker (most common)
@@ -274,22 +272,22 @@ class TestEnhancedSymbolsTablePerformance:
                 'description': 'Correlation reference lookup'
             }
         ]
-        
+
         query_performance_results = []
-        
+
         for query_config in etf_queries:
             with mock_conn.cursor() as cursor:
                 cursor.set_fetchall_data(query_config['expected_data'])
-                
+
                 # Time query execution
                 start_time = time.perf_counter()
                 cursor.execute(query_config['sql'], query_config['params'])
                 results = cursor.fetchall()
                 end_time = time.perf_counter()
-                
+
                 execution_time_ms = (end_time - start_time) * 1000
                 db_performance_metrics.add_query_time(execution_time_ms)
-                
+
                 query_performance_results.append({
                     'description': query_config['description'],
                     'execution_time_ms': execution_time_ms,
@@ -297,41 +295,41 @@ class TestEnhancedSymbolsTablePerformance:
                     'index_scans': cursor.query_plan_stats['index_scans'],
                     'seq_scans': cursor.query_plan_stats['seq_scans']
                 })
-        
+
         # Assert: ETF query performance requirements
         query_stats = db_performance_metrics.get_query_stats()
-        
+
         # 1. Average query time <25ms for ETF lookups
         assert query_stats['avg'] < 25, f"Average ETF query time {query_stats['avg']:.1f}ms exceeds 25ms target"
-        
+
         # 2. P95 query time <50ms
         assert query_stats['p95'] < 50, f"P95 ETF query time {query_stats['p95']:.1f}ms exceeds 50ms target"
-        
+
         # 3. Single ETF lookups <10ms (most critical)
         single_lookup_time = query_performance_results[0]['execution_time_ms']
         assert single_lookup_time < 10, f"Single ETF lookup {single_lookup_time:.1f}ms exceeds 10ms target"
-        
+
         # 4. Prefer index scans over sequential scans
         total_index_scans = sum(result['index_scans'] for result in query_performance_results)
         total_seq_scans = sum(result['seq_scans'] for result in query_performance_results)
         assert total_index_scans >= total_seq_scans, f"More seq scans ({total_seq_scans}) than index scans ({total_index_scans})"
-        
-        print(f"\nETF Symbols Table Performance:")
+
+        print("\nETF Symbols Table Performance:")
         print(f"  Average Query Time: {query_stats['avg']:.1f}ms")
         print(f"  P95 Query Time: {query_stats['p95']:.1f}ms")
         print(f"  Single Lookup Time: {single_lookup_time:.1f}ms")
         print(f"  Index Scans: {total_index_scans}, Seq Scans: {total_seq_scans}")
-        
+
         for result in query_performance_results:
             print(f"    {result['description']}: {result['execution_time_ms']:.1f}ms ({result['result_count']} rows)")
-    
+
     @patch('psycopg2.connect')
     def test_symbols_table_index_optimization(self, mock_connect, db_performance_metrics: DatabasePerformanceMetrics):
         """Test index optimization for new ETF-specific columns."""
         # Arrange: Mock database with index statistics
         mock_conn = MockDatabaseConnection(simulate_load=True)
         mock_connect.return_value = mock_conn
-        
+
         # Test queries that should use indexes
         index_optimization_tests = [
             {
@@ -365,40 +363,40 @@ class TestEnhancedSymbolsTablePerformance:
                 'description': 'FIGI lookup'
             }
         ]
-        
+
         index_performance_results = []
-        
+
         for test_config in index_optimization_tests:
             with mock_conn.cursor() as cursor:
                 # Simulate index usage for these queries
                 cursor.set_fetchall_data([{'ticker': 'SPY', 'name': 'Test ETF'}])
-                
+
                 start_time = time.perf_counter()
                 cursor.execute(test_config['query'])
                 results = cursor.fetchall()
                 end_time = time.perf_counter()
-                
+
                 execution_time_ms = (end_time - start_time) * 1000
                 db_performance_metrics.add_query_time(execution_time_ms)
-                
+
                 index_performance_results.append({
                     'description': test_config['description'],
                     'execution_time_ms': execution_time_ms,
                     'expected_index': test_config['expected_index'],
                     'used_index_scan': cursor.query_plan_stats['index_scans'] > 0
                 })
-        
+
         # Assert: Index optimization requirements
         # 1. All queries should use index scans
         for result in index_performance_results:
             assert result['used_index_scan'], f"{result['description']} should use index scan"
-        
+
         # 2. Index-optimized queries should be fast (<15ms)
         for result in index_performance_results:
             assert result['execution_time_ms'] < 15, \
                 f"{result['description']} took {result['execution_time_ms']:.1f}ms, should be <15ms with index"
-        
-        print(f"\nETF Index Optimization Performance:")
+
+        print("\nETF Index Optimization Performance:")
         for result in index_performance_results:
             status = "✓" if result['used_index_scan'] else "✗"
             print(f"  {result['description']}: {result['execution_time_ms']:.1f}ms {status}")
@@ -406,14 +404,14 @@ class TestEnhancedSymbolsTablePerformance:
 
 class TestOHLCVDataIntegrationPerformance:
     """Test OHLCV data performance with FMV field support."""
-    
+
     @patch('psycopg2.connect')
     def test_ohlcv_data_with_fmv_performance(self, mock_connect, db_performance_metrics: DatabasePerformanceMetrics):
         """Test OHLCV data queries with FMV field integration."""
         # Arrange: Mock OHLCV data with FMV fields
         mock_conn = MockDatabaseConnection(simulate_load=True)
         mock_connect.return_value = mock_conn
-        
+
         # Sample OHLCV data with FMV support
         ohlcv_test_data = [
             {
@@ -439,7 +437,7 @@ class TestOHLCVDataIntegrationPerformance:
                 'fmv_supported': True
             }
         ]
-        
+
         # Act: Test FMV-enabled OHLCV queries
         fmv_queries = [
             {
@@ -493,57 +491,57 @@ class TestOHLCVDataIntegrationPerformance:
                 'description': 'Volume-based FMV selection'
             }
         ]
-        
+
         fmv_query_results = []
-        
+
         for query_config in fmv_queries:
             with mock_conn.cursor() as cursor:
                 cursor.set_fetchall_data(query_config['expected_data'])
-                
+
                 start_time = time.perf_counter()
                 cursor.execute(query_config['sql'], query_config['params'])
                 results = cursor.fetchall()
                 end_time = time.perf_counter()
-                
+
                 execution_time_ms = (end_time - start_time) * 1000
                 db_performance_metrics.add_query_time(execution_time_ms)
-                
+
                 fmv_query_results.append({
                     'description': query_config['description'],
                     'execution_time_ms': execution_time_ms,
                     'result_count': len(results)
                 })
-        
+
         # Assert: FMV OHLCV performance requirements
         query_stats = db_performance_metrics.get_query_stats()
-        
+
         # 1. FMV queries average <30ms
         assert query_stats['avg'] < 30, f"Average FMV query time {query_stats['avg']:.1f}ms exceeds 30ms target"
-        
+
         # 2. Single-day lookup <15ms (most common UI query)
         single_day_time = fmv_query_results[0]['execution_time_ms']
         assert single_day_time < 15, f"Single-day FMV lookup {single_day_time:.1f}ms exceeds 15ms target"
-        
+
         # 3. Complex FMV aggregations <50ms
         for result in fmv_query_results:
             if 'aggregation' in result['description'] or 'selection' in result['description']:
                 assert result['execution_time_ms'] < 50, \
                     f"Complex FMV query {result['description']} took {result['execution_time_ms']:.1f}ms, exceeds 50ms"
-        
-        print(f"\nOHLCV FMV Performance:")
+
+        print("\nOHLCV FMV Performance:")
         print(f"  Average Query Time: {query_stats['avg']:.1f}ms")
         print(f"  Single-Day Lookup: {single_day_time:.1f}ms")
-        
+
         for result in fmv_query_results:
             print(f"    {result['description']}: {result['execution_time_ms']:.1f}ms ({result['result_count']} rows)")
-    
+
     @patch('psycopg2.connect')
     def test_ohlcv_bulk_data_performance(self, mock_connect, db_performance_metrics: DatabasePerformanceMetrics):
         """Test bulk OHLCV data operations performance."""
         # Arrange: Mock bulk OHLCV operations
         mock_conn = MockDatabaseConnection(simulate_load=True)
         mock_connect.return_value = mock_conn
-        
+
         # Simulate bulk data scenarios
         bulk_scenarios = [
             {
@@ -565,9 +563,9 @@ class TestOHLCVDataIntegrationPerformance:
                 'expected_rows': 1100
             }
         ]
-        
+
         bulk_performance_results = []
-        
+
         for scenario in bulk_scenarios:
             # Generate mock bulk data
             bulk_data = []
@@ -585,10 +583,10 @@ class TestOHLCVDataIntegrationPerformance:
                         'fmv_price': 100 + random.uniform(-5, 5),
                         'fmv_supported': True
                     })
-            
+
             with mock_conn.cursor() as cursor:
                 cursor.set_fetchall_data(bulk_data)
-                
+
                 # Test bulk query
                 bulk_query = """
                 SELECT symbol, date, close, volume, fmv_price
@@ -596,15 +594,15 @@ class TestOHLCVDataIntegrationPerformance:
                 WHERE date >= %s AND date <= %s
                 ORDER BY symbol, date
                 """
-                
+
                 start_time = time.perf_counter()
                 cursor.execute(bulk_query, ('2024-01-01', '2024-12-31'))
                 results = cursor.fetchall()
                 end_time = time.perf_counter()
-                
+
                 execution_time_ms = (end_time - start_time) * 1000
                 db_performance_metrics.add_query_time(execution_time_ms)
-                
+
                 bulk_performance_results.append({
                     'description': scenario['description'],
                     'execution_time_ms': execution_time_ms,
@@ -612,34 +610,34 @@ class TestOHLCVDataIntegrationPerformance:
                     'actual_rows': len(results),
                     'rows_per_ms': len(results) / execution_time_ms if execution_time_ms > 0 else 0
                 })
-        
+
         # Assert: Bulk data performance requirements
         # 1. Bulk queries <100ms for reasonable dataset sizes
         for result in bulk_performance_results:
             if result['expected_rows'] <= 1500:  # Reasonable size datasets
                 assert result['execution_time_ms'] < 100, \
                     f"Bulk query {result['description']} took {result['execution_time_ms']:.1f}ms, exceeds 100ms"
-        
+
         # 2. Processing rate >10 rows per millisecond
         for result in bulk_performance_results:
             assert result['rows_per_ms'] > 10, \
                 f"Bulk query {result['description']} processed {result['rows_per_ms']:.1f} rows/ms, too slow"
-        
-        print(f"\nOHLCV Bulk Data Performance:")
+
+        print("\nOHLCV Bulk Data Performance:")
         for result in bulk_performance_results:
             print(f"  {result['description']}: {result['execution_time_ms']:.1f}ms ({result['actual_rows']} rows, {result['rows_per_ms']:.1f} rows/ms)")
 
 
 class TestCacheEntriesPerformance:
     """Test cache entries performance with ETF and development universes."""
-    
+
     @patch('psycopg2.connect')
     def test_universe_lookup_performance(self, mock_connect, db_performance_metrics: DatabasePerformanceMetrics):
         """Test universe lookup performance for ETF and development data."""
         # Arrange: Mock cache entries data
         mock_conn = MockDatabaseConnection(simulate_load=True)
         mock_connect.return_value = mock_conn
-        
+
         # Sample universe data
         universe_data = [
             {
@@ -670,7 +668,7 @@ class TestCacheEntriesPerformance:
                 'environment': 'DEVELOPMENT'
             }
         ]
-        
+
         # Act: Test universe lookup queries
         universe_queries = [
             {
@@ -718,76 +716,76 @@ class TestCacheEntriesPerformance:
                 'description': 'Universe summary stats'
             }
         ]
-        
+
         universe_performance_results = []
-        
+
         for query_config in universe_queries:
             with mock_conn.cursor() as cursor:
                 cursor.set_fetchall_data(query_config['expected_data'])
-                
+
                 start_time = time.perf_counter()
                 cursor.execute(query_config['sql'], query_config['params'])
                 results = cursor.fetchall()
                 end_time = time.perf_counter()
-                
+
                 execution_time_ms = (end_time - start_time) * 1000
                 db_performance_metrics.add_query_time(execution_time_ms)
-                
+
                 universe_performance_results.append({
                     'description': query_config['description'],
                     'execution_time_ms': execution_time_ms,
                     'result_count': len(results)
                 })
-        
+
         # Assert: Universe lookup performance requirements
         query_stats = db_performance_metrics.get_query_stats()
-        
+
         # 1. Average universe lookup <20ms
         assert query_stats['avg'] < 20, f"Average universe lookup {query_stats['avg']:.1f}ms exceeds 20ms target"
-        
+
         # 2. Single universe lookup <10ms (most critical for UI)
         single_lookup_time = universe_performance_results[1]['execution_time_ms']
         assert single_lookup_time < 10, f"Single universe lookup {single_lookup_time:.1f}ms exceeds 10ms target"
-        
+
         # 3. All universe queries <30ms
         for result in universe_performance_results:
             assert result['execution_time_ms'] < 30, \
                 f"Universe query {result['description']} took {result['execution_time_ms']:.1f}ms, exceeds 30ms"
-        
-        print(f"\nCache Entries Universe Performance:")
+
+        print("\nCache Entries Universe Performance:")
         print(f"  Average Query Time: {query_stats['avg']:.1f}ms")
         print(f"  Single Universe Lookup: {single_lookup_time:.1f}ms")
-        
+
         for result in universe_performance_results:
             print(f"    {result['description']}: {result['execution_time_ms']:.1f}ms ({result['result_count']} rows)")
 
 
 class TestDatabaseBoundaryEnforcement:
     """Test database boundary enforcement and role separation."""
-    
+
     @patch('psycopg2.connect')
     def test_tickstockapp_readonly_performance_impact(self, mock_connect, db_performance_metrics: DatabasePerformanceMetrics):
         """Test performance impact of read-only boundary enforcement."""
         # Arrange: Mock read-only database connection
         mock_conn = MockDatabaseConnection(simulate_load=True)
         mock_connect.return_value = mock_conn
-        
+
         # Simulate read-only user behavior
         def simulate_readonly_enforcement(sql, params=None):
             """Simulate read-only enforcement with minimal overhead."""
             sql_upper = sql.strip().upper()
-            
+
             # Allow SELECT queries with minimal overhead
             if sql_upper.startswith('SELECT'):
                 return True  # No additional overhead for reads
-            
+
             # Block write operations (should not happen in TickStockApp)
             write_operations = ['INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP']
             if any(sql_upper.startswith(op) for op in write_operations):
                 raise psycopg2.errors.InsufficientPrivilege("permission denied")
-            
+
             return True
-        
+
         # Act: Test read-only query performance
         readonly_queries = [
             {
@@ -807,16 +805,16 @@ class TestDatabaseBoundaryEnforcement:
                 'description': 'FMV count query'
             }
         ]
-        
+
         readonly_performance_results = []
-        
+
         for query_config in readonly_queries:
             with mock_conn.cursor() as cursor:
                 cursor.set_fetchall_data([{'test': 'data'}])
-                
+
                 # Test query with read-only enforcement
                 start_time = time.perf_counter()
-                
+
                 try:
                     simulate_readonly_enforcement(query_config['sql'])
                     cursor.execute(query_config['sql'])
@@ -825,61 +823,61 @@ class TestDatabaseBoundaryEnforcement:
                 except psycopg2.errors.InsufficientPrivilege:
                     results = []
                     success = False
-                
+
                 end_time = time.perf_counter()
                 execution_time_ms = (end_time - start_time) * 1000
-                
+
                 db_performance_metrics.add_query_time(execution_time_ms)
-                
+
                 readonly_performance_results.append({
                     'description': query_config['description'],
                     'execution_time_ms': execution_time_ms,
                     'success': success,
                     'result_count': len(results)
                 })
-        
+
         # Test blocked write operations
         blocked_queries = [
             "INSERT INTO symbols (ticker, name) VALUES ('TEST', 'Test')",
             "UPDATE symbols SET name = 'Updated' WHERE ticker = 'AAPL'",
             "DELETE FROM cache_entries WHERE key = 'test'"
         ]
-        
+
         for blocked_sql in blocked_queries:
             start_time = time.perf_counter()
-            
+
             try:
                 simulate_readonly_enforcement(blocked_sql)
                 blocked_success = True
             except psycopg2.errors.InsufficientPrivilege:
                 blocked_success = False
-            
+
             end_time = time.perf_counter()
             enforcement_time_ms = (end_time - start_time) * 1000
-            
+
             # Enforcement overhead should be minimal
             assert enforcement_time_ms < 1.0, f"Read-only enforcement overhead {enforcement_time_ms:.3f}ms too high"
             assert blocked_success is False, f"Write operation should be blocked: {blocked_sql}"
-        
+
         # Assert: Read-only boundary performance requirements
         query_stats = db_performance_metrics.get_query_stats()
-        
+
         # 1. No significant performance impact from read-only enforcement
         assert query_stats['avg'] < 25, f"Read-only queries average {query_stats['avg']:.1f}ms, enforcement impacting performance"
-        
+
         # 2. All read queries should succeed
         for result in readonly_performance_results:
             assert result['success'] is True, f"Read query should succeed: {result['description']}"
-        
+
         # 3. Read query performance within targets
         for result in readonly_performance_results:
             assert result['execution_time_ms'] < 35, \
                 f"Read-only query {result['description']} took {result['execution_time_ms']:.1f}ms, too slow"
-        
-        print(f"\nRead-Only Boundary Performance:")
+
+        print("\nRead-Only Boundary Performance:")
         print(f"  Average Query Time: {query_stats['avg']:.1f}ms")
-        print(f"  Enforcement Overhead: <1ms")
-        
+        print("  Enforcement Overhead: <1ms")
+
         for result in readonly_performance_results:
             status = "✓" if result['success'] else "✗"
             print(f"    {result['description']}: {result['execution_time_ms']:.1f}ms {status}")
@@ -887,7 +885,7 @@ class TestDatabaseBoundaryEnforcement:
 
 class TestConcurrentDatabasePerformance:
     """Test database performance under concurrent access patterns."""
-    
+
     @patch('psycopg2.connect')
     def test_concurrent_query_performance(self, mock_connect, db_performance_metrics: DatabasePerformanceMetrics):
         """Test database performance under concurrent query load."""
@@ -895,7 +893,7 @@ class TestConcurrentDatabasePerformance:
         connection_pool_size = 20
         active_connections = 0
         connection_lock = threading.Lock()
-        
+
         def create_mock_connection():
             nonlocal active_connections
             with connection_lock:
@@ -903,13 +901,12 @@ class TestConcurrentDatabasePerformance:
                     active_connections += 1
                     conn = MockDatabaseConnection(simulate_load=True)
                     return conn
-                else:
-                    time.sleep(0.005)  # Connection pool wait
-                    active_connections += 1
-                    return MockDatabaseConnection(simulate_load=True)
-        
+                time.sleep(0.005)  # Connection pool wait
+                active_connections += 1
+                return MockDatabaseConnection(simulate_load=True)
+
         mock_connect.side_effect = lambda: create_mock_connection()
-        
+
         # Act: Simulate concurrent database access
         concurrent_queries = [
             "SELECT ticker, name FROM symbols WHERE symbol_type = 'ETF' ORDER BY name LIMIT 20",
@@ -918,27 +915,27 @@ class TestConcurrentDatabasePerformance:
             "SELECT COUNT(*) FROM symbols WHERE fmv_supported = true",
             "SELECT issuer, COUNT(*) FROM symbols WHERE symbol_type = 'ETF' GROUP BY issuer"
         ]
-        
+
         def execute_concurrent_query(query_sql):
             """Execute query in concurrent thread."""
             start_time = time.perf_counter()
-            
+
             try:
                 conn = mock_connect()
                 with conn.cursor() as cursor:
                     cursor.set_fetchall_data([{'test': 'data'}])
                     cursor.execute(query_sql)
                     results = cursor.fetchall()
-                
+
                 end_time = time.perf_counter()
                 execution_time_ms = (end_time - start_time) * 1000
-                
+
                 return {
                     'success': True,
                     'execution_time_ms': execution_time_ms,
                     'result_count': len(results)
                 }
-                
+
             except Exception as e:
                 end_time = time.perf_counter()
                 return {
@@ -949,7 +946,7 @@ class TestConcurrentDatabasePerformance:
             finally:
                 with connection_lock:
                     active_connections = max(0, active_connections - 1)
-        
+
         # Run concurrent queries
         concurrent_thread_count = 50
         with ThreadPoolExecutor(max_workers=concurrent_thread_count) as executor:
@@ -959,46 +956,46 @@ class TestConcurrentDatabasePerformance:
                 query = concurrent_queries[i % len(concurrent_queries)]
                 future = executor.submit(execute_concurrent_query, query)
                 futures.append(future)
-            
+
             # Collect results
             concurrent_results = []
             for future in as_completed(futures):
                 result = future.result()
                 concurrent_results.append(result)
-                
+
                 if result['success']:
                     db_performance_metrics.concurrent_query_times.append(result['execution_time_ms'])
-        
+
         # Assert: Concurrent performance requirements
         successful_queries = [r for r in concurrent_results if r['success']]
-        
+
         # 1. High success rate under concurrent load
         success_rate = len(successful_queries) / len(concurrent_results)
         assert success_rate > 0.95, f"Success rate {success_rate:.1%} too low under concurrent load"
-        
+
         # 2. Concurrent query performance degradation acceptable
         if db_performance_metrics.concurrent_query_times:
             avg_concurrent_time = sum(db_performance_metrics.concurrent_query_times) / len(db_performance_metrics.concurrent_query_times)
             max_concurrent_time = max(db_performance_metrics.concurrent_query_times)
-            
+
             # Average should still be reasonable under load
             assert avg_concurrent_time < 75, f"Average concurrent query time {avg_concurrent_time:.1f}ms too high"
-            
+
             # Maximum should not exceed reasonable bounds
             assert max_concurrent_time < 200, f"Max concurrent query time {max_concurrent_time:.1f}ms excessive"
-        
+
         # 3. Connection pool handling
         failed_queries = [r for r in concurrent_results if not r['success']]
         connection_failures = len([r for r in failed_queries if 'connection' in r.get('error', '').lower()])
-        
+
         # Should handle connection pool pressure gracefully
         assert connection_failures < 5, f"Too many connection failures: {connection_failures}"
-        
-        print(f"\nConcurrent Database Performance:")
+
+        print("\nConcurrent Database Performance:")
         print(f"  Concurrent Threads: {concurrent_thread_count}")
         print(f"  Success Rate: {success_rate:.1%}")
         print(f"  Successful Queries: {len(successful_queries)}")
-        
+
         if db_performance_metrics.concurrent_query_times:
             avg_time = sum(db_performance_metrics.concurrent_query_times) / len(db_performance_metrics.concurrent_query_times)
             print(f"  Average Query Time: {avg_time:.1f}ms")
@@ -1051,75 +1048,75 @@ def sample_etf_data():
 
 # Performance Benchmarks
 
-@pytest.mark.performance  
+@pytest.mark.performance
 class TestDatabasePerformanceBenchmarks:
     """Database performance benchmarks for Sprint 14 enhancements."""
-    
+
     @patch('psycopg2.connect')
     def test_comprehensive_database_performance_benchmark(self, mock_connect, db_performance_metrics: DatabasePerformanceMetrics):
         """Comprehensive database performance benchmark across all enhanced features."""
         # Arrange: Mock comprehensive database setup
         mock_conn = MockDatabaseConnection(simulate_load=True)
         mock_connect.return_value = mock_conn
-        
+
         # Comprehensive benchmark queries
         benchmark_queries = [
             # ETF Symbols queries
             ("SELECT ticker, name, etf_type FROM symbols WHERE symbol_type = 'ETF' LIMIT 50", "ETF Symbol List"),
             ("SELECT * FROM symbols WHERE ticker = 'SPY'", "Single ETF Lookup"),
             ("SELECT COUNT(*) FROM symbols WHERE fmv_supported = true", "FMV Count"),
-            
+
             # OHLCV queries
             ("SELECT symbol, close, fmv_price FROM ohlcv_daily WHERE symbol = 'SPY' ORDER BY date DESC LIMIT 30", "30-Day OHLCV"),
             ("SELECT symbol, AVG(close) FROM ohlcv_daily WHERE date >= '2024-08-01' GROUP BY symbol", "Monthly Averages"),
-            
+
             # Cache Entries queries
             ("SELECT key, value FROM cache_entries WHERE type = 'etf_universe'", "ETF Universes"),
             ("SELECT * FROM cache_entries WHERE key = 'etf_growth'", "Single Universe"),
-            
+
             # Complex joins
             ("SELECT s.ticker, s.name, o.close FROM symbols s JOIN ohlcv_daily o ON s.ticker = o.symbol WHERE s.symbol_type = 'ETF' LIMIT 100", "ETF-OHLCV Join"),
         ]
-        
+
         benchmark_results = []
         total_start_time = time.perf_counter()
-        
+
         for sql, description in benchmark_queries:
             with mock_conn.cursor() as cursor:
                 cursor.set_fetchall_data([{'test': 'data'}])
-                
+
                 start_time = time.perf_counter()
                 cursor.execute(sql)
                 results = cursor.fetchall()
                 end_time = time.perf_counter()
-                
+
                 execution_time_ms = (end_time - start_time) * 1000
                 db_performance_metrics.add_query_time(execution_time_ms)
-                
+
                 benchmark_results.append({
                     'description': description,
                     'execution_time_ms': execution_time_ms,
                     'result_count': len(results)
                 })
-        
+
         total_end_time = time.perf_counter()
         total_benchmark_time = (total_end_time - total_start_time) * 1000
-        
+
         # Performance analysis
         query_stats = db_performance_metrics.get_query_stats()
-        
-        print(f"\nComprehensive Database Performance Benchmark:")
+
+        print("\nComprehensive Database Performance Benchmark:")
         print(f"  Total Benchmark Time: {total_benchmark_time:.1f}ms")
         print(f"  Average Query Time: {query_stats['avg']:.1f}ms")
         print(f"  P95 Query Time: {query_stats['p95']:.1f}ms")
         print(f"  Fastest Query: {query_stats['min']:.1f}ms")
         print(f"  Slowest Query: {query_stats['max']:.1f}ms")
         print(f"  Total Queries: {query_stats['count']}")
-        
-        print(f"\nQuery Breakdown:")
+
+        print("\nQuery Breakdown:")
         for result in benchmark_results:
             print(f"    {result['description']}: {result['execution_time_ms']:.1f}ms")
-        
+
         # Performance assertions
         assert query_stats['avg'] < 40, f"Average query performance {query_stats['avg']:.1f}ms exceeds 40ms benchmark"
         assert query_stats['p95'] < 75, f"P95 query performance {query_stats['p95']:.1f}ms exceeds 75ms benchmark"
