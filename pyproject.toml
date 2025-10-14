@@ -1,0 +1,100 @@
+[tool.ruff]
+# Line length matches CLAUDE.md standards
+line-length = 100
+target-version = "py311"
+
+# Exclude common directories
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+    "htmlcov",
+    ".pytest_cache",
+    "web/static/vendor",  # Third-party JS/CSS
+]
+
+[tool.ruff.lint]
+# Enable recommended rule sets
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "C90", # mccabe complexity
+    "I",   # isort (import sorting)
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear (common bugs)
+    "S",   # flake8-bandit (security)
+    "A",   # flake8-builtins
+    "C4",  # flake8-comprehensions
+    "T20", # flake8-print (no print statements)
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+]
+
+ignore = [
+    "S101",   # Allow assert statements (used in tests)
+    "T201",   # Allow print statements (Flask logging/debugging)
+    "S608",   # SQL injection false positives with SQLAlchemy
+    "S105",   # Hardcoded password - false positives on variable names
+]
+
+[tool.ruff.lint.mccabe]
+# Cyclomatic complexity limit from CLAUDE.md
+max-complexity = 10
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 100
+
+[tool.ruff.lint.per-file-ignores]
+# Allow some rules in test files
+"tests/**/*.py" = ["S101", "S105", "S106"]
+"test_*.py" = ["S101", "S105", "S106"]
+# Config files may have credentials
+"config/*.py" = ["S105", "S106"]
+
+[tool.ruff.format]
+# Use double quotes
+quote-style = "double"
+# Indent with spaces
+indent-style = "space"
+# Line endings
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+# Pytest configuration
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers"
+asyncio_mode = "auto"  # For async tests with Flask-SocketIO
+
+[tool.black]
+# Keep black config in case still using it
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | __pycache__
+  | build
+  | dist
+  | web/static/vendor
+)/
+'''
+
+[tool.mypy]
+# Type checking configuration
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Gradual typing
+ignore_missing_imports = true  # Many Flask extensions lack types

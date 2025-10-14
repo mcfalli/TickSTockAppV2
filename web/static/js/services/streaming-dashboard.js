@@ -77,6 +77,7 @@ class StreamingDashboardService {
                             <div>
                                 <h4 class="mb-0">Streaming Session</h4>
                                 <small id="sessionInfo" class="text-muted">Not Connected</small>
+                                <div><small id="lastUpdated" class="text-muted" style="font-size: 0.85em;">Last updated: Never</small></div>
                             </div>
                         </div>
                         <button class="btn btn-primary" onclick="window.streamingDashboard.refresh()">
@@ -332,6 +333,7 @@ class StreamingDashboardService {
         this.addPatternEvent(data.detection);
         this.patternCount++;
         this.updateMetrics();
+        this.updateLastUpdatedTimestamp();
     }
 
     /**
@@ -343,6 +345,7 @@ class StreamingDashboardService {
         });
         this.patternCount += data.count;
         this.updateMetrics();
+        this.updateLastUpdatedTimestamp();
     }
 
     /**
@@ -352,6 +355,7 @@ class StreamingDashboardService {
         this.addAlertEvent(data.alert);
         this.alertCount++;
         this.updateMetrics();
+        this.updateLastUpdatedTimestamp();
     }
 
     /**
@@ -360,6 +364,7 @@ class StreamingDashboardService {
     handleStreamingHealth(data) {
         this.updateHealthStatus(data.health);
         this.updateSessionMetrics(data.health);
+        this.updateLastUpdatedTimestamp();
     }
 
     /**
@@ -367,6 +372,20 @@ class StreamingDashboardService {
      */
     handleCriticalAlert(data) {
         this.showCriticalAlert(data.alert);
+    }
+
+    /**
+     * Update "Last Updated" timestamp
+     */
+    updateLastUpdatedTimestamp() {
+        const lastUpdated = document.getElementById('lastUpdated');
+        if (lastUpdated) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            const dateStr = now.toLocaleDateString();
+            lastUpdated.textContent = `Last updated: ${dateStr} ${timeStr}`;
+            this.lastEventTime = Date.now();
+        }
     }
 
     /**
@@ -388,6 +407,9 @@ class StreamingDashboardService {
             info.textContent = 'Session Stopped';
             this.currentSession = null;
         }
+
+        // Update timestamp
+        this.updateLastUpdatedTimestamp();
     }
 
     /**
@@ -629,6 +651,7 @@ class StreamingDashboardService {
      */
     refresh() {
         this.loadStreamingStatus();
+        this.updateLastUpdatedTimestamp();
         console.log('[StreamingDashboard] Refreshed');
     }
 

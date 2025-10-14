@@ -7,6 +7,7 @@
 - **ALWAYS** run integration tests before commits and when finalizing a sprint or phase of a sprint: `python run_tests.py`
 - **ALWAYS** use specialized agents for development tasks (see Agent Usage below)
 - **ALWAYS** use `rg` (ripgrep) instead of `grep` or `find` for searching
+- **ALWAYS** use Context7 MCP for current library documentation (Flask, SQLAlchemy, Redis, pandas, etc.) instead of relying on training cutoff
 - **NEVER** mix typed events and dicts after Worker boundary
 - **NEVER** reproduce copyrighted content (max 15 words from sources)
 - **FIX IT RIGHT** - No band-aids, fix root causes only
