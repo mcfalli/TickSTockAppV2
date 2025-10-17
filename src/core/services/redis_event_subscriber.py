@@ -26,6 +26,7 @@ from src.core.services.integration_logger import (
     flow_logger,
     log_websocket_delivery,
 )
+from src.core.services.redis_monitor import RedisMonitor
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,9 @@ class RedisEventSubscriber:
         }
         self.streaming_buffer = None  # Will be set if buffering is enabled
 
+        # Redis Monitor for debugging (Sprint 43)
+        self.redis_monitor = RedisMonitor(max_messages=500)
+
     def start(self) -> bool:
         """Start the Redis event subscription service."""
         if self.is_running:
@@ -251,6 +255,11 @@ class RedisEventSubscriber:
 
                 # Process actual messages
                 if message['type'] == 'message':
+                    # SPRINT 43 DEBUG: Log every message channel
+                    channel = message.get('channel', b'unknown')
+                    if isinstance(channel, bytes):
+                        channel = channel.decode('utf-8')
+                    logger.info(f"REDIS-SUBSCRIBER DEBUG: Received message on channel: '{channel}'")
                     self._process_message(message)
 
             except redis.ConnectionError as e:
@@ -289,6 +298,10 @@ class RedisEventSubscriber:
 
             # Create structured event
             event_type = self.channels.get(channel)
+
+            # SPRINT 43 DEBUG: Log event type mapping
+            logger.info(f"REDIS-SUBSCRIBER DEBUG: Channel '{channel}' -> EventType: {event_type}")
+
             if not event_type:
                 logger.warning(f"REDIS-SUBSCRIBER: Unknown channel: {channel}")
                 self.stats['events_dropped'] += 1
@@ -305,6 +318,13 @@ class RedisEventSubscriber:
             # Add flow_id to event data for downstream logging
             if flow_id:
                 event.data['_flow_id'] = flow_id
+
+            # Capture message in Redis monitor for debugging
+            self.redis_monitor.capture_message(
+                channel=channel,
+                message_data=event_data,
+                event_type=event_type.value
+            )
 
             # Process event
             self._handle_event(event)
@@ -646,12 +666,13 @@ class RedisEventSubscriber:
         """Handle real-time streaming pattern detection."""
         detection = event.data.get('detection', event.data)
 
-        pattern_type = detection.get('pattern_type')
+        # TickStockPL uses 'pattern' field, not 'pattern_type'
+        pattern_type = detection.get('pattern') or detection.get('pattern_type') or detection.get('pattern_name')
         symbol = detection.get('symbol')
         confidence = detection.get('confidence', 0)
         timestamp = detection.get('timestamp')
 
-        logger.debug(f"REDIS-SUBSCRIBER: Streaming pattern - {pattern_type} on {symbol} (confidence: {confidence})")
+        logger.info(f"REDIS-SUBSCRIBER: Received streaming pattern - {pattern_type} on {symbol} (confidence: {confidence})")
 
         # Broadcast pattern immediately (will be buffered by streaming handler)
         websocket_data = {
@@ -667,10 +688,12 @@ class RedisEventSubscriber:
         }
 
         # Send to buffering handler if available
-        if hasattr(self, 'streaming_buffer'):
+        if hasattr(self, 'streaming_buffer') and self.streaming_buffer:
+            logger.info(f"REDIS-SUBSCRIBER: Sending {pattern_type}@{symbol} to StreamingBuffer")
             self.streaming_buffer.add_pattern(websocket_data)
         else:
             # Direct broadcast without buffering
+            logger.info(f"REDIS-SUBSCRIBER: Direct broadcast {pattern_type}@{symbol} (no buffer)")
             self.socketio.emit('streaming_pattern', websocket_data, namespace='/')
 
         self.stats['events_forwarded'] += 1
@@ -679,12 +702,13 @@ class RedisEventSubscriber:
         """Handle real-time streaming indicator calculation."""
         calculation = event.data.get('calculation', event.data)
 
-        indicator_type = calculation.get('indicator_type')
+        # TickStockPL uses 'indicator' field, not 'indicator_type'
+        indicator_type = calculation.get('indicator') or calculation.get('indicator_type')
         symbol = calculation.get('symbol')
         values = calculation.get('values', {})
         timestamp = calculation.get('timestamp')
 
-        logger.debug(f"REDIS-SUBSCRIBER: Streaming indicator - {indicator_type} on {symbol}")
+        logger.info(f"REDIS-SUBSCRIBER: Received streaming indicator - {indicator_type} on {symbol}")
 
         # Broadcast indicator update
         websocket_data = {
@@ -699,10 +723,12 @@ class RedisEventSubscriber:
         }
 
         # Send to buffering handler if available
-        if hasattr(self, 'streaming_buffer'):
+        if hasattr(self, 'streaming_buffer') and self.streaming_buffer:
+            logger.info(f"REDIS-SUBSCRIBER: Sending {indicator_type}@{symbol} to StreamingBuffer")
             self.streaming_buffer.add_indicator(websocket_data)
         else:
             # Direct broadcast without buffering
+            logger.info(f"REDIS-SUBSCRIBER: Direct broadcast {indicator_type}@{symbol} (no buffer)")
             self.socketio.emit('streaming_indicator', websocket_data, namespace='/')
 
         self.stats['events_forwarded'] += 1

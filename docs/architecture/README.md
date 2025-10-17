@@ -1,7 +1,7 @@
 # TickStockAppV2 Architecture
 
-**Version**: 3.0.0
-**Last Updated**: October 3, 2025
+**Version**: 3.1.0
+**Last Updated**: October 17, 2025 (Sprint 42/43)
 **Status**: Production Ready
 
 ## Overview
@@ -74,37 +74,75 @@ TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem.
 
 ## Redis Integration
 
-### Channel Structure
+### Channel Structure (Updated Sprint 42/43)
 ```
-# Events from TickStockPL (consumed by AppV2)
+# Streaming Events from TickStockPL (consumed by AppV2)
+tickstock:patterns:streaming      # Real-time pattern detections (all confidence levels)
+tickstock:patterns:detected       # High confidence patterns (≥80%)
+tickstock:indicators:streaming    # Real-time indicator calculations
+tickstock:streaming:health        # Streaming session health metrics
+
+# Legacy Events (still supported)
 tickstock.events.patterns         # Pattern detection results
 tickstock.events.indicators       # Indicator calculations
 tickstock.events.processing       # Processing status updates
+
+# System Channels
 tickstock:monitoring              # System metrics and health
 tickstock:errors                  # Error messages
+
+# Market Data Flow (Sprint 42)
+tickstock:market:ticks            # Raw tick data (AppV2 → TickStockPL)
 
 # Jobs to TickStockPL (published by AppV2)
 tickstock.jobs.backtest           # Backtest requests
 tickstock.jobs.processing         # Processing commands
-tickstock.data.raw                # Raw market data
 ```
 
-### Message Flow
-1. AppV2 receives market data or user requests
-2. Publishes jobs/data to Redis channels
-3. TickStockPL processes and publishes results
-4. AppV2 consumes results and updates UI
-5. WebSocket broadcasts to connected clients
+### Message Flow (Sprint 42/43 Architecture)
+
+**Real-time Streaming Flow:**
+```
+Market Data (Polygon)
+        ↓
+TickStockAppV2: MarketDataService
+        ↓
+Redis: tickstock:market:ticks (raw ticks)
+        ↓
+TickStockPL: RedisTickSubscriber
+        ↓
+TickStockPL: TickAggregator (1-min bars)
+        ↓
+TickStockPL: StreamingPatternJob (bar 1-2 detection)
+        ↓
+Redis: tickstock:patterns:streaming (pattern events)
+        ↓
+TickStockAppV2: RedisEventSubscriber
+        ↓
+TickStockAppV2: StreamingBuffer (250ms flush)
+        ↓
+TickStockAppV2: WebSocket broadcast
+        ↓
+Browser: Live Streaming Dashboard
+```
+
+**Key Improvements (Sprint 42/43):**
+- ✅ OHLCV aggregation moved to TickStockPL (single source of truth)
+- ✅ Pattern detection at bar 1-2 (vs. old 5-bar minimum)
+- ✅ Streaming buffer with 250ms flush cycles
+- ✅ Pattern-specific bar requirements (no blanket delays)
 
 ## Performance Targets
 
-| Operation | Target | Actual | Status |
-|-----------|--------|--------|--------|
-| WebSocket Delivery | <100ms | ~50ms | ✅ |
-| API Response | <50ms | ~30ms | ✅ |
-| Redis Operation | <10ms | ~5ms | ✅ |
-| UI Update | <200ms | ~150ms | ✅ |
-| Cache Hit Rate | >90% | 92% | ✅ |
+| Operation | Target | Actual | Status | Sprint |
+|-----------|--------|--------|--------|--------|
+| Pattern Detection | <2 min | 1-2 min | ✅ | 43 |
+| WebSocket Delivery | <100ms | ~50ms | ✅ | - |
+| API Response | <50ms | ~30ms | ✅ | - |
+| Redis Operation | <10ms | ~5ms | ✅ | - |
+| Streaming Buffer Flush | 250ms | 250ms | ✅ | 42 |
+| UI Update | <200ms | ~150ms | ✅ | - |
+| Cache Hit Rate | >90% | 92% | ✅ | - |
 
 ## Configuration
 
@@ -166,6 +204,32 @@ Production Environment:
 - **Error Tracking**: Centralized via Redis
 - **Performance Metrics**: Real-time KPIs
 - **Database Monitoring**: Query performance tracking
+- **Redis Channel Monitoring**: `scripts/diagnostics/monitor_redis_channels.py` (Sprint 43)
+- **Live Streaming Dashboard**: `/streaming` - Raw Redis content display
+
+### Diagnostic Tools (Sprint 43)
+```bash
+# Monitor Redis channels in real-time
+python scripts/diagnostics/monitor_redis_channels.py
+
+# View channel activity, message counts, and pattern/indicator flow
+# Output: Channel counts, event types, health analysis
+```
+
+## Recent Architecture Changes
+
+### Sprint 42 (October 12, 2025)
+- **OHLCV Aggregation Moved**: From TickStockAppV2 → TickStockPL
+- **Single Source of Truth**: TickStockPL owns all bar creation
+- **Removed**: `src/infrastructure/database/ohlcv_persistence.py` (433 lines)
+- **Result**: Zero duplicate bars, clean role separation
+
+### Sprint 43 (October 17, 2025)
+- **Pattern Delay Fix**: 5-8 minutes → 1-2 minutes
+- **Root Cause**: TickStockPL enforced blanket 5-bar minimum
+- **Solution**: Pattern-specific bar requirements
+- **Diagnostics Added**: Redis channel monitoring, enhanced logging
+- **UI Update**: Live Streaming dashboard shows raw Redis JSON
 
 ## Related Documentation
 
@@ -173,3 +237,5 @@ Production Environment:
 - [WebSocket Integration](./websockets-integration.md): Real-time communication
 - [Configuration Guide](./configuration.md): Environment setup
 - [API Documentation](../api/endpoints.md): REST endpoint reference
+- [Sprint 42 Complete](../planning/sprints/sprint42/SPRINT42_COMPLETE.md): OHLCV architecture
+- [Sprint 43 Complete](../planning/sprints/sprint43/SPRINT43_COMPLETE.md): Pattern delay fix

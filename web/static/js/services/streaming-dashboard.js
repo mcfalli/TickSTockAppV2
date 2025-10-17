@@ -122,33 +122,31 @@ class StreamingDashboardService {
                     </div>
                 </div>
 
-                <!-- Streaming Panels -->
-                <div class="row streaming-panels">
-                    <div class="col-lg-6">
-                        <div class="stream-panel card">
-                            <div class="card-header panel-header bg-gradient text-white">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span><i class="fas fa-chart-line"></i> Real-time Patterns</span>
-                                    <span id="patternCount" class="badge bg-light text-dark">0 patterns</span>
-                                </div>
+                <!-- Streaming Panels - Stacked Vertically -->
+                <div class="streaming-panels">
+                    <!-- Real-time Patterns Panel -->
+                    <div class="stream-panel card mb-4">
+                        <div class="card-header panel-header bg-gradient text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-chart-line"></i> Real-time Patterns</span>
+                                <span id="patternCount" class="badge bg-light text-dark">0 patterns</span>
                             </div>
-                            <div class="card-body event-stream" id="patternStream" style="max-height: 400px; overflow-y: auto;">
-                                <!-- Pattern events will be added here -->
-                            </div>
+                        </div>
+                        <div class="card-body event-stream" id="patternStream" style="max-height: 500px; overflow-y: auto;">
+                            <!-- Pattern events will be added here -->
                         </div>
                     </div>
 
-                    <div class="col-lg-6">
-                        <div class="stream-panel card">
-                            <div class="card-header panel-header bg-gradient text-white">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span><i class="fas fa-bell"></i> Indicator Alerts</span>
-                                    <span id="alertCount" class="badge bg-light text-dark">0 alerts</span>
-                                </div>
+                    <!-- Indicator Alerts Panel -->
+                    <div class="stream-panel card">
+                        <div class="card-header panel-header bg-gradient text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-bell"></i> Indicator Alerts</span>
+                                <span id="alertCount" class="badge bg-light text-dark">0 alerts</span>
                             </div>
-                            <div class="card-body event-stream" id="alertStream" style="max-height: 400px; overflow-y: auto;">
-                                <!-- Alert events will be added here -->
-                            </div>
+                        </div>
+                        <div class="card-body event-stream" id="alertStream" style="max-height: 500px; overflow-y: auto;">
+                            <!-- Alert events will be added here -->
                         </div>
                     </div>
                 </div>
@@ -215,6 +213,49 @@ class StreamingDashboardService {
 
                 .event-item:hover {
                     background: var(--hover-bg, rgba(0,0,0,0.05));
+                }
+
+                .event-item-expanded {
+                    padding: 15px;
+                    border: 1px solid var(--border-color, #dee2e6);
+                    border-radius: 5px;
+                    margin-bottom: 10px;
+                    background: var(--bg-secondary, #f8f9fa);
+                }
+
+                .event-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 10px;
+                    padding-bottom: 10px;
+                    border-bottom: 1px solid var(--border-color, #dee2e6);
+                }
+
+                .redis-content {
+                    margin-top: 10px;
+                }
+
+                .redis-content strong {
+                    display: block;
+                    margin-bottom: 5px;
+                    color: var(--text-primary, #333);
+                }
+
+                .redis-json {
+                    background: #282c34;
+                    color: #abb2bf;
+                    border: 1px solid #3e4451;
+                    border-radius: 4px;
+                    padding: 12px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 0.85em;
+                    max-height: 300px;
+                    overflow-y: auto;
+                    overflow-x: auto;
+                    white-space: pre;
+                    line-height: 1.4;
+                    margin: 0;
                 }
 
                 .pattern-badge {
@@ -293,6 +334,8 @@ class StreamingDashboardService {
 
         // Indicator events
         this.socket.on('indicator_alert', this.handleIndicatorAlert);
+        this.socket.on('streaming_indicators_batch', this.handleStreamingIndicatorsBatch.bind(this));
+        this.socket.on('streaming_indicator', this.handleStreamingIndicator.bind(this));
 
         // Health events
         this.socket.on('streaming_health', this.handleStreamingHealth);
@@ -311,6 +354,8 @@ class StreamingDashboardService {
         this.socket.off('streaming_pattern', this.handleStreamingPattern);
         this.socket.off('streaming_patterns_batch', this.handleStreamingPatternsBatch);
         this.socket.off('indicator_alert', this.handleIndicatorAlert);
+        this.socket.off('streaming_indicators_batch', this.handleStreamingIndicatorsBatch);
+        this.socket.off('streaming_indicator', this.handleStreamingIndicator);
         this.socket.off('streaming_health', this.handleStreamingHealth);
         this.socket.off('critical_alert', this.handleCriticalAlert);
     }
@@ -356,6 +401,44 @@ class StreamingDashboardService {
         this.alertCount++;
         this.updateMetrics();
         this.updateLastUpdatedTimestamp();
+    }
+
+    /**
+     * Handle single streaming indicator event
+     */
+    handleStreamingIndicator(data) {
+        console.log('[StreamingDashboard] Received streaming_indicator:', data);
+        const calculation = data.calculation || data;
+        const indicatorType = calculation.indicator || calculation.indicator_type;
+        const symbol = calculation.symbol;
+
+        if (indicatorType && symbol) {
+            this.addIndicatorEvent(calculation);
+            this.alertCount++;
+            this.updateMetrics();
+            this.updateLastUpdatedTimestamp();
+        }
+    }
+
+    /**
+     * Handle batch streaming indicator events
+     */
+    handleStreamingIndicatorsBatch(data) {
+        console.log('[StreamingDashboard] Received streaming_indicators_batch:', data);
+        if (data.indicators && Array.isArray(data.indicators)) {
+            data.indicators.forEach(indicator => {
+                const calculation = indicator.calculation || indicator;
+                const indicatorType = calculation.indicator || calculation.indicator_type;
+                const symbol = calculation.symbol;
+
+                if (indicatorType && symbol) {
+                    this.addIndicatorEvent(calculation);
+                }
+            });
+            this.alertCount += data.indicators.length;
+            this.updateMetrics();
+            this.updateLastUpdatedTimestamp();
+        }
     }
 
     /**
@@ -420,20 +503,32 @@ class StreamingDashboardService {
         if (!stream) return;
 
         const eventItem = document.createElement('div');
-        eventItem.className = 'event-item';
+        eventItem.className = 'event-item-expanded';
 
         const confidence = detection.confidence || 0;
         const confClass = confidence >= 0.8 ? 'confidence-high' :
                          confidence >= 0.5 ? 'confidence-medium' : 'confidence-low';
 
+        // Handle multiple field name variations (pattern_type, pattern, pattern_name)
+        const patternType = detection.pattern_type || detection.pattern || detection.pattern_name || 'Unknown';
+
+        // Format raw Redis content
+        const rawContent = JSON.stringify(detection, null, 2);
+
         eventItem.innerHTML = `
-            <div>
-                <span class="pattern-badge">${detection.pattern_type || 'Unknown'}</span>
-                <strong class="ms-2">${detection.symbol || 'N/A'}</strong>
+            <div class="event-header">
+                <div>
+                    <span class="pattern-badge">${patternType}</span>
+                    <strong class="ms-2">${detection.symbol || 'N/A'}</strong>
+                </div>
+                <div>
+                    <span class="${confClass}">${(confidence * 100).toFixed(1)}%</span>
+                    <small class="ms-2 text-muted">${new Date(detection.timestamp || Date.now()).toLocaleTimeString()}</small>
+                </div>
             </div>
-            <div>
-                <span class="${confClass}">${(confidence * 100).toFixed(1)}%</span>
-                <small class="ms-2 text-muted">${new Date(detection.timestamp || Date.now()).toLocaleTimeString()}</small>
+            <div class="redis-content">
+                <strong>Raw Redis Content:</strong>
+                <pre class="redis-json">${rawContent}</pre>
             </div>
         `;
 
@@ -489,6 +584,56 @@ class StreamingDashboardService {
             counter.textContent = `${this.alertCount} alerts`;
         }
     }
+
+
+    /**
+     * Add indicator event to display
+     */
+    addIndicatorEvent(calculation) {
+        const stream = document.getElementById('alertStream');
+        if (!stream) return;
+
+        const indicatorType = calculation.indicator || calculation.indicator_type || 'Unknown';
+        const symbol = calculation.symbol || 'N/A';
+        const value = calculation.value !== undefined ? calculation.value :
+                     (calculation.values ? JSON.stringify(calculation.values) : 'N/A');
+
+        // Format raw Redis content
+        const rawContent = JSON.stringify(calculation, null, 2);
+
+        const indicatorItem = document.createElement('div');
+        indicatorItem.className = 'event-item-expanded';
+        indicatorItem.innerHTML = `
+            <div class="event-header">
+                <div>
+                    <span class="pattern-badge" style="background: #17a2b8;">${indicatorType}</span>
+                    <strong class="ms-2">${symbol}</strong>
+                </div>
+                <div>
+                    <span class="text-primary">${typeof value === 'object' ? JSON.stringify(value) : value}</span>
+                    <small class="ms-2 text-muted">${new Date(calculation.timestamp || Date.now()).toLocaleTimeString()}</small>
+                </div>
+            </div>
+            <div class="redis-content">
+                <strong>Raw Redis Content:</strong>
+                <pre class="redis-json">${rawContent}</pre>
+            </div>
+        `;
+
+        stream.insertBefore(indicatorItem, stream.firstChild);
+
+        // Limit to 30 items
+        while (stream.children.length > 30) {
+            stream.removeChild(stream.lastChild);
+        }
+
+        // Update counter
+        const counter = document.getElementById('alertCount');
+        if (counter) {
+            counter.textContent = `${this.alertCount} alerts`;
+        }
+    }
+
 
     /**
      * Format alert type for display

@@ -13,7 +13,7 @@ import logging
 import traceback as tb
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from src.core.models.error_models import SEVERITY_LEVELS, ErrorMessage
 from src.core.services.config_manager import LoggingConfig
@@ -86,10 +86,10 @@ class EnhancedLogger:
         self,
         severity: str,
         message: str,
-        category: str | None = None,
-        component: str | None = None,
-        context: dict[str, Any] | None = None,
-        traceback: str | None = None,
+        category: Optional[str] = None,
+        component: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        traceback: Optional[str] = None,
         source: str = 'TickStockAppV2'
     ):
         """Log error with optional database storage
@@ -220,9 +220,9 @@ class EnhancedLogger:
         self,
         exception: Exception,
         severity: str = 'error',
-        category: str | None = None,
-        component: str | None = None,
-        context: dict[str, Any] | None = None,
+        category: Optional[str] = None,
+        component: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
         include_traceback: bool = True
     ):
         """Log error from an exception object
@@ -248,7 +248,7 @@ class EnhancedLogger:
             traceback=traceback_str
         )
 
-    def log_from_redis_message(self, redis_message: str | bytes):
+    def log_from_redis_message(self, redis_message: Optional[str | bytes]):
         """Log error message received from Redis
 
         Args:
@@ -311,7 +311,7 @@ class EnhancedLogger:
 
 
 def create_enhanced_logger(
-    config: LoggingConfig | None = None,
+    config: Optional[LoggingConfig] = None,
     db_connection=None
 ) -> EnhancedLogger:
     """Factory function to create enhanced logger
@@ -330,10 +330,10 @@ def create_enhanced_logger(
 
 
 # Global enhanced logger instance (will be initialized by app.py)
-enhanced_logger: EnhancedLogger | None = None
+enhanced_logger: Optional[EnhancedLogger] = None
 
 
-def get_enhanced_logger() -> EnhancedLogger | None:
+def get_enhanced_logger() -> Optional[EnhancedLogger]:
     """Get the global enhanced logger instance
 
     Returns:

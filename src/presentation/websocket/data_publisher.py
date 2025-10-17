@@ -148,7 +148,7 @@ class DataPublisher:
             # Also publish to general channel for TickStockPL
             self.redis_client.publish('tickstock.all_ticks', json.dumps(redis_message))
 
-            logger.debug(f"DATA-PUBLISHER: Published {tick_data.ticker} to Redis")
+            #logger.debug(f"DATA-PUBLISHER: Published {tick_data.ticker} to Redis")
 
         except Exception as e:
             logger.error(f"DATA-PUBLISHER: Redis publish error: {e}")

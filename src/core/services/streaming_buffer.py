@@ -115,33 +115,36 @@ class StreamingBuffer:
         """
         if not self.enabled:
             # Direct send without buffering
+            logger.debug(f"STREAMING-BUFFER: Direct send (buffering disabled) - pattern event")
             self.socketio.emit('streaming_pattern', event_data, namespace='/')
             return
 
         with self.lock:
             detection = event_data.get('detection', {})
             symbol = detection.get('symbol')
-            pattern_type = detection.get('pattern_type')
+            # TickStockPL uses 'pattern' field, but we receive 'pattern_type' from RedisEventSubscriber
+            pattern_type = detection.get('pattern_type') or detection.get('pattern') or detection.get('pattern_name')
+
+            logger.debug(f"STREAMING-BUFFER: add_pattern called - symbol={symbol}, pattern={pattern_type}")
 
             if symbol and pattern_type:
-                # Aggregate by symbol-pattern key for deduplication
+                # Aggregate by symbol-pattern key
                 key = f"{symbol}:{pattern_type}"
 
-                # Check if we have a recent event for this symbol-pattern
-                existing = self.pattern_aggregator.get(key)
-                if existing and (time.time() - existing.get('timestamp', 0)) < 0.1:
-                    # Update existing with latest data (deduplication)
-                    self.pattern_aggregator[key] = event_data
-                    self.stats['events_deduplicated'] += 1
-                else:
-                    # New event, add to buffer
-                    self.pattern_aggregator[key] = event_data
+                # Always update aggregator with latest value
+                self.pattern_aggregator[key] = event_data
+
+                # Add to buffer if not already present
+                if key not in [e.data.get('key') for e in self.pattern_buffer]:
+                    event_data['key'] = key  # Add key for tracking
                     self.pattern_buffer.append(BufferedEvent(
                         event_type='streaming_pattern',
                         data=event_data,
                         priority=1 if detection.get('confidence', 0) >= 0.8 else 0
                     ))
                     self.stats['events_buffered'] += 1
+            else:
+                logger.warning(f"STREAMING-BUFFER: Pattern missing required fields - symbol={symbol}, pattern_type={pattern_type}")
 
     def add_indicator(self, event_data: dict[str, Any]):
         """
@@ -158,11 +161,14 @@ class StreamingBuffer:
         with self.lock:
             calculation = event_data.get('calculation', {})
             symbol = calculation.get('symbol')
-            indicator_type = calculation.get('indicator_type')
+            # TickStockPL uses 'indicator' field, not 'indicator_type'
+            indicator_type = calculation.get('indicator_type') or calculation.get('indicator')
 
             if symbol and indicator_type:
                 # Aggregate by symbol-indicator key
                 key = f"{symbol}:{indicator_type}"
+
+                logger.debug(f"STREAMING-BUFFER: add_indicator called - symbol={symbol}, indicator={indicator_type}")
 
                 # Always update with latest value (indicators change frequently)
                 self.indicator_aggregator[key] = event_data
@@ -176,14 +182,21 @@ class StreamingBuffer:
                         priority=0
                     ))
                     self.stats['events_buffered'] += 1
+            else:
+                logger.warning(f"STREAMING-BUFFER: Indicator missing required fields - symbol={symbol}, indicator_type={indicator_type}")
 
     def _flush_loop(self):
         """Main loop for periodic buffer flushing."""
-        logger.info("STREAMING-BUFFER: Flush loop started")
+        logger.info(f"STREAMING-BUFFER: Flush loop started - interval={self.buffer_interval_ms}ms")
 
         while self.is_running:
             try:
                 time.sleep(self.buffer_interval_ms / 1000.0)
+
+                # Log flush attempt
+                buffer_status = f"patterns={len(self.pattern_buffer)}, indicators={len(self.indicator_buffer)}"
+                logger.info(f"STREAMING-BUFFER: Flush cycle #{self.stats['flush_cycles']} - {buffer_status}")
+
                 self._flush_all()
                 self.stats['flush_cycles'] += 1
 
@@ -199,26 +212,21 @@ class StreamingBuffer:
             if self.pattern_buffer:
                 patterns_to_send = []
 
-                # Sort by priority and timestamp
-                sorted_patterns = sorted(
-                    self.pattern_buffer,
-                    key=lambda x: (x.priority, x.timestamp),
-                    reverse=True
-                )[:20]  # Limit batch size
-
-                for event in sorted_patterns:
-                    patterns_to_send.append(event.data)
+                # Get latest values from aggregator (like indicators do)
+                for key, event_data in self.pattern_aggregator.items():
+                    patterns_to_send.append(event_data)
 
                 if patterns_to_send:
                     # Send batch
+                    logger.info(f"STREAMING-BUFFER: Emitting batch of {len(patterns_to_send)} patterns to WebSocket")
                     self.socketio.emit('streaming_patterns_batch', {
-                        'patterns': patterns_to_send,
+                        'patterns': patterns_to_send[:20],  # Limit batch size
                         'count': len(patterns_to_send),
                         'timestamp': time.time()
                     }, namespace='/')
 
                     self.stats['events_flushed'] += len(patterns_to_send)
-                    logger.debug(f"STREAMING-BUFFER: Flushed {len(patterns_to_send)} patterns")
+                    logger.info(f"STREAMING-BUFFER: Flushed {len(patterns_to_send)} patterns - Total flushed: {self.stats['events_flushed']}")
 
                 self.pattern_buffer.clear()
                 self.pattern_aggregator.clear()
@@ -233,6 +241,7 @@ class StreamingBuffer:
 
                 if indicators_to_send:
                     # Send batch
+                    logger.info(f"STREAMING-BUFFER: Emitting batch of {len(indicators_to_send)} indicators to WebSocket")
                     self.socketio.emit('streaming_indicators_batch', {
                         'indicators': indicators_to_send[:20],  # Limit batch size
                         'count': len(indicators_to_send),
@@ -240,7 +249,7 @@ class StreamingBuffer:
                     }, namespace='/')
 
                     self.stats['events_flushed'] += len(indicators_to_send)
-                    logger.debug(f"STREAMING-BUFFER: Flushed {len(indicators_to_send)} indicators")
+                    logger.info(f"STREAMING-BUFFER: Flushed {len(indicators_to_send)} indicators - Total flushed: {self.stats['events_flushed']}")
 
                 self.indicator_buffer.clear()
                 self.indicator_aggregator.clear()

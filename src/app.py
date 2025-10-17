@@ -2264,6 +2264,11 @@ def main():
             app.register_blueprint(streaming_bp)
             logger.info("STARTUP: Streaming dashboard routes registered successfully")
 
+            # Sprint 43: Register Redis monitoring dashboard for debugging
+            from src.api.rest.redis_monitor_routes import redis_monitor_bp
+            app.register_blueprint(redis_monitor_bp)
+            logger.info("STARTUP: Redis monitoring dashboard registered successfully")
+
             # Register Real Pattern Discovery APIs (Sprint 10 Complete)
             logger.info("STARTUP: Registering real pattern discovery APIs...")
             try:

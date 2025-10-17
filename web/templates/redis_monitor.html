@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Redis Message Monitor - TickStock</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-microscope"></i> Redis Communication Monitor</h2>
+            <p class="text-muted">Real-time visibility into all Redis pub-sub messages between TickStockPL and TickStockAppV2</p>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 id="totalMessages" class="text-primary">0</h3>
+                    <p class="text-muted mb-0">Total Messages</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 id="messagesPerSecond" class="text-success">0</h3>
+                    <p class="text-muted mb-0">Messages/Second</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 id="patternMessages" class="text-info">0</h3>
+                    <p class="text-muted mb-0">Pattern Events</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 id="indicatorMessages" class="text-warning">0</h3>
+                    <p class="text-muted mb-0">Indicator Events</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Field Name Analysis Alert -->
+    <div id="fieldNameAlert" class="alert" style="display: none;"></div>
+
+    <!-- Controls -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-end">
+                <div class="col-md-3">
+                    <label for="channelFilter">Channel Filter</label>
+                    <input type="text" id="channelFilter" class="form-control" placeholder="e.g., patterns">
+                </div>
+                <div class="col-md-3">
+                    <label for="typeFilter">Event Type</label>
+                    <input type="text" id="typeFilter" class="form-control" placeholder="e.g., streaming_pattern">
+                </div>
+                <div class="col-md-2">
+                    <label for="limitSelect">Limit</label>
+                    <select id="limitSelect" class="form-control">
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button id="refreshBtn" class="btn btn-primary"><i class="fas fa-sync"></i> Refresh</button>
+                    <button id="clearBtn" class="btn btn-danger"><i class="fas fa-trash"></i> Clear</button>
+                    <button id="autoRefreshBtn" class="btn btn-secondary"><i class="fas fa-play"></i> Auto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message List -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Redis Messages <span id="messageCount" class="badge bg-secondary">0</span></h5>
+        </div>
+        <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+            <div id="messageList"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+.message-item {
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+}
+
+.message-item:hover {
+    background: #e9ecef;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.message-channel {
+    background: #007bff;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+.message-type {
+    background: #28a745;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+.message-summary {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.message-structure {
+    font-family: monospace;
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+.message-json {
+    background: #282c34;
+    color: #abb2bf;
+    border: 1px solid #3e4451;
+    border-radius: 3px;
+    padding: 12px;
+    margin-top: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.5;
+}
+
+.message-json.show {
+    display: block;
+}
+
+.toggle-json {
+    cursor: pointer;
+    color: #007bff;
+    text-decoration: underline;
+    font-size: 0.85em;
+}
+</style>
+
+<script>
+let autoRefresh = false;
+let refreshInterval = null;
+
+// Load messages
+async function loadMessages() {
+    try {
+        const channel = document.getElementById('channelFilter').value;
+        const type = document.getElementById('typeFilter').value;
+        const limit = document.getElementById('limitSelect').value;
+
+        const params = new URLSearchParams({
+            limit: limit,
+            ...(channel && { channel }),
+            ...(type && { type })
+        });
+
+        const response = await fetch(`/redis-monitor/api/messages?${params}`);
+        const data = await response.json();
+
+        displayMessages(data.messages);
+        document.getElementById('messageCount').textContent = data.count;
+
+    } catch (error) {
+        console.error('Error loading messages:', error);
+    }
+}
+
+// Load stats
+async function loadStats() {
+    try {
+        const response = await fetch('/redis-monitor/api/stats');
+        const stats = await response.json();
+
+        document.getElementById('totalMessages').textContent = stats.total_messages || 0;
+        document.getElementById('messagesPerSecond').textContent = (stats.messages_per_second || 0).toFixed(2);
+
+        // Count by type (handle missing data)
+        const byType = stats.by_type || {};
+        const patternCount = (byType['streaming_pattern'] || 0) + (byType['pattern_detected'] || 0);
+        const indicatorCount = byType['streaming_indicator'] || 0;
+
+        document.getElementById('patternMessages').textContent = patternCount;
+        document.getElementById('indicatorMessages').textContent = indicatorCount;
+
+    } catch (error) {
+        console.error('Error loading stats:', error);
+        // Set defaults on error
+        document.getElementById('totalMessages').textContent = '0';
+        document.getElementById('messagesPerSecond').textContent = '0.00';
+        document.getElementById('patternMessages').textContent = '0';
+        document.getElementById('indicatorMessages').textContent = '0';
+    }
+}
+
+// Load field name analysis
+async function loadFieldNameAnalysis() {
+    const alertDiv = document.getElementById('fieldNameAlert');
+
+    try {
+        const response = await fetch('/redis-monitor/api/field-names');
+
+        // Check if response is OK
+        if (!response.ok) {
+            console.warn('Field name analysis endpoint returned:', response.status);
+            alertDiv.style.display = 'none';
+            return;
+        }
+
+        const report = await response.json();
+
+        // Handle missing or malformed report data
+        if (!report || typeof report !== 'object') {
+            alertDiv.style.display = 'none';
+            return;
+        }
+
+        // Safely access nested properties
+        const patterns = report.patterns || {};
+        const indicators = report.indicators || {};
+        const hasPatternInconsistency = patterns.has_inconsistency === true;
+        const hasIndicatorInconsistency = indicators.has_inconsistency === true;
+
+        if (hasPatternInconsistency || hasIndicatorInconsistency) {
+            const patternFields = Array.isArray(patterns.name_field_variations)
+                ? patterns.name_field_variations.join(', ')
+                : 'N/A';
+            const indicatorFields = Array.isArray(indicators.name_field_variations)
+                ? indicators.name_field_variations.join(', ')
+                : 'N/A';
+
+            alertDiv.className = 'alert alert-warning';
+            alertDiv.innerHTML = `
+                <h5><i class="fas fa-exclamation-triangle"></i> Field Naming Inconsistencies Detected</h5>
+                <p>${report.recommendation || 'Field naming variations detected'}</p>
+                <div class="mt-2">
+                    <strong>Pattern Fields:</strong> ${patternFields}<br>
+                    <strong>Indicator Fields:</strong> ${indicatorFields}
+                </div>
+            `;
+            alertDiv.style.display = 'block';
+        } else if (report.recommendation && typeof report.recommendation === 'string') {
+            alertDiv.className = 'alert alert-success';
+            alertDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${report.recommendation}`;
+            alertDiv.style.display = 'block';
+        } else {
+            alertDiv.style.display = 'none';
+        }
+
+    } catch (error) {
+        console.error('Error loading field name analysis:', error);
+        // Hide alert on error - not critical
+        alertDiv.style.display = 'none';
+    }
+}
+
+// Display messages
+function displayMessages(messages) {
+    const container = document.getElementById('messageList');
+
+    if (messages.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No messages captured yet</p>';
+        return;
+    }
+
+    container.innerHTML = messages.map((msg, index) => `
+        <div class="message-item">
+            <div class="message-header">
+                <div>
+                    <span class="message-channel">${msg.channel}</span>
+                    <span class="message-type">${msg.event_type}</span>
+                    <small class="text-muted ms-2">${new Date(msg.timestamp).toLocaleTimeString()}</small>
+                </div>
+                <div>
+                    <span class="badge bg-secondary">#${msg.id}</span>
+                </div>
+            </div>
+            <div class="message-summary">${msg.structure.summary || 'No summary'}</div>
+            <pre class="message-json show">${msg.raw_json}</pre>
+        </div>
+    `).join('');
+}
+
+// Toggle JSON display
+function toggleJson(index) {
+    const jsonDiv = document.getElementById(`json-${index}`);
+    jsonDiv.classList.toggle('show');
+}
+
+// Clear monitor
+async function clearMonitor() {
+    if (!confirm('Clear all captured messages?')) return;
+
+    try {
+        const response = await fetch('/redis-monitor/api/clear', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            loadMessages();
+            loadStats();
+            loadFieldNameAnalysis();
+        }
+    } catch (error) {
+        console.error('Error clearing monitor:', error);
+    }
+}
+
+// Toggle auto-refresh
+function toggleAutoRefresh() {
+    autoRefresh = !autoRefresh;
+    const btn = document.getElementById('autoRefreshBtn');
+
+    if (autoRefresh) {
+        btn.innerHTML = '<i class="fas fa-pause"></i> Auto';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-secondary');
+        refreshInterval = setInterval(() => {
+            loadMessages();
+            loadStats();
+            loadFieldNameAnalysis();
+        }, 2000);
+    } else {
+        btn.innerHTML = '<i class="fas fa-play"></i> Auto';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-secondary');
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+        }
+    }
+}
+
+// Event listeners
+document.getElementById('refreshBtn').addEventListener('click', () => {
+    loadMessages();
+    loadStats();
+    loadFieldNameAnalysis();
+});
+
+document.getElementById('clearBtn').addEventListener('click', clearMonitor);
+document.getElementById('autoRefreshBtn').addEventListener('click', toggleAutoRefresh);
+
+// Initial load
+loadMessages();
+loadStats();
+loadFieldNameAnalysis();
+</script>
+</body>
+</html>

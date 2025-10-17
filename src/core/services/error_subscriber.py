@@ -11,7 +11,7 @@ Architecture: Background thread, auto-reconnect, graceful degradation
 import logging
 import threading
 import time
-from typing import Any
+from typing import Any, Optional
 
 import redis
 
@@ -47,8 +47,8 @@ class ErrorSubscriber:
 
         # Thread control
         self.running = False
-        self.thread: threading.Thread | None = None
-        self.pubsub: redis.client.PubSub | None = None
+        self.thread: Optional[threading.Thread] = None
+        self.pubsub: Optional[redis.client.PubSub] = None
 
         # Performance tracking
         self.messages_processed = 0
@@ -301,7 +301,7 @@ class ErrorSubscriber:
 def create_error_subscriber(
     redis_client: redis.Redis,
     enhanced_logger: EnhancedLogger,
-    config: LoggingConfig | None = None
+    config: Optional[LoggingConfig] = None
 ) -> ErrorSubscriber:
     """Factory function to create error subscriber
 
@@ -324,10 +324,10 @@ def create_error_subscriber(
 
 
 # Global error subscriber instance (will be initialized by app.py)
-error_subscriber: ErrorSubscriber | None = None
+error_subscriber: Optional[ErrorSubscriber] = None
 
 
-def get_error_subscriber() -> ErrorSubscriber | None:
+def get_error_subscriber() -> Optional[ErrorSubscriber]:
     """Get the global error subscriber instance
 
     Returns:

@@ -313,19 +313,56 @@ python run_tests.py
 
 ## Current Implementation Status
 
-### Sprint 33 Phase 4 Status
-- ✅ HTTP API integration with TickStockPL
-- ✅ Redis event consumption (unified subscriber)
-- ✅ Pattern event channels configured
-- ✅ Admin dashboard integration
-- 🔄 Pattern display components
-- 🔄 Real-time pattern alerts
-- ⏳ Historical pattern analysis
+### Sprint 42 - COMPLETE ✅ (October 12, 2025)
+**Architectural Realignment: OHLCV Aggregation**
+- ✅ Removed `ohlcv_persistence.py` (433 lines) from TickStockAppV2
+- ✅ OHLCV aggregation moved to TickStockPL (TickAggregator)
+- ✅ Single source of truth established (0 duplicate bars)
+- ✅ Producer/Consumer separation enforced
+- ✅ Redis tick forwarding: `tickstock:market:ticks`
+- ✅ Integration validated: 220 bars created in 3 minutes
+- See: `docs/planning/sprints/sprint42/SPRINT42_COMPLETE.md`
 
-### System Integration Points
+### Sprint 43 - COMPLETE ✅ (October 17, 2025)
+**Pattern Display Delay Fix: 5-8 min → 1-2 min**
+- ✅ Root cause identified: TickStockPL enforced blanket 5-bar minimum
+- ✅ Solution: Pattern-specific bar requirements implemented
+- ✅ Diagnostic infrastructure created: `scripts/diagnostics/monitor_redis_channels.py`
+- ✅ Enhanced logging in `redis_event_subscriber.py`
+- ✅ Live Streaming dashboard updated (raw Redis JSON display)
+- ✅ Single-bar patterns detect at bar 1 (1 minute)
+- ✅ Multi-bar patterns detect at bar 2 (2 minutes)
+- ✅ Redis channels verified working (patterns + indicators flowing)
+- See: `docs/planning/sprints/sprint43/SPRINT43_COMPLETE.md`
+
+### System Integration Points (Updated Sprint 42/43)
 - **TickStockPL API**: HTTP commands on port 8080
-- **Redis Events**: Pattern/indicator events via pub-sub
-- **Database**: Read-only queries for UI data
-- **WebSocket**: Real-time browser updates
+- **Redis Streaming Channels**:
+  - `tickstock:patterns:streaming` - Real-time pattern detections ✅
+  - `tickstock:patterns:detected` - High confidence (≥80%) ✅
+  - `tickstock:indicators:streaming` - Real-time indicators ✅
+  - `tickstock:market:ticks` - Raw tick forwarding (AppV2 → PL) ✅
+  - `tickstock:streaming:health` - Health metrics ✅
+- **Database**: Read-only queries for UI data (enforced)
+- **WebSocket**: Real-time browser updates (<100ms delivery)
+
+### Diagnostic Tools (Sprint 43)
+```bash
+# Monitor Redis channels in real-time
+python scripts/diagnostics/monitor_redis_channels.py
+
+# View Live Streaming dashboard
+# URL: http://localhost:5000/streaming
+# Shows: Raw Redis JSON content for patterns and indicators
+```
+
+### Current Performance (Sprint 42/43)
+| Metric | Target | Actual | Status |
+|--------|--------|--------|--------|
+| Pattern Detection Start | <2 min | 1-2 min | ✅ |
+| WebSocket Delivery | <100ms | ~50ms | ✅ |
+| Redis Operation | <10ms | ~5ms | ✅ |
+| Streaming Buffer Flush | 250ms | 250ms | ✅ |
+| OHLCV Bar Creation Rate | ~70/min | 70/min | ✅ |
 
 _This document is a living guide. Update it as the project evolves and new patterns emerge._
