@@ -215,47 +215,35 @@ class StreamingDashboardService {
                     background: var(--hover-bg, rgba(0,0,0,0.05));
                 }
 
-                .event-item-expanded {
-                    padding: 15px;
+                .event-item-inline {
+                    padding: 8px 12px;
                     border: 1px solid var(--border-color, #dee2e6);
-                    border-radius: 5px;
-                    margin-bottom: 10px;
-                    background: var(--bg-secondary, #f8f9fa);
-                }
-
-                .event-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 10px;
-                    padding-bottom: 10px;
-                    border-bottom: 1px solid var(--border-color, #dee2e6);
-                }
-
-                .redis-content {
-                    margin-top: 10px;
-                }
-
-                .redis-content strong {
-                    display: block;
-                    margin-bottom: 5px;
-                    color: var(--text-primary, #333);
-                }
-
-                .redis-json {
-                    background: #282c34;
-                    color: #abb2bf;
-                    border: 1px solid #3e4451;
                     border-radius: 4px;
-                    padding: 12px;
+                    margin-bottom: 5px;
+                    background: var(--bg-secondary, #f8f9fa);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    transition: background 0.2s;
+                }
+
+                .event-item-inline:hover {
+                    background: var(--hover-bg, rgba(0,0,0,0.05));
+                }
+
+                .inline-json {
                     font-family: 'Courier New', monospace;
-                    font-size: 0.85em;
-                    max-height: 300px;
-                    overflow-y: auto;
-                    overflow-x: auto;
-                    white-space: pre;
-                    line-height: 1.4;
-                    margin: 0;
+                    font-size: 0.75em;
+                    color: var(--text-muted, #6c757d);
+                    background: rgba(0,0,0,0.05);
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    max-width: 300px;
+                    flex-shrink: 1;
                 }
 
                 .pattern-badge {
@@ -311,6 +299,16 @@ class StreamingDashboardService {
 
                 body.dark-theme .event-item {
                     border-color: var(--border-color);
+                }
+
+                body.dark-theme .event-item-inline {
+                    background: var(--bg-secondary);
+                    border-color: var(--border-color);
+                }
+
+                body.dark-theme .inline-json {
+                    background: rgba(255,255,255,0.05);
+                    color: var(--text-muted);
                 }
             </style>
         `;
@@ -503,7 +501,7 @@ class StreamingDashboardService {
         if (!stream) return;
 
         const eventItem = document.createElement('div');
-        eventItem.className = 'event-item-expanded';
+        eventItem.className = 'event-item-inline';
 
         const confidence = detection.confidence || 0;
         const confClass = confidence >= 0.8 ? 'confidence-high' :
@@ -512,24 +510,20 @@ class StreamingDashboardService {
         // Handle multiple field name variations (pattern_type, pattern, pattern_name)
         const patternType = detection.pattern_type || detection.pattern || detection.pattern_name || 'Unknown';
 
-        // Format raw Redis content
-        const rawContent = JSON.stringify(detection, null, 2);
+        // Abbreviated timestamp (time only)
+        const timestamp = new Date(detection.timestamp || Date.now()).toLocaleTimeString();
 
+        // Condensed JSON (single line, max 60 chars)
+        const rawContent = JSON.stringify(detection);
+        const condensedJson = rawContent.length > 60 ? rawContent.substring(0, 60) + '...' : rawContent;
+
+        // Single row with inline JSON
         eventItem.innerHTML = `
-            <div class="event-header">
-                <div>
-                    <span class="pattern-badge">${patternType}</span>
-                    <strong class="ms-2">${detection.symbol || 'N/A'}</strong>
-                </div>
-                <div>
-                    <span class="${confClass}">${(confidence * 100).toFixed(1)}%</span>
-                    <small class="ms-2 text-muted">${new Date(detection.timestamp || Date.now()).toLocaleTimeString()}</small>
-                </div>
-            </div>
-            <div class="redis-content">
-                <strong>Raw Redis Content:</strong>
-                <pre class="redis-json">${rawContent}</pre>
-            </div>
+            <span class="pattern-badge">${patternType}</span>
+            <strong class="ms-2">${detection.symbol || 'N/A'}</strong>
+            <span class="${confClass} ms-2">${(confidence * 100).toFixed(1)}%</span>
+            <small class="text-muted ms-2">${timestamp}</small>
+            <code class="inline-json ms-2">${condensedJson}</code>
         `;
 
         // Add to top of stream
@@ -598,26 +592,21 @@ class StreamingDashboardService {
         const value = calculation.value !== undefined ? calculation.value :
                      (calculation.values ? JSON.stringify(calculation.values) : 'N/A');
 
-        // Format raw Redis content
-        const rawContent = JSON.stringify(calculation, null, 2);
+        // Abbreviated timestamp (time only)
+        const timestamp = new Date(calculation.timestamp || Date.now()).toLocaleTimeString();
+
+        // Condensed JSON (single line, max 60 chars)
+        const rawContent = JSON.stringify(calculation);
+        const condensedJson = rawContent.length > 60 ? rawContent.substring(0, 60) + '...' : rawContent;
 
         const indicatorItem = document.createElement('div');
-        indicatorItem.className = 'event-item-expanded';
+        indicatorItem.className = 'event-item-inline';
         indicatorItem.innerHTML = `
-            <div class="event-header">
-                <div>
-                    <span class="pattern-badge" style="background: #17a2b8;">${indicatorType}</span>
-                    <strong class="ms-2">${symbol}</strong>
-                </div>
-                <div>
-                    <span class="text-primary">${typeof value === 'object' ? JSON.stringify(value) : value}</span>
-                    <small class="ms-2 text-muted">${new Date(calculation.timestamp || Date.now()).toLocaleTimeString()}</small>
-                </div>
-            </div>
-            <div class="redis-content">
-                <strong>Raw Redis Content:</strong>
-                <pre class="redis-json">${rawContent}</pre>
-            </div>
+            <span class="pattern-badge" style="background: #17a2b8;">${indicatorType}</span>
+            <strong class="ms-2">${symbol}</strong>
+            <span class="text-primary ms-2">${typeof value === 'object' ? JSON.stringify(value) : value}</span>
+            <small class="text-muted ms-2">${timestamp}</small>
+            <code class="inline-json ms-2">${condensedJson}</code>
         `;
 
         stream.insertBefore(indicatorItem, stream.firstChild);
