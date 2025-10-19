@@ -15,6 +15,13 @@
 ## Quick Actions
 
 **Need to implement a feature?**
+
+**PRP Workflow (Recommended)**:
+1. `/prp-new-create {feature-name}` - Create implementation-ready PRP
+2. `/prp-new-execute {feature-name}.md` - Execute with validation gates
+3. Run integration tests: `python run_tests.py`
+
+**Traditional Workflow**:
 1. Search project knowledge: What already exists?
 2. Check agent triggers: Which agents are needed?
 3. Validate approach: Run `architecture-validation-specialist`
@@ -149,29 +156,115 @@ docs/           # Documentation (streamlined)
 - `docs/guides/configuration.md` - Configuration reference
 - `docs/guides/testing.md` - Testing guide
 - `docs/api/endpoints.md` - API documentation
+- `docs/PRPs/README.md` - Product Requirement Prompts (PRP) concept
+- `docs/PRPs/templates/prp-new.md` - TickStock PRP template
 
 ## Sprint Development
-### Phase 1: Analysis (REQUIRED)
+
+### PRP-Enhanced Workflow (RECOMMENDED)
+
+**Product Requirement Prompts (PRPs)** enable one-pass implementation success through context completeness, progressive validation, and pattern consistency.
+
+**Why Use PRPs?**
+- ✅ **Context Completeness**: All necessary patterns, gotchas, and references in one document
+- ✅ **One-Pass Success**: Pre-loaded context eliminates mid-implementation pivots
+- ✅ **Architecture Enforcement**: TickStock-specific constraints (Consumer/Producer roles, Redis patterns)
+- ✅ **4-Level Validation**: Progressive gates catch errors early (syntax → unit → integration → architecture)
+- ✅ **Knowledge Capture**: PRPs become living documentation of implementation strategies
+- ✅ **Reduced Rework**: Dependency-ordered tasks reveal complexity upfront
+
+**When to Use PRPs?**
+- ✅ **Complex Features**: Multi-file changes requiring coordination
+- ✅ **Cross-System Integration**: Redis pub-sub, WebSocket, or database changes
+- ✅ **Architecture-Sensitive**: Changes affecting Producer/Consumer boundaries
+- ✅ **Performance-Critical**: Features with specific latency/throughput targets
+- ⚠️ **Not for Simple Fixes**: Single-file bug fixes or trivial updates use Traditional Workflow
+
+#### Phase 0: PRP Creation (Use `/prp-new-create {feature-name}`)
+
+**Purpose**: Create implementation-ready PRP with complete context
+
+**Process**:
+1. **Deep Research**
+   - Search codebase for similar features/patterns
+   - Research library documentation (Context7 MCP)
+   - Identify existing conventions and test patterns
+   - Spawn subagents for parallel research
+
+2. **Context Curation**
+   - TickStock architecture context (component roles, Redis channels)
+   - Documentation references (specific URLs with anchors)
+   - Known gotchas (Worker boundaries, read-only enforcement)
+   - Performance targets (specific metrics)
+
+3. **PRP Generation**
+   - Use `docs/PRPs/templates/prp-new.md` structure
+   - Fill TickStock-specific sections
+   - Include dependency-ordered implementation tasks
+   - Add 4-level validation gates
+
+4. **Validation**
+   - Pass "No Prior Knowledge" test
+   - All YAML references specific and accessible
+   - Implementation tasks include exact file paths
+   - Validation commands project-specific
+
+**Output**: `docs/PRPs/{feature-name}.md`
+
+#### Phase 1: PRP Execution (Use `/prp-new-execute {feature-name}.md`)
+
+**Purpose**: Transform PRP into working code
+
+**Process**:
+1. **Load PRP Context**
+   - Read PRP completely
+   - Absorb architecture constraints
+   - Note performance targets
+   - Review validation gates
+
+2. **ULTRATHINK & Plan**
+   - Create comprehensive implementation plan
+   - Break down into TodoWrite tasks
+   - Use subagents for parallel work
+   - Follow PRP's dependency order
+
+3. **Implementation**
+   - Follow PRP's Implementation Tasks sequence
+   - Use patterns and examples from PRP
+   - Apply TickStock-specific gotchas
+   - Write tests alongside code
+
+4. **Progressive Validation** (4 Levels - MANDATORY)
+   - **Level 1**: Syntax & style (ruff)
+   - **Level 2**: Unit tests (pytest)
+   - **Level 3**: Integration tests (`python run_tests.py`)
+   - **Level 4**: Architecture/security/performance validation
+
+**Output**: Working code passing all validation gates
+
+### Traditional Workflow (Legacy)
+
+#### Phase 1: Analysis (REQUIRED)
 - Understand sprint goal and requirements
 - Search project knowledge for existing code
 - Run architecture-validation-specialist
 - Identify all required agents
 - Get explicit approval before coding
 
-### Phase 2: Implementation (MANDATORY)
+#### Phase 2: Implementation (MANDATORY)
 - Follow 500 lines/file, 50 lines/function limits
 - Use domain specialists for guidance
 - Add comprehensive error handling
 - Write tests alongside code
 
-### Phase 3: Validation (MANDATORY)
-- Run integration tests: python run_tests.py
+#### Phase 3: Validation (MANDATORY)
+- Run integration tests: `python run_tests.py`
 - Verify performance targets met
 - Run code-security-specialist if security-related
 - Check for hardcoded credentials
 - Ensure no copyright violations
 
-### Phase 4: Sprint Completion (MANDATORY)
+### Phase 4: Sprint Completion (MANDATORY - Both Workflows)
 **CRITICAL: Execute POST_SPRINT_CHECKLIST.md**
 - Run through entire checklist at `/docs/planning/sprints/POST_SPRINT_CHECKLIST.md`
 - Create sprint summary in `/docs/planning/sprints/sprint{N}/SPRINT{N}_COMPLETE.md`

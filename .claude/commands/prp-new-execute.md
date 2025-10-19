@@ -1,4 +1,4 @@
-# Execute BASE PRP
+# Execute NEW Feature PRP
 
 ## PRP File: $ARGUMENTS
 
@@ -53,3 +53,39 @@ PRPs enable working code on the first attempt through:
    - Implementation is ready and working
 
 **Failure Protocol**: When validation fails, use the patterns and gotchas from the PRP to fix issues, then re-run validation until passing.
+
+## Post-Execution Documentation
+
+After successful implementation, create sprint documentation:
+
+### 1. Implementation Results (Required)
+**File**: `docs/planning/sprints/sprint{N}/{feature-name}-RESULTS.md`
+
+**Contents**:
+- ✅ Success criteria met (reference PRP "What" section)
+- ⏱️ Implementation time (actual vs estimated)
+- 🎯 Performance metrics achieved (vs targets in PRP)
+- ✅ Validation results (all 4 levels)
+- 📝 Manual testing results
+- 🔗 Related commits/PRs
+
+### 2. Lessons Learned (If Applicable)
+**File**: `docs/planning/sprints/sprint{N}/{feature-name}-AMENDMENT.md`
+
+**Create if**:
+- PRP had gaps or missing context
+- Required debugging iterations beyond initial implementation
+- Framework-specific patterns were missing
+- Requirements changed during implementation
+
+**Contents**:
+- What was missing from PRP
+- How many debugging iterations required
+- Correct patterns discovered
+- Recommendations for PRP template improvements
+
+### 3. Update Sprint Tracking
+- Update sprint README or tracking document
+- Mark feature as complete
+- Link to PRP and results documents
+- Note any deferred work for backlog

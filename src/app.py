@@ -57,6 +57,7 @@ from src.core.services.error_subscriber import create_error_subscriber, set_erro
 
 # Sprint 25: Fallback Pattern Detection
 from src.core.services.fallback_pattern_detector import FallbackPatternDetector
+from src.core.services.health_monitor import HealthMonitor
 from src.core.services.market_data_service import MarketDataService
 
 # Sprint 10 Phase 2: Enhanced Redis Event Consumption
@@ -526,8 +527,57 @@ def register_basic_routes(app):
     @app.route('/health')
     @login_required
     def health_check():
-        """Health check endpoint for monitoring."""
-        return {"status": "healthy", "version": APP_VERSION}
+        """Health check endpoint for authenticated users only."""
+        from flask import current_app
+        start_time = time.time()
+        health_data = {
+            "status": "healthy",
+            "version": APP_VERSION,
+            "components": {},
+            "timestamp": time.time()
+        }
+
+        try:
+            from src.core.services.config_manager import get_config
+
+            # Get Redis subscriber from current app (same as streaming page)
+            redis_subscriber = getattr(current_app, 'redis_subscriber', None)
+            current_redis_client = redis_subscriber.redis_client if redis_subscriber else None
+
+            config = get_config()
+            health_monitor = HealthMonitor(config, redis_client=current_redis_client)
+            redis_health = health_monitor._check_redis_health()
+
+            health_data['components']['redis'] = {
+                'status': redis_health.status,
+                'response_time_ms': redis_health.response_time_ms,
+                'message': redis_health.message
+            }
+
+            if redis_health.status == 'error':
+                health_data['status'] = 'unhealthy'
+                response_code = 503
+            elif redis_health.status == 'degraded':
+                health_data['status'] = 'degraded'
+                response_code = 200
+            else:
+                response_code = 200
+
+        except Exception as e:
+            logger.error(f"HEALTH-CHECK: Failed to check Redis: {e}")
+            health_data['components']['redis'] = {
+                'status': 'error',
+                'response_time_ms': None,
+                'message': f"Health check failed: {str(e)}"
+            }
+            health_data['status'] = 'unhealthy'
+            response_code = 503
+
+        response_time = (time.time() - start_time) * 1000
+        if response_time > 50:
+            logger.warning(f"HEALTH-CHECK: Slow response: {response_time:.2f}ms")
+
+        return jsonify(health_data), response_code
 
     @app.route('/api/health/redis')
     def api_health_redis():
@@ -2052,7 +2102,7 @@ def register_basic_routes(app):
 
 def main():
     """Main application entry point."""
-    global app, market_service, socketio
+    global app, market_service, socketio, redis_client
 
     try:
         logger.info("=" * 60)

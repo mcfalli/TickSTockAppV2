@@ -1,4 +1,4 @@
-# Create BASE PRP
+# Create NEW Feature PRP
 
 ## Feature: $ARGUMENTS
 
@@ -41,7 +41,7 @@ Create a comprehensive PRP that enables **one-pass implementation success** thro
 
 ### Step 1: Choose Template
 
-Use `PRPs/templates/prp_base.md` as your template structure - it contains all necessary sections and formatting.
+Use `docs/PRPs/templates/prp-new.md` as your template structure - it contains all necessary sections and formatting.
 
 ### Step 2: Context Completeness Validation
 
@@ -76,7 +76,17 @@ After research completion, create comprehensive PRP writing plan using TodoWrite
 
 ## Output
 
-Save as: `PRPs/{feature-name}.md`
+**Ask user for current sprint number if not clear from context.**
+
+Save as: `docs/planning/sprints/sprint{N}/{feature-name}.md`
+
+Where `{N}` is the current sprint number (e.g., sprint44, sprint45).
+
+**Related Documentation Pattern**:
+- Main PRP: `docs/planning/sprints/sprint{N}/{feature-name}.md`
+- Amendment/lessons learned: `docs/planning/sprints/sprint{N}/{feature-name}-AMENDMENT.md` (create if PRP gaps found)
+- Implementation results: `docs/planning/sprints/sprint{N}/{feature-name}-RESULTS.md` (create post-execution)
+- Additional notes: `docs/planning/sprints/sprint{N}/{feature-name}-NOTES.md` (optional)
 
 ## PRP Quality Gates
 
