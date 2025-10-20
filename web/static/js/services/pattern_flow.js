@@ -28,8 +28,11 @@ class PatternFlowService {
         this.state = {
             patterns: {
                 daily: [],
+                hourly: [],
                 intraday: [],
-                combo: [],
+                weekly: [],
+                monthly: [],
+                daily_intraday: [],
                 indicators: []
             },
             lastRefresh: null,
@@ -132,10 +135,13 @@ class PatternFlowService {
         columnsContainer.className = 'pattern-flow-columns';
 
         const columns = [
-            { id: 'daily', title: 'Daily', icon: '📊', color: '#007bff' },
             { id: 'intraday', title: 'Intraday', icon: '⚡', color: '#28a745' },
-            { id: 'combo', title: 'Combo', icon: '🔗', color: '#17a2b8' },
-            { id: 'indicators', title: 'Indicators', icon: '📈', color: '#fd7e14' }
+            { id: 'hourly', title: 'Hourly', icon: '⏰', color: '#6f42c1' },
+            { id: 'daily', title: 'Daily', icon: '📊', color: '#007bff' },
+            { id: 'weekly', title: 'Weekly', icon: '📈', color: '#20c997' },
+            { id: 'monthly', title: 'Monthly', icon: '📅', color: '#e83e8c' },
+            { id: 'daily_intraday', title: 'Combo', icon: '🔗', color: '#17a2b8' },
+            { id: 'indicators', title: 'Indicators', icon: '📊', color: '#fd7e14' }
         ];
 
         columns.forEach(col => {
@@ -567,7 +573,7 @@ class PatternFlowService {
 
         // Subscribe to pattern channels
         this.socket.emit('subscribe', {
-            channels: ['patterns.daily', 'patterns.intraday', 'patterns.combo', 'indicators']
+            channels: ['patterns.intraday', 'patterns.hourly', 'patterns.daily', 'patterns.weekly', 'patterns.monthly', 'patterns.daily_intraday', 'indicators']
         });
 
         console.log('[PatternFlowService] WebSocket handlers configured');
@@ -628,7 +634,7 @@ class PatternFlowService {
 
         try {
             // Load all tiers in parallel
-            const promises = ['daily', 'intraday', 'combo', 'indicators'].map(tier =>
+            const promises = ['intraday', 'hourly', 'daily', 'weekly', 'monthly', 'daily_intraday', 'indicators'].map(tier =>
                 this.loadPatternsByTier(tier)
             );
 
@@ -643,8 +649,20 @@ class PatternFlowService {
 
     async loadPatternsByTier(tier) {
         try {
-            // Use the API endpoint
-            const response = await fetch(`/api/patterns/scan?tier=${tier}&limit=30&sort=timestamp_desc`);
+            // Map tier IDs to timeframe values (backend expects PascalCase)
+            const timeframeMap = {
+                daily: 'Daily',
+                hourly: 'Hourly',
+                intraday: 'Intraday',
+                weekly: 'Weekly',
+                monthly: 'Monthly',
+                daily_intraday: 'DailyIntraday',
+                indicators: 'All'
+            };
+            const timeframe = timeframeMap[tier] || 'All';
+
+            // Use correct API parameters (timeframe, sort_by, sort_order)
+            const response = await fetch(`/api/patterns/scan?timeframe=${timeframe}&limit=30&sort_by=detected_at&sort_order=desc`);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -869,8 +887,11 @@ class PatternFlowService {
         const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NVDA', 'AMD'];
         const types = {
             daily: ['Bull Flag', 'Bear Flag', 'Cup and Handle', 'Head and Shoulders'],
+            hourly: ['Hourly Breakout', 'Momentum Build', 'Range Break', 'Trend Shift'],
             intraday: ['Momentum Shift', 'Volume Spike', 'Support Break', 'Resistance Test'],
-            combo: ['Multi-TF Bull', 'Cross-Tier Confirm', 'Divergence Signal'],
+            weekly: ['Weekly Trend', 'Long-term Break', 'Major Support', 'Key Resistance'],
+            monthly: ['Monthly Pattern', 'Long Trend', 'Major Level', 'Cycle Turn'],
+            daily_intraday: ['Multi-TF Bull', 'Cross-Tier Confirm', 'Divergence Signal'],
             indicators: ['RSI Oversold', 'MACD Cross', 'MA Golden Cross', 'Volume Surge']
         };
 
@@ -996,7 +1017,7 @@ class PatternFlowService {
     }
 
     generateTestPatterns() {
-        const tiers = ['daily', 'intraday', 'combo', 'indicators'];
+        const tiers = ['intraday', 'hourly', 'daily', 'weekly', 'monthly', 'daily_intraday', 'indicators'];
         const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NVDA', 'AMD', 'SPY', 'QQQ'];
 
         // Generate 5-8 patterns for each tier
@@ -1022,7 +1043,7 @@ class PatternFlowService {
     }
 
     generateSingleTestPattern() {
-        const tiers = ['daily', 'intraday', 'combo', 'indicators'];
+        const tiers = ['intraday', 'hourly', 'daily', 'weekly', 'monthly', 'daily_intraday', 'indicators'];
         const tier = tiers[Math.floor(Math.random() * tiers.length)];
         const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NVDA', 'AMD', 'SPY', 'QQQ'];
 
@@ -1038,8 +1059,11 @@ class PatternFlowService {
     createTestPattern(tier, symbols) {
         const patternTypes = {
             daily: ['Bull Flag', 'Bear Flag', 'Cup & Handle', 'Head & Shoulders', 'Double Top', 'Double Bottom', 'Triangle', 'Wedge'],
+            hourly: ['Hourly Breakout', 'Momentum Build', 'Range Break', 'Trend Shift', 'Support Test', 'Volume Pattern'],
             intraday: ['Momentum Burst', 'Volume Spike', 'Support Break', 'Resistance Test', 'Gap Fill', 'Reversal', 'Breakout'],
-            combo: ['Multi-TF Bullish', 'Cross-Tier Confirm', 'Divergence Signal', 'Convergence Setup', 'Trend Alignment'],
+            weekly: ['Weekly Trend', 'Long-term Break', 'Major Support', 'Key Resistance', 'Cycle Pattern', 'Swing Setup'],
+            monthly: ['Monthly Pattern', 'Long Trend', 'Major Level', 'Cycle Turn', 'Position Build', 'Investment Signal'],
+            daily_intraday: ['Multi-TF Bullish', 'Cross-Tier Confirm', 'Divergence Signal', 'Convergence Setup', 'Trend Alignment'],
             indicators: ['RSI Oversold', 'RSI Overbought', 'MACD Cross', 'MA Golden Cross', 'Volume Surge', 'Bollinger Squeeze', 'Stochastic Signal']
         };
 
