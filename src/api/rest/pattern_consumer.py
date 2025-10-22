@@ -73,7 +73,7 @@ def validate_scan_parameters(args: dict[str, Any]) -> dict[str, Any]:
 
         # Parse timeframe filter
         timeframe = args.get('timeframe', 'All')
-        valid_timeframes = ['All', 'Daily', 'Intraday', 'Combo']
+        valid_timeframes = ['All', 'Daily', 'Hourly', 'Intraday', 'Weekly', 'Monthly', 'Combo', 'DailyIntraday']
         if timeframe not in valid_timeframes:
             timeframe = 'All'
 

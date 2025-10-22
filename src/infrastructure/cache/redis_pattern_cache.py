@@ -38,7 +38,7 @@ class CachedPattern:
     detected_at: float  # Unix timestamp
     expires_at: float   # Unix timestamp
     indicators: dict[str, Any]
-    source_tier: str    # daily, intraday, combo
+    source_tier: str    # daily, hourly, intraday, weekly, monthly, daily_intraday
 
     def to_api_dict(self) -> dict[str, Any]:
         """Convert to API response format."""

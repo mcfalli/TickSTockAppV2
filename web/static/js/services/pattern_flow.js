@@ -649,20 +649,24 @@ class PatternFlowService {
 
     async loadPatternsByTier(tier) {
         try {
-            // Map tier IDs to timeframe values (backend expects PascalCase)
-            const timeframeMap = {
-                daily: 'Daily',
-                hourly: 'Hourly',
-                intraday: 'Intraday',
-                weekly: 'Weekly',
-                monthly: 'Monthly',
-                daily_intraday: 'DailyIntraday',
-                indicators: 'All'
+            // Map tier IDs to tier-specific API endpoints (query database tables directly)
+            const endpointMap = {
+                daily: '/api/patterns/daily',
+                hourly: '/api/patterns/hourly',
+                intraday: '/api/patterns/intraday',
+                weekly: '/api/patterns/weekly',
+                monthly: '/api/patterns/monthly',
+                daily_intraday: '/api/patterns/daily_intraday',
+                indicators: '/api/patterns/indicators/latest'
             };
-            const timeframe = timeframeMap[tier] || 'All';
 
-            // Use correct API parameters (timeframe, sort_by, sort_order)
-            const response = await fetch(`/api/patterns/scan?timeframe=${timeframe}&limit=30&sort_by=detected_at&sort_order=desc`);
+            const endpoint = endpointMap[tier];
+            if (!endpoint) {
+                throw new Error(`Unknown tier: ${tier}`);
+            }
+
+            // Call tier-specific endpoint with appropriate parameters
+            const response = await fetch(`${endpoint}?limit=50&confidence_min=0.5`);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -670,8 +674,43 @@ class PatternFlowService {
 
             const data = await response.json();
 
+            // Handle indicators endpoint (returns 'indicators' array instead of 'patterns')
+            let rawData = tier === 'indicators' ? (data.indicators || []) : (data.patterns || []);
+
+            // Transform data to match expected format
+            const transformedPatterns = rawData.map(p => {
+                // Handle indicators format (different field names)
+                if (tier === 'indicators') {
+                    return {
+                        id: p.id,
+                        symbol: p.symbol,
+                        type: p.indicator_type || 'Indicator',
+                        confidence: 1.0,  // Indicators don't have confidence
+                        timestamp: p.calculation_timestamp || p.timestamp,
+                        value: p.value,
+                        value_data: p.value_data,
+                        timeframe: p.timeframe,
+                        metadata: p.metadata,
+                        tier: tier
+                    };
+                }
+
+                // Handle pattern format
+                return {
+                    id: p.id,
+                    symbol: p.symbol,
+                    type: p.pattern_type || p.type,
+                    confidence: p.confidence,
+                    timestamp: p.detection_timestamp || p.timestamp,
+                    pattern_data: p.pattern_data,
+                    levels: p.levels,
+                    metadata: p.metadata,
+                    tier: p.tier || tier
+                };
+            });
+
             // Update state and UI
-            this.state.patterns[tier] = data.patterns || [];
+            this.state.patterns[tier] = transformedPatterns;
             this.renderPatterns(tier);
 
         } catch (error) {

@@ -350,3 +350,504 @@ def health_check():
             'error': str(e),
             'timestamp': datetime.now().isoformat()
         }), 500
+
+@tier_patterns_bp.route('/hourly', methods=['GET'])
+def get_hourly_patterns():
+    """
+    Get hourly tier patterns from hourly_patterns table.
+
+    Query Parameters:
+        symbols: Comma-separated list of symbols (optional)
+        confidence_min: Minimum confidence threshold (default: 0.6)
+        limit: Maximum number of patterns to return (default: 50)
+
+    Returns:
+        JSON response with hourly patterns
+    """
+    start_time = time.time()
+
+    try:
+        # Parse query parameters
+        symbols = request.args.get('symbols', '').split(',') if request.args.get('symbols') else []
+        symbols = [s.strip().upper() for s in symbols if s.strip()]
+        confidence_min = float(request.args.get('confidence_min', 0.6))
+        limit = int(request.args.get('limit', 50))
+
+        # Validate parameters
+        confidence_min = max(0.0, min(1.0, confidence_min))
+        limit = max(1, min(200, limit))
+
+        # Build SQL query for hourly patterns (1 hour window)
+        query = """
+        SELECT
+            id,
+            symbol,
+            pattern_type,
+            confidence,
+            pattern_data,
+            detection_timestamp,
+            expiration_timestamp,
+            levels,
+            metadata
+        FROM hourly_patterns
+        WHERE confidence >= %s
+        AND detection_timestamp > NOW() - INTERVAL '1 hour'
+        """
+
+        params = [confidence_min]
+
+        # Add symbol filtering if specified
+        if symbols:
+            placeholders = ','.join(['%s'] * len(symbols))
+            query += f" AND symbol IN ({placeholders})"
+            params.extend(symbols)
+
+        # Order by confidence and limit
+        query += " ORDER BY confidence DESC, detection_timestamp DESC LIMIT %s"
+        params.append(limit)
+
+        # Execute query
+        db = TickStockDatabase(current_app.config)
+        results = db.execute_query(query, params)
+
+        # Format results for frontend
+        patterns = []
+        for row in results:
+            pattern = {
+                'id': str(row[0]),
+                'symbol': row[1],
+                'pattern_type': row[2],
+                'confidence': float(row[3]),
+                'pattern_data': row[4],
+                'detection_timestamp': row[5].isoformat() if row[5] else None,
+                'expiration_timestamp': row[6].isoformat() if row[6] else None,
+                'levels': row[7] if row[7] else [],
+                'metadata': row[8] if row[8] else {},
+                'tier': 'hourly',
+                'priority': _calculate_priority(float(row[3]))
+            }
+            patterns.append(pattern)
+
+        response_time = (time.time() - start_time) * 1000
+
+        response = {
+            'patterns': patterns,
+            'metadata': {
+                'count': len(patterns),
+                'tier': 'hourly',
+                'confidence_min': confidence_min,
+                'symbols_filter': symbols if symbols else 'all',
+                'response_time_ms': round(response_time, 2)
+            }
+        }
+
+        logger.info(f"TIER-PATTERNS-API: Returned {len(patterns)} hourly patterns in {response_time:.2f}ms")
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"TIER-PATTERNS-API: Hourly patterns error: {e}")
+        return jsonify({'error': 'Failed to fetch hourly patterns'}), 500
+
+@tier_patterns_bp.route('/weekly', methods=['GET'])
+def get_weekly_patterns():
+    """
+    Get weekly tier patterns from weekly_patterns table.
+
+    Query Parameters:
+        symbols: Comma-separated list of symbols (optional)
+        confidence_min: Minimum confidence threshold (default: 0.6)
+        limit: Maximum number of patterns to return (default: 50)
+
+    Returns:
+        JSON response with weekly patterns
+    """
+    start_time = time.time()
+
+    try:
+        # Parse query parameters
+        symbols = request.args.get('symbols', '').split(',') if request.args.get('symbols') else []
+        symbols = [s.strip().upper() for s in symbols if s.strip()]
+        confidence_min = float(request.args.get('confidence_min', 0.6))
+        limit = int(request.args.get('limit', 50))
+
+        # Validate parameters
+        confidence_min = max(0.0, min(1.0, confidence_min))
+        limit = max(1, min(200, limit))
+
+        # Build SQL query for weekly patterns (this week since Monday)
+        query = """
+        SELECT
+            id,
+            symbol,
+            pattern_type,
+            confidence,
+            pattern_data,
+            detection_timestamp,
+            expiration_date,
+            levels,
+            metadata
+        FROM weekly_patterns
+        WHERE confidence >= %s
+        AND detection_timestamp >= date_trunc('week', NOW())
+        """
+
+        params = [confidence_min]
+
+        # Add symbol filtering if specified
+        if symbols:
+            placeholders = ','.join(['%s'] * len(symbols))
+            query += f" AND symbol IN ({placeholders})"
+            params.extend(symbols)
+
+        # Order by confidence and limit
+        query += " ORDER BY confidence DESC, detection_timestamp DESC LIMIT %s"
+        params.append(limit)
+
+        # Execute query
+        db = TickStockDatabase(current_app.config)
+        results = db.execute_query(query, params)
+
+        # Format results for frontend
+        patterns = []
+        for row in results:
+            pattern = {
+                'id': str(row[0]),
+                'symbol': row[1],
+                'pattern_type': row[2],
+                'confidence': float(row[3]),
+                'pattern_data': row[4],
+                'detection_timestamp': row[5].isoformat() if row[5] else None,
+                'expiration_date': row[6].isoformat() if row[6] else None,
+                'levels': row[7] if row[7] else [],
+                'metadata': row[8] if row[8] else {},
+                'tier': 'weekly',
+                'priority': _calculate_priority(float(row[3]))
+            }
+            patterns.append(pattern)
+
+        response_time = (time.time() - start_time) * 1000
+
+        response = {
+            'patterns': patterns,
+            'metadata': {
+                'count': len(patterns),
+                'tier': 'weekly',
+                'confidence_min': confidence_min,
+                'symbols_filter': symbols if symbols else 'all',
+                'response_time_ms': round(response_time, 2)
+            }
+        }
+
+        logger.info(f"TIER-PATTERNS-API: Returned {len(patterns)} weekly patterns in {response_time:.2f}ms")
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"TIER-PATTERNS-API: Weekly patterns error: {e}")
+        return jsonify({'error': 'Failed to fetch weekly patterns'}), 500
+
+@tier_patterns_bp.route('/monthly', methods=['GET'])
+def get_monthly_patterns():
+    """
+    Get monthly tier patterns from monthly_patterns table.
+
+    Query Parameters:
+        symbols: Comma-separated list of symbols (optional)
+        confidence_min: Minimum confidence threshold (default: 0.6)
+        limit: Maximum number of patterns to return (default: 50)
+
+    Returns:
+        JSON response with monthly patterns
+    """
+    start_time = time.time()
+
+    try:
+        # Parse query parameters
+        symbols = request.args.get('symbols', '').split(',') if request.args.get('symbols') else []
+        symbols = [s.strip().upper() for s in symbols if s.strip()]
+        confidence_min = float(request.args.get('confidence_min', 0.6))
+        limit = int(request.args.get('limit', 50))
+
+        # Validate parameters
+        confidence_min = max(0.0, min(1.0, confidence_min))
+        limit = max(1, min(200, limit))
+
+        # Build SQL query for monthly patterns (this month since 1st)
+        query = """
+        SELECT
+            id,
+            symbol,
+            pattern_type,
+            confidence,
+            pattern_data,
+            detection_timestamp,
+            expiration_date,
+            levels,
+            metadata
+        FROM monthly_patterns
+        WHERE confidence >= %s
+        AND detection_timestamp >= date_trunc('month', NOW())
+        """
+
+        params = [confidence_min]
+
+        # Add symbol filtering if specified
+        if symbols:
+            placeholders = ','.join(['%s'] * len(symbols))
+            query += f" AND symbol IN ({placeholders})"
+            params.extend(symbols)
+
+        # Order by confidence and limit
+        query += " ORDER BY confidence DESC, detection_timestamp DESC LIMIT %s"
+        params.append(limit)
+
+        # Execute query
+        db = TickStockDatabase(current_app.config)
+        results = db.execute_query(query, params)
+
+        # Format results for frontend
+        patterns = []
+        for row in results:
+            pattern = {
+                'id': str(row[0]),
+                'symbol': row[1],
+                'pattern_type': row[2],
+                'confidence': float(row[3]),
+                'pattern_data': row[4],
+                'detection_timestamp': row[5].isoformat() if row[5] else None,
+                'expiration_date': row[6].isoformat() if row[6] else None,
+                'levels': row[7] if row[7] else [],
+                'metadata': row[8] if row[8] else {},
+                'tier': 'monthly',
+                'priority': _calculate_priority(float(row[3]))
+            }
+            patterns.append(pattern)
+
+        response_time = (time.time() - start_time) * 1000
+
+        response = {
+            'patterns': patterns,
+            'metadata': {
+                'count': len(patterns),
+                'tier': 'monthly',
+                'confidence_min': confidence_min,
+                'symbols_filter': symbols if symbols else 'all',
+                'response_time_ms': round(response_time, 2)
+            }
+        }
+
+        logger.info(f"TIER-PATTERNS-API: Returned {len(patterns)} monthly patterns in {response_time:.2f}ms")
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"TIER-PATTERNS-API: Monthly patterns error: {e}")
+        return jsonify({'error': 'Failed to fetch monthly patterns'}), 500
+
+@tier_patterns_bp.route('/daily_intraday', methods=['GET'])
+def get_daily_intraday_patterns():
+    """
+    Get daily-intraday combo patterns from daily_intraday_patterns table.
+
+    Query Parameters:
+        symbols: Comma-separated list of symbols (optional)
+        confidence_min: Minimum confidence threshold (default: 0.6)
+        limit: Maximum number of patterns to return (default: 50)
+
+    Returns:
+        JSON response with daily-intraday combo patterns
+    """
+    start_time = time.time()
+
+    try:
+        # Parse query parameters
+        symbols = request.args.get('symbols', '').split(',') if request.args.get('symbols') else []
+        symbols = [s.strip().upper() for s in symbols if s.strip()]
+        confidence_min = float(request.args.get('confidence_min', 0.6))
+        limit = int(request.args.get('limit', 50))
+
+        # Validate parameters
+        confidence_min = max(0.0, min(1.0, confidence_min))
+        limit = max(1, min(200, limit))
+
+        # Build SQL query for daily_intraday patterns (30 minutes window, includes intraday_signal)
+        query = """
+        SELECT
+            id,
+            symbol,
+            pattern_type,
+            confidence,
+            pattern_data,
+            detection_timestamp,
+            expiration_timestamp,
+            levels,
+            metadata,
+            intraday_signal
+        FROM daily_intraday_patterns
+        WHERE confidence >= %s
+        AND detection_timestamp > NOW() - INTERVAL '30 minutes'
+        """
+
+        params = [confidence_min]
+
+        # Add symbol filtering if specified
+        if symbols:
+            placeholders = ','.join(['%s'] * len(symbols))
+            query += f" AND symbol IN ({placeholders})"
+            params.extend(symbols)
+
+        # Order by confidence and limit
+        query += " ORDER BY confidence DESC, detection_timestamp DESC LIMIT %s"
+        params.append(limit)
+
+        # Execute query
+        db = TickStockDatabase(current_app.config)
+        results = db.execute_query(query, params)
+
+        # Format results for frontend
+        patterns = []
+        for row in results:
+            pattern = {
+                'id': str(row[0]),
+                'symbol': row[1],
+                'pattern_type': row[2],
+                'confidence': float(row[3]),
+                'pattern_data': row[4],
+                'detection_timestamp': row[5].isoformat() if row[5] else None,
+                'expiration_timestamp': row[6].isoformat() if row[6] else None,
+                'levels': row[7] if row[7] else [],
+                'metadata': row[8] if row[8] else {},
+                'intraday_signal': row[9] if row[9] else {},
+                'tier': 'daily_intraday',
+                'priority': _calculate_priority(float(row[3]))
+            }
+            patterns.append(pattern)
+
+        response_time = (time.time() - start_time) * 1000
+
+        response = {
+            'patterns': patterns,
+            'metadata': {
+                'count': len(patterns),
+                'tier': 'daily_intraday',
+                'confidence_min': confidence_min,
+                'symbols_filter': symbols if symbols else 'all',
+                'response_time_ms': round(response_time, 2)
+            }
+        }
+
+        logger.info(f"TIER-PATTERNS-API: Returned {len(patterns)} daily_intraday patterns in {response_time:.2f}ms")
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"TIER-PATTERNS-API: Daily-intraday patterns error: {e}")
+        return jsonify({'error': 'Failed to fetch daily_intraday patterns'}), 500
+
+@tier_patterns_bp.route('/indicators/latest', methods=['GET'])
+def get_latest_indicators():
+    """
+    Get latest indicator calculations from intraday_indicators table.
+
+    Query Parameters:
+        symbols: Comma-separated list of symbols (optional)
+        timeframes: Comma-separated timeframe list (optional: 1min,5min,hourly,daily)
+        indicator_types: Comma-separated indicator types (optional)
+        limit: Maximum number of indicators to return (default: 30, max: 100)
+
+    Returns:
+        JSON response with latest indicators across all timeframes
+    """
+    start_time = time.time()
+
+    try:
+        # Parse query parameters
+        symbols = request.args.get('symbols', '').split(',') if request.args.get('symbols') else []
+        symbols = [s.strip().upper() for s in symbols if s.strip()]
+
+        timeframes = request.args.get('timeframes', '').split(',') if request.args.get('timeframes') else []
+        timeframes = [t.strip() for t in timeframes if t.strip()]
+
+        indicator_types = request.args.get('indicator_types', '').split(',') if request.args.get('indicator_types') else []
+        indicator_types = [i.strip() for i in indicator_types if i.strip()]
+
+        limit = int(request.args.get('limit', 30))
+
+        # Validate parameters
+        limit = max(1, min(100, limit))
+
+        # Build SQL query for indicators (30 minutes window)
+        query = """
+        SELECT
+            id,
+            symbol,
+            indicator_type,
+            value,
+            value_data,
+            calculation_timestamp,
+            timeframe,
+            metadata
+        FROM intraday_indicators
+        WHERE calculation_timestamp > NOW() - INTERVAL '30 minutes'
+        AND expiration_timestamp > NOW()
+        """
+
+        params = []
+
+        # Add optional filters
+        if symbols:
+            placeholders = ','.join(['%s'] * len(symbols))
+            query += f" AND symbol IN ({placeholders})"
+            params.extend(symbols)
+
+        if timeframes:
+            placeholders = ','.join(['%s'] * len(timeframes))
+            query += f" AND timeframe IN ({placeholders})"
+            params.extend(timeframes)
+
+        if indicator_types:
+            placeholders = ','.join(['%s'] * len(indicator_types))
+            query += f" AND indicator_type IN ({placeholders})"
+            params.extend(indicator_types)
+
+        # Order by calculation timestamp and limit
+        query += " ORDER BY calculation_timestamp DESC LIMIT %s"
+        params.append(limit)
+
+        # Execute query
+        db = TickStockDatabase(current_app.config)
+        results = db.execute_query(query, params)
+
+        # Format results for frontend
+        indicators = []
+        for row in results:
+            indicator = {
+                'id': str(row[0]),
+                'symbol': row[1],
+                'indicator_type': row[2],
+                'value': float(row[3]) if row[3] else None,
+                'value_data': row[4] if row[4] else {},
+                'calculation_timestamp': row[5].isoformat() if row[5] else None,
+                'timeframe': row[6],
+                'metadata': row[7] if row[7] else {}
+            }
+            indicators.append(indicator)
+
+        response_time = (time.time() - start_time) * 1000
+
+        # Get unique timeframes for metadata
+        timeframes_included = list(set([ind['timeframe'] for ind in indicators])) if indicators else []
+
+        response = {
+            'indicators': indicators,
+            'metadata': {
+                'count': len(indicators),
+                'response_time_ms': round(response_time, 2),
+                'timeframes_included': timeframes_included,
+                'symbols_filter': symbols if symbols else 'all'
+            }
+        }
+
+        logger.info(f"TIER-PATTERNS-API: Returned {len(indicators)} indicators in {response_time:.2f}ms")
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"TIER-PATTERNS-API: Indicators error: {e}")
+        return jsonify({'error': 'Failed to fetch indicators'}), 500
