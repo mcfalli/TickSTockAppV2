@@ -1,8 +1,8 @@
 # Last Test Run Report
 
-**Generated**: 2025-10-19 17:04:03
+**Generated**: 2025-10-20 12:33:13
 **Command**: `python run_tests.py`
-**Total Duration**: 17.98 seconds
+**Total Duration**: 20.10 seconds
 **Status**: [FAILED]
 
 ## Summary Statistics
@@ -10,7 +10,7 @@
 - **Test Suites Run**: 2
 - **Test Suites Passed**: 1
 - **Test Suites Failed**: 1
-- **Individual Tests Passed**: 19
+- **Individual Tests Passed**: 23
 - **Individual Tests Failed**: 6
 - **Performance Target (<10s)**: [MISSED]
 
@@ -18,8 +18,8 @@
 
 | Suite | Status | Duration | Tests |
 |-------|--------|----------|-------|
-| Core Integration Tests | [FAIL] | 8.80s | 15 |
-| End-to-End Pattern Flow | [PASS] | 9.19s | 10 |
+| Core Integration Tests | [FAIL] | 9.75s | 15 |
+| End-to-End Pattern Flow | [PASS] | 10.35s | 14 |
 
 ## Individual Test Results
 
@@ -31,23 +31,27 @@
 - [PASS] Database access working: 0 error log entries in last 24 hours
 - [PASS] Database write access confirmed via error_logs table
 - [FAIL] Pattern Flow FAILED: Failed to publish test pattern
-- [PASS] Redis heartbeat: 0.4ms latency
-- [PASS] Database heartbeat: 0.1ms latency
+- [PASS] Redis heartbeat: 0.5ms latency
+- [PASS] Database heartbeat: 0.2ms latency
 - [PASS] Error logging active: 0 entries in last 24 hours
 - [FAIL] Redis->DB Flow FAILED: Failed to publish to Redis channel
 - [PASS] Pattern cache contains 0 entries
 - [FAIL] WebSocket Config FAILED: No pattern event handlers registered
-- [PASS] Redis performance: 0.3ms avg latency
-- [PASS] Database performance: 1.2ms avg query latency
-- [PASS] Error logging performance: 11.7ms write+delete latency
+- [PASS] Redis performance: 0.4ms avg latency
+- [PASS] Database performance: 1.8ms avg query latency
+- [PASS] Error logging performance: 1.2ms write+delete latency
 - [FAIL] Error Recovery FAILED: System not recovering from bad events
 
 ### End-to-End Pattern Flow
 
-- [PASS] Published pattern with flow_id: 3a3c9e7b-f8b9-456e-b8cb-4ebbc4b5b24b
+- [PASS] Published pattern with flow_id: eb260a81-4a57-4937-9546-a320b4e6948f
 - [PASS] Published daily tier pattern: HeadShoulders for TSLA
+- [PASS] Published hourly tier pattern: MomentumShift for AMD
 - [PASS] Published intraday tier pattern: VolumeSurge for NVDA
-- [PASS] Published combo tier pattern: SupportBreakout for AAPL
+- [PASS] Published weekly tier pattern: TrendReversal for SPY
+- [PASS] Published monthly tier pattern: BreakoutPattern for QQQ
+- [PASS] Published daily_intraday tier pattern: SupportBreakout for AAPL
+- [PASS] Published indicators tier pattern: RSI_Oversold for MSFT
 - [PASS] Sent 40 patterns in 0.4s
 - [PASS] Database logging verified: 5/5 flows tested successfully
 - [PASS] Redis cache status:

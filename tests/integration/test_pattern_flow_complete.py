@@ -93,11 +93,15 @@ class TestPatternFlowComplete:
         return flow_id
 
     def test_multi_tier_patterns(self):
-        """Test patterns for all three tiers (Daily/Intraday/Combo)."""
+        """Test patterns for all seven tiers."""
         tiers = [
             ('daily', 'HeadShoulders', 'TSLA', 0.90),
+            ('hourly', 'MomentumShift', 'AMD', 0.85),
             ('intraday', 'VolumeSurge', 'NVDA', 0.75),
-            ('combo', 'SupportBreakout', 'AAPL', 0.82)
+            ('weekly', 'TrendReversal', 'SPY', 0.88),
+            ('monthly', 'BreakoutPattern', 'QQQ', 0.92),
+            ('daily_intraday', 'SupportBreakout', 'AAPL', 0.82),
+            ('indicators', 'RSI_Oversold', 'MSFT', 0.78)
         ]
 
         flow_ids = []

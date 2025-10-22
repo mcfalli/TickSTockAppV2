@@ -69,48 +69,67 @@ SPRINT: 26 - Pattern Flow Display
 
 .pattern-flow-columns {
     display: flex !important;
-    flex-wrap: nowrap !important;
+    flex-wrap: wrap !important;
     gap: 15px;
     margin: 0;
     overflow-x: auto;
 }
 
 .pattern-column-wrapper {
-    flex: 1 1 25%;
+    flex: 1 1 calc(14.28% - 13px);
     min-width: 250px;
-    max-width: calc(25% - 12px);
 }
 
-/* Force 4 columns in one row on larger screens */
-@media (min-width: 1200px) {
+/* Desktop (1600px+): 7 columns */
+@media (min-width: 1600px) {
     .pattern-flow-columns {
         overflow-x: hidden;
     }
 
     .pattern-column-wrapper {
-        flex: 1 1 calc(25% - 12px);
-        max-width: calc(25% - 12px);
+        flex: 1 1 calc(14.28% - 13px);
+        max-width: calc(14.28% - 13px);
     }
 }
 
-/* Stack to 2x2 on medium screens */
-@media (min-width: 768px) and (max-width: 1199px) {
+/* Large Laptop (1200px-1599px): 5 columns */
+@media (min-width: 1200px) and (max-width: 1599px) {
     .pattern-flow-columns {
-        flex-wrap: wrap !important;
+        overflow-x: hidden;
     }
 
     .pattern-column-wrapper {
-        flex: 1 1 calc(50% - 8px);
-        max-width: calc(50% - 8px);
+        flex: 1 1 calc(20% - 12px);
+        max-width: calc(20% - 12px);
     }
 }
 
-/* Stack vertically on small screens */
-@media (max-width: 767px) {
-    .pattern-flow-columns {
-        flex-direction: column;
+/* Laptop (992px-1199px): 4 columns */
+@media (min-width: 992px) and (max-width: 1199px) {
+    .pattern-column-wrapper {
+        flex: 1 1 calc(25% - 11.25px);
+        max-width: calc(25% - 11.25px);
     }
+}
 
+/* Tablet (768px-991px): 3 columns */
+@media (min-width: 768px) and (max-width: 991px) {
+    .pattern-column-wrapper {
+        flex: 1 1 calc(33.33% - 10px);
+        max-width: calc(33.33% - 10px);
+    }
+}
+
+/* Mobile (480px-767px): 2 columns */
+@media (min-width: 480px) and (max-width: 767px) {
+    .pattern-column-wrapper {
+        flex: 1 1 calc(50% - 7.5px);
+        max-width: calc(50% - 7.5px);
+    }
+}
+
+/* Small Mobile (<480px): 1 column */
+@media (max-width: 479px) {
     .pattern-column-wrapper {
         flex: 1 1 100%;
         max-width: 100%;
