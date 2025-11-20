@@ -97,7 +97,7 @@ CREATE TABLE equity_types_enhanced (
 INSERT INTO equity_types_enhanced VALUES (
     'ETF',
     '{
-        "data_sources": ["polygon", "fund_provider"],
+        "data_sources": ["massive", "fund_provider"],
         "update_frequency": "realtime",
         "validation_rules": {
             "aum_minimum": 50000000,

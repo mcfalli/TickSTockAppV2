@@ -140,7 +140,7 @@ market_tick = {
     'price': 150.25,
     'volume': 1000,
     'timestamp': 1697385600.123,
-    'source': 'massive'  # Data source (polygon|synthetic)
+    'source': 'massive'  # Data source (massive|synthetic)
 }
 ```
 
@@ -173,7 +173,7 @@ class TickPublisher:
             'price': tick_data['price'],
             'volume': tick_data.get('volume', 0),
             'timestamp': tick_data['timestamp'],
-            'source': tick_data.get('source', 'polygon')
+            'source': tick_data.get('source', 'massive')
         }
         self.redis_client.publish('tickstock:market:ticks', message)
 ```

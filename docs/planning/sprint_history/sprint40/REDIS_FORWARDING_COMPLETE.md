@@ -144,7 +144,7 @@ if self.data_publisher and self.data_publisher.redis_client:
 - `price` (float): Current price
 - `volume` (int): Tick volume (0 if not available)
 - `timestamp` (int): Unix timestamp in milliseconds
-- `source` (string): Always "polygon"
+- `source` (string): Always "massive"
 
 ---
 

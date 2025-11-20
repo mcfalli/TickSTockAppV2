@@ -194,7 +194,7 @@ REDIS_MARKET_TICK_CHANNEL=tickstock:market:ticks
 **Current** (lines 500-507):
 ```python
 # Attempts WebSocket connection to Massive (FAILS)
-self.connection_manager = ConnectionManager(polygon_url)
+self.connection_manager = ConnectionManager(massive_url)
 self.websocket_handler = DatabaseWebSocketHandler(symbols)
 self.connection_manager.start()  # ERROR: Connection conflict
 ```

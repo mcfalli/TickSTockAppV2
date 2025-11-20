@@ -69,7 +69,7 @@ TickStock → Redis Pub-Sub → TickStockPL
 - **price**: Current price (float, 2 decimal places)
 - **volume**: Volume for this tick (integer)
 - **timestamp**: Unix timestamp with milliseconds (float)
-- **source**: Data source ("polygon", "synthetic", "tickstock_pl")
+- **source**: Data source ("massive", "synthetic", "tickstock_pl")
 - **market_status**: Market state ("REGULAR", "PRE", "AFTER", "CLOSED")
 
 ## Consumer Implementation

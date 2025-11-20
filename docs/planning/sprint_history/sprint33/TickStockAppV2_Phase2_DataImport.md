@@ -154,7 +154,7 @@ ORDER BY retry_count ASC;
 ```yaml
 # Data Import Settings
 data_import:
-  polygon:
+  massive:
     api_key: "YOUR_MASSIVE_API_KEY"  # Required for market data
     rate_limit_ms: 12  # Respect API rate limits
     batch_size: 100

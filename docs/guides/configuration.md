@@ -72,7 +72,7 @@ FEATURE_HISTORICAL_DATA=true
 FEATURE_WEBSOCKET_STREAMING=true
 
 # Data Sources
-DATA_SOURCE_TYPE=massive          # polygon | synthetic | csv
+DATA_SOURCE_TYPE=massive          # massive | synthetic | csv
 MASSIVE_API_KEY=your-api-key
 POLYGON_BASE_URL=https://api.massive.com
 SYNTHETIC_TICK_RATE=100           # Ticks per second for synthetic data
