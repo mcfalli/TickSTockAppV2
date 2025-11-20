@@ -72,9 +72,9 @@ Phase 3 implements advanced features building upon the foundation and automation
    ```python
    # ETF Universe Management Implementation
    class ETFUniverseManager:
-       def __init__(self, db_connection, polygon_client, redis_client):
+       def __init__(self, db_connection, massive_client, redis_client):
            self.db = db_connection
-           self.polygon = polygon_client
+           self.polygon = massive_client
            self.redis = redis_client
            
        def expand_etf_universes(self):

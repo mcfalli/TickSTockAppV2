@@ -31,7 +31,7 @@ TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem,
 - **[API Endpoints](./api/endpoints.md)** - Complete REST API documentation
 
 ### Data Sources
-- **[Massive Configuration](./data-sources/polygon/)** - Market data provider setup
+- **[Massive Configuration](./data-sources/massive/)** - Market data provider setup
 
 ### Planning & Sprints
 - **[Sprint Documentation](./planning/sprints/)** - Current and past sprint plans

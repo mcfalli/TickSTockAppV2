@@ -153,7 +153,7 @@ src/
                 realtime_adapter.py
             alpaca/
             iex/
-            polygon/
+            massive/
                 __init__.py
                 api.py
                 provider.py
@@ -201,7 +201,7 @@ src/
             data_publisher.py
             display_converter.py
             manager.py
-            polygon_client.py
+            massive_client.py
             publisher.py
     services/
         market_schedule_manager.py

@@ -232,7 +232,7 @@ Load historical data for specified symbols.
   "start_date": "2025-01-01",
   "end_date": "2025-09-26",
   "timeframes": ["daily", "hourly"],
-  "provider": "polygon"
+  "provider": "massive"
 }
 ```
 

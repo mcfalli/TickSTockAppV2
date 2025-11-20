@@ -275,7 +275,7 @@ TickStockAppV2 uses a centralized configuration management system via `src/core/
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `DATA_SOURCE_MODE` | str | 'production' | Data source mode (production/test/hybrid) |
-| `ACTIVE_DATA_PROVIDERS` | list | ['polygon'] | Active data providers |
+| `ACTIVE_DATA_PROVIDERS` | list | ['massive'] | Active data providers |
 
 ### Configuration Files
 | Parameter | Type | Default | Description |

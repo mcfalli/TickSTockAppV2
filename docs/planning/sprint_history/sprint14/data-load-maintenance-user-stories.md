@@ -50,7 +50,7 @@ Based on analysis of existing TickStock infrastructure, this document organizes 
 Let's build some fantastic algorithmic pattern libraries in Python to add to TickStock.ai! To load ETF data and tie it into pattern analysis, extend historical_loader.py with thematic grouping:
 ```python
 import pandas as pd
-from polygon import RESTClient  # Assuming we have Massive API wrapper
+from massive import RESTClient  # Assuming we have Massive API wrapper
 
 def load_etf_universe(api_key, universe_key='etf_growth'):
     client = RESTClient(api_key)
@@ -91,7 +91,7 @@ def expand_cache_entries(themes=['Sector ETFs', 'Growth ETFs']):
     universes = {}
     for theme in themes:
         # Query Massive for ETFs, filter by AUM > $1B
-        etfs = fetch_polygon_etfs(theme)  # Custom API call
+        etfs = fetch_massive_etfs(theme)  # Custom API call
         universes[theme] = [etf['ticker'] for etf in etfs if etf['aum'] > 1e9]
     update_db_cache_entries(universes)  # Insert to cache_entries table
     return universes

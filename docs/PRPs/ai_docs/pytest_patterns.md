@@ -293,11 +293,11 @@ class TestPatternFlowComplete:
 
 ```python
 # ALWAYS mock external APIs (Massive, external services)
-@mock.patch('src.data.polygon_client.MassiveClient')
-def test_with_mocked_polygon(mock_polygon):
+@mock.patch('src.data.massive_client.MassiveClient')
+def test_with_mocked_polygon(mock_massive):
     """Test without hitting real Massive API"""
     # Set up mock response
-    mock_polygon.get_ticker.return_value = {
+    mock_massive.get_ticker.return_value = {
         'ticker': 'AAPL',
         'name': 'Apple Inc.',
         'market': 'stocks',
@@ -305,11 +305,11 @@ def test_with_mocked_polygon(mock_polygon):
     }
 
     # Test service that uses Massive
-    service = MarketDataService(mock_polygon)
+    service = MarketDataService(mock_massive)
     ticker_info = service.get_ticker_info('AAPL')
 
     assert ticker_info['ticker'] == 'AAPL'
-    mock_polygon.get_ticker.assert_called_once_with('AAPL')
+    mock_massive.get_ticker.assert_called_once_with('AAPL')
 ```
 
 ### Gotcha: Never Mock What You Don't Own

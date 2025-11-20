@@ -503,7 +503,7 @@ TickStockAppV2 displays on dashboard
 **TickStockPL is source-agnostic** - it cannot distinguish synthetic from real data.
 
 Each tick includes `source` field:
-- Real data: `source: 'polygon'`
+- Real data: `source: 'massive'`
 - Synthetic: `source: 'simulated'`
 
 But TickStockPL processes identically.

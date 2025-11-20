@@ -33,7 +33,7 @@ if self.data_publisher and self.data_publisher.redis_client:
             'price': tick_data.price,
             'volume': tick_data.volume or 0,
             'timestamp': tick_data.timestamp,
-            'source': 'polygon'
+            'source': 'massive'
         }
 
         # Publish to TickStockPL streaming channel
@@ -134,7 +134,7 @@ if self.data_publisher and self.data_publisher.redis_client:
     "price": 257.01,
     "volume": 150,
     "timestamp": 1728300000000,
-    "source": "polygon"
+    "source": "massive"
 }
 ```
 

@@ -58,7 +58,7 @@ TickStock → Redis Pub-Sub → TickStockPL
   "price": 150.25,
   "volume": 1000,
   "timestamp": 1693123456.789,
-  "source": "polygon",
+  "source": "massive",
   "market_status": "REGULAR"
 }
 ```

@@ -454,10 +454,10 @@ def get_performance_analytics():
 
 def calculate_fundamental_correlations(user_id, time_filter):
     """Calculate correlations between pattern performance and Massive fundamentals"""
-    from polygon import RESTClient
+    from massive import RESTClient
     
     try:
-        polygon_client = RESTClient(current_app.config['MASSIVE_API_KEY'])
+        massive_client = RESTClient(current_app.config['MASSIVE_API_KEY'])
         
         # Get user's symbols with pattern performance
         query = f"""
@@ -480,7 +480,7 @@ def calculate_fundamental_correlations(user_id, time_filter):
             
             try:
                 # Get fundamental data from Massive
-                financials = polygon_client.get_ticker_details(symbol)
+                financials = massive_client.get_ticker_details(symbol)
                 
                 if financials and hasattr(financials, 'market_cap'):
                     # Revenue surprise correlation

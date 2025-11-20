@@ -62,7 +62,7 @@ Phase 2 builds upon Phase 1's foundation to implement comprehensive automation a
            yesterday = today - timedelta(days=1)
            
            # Fetch new listings from Massive.com
-           new_listings = self.polygon_client.get_tickers(
+           new_listings = self.massive_client.get_tickers(
                types='CS,ET', 
                date=yesterday,
                active=True

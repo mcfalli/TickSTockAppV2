@@ -541,7 +541,7 @@ def default_error_handler(e):
 **File**: `src/integrations/polygon_fundamentals.py`
 
 ```python
-from polygon import RESTClient
+from massive import RESTClient
 from app import db
 import json
 

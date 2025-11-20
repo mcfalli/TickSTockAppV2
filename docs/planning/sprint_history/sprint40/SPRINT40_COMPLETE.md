@@ -60,7 +60,7 @@ if self.data_publisher and self.data_publisher.redis_client:
             'price': tick_data.price,
             'volume': tick_data.volume or 0,
             'timestamp': tick_data.timestamp,
-            'source': 'polygon'
+            'source': 'massive'
         }
         self.data_publisher.redis_client.publish(
             'tickstock:market:ticks',

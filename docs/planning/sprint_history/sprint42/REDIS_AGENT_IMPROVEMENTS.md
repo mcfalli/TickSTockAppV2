@@ -140,7 +140,7 @@ market_tick = {
     'price': 150.25,
     'volume': 1000,
     'timestamp': 1697385600.123,
-    'source': 'polygon'  # Data source (polygon|synthetic)
+    'source': 'massive'  # Data source (polygon|synthetic)
 }
 ```
 

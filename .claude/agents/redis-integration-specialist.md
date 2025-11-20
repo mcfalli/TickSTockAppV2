@@ -207,7 +207,7 @@ market_tick = {
     'price': 150.25,                     # Current price
     'volume': 1000,                      # Tick volume
     'timestamp': 1697385600.123,         # Unix timestamp with milliseconds
-    'source': 'polygon'                  # Data source (polygon|synthetic)
+    'source': 'massive'                  # Data source (polygon|synthetic)
 }
 ```
 
@@ -480,7 +480,7 @@ def batch_publish_ticks(self, tick_events: list):
             'price': tick['price'],
             'volume': tick['volume'],
             'timestamp': tick['timestamp'],
-            'source': 'polygon'
+            'source': 'massive'
         })
         pipe.publish('tickstock:market:ticks', message)
 

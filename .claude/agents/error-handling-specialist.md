@@ -234,7 +234,7 @@ enhanced_logger.log_error(
 ```
 
 ### 5. Market Data Feed Errors
-**File**: `src/presentation/websocket/polygon_client.py`
+**File**: `src/presentation/websocket/massive_client.py`
 **Why**: Core data pipeline, revenue-critical
 ```python
 # Enhanced for data feed issues
@@ -407,7 +407,7 @@ critical_files = [
     'src/core/services/redis_event_subscriber.py',
     'src/infrastructure/database/connection_pool.py',
     'src/presentation/websocket/publisher.py',
-    'src/presentation/websocket/polygon_client.py',
+    'src/presentation/websocket/massive_client.py',
     'src/core/services/pattern_detection_service.py'
 ]
 ```

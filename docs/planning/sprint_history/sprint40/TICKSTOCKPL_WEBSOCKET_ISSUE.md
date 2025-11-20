@@ -163,7 +163,7 @@ def _on_tick(self, tick_data):
             'price': tick_data['price'],
             'volume': tick_data.get('volume', 0),
             'timestamp': tick_data['timestamp'],
-            'source': 'polygon'
+            'source': 'massive'
         }
 
         self.redis_client.publish(

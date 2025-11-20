@@ -41,8 +41,8 @@ class MarketBreadthDetector:
     Advanced market breadth analysis for index/ETF patterns and sector rotation
     """
     
-    def __init__(self, polygon_client: MassiveClient):
-        self.client = polygon_client
+    def __init__(self, massive_client: MassiveClient):
+        self.client = massive_client
         self.major_indices = ['SPY', 'QQQ', 'IWM', 'VXX', 'DIA']
         self.sector_etfs = {
             'XLK': 'Technology',
