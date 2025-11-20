@@ -316,7 +316,7 @@ def mock_ticks():
 
 
 @pytest.fixture
-def mock_polygon_data():
+def mock_massive_data():
     """Mock Massive API response data"""
     return {
         "results": [
@@ -338,7 +338,7 @@ def mock_polygon_data():
 
 # SPRINT 101: Multi-frequency test fixtures
 @pytest.fixture
-def mock_polygon_am_data():
+def mock_massive_am_data():
     """Mock Massive AM (per-minute aggregate) event data"""
     timestamp_ms = int(time.time() * 1000)
     return {
@@ -360,7 +360,7 @@ def mock_polygon_am_data():
 
 
 @pytest.fixture
-def mock_polygon_fmv_data():
+def mock_massive_fmv_data():
     """Mock Massive FMV (fair market value) event data"""
     return {
         "ev": "FMV",
@@ -377,7 +377,7 @@ def multi_frequency_config():
         "ENABLE_PER_MINUTE_EVENTS": True,
         "ENABLE_FMV_EVENTS": True,
         "MASSIVE_API_KEY": "test_api_key",
-        "POLYGON_BUSINESS_API_KEY": "test_business_api_key",
+        "MASSIVE_BUSINESS_API_KEY": "test_business_api_key",
         "EMISSION_INTERVAL": 1.0,
         "COLLECTION_INTERVAL": 0.5
     }

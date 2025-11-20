@@ -196,7 +196,7 @@ class TestServiceBoundaryEnforcement:
             'event_type': 'new_symbol_discovered',
             'data': {
                 'symbol': 'REDIS_ONLY_TEST',
-                'discovery_source': 'polygon_api',
+                'discovery_source': 'massive_api',
                 'confidence': 1.0
             }
         }

@@ -244,12 +244,12 @@ class TestSyntheticDataProvider:
 class TestDataProviderFactory:
     """Test data provider factory pattern"""
 
-    def test_create_polygon_provider(self):
+    def test_create_massive_provider(self):
         """Factory should create Massive provider with API key"""
         try:
             from src.infrastructure.data_sources.factory import create_data_provider
 
-            provider = create_data_provider("polygon", api_key="test_key")
+            provider = create_data_provider("massive", api_key="test_key")
             assert isinstance(provider, MassiveDataProvider)
             assert provider.api_key == "test_key"
         except ImportError:
@@ -281,7 +281,7 @@ class TestDataProviderPerformance:
     """Performance tests for data providers"""
 
     @pytest.mark.performance
-    def test_concurrent_data_retrieval(self, mock_polygon_data):
+    def test_concurrent_data_retrieval(self, mock_massive_data):
         """Data providers should handle concurrent requests"""
         import queue
         import threading

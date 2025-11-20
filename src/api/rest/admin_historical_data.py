@@ -71,7 +71,7 @@ def register_admin_historical_routes(app):
             config = get_config()
             BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
             bulk_seeder = BulkUniverseSeeder(
-                polygon_api_key=config.get('MASSIVE_API_KEY'),
+                massive_api_key=config.get('MASSIVE_API_KEY'),
                 database_uri=config.get('DATABASE_URI')
             )
             available_universes = bulk_seeder.get_available_universes()
@@ -324,7 +324,7 @@ def register_admin_historical_routes(app):
             config = get_config()
             BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
             bulk_seeder = BulkUniverseSeeder(
-                polygon_api_key=config.get('MASSIVE_API_KEY'),
+                massive_api_key=config.get('MASSIVE_API_KEY'),
                 database_uri=config.get('DATABASE_URI')
             )
 
@@ -461,7 +461,7 @@ def register_admin_historical_routes(app):
             config = get_config()
             BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
             bulk_seeder = BulkUniverseSeeder(
-                polygon_api_key=config.get('MASSIVE_API_KEY'),
+                massive_api_key=config.get('MASSIVE_API_KEY'),
                 database_uri=config.get('DATABASE_URI')
             )
 

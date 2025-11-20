@@ -182,7 +182,7 @@ class TickStockUnusedMethodDetector:
             "data_flow",
             "data_providers",
             "data_providers/base",
-            "data_providers/polygon",
+            "data_providers/massive",
             "data_providers/simulated",
             "event_detection",
             "event_detection/engines",

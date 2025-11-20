@@ -57,14 +57,14 @@ class ETFUniverseManager:
     - Performance tracking and correlation analysis
     """
 
-    def __init__(self, database_uri: str = None, polygon_api_key: str = None, redis_host: str = None):
+    def __init__(self, database_uri: str = None, massive_api_key: str = None, redis_host: str = None):
         """Initialize ETF universe manager with database, API, and Redis connections"""
         config = get_config()
         self.database_uri = database_uri or config.get(
             'DATABASE_URI',
             'postgresql://app_readwrite:OLD_PASSWORD_2024@localhost/tickstock'
         )
-        self.polygon_api_key = polygon_api_key or config.get('MASSIVE_API_KEY')
+        self.massive_api_key = massive_api_key or config.get('MASSIVE_API_KEY')
         self.redis_host = redis_host or config.get('REDIS_HOST', 'localhost')
         self.redis_port = config.get('REDIS_PORT', 6379)
         # ETF filtering criteria

@@ -421,7 +421,7 @@ class TestDataQualityMonitoringIntegration:
                     'missing_days': 2,
                     'last_valid_date': '2024-01-12',
                     'first_missing_date': '2024-01-13',
-                    'data_source': 'polygon_io',
+                    'data_source': 'massive_io',
                     'remediation_attempted': False
                 },
                 {

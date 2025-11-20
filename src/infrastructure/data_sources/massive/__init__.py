@@ -1,4 +1,4 @@
-# data_providers/polygon/__init__.py
+# data_providers/massive/__init__.py
 """
 Massive Data Provider Implementation
 

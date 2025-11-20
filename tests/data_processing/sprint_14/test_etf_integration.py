@@ -524,7 +524,7 @@ def sample_etf_universe_data():
 
 
 @pytest.fixture
-def mock_polygon_etf_response():
+def mock_massive_etf_response():
     """Mock Massive.com API response for ETF data."""
     return {
         'status': 'OK',

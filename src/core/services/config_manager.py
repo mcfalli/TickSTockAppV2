@@ -598,14 +598,14 @@ class ConfigManager:
 
         # Validate active providers
         active_providers = self.config.get('ACTIVE_DATA_PROVIDERS', [])
-        valid_providers = ['polygon', 'synthetic', 'simulated']
+        valid_providers = ['massive', 'synthetic', 'simulated']
         invalid_providers = [p for p in active_providers if p not in valid_providers]
         if invalid_providers:
             errors.append(f"Invalid providers in ACTIVE_DATA_PROVIDERS: {invalid_providers}")
 
         # Massive API key validation
-        if 'polygon' in active_providers and not self.config.get('MASSIVE_API_KEY'):
-            errors.append("MASSIVE_API_KEY required when 'polygon' is in ACTIVE_DATA_PROVIDERS")
+        if 'massive' in active_providers and not self.config.get('MASSIVE_API_KEY'):
+            errors.append("MASSIVE_API_KEY required when 'massive' is in ACTIVE_DATA_PROVIDERS")
 
         # Connection pool validation
         pool_size = self.config.get('WEBSOCKET_CONNECTION_POOL_SIZE', 3)
@@ -672,8 +672,8 @@ class ConfigManager:
         # Migrate USE_MASSIVE_API to ACTIVE_DATA_PROVIDERS
         if self.config.get('USE_MASSIVE_API'):
             providers = list(self.config.get('ACTIVE_DATA_PROVIDERS', []))
-            if 'polygon' not in providers:
-                providers.append('polygon')
+            if 'massive' not in providers:
+                providers.append('massive')
                 self.config['ACTIVE_DATA_PROVIDERS'] = providers
                 migrations_applied.append('USE_MASSIVE_API -> ACTIVE_DATA_PROVIDERS')
 
@@ -775,7 +775,7 @@ class ConfigManager:
 
             # Provider validation
             provider = freq_config.get('provider')
-            if provider not in ['polygon', 'synthetic', 'simulated']:
+            if provider not in ['massive', 'synthetic', 'simulated']:
                 errors.append(f"Subscription '{freq_name}' has invalid provider: {provider}")
 
             # Ticker validation
@@ -805,7 +805,7 @@ class ConfigManager:
     def get_legacy_config_value(self, key):
         """Get configuration value using legacy key names for backward compatibility."""
         legacy_mappings = {
-            'USE_MASSIVE_API': lambda: 'polygon' in self.config.get('ACTIVE_DATA_PROVIDERS', []),
+            'USE_MASSIVE_API': lambda'massive' in self.config.get('ACTIVE_DATA_PROVIDERS', []),
             'USE_SYNTHETIC_DATA': lambda: 'synthetic' in self.config.get('ACTIVE_DATA_PROVIDERS', [])
         }
 

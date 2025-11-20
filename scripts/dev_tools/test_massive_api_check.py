@@ -38,7 +38,7 @@ is_valid = config_manager.validate_config()
 api_key = config.get('MASSIVE_API_KEY')
 
 print(f"\n{'=' * 50}")
-print("POLYGON API CONNECTION TEST")
+print("MASSIVE API CONNECTION TEST")
 print(f"{'=' * 50}")
 print(f"Date/Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print(f"API Key: {'*****' + api_key[-4:] if api_key and len(api_key) > 4 else 'Not found or invalid'}")

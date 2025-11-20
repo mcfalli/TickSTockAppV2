@@ -36,7 +36,7 @@ class TickData:
     timestamp: float
 
     # Source identification
-    source: str = "unknown"  # 'polygon', 'synthetic', 'simulated', 'alpaca', etc.
+    source: str = "unknown"  # 'massive', 'synthetic', 'simulated', 'alpaca', etc.
     event_type: str = "A"  # A=Aggregate, T=Trade, Q=Quote
 
     # Market data
@@ -165,7 +165,7 @@ class TickData:
             price=data['p'],
             volume=data.get('v', 0),
             timestamp=data['t'] / 1000.0,  # Convert ms to seconds
-            source='polygon',
+            source='massive',
             event_type=data.get('ev', 'A'),
             market_status='REGULAR',  # Will be updated by processor
             bid=data.get('b'),

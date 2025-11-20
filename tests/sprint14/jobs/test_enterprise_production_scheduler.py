@@ -42,7 +42,7 @@ def scheduler():
     return EnterpriseProductionScheduler(
         database_uri="postgresql://test_user:test_password@localhost/test_db",
         redis_host="localhost",
-        polygon_api_key="test_api_key"
+        massive_api_key="test_api_key"
     )
 
 @pytest.fixture

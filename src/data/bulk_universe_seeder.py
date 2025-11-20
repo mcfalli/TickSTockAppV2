@@ -163,12 +163,12 @@ class BulkUniverseSeeder:
         )
     }
 
-    def __init__(self, polygon_api_key: str, database_uri: str):
+    def __init__(self, massive_api_key: str, database_uri: str):
         """Initialize bulk seeder service."""
-        self.polygon_api_key = polygon_api_key
+        self.massive_api_key = massive_api_key
         self.database_uri = database_uri
         self.session = requests.Session()
-        self.session.headers.update({"Authorization": f"Bearer {polygon_api_key}"})
+        self.session.headers.update({"Authorization": f"Bearer {massive_api_key}"})
 
     def get_available_universes(self) -> dict[str, dict[str, Any]]:
         """Get list of available universes with metadata."""
@@ -214,7 +214,7 @@ class BulkUniverseSeeder:
             logger.info(f"BULK-SEEDER: Loading {config.name} universe (limit: {request.limit})")
 
             # Fetch symbols from Massive API
-            symbols_data = self._fetch_symbols_from_polygon(config, request)
+            symbols_data = self._fetch_symbols_from_massive(config, request)
             if not symbols_data:
                 result.errors.append("No symbols retrieved from Massive API")
                 return result
@@ -249,7 +249,7 @@ class BulkUniverseSeeder:
 
         return result
 
-    def _fetch_symbols_from_polygon(self, config: UniverseConfig, request: BulkLoadRequest) -> list[dict[str, Any]]:
+    def _fetch_symbols_from_massive(self, config: UniverseConfig, request: BulkLoadRequest) -> list[dict[str, Any]]:
         """Fetch symbols from Massive.com API or CSV file for curated lists."""
 
         # Handle curated ETFs - load from CSV file
@@ -274,7 +274,7 @@ class BulkUniverseSeeder:
                     # First request - build parameters
                     url = config.api_endpoint or "https://api.massive.com/v3/reference/tickers"
                     params = config.filter_criteria.copy() if config.filter_criteria else {}
-                    params["apikey"] = self.polygon_api_key
+                    params["apikey"] = self.massive_api_key
                     # Avoid duplicate limit parameter
                     if "limit" not in params:
                         params["limit"] = "1000"

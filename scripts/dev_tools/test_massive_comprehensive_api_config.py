@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("api-test")
 
-print("\n===== COMPREHENSIVE POLYGON API TEST =====\n")
+print("\n===== COMPREHENSIVE MASSIVE API TEST =====\n")
 
 # Step 1: Configuration Loading
 print("STEP 1: CONFIGURATION LOADING\n")
@@ -35,9 +35,9 @@ config_manager.validate_config()
 
 # Extract key configuration values
 api_key = config.get('MASSIVE_API_KEY')
-use_polygon = config.get('USE_MASSIVE_API')
+use_massive = config.get('USE_MASSIVE_API')
 
-print(f"USE_MASSIVE_API config value: {use_polygon}")
+print(f"USE_MASSIVE_API config value: {use_massive}")
 print(f"MASSIVE_API_KEY config value: {'[SET]' if api_key else '[NOT SET]'}")
 
 if not api_key:
@@ -49,7 +49,7 @@ if not api_key:
 print("\nSTEP 2: CONFIG VALIDATION\n")
 
 # Check config types and values
-print(f"USE_MASSIVE_API type: {type(use_polygon).__name__}, value: {use_polygon}")
+print(f"USE_MASSIVE_API type: {type(use_massive).__name__}, value: {use_massive}")
 print("Other relevant config values:")
 print(f"  - MARKET_TIMEZONE: {config.get('MARKET_TIMEZONE')}")
 print(f"  - UPDATE_INTERVAL: {config.get('UPDATE_INTERVAL')}")
@@ -113,16 +113,16 @@ try:
         print(f"is_available() returned: {is_available}")
 
         # If we got SimulatedDataProvider despite asking for Massive
-        if not use_polygon and provider_type == 'SimulatedDataProvider':
+        if not use_massive and provider_type == 'SimulatedDataProvider':
             print("NOTE: Using SimulatedDataProvider as configured")
-        elif use_polygon and provider_type != 'MassiveDataProvider':
+        elif use_massive and provider_type != 'MassiveDataProvider':
             print(f"WARNING: Received {provider_type} despite USE_MASSIVE_API=True")
 
             # Try MassiveDataProvider directly
             print("\nTesting MassiveDataProvider directly:")
-            polygon_provider = MassiveDataProvider(config)
-            polygon_available = polygon_provider.is_available()
-            print(f"Direct MassiveDataProvider.is_available() returned: {polygon_available}")
+            massive_provider = MassiveDataProvider(config)
+            massive_available = massive_provider.is_available()
+            print(f"Direct MassiveDataProvider.is_available() returned: {massive_available}")
 
     except Exception as e:
         print(f"Error creating provider: {e}")

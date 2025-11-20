@@ -92,7 +92,7 @@ class EnterpriseProductionScheduler:
     - Resume capability for interrupted operations
     """
 
-    def __init__(self, database_uri: str = None, redis_host: str = None, polygon_api_key: str = None):
+    def __init__(self, database_uri: str = None, redis_host: str = None, massive_api_key: str = None):
         """Initialize enterprise production scheduler"""
         config = get_config()
         self.database_uri = database_uri or config.get(
@@ -101,7 +101,7 @@ class EnterpriseProductionScheduler:
         )
         self.redis_host = redis_host or config.get('REDIS_HOST', 'localhost')
         self.redis_port = config.get('REDIS_PORT', 6379)
-        self.polygon_api_key = polygon_api_key or config.get('MASSIVE_API_KEY')
+        self.massive_api_key = massive_api_key or config.get('MASSIVE_API_KEY')
         # Enterprise configuration
         self.max_concurrent_jobs = 10
         self.max_threads_per_job = 5

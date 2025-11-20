@@ -328,7 +328,7 @@ if __name__ == "__main__":
         "data_flow",
         "data_providers",  # Added back - may have files in root
         "data_providers/base",
-        "data_providers/polygon",
+        "data_providers/massive",
         "data_providers/simulated",
         "event_detection",  # Added back - has files in root
         "event_detection/engines",  # Keep subdirectory too

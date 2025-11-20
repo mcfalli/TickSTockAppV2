@@ -234,7 +234,7 @@ class MarketDataService:
                         'price': tick_data.price,
                         'volume': tick_data.volume or 0,
                         'timestamp': tick_data.timestamp,
-                        'source': 'polygon'
+                        'source': 'massive'
                     }
 
                     # Publish to TickStockPL streaming channel

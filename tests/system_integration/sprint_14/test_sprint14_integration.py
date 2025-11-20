@@ -634,7 +634,7 @@ class TestDataConsistencyIntegration:
         """Test symbol data consistency between loader, processor, and cache."""
         # Sample symbol data as it flows through systems
         symbol_data_stages = {
-            'polygon_api': {
+            'massive_api': {
                 'ticker': 'SPY',
                 'name': 'SPDR S&P 500 ETF Trust',
                 'type': 'ETF',
@@ -664,13 +664,13 @@ class TestDataConsistencyIntegration:
 
         # Assert: Symbol ticker consistent across all systems
         ticker = 'SPY'
-        assert symbol_data_stages['polygon_api']['ticker'] == ticker
+        assert symbol_data_stages['massive_api']['ticker'] == ticker
         assert symbol_data_stages['historical_loader']['ticker'] == ticker
         assert symbol_data_stages['cache_entries']['etfs'][0]['ticker'] == ticker
         assert symbol_data_stages['eod_processor']['ticker'] == ticker
 
         # Assert: ETF classification consistent
-        assert symbol_data_stages['polygon_api']['type'] == 'ETF'
+        assert symbol_data_stages['massive_api']['type'] == 'ETF'
         assert symbol_data_stages['historical_loader']['etf_type'] == 'ETF'
 
     def test_universe_data_consistency_integration(self):

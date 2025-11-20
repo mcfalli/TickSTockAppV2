@@ -40,7 +40,7 @@ class TestETFUniverseManagerRefactor:
         """Create ETF Universe Manager instance for testing"""
         return ETFUniverseManager(
             database_uri='postgresql://test:test@localhost/test_db',
-            polygon_api_key='test_key',
+            massive_api_key='test_key',
             redis_host='localhost'
         )
 
@@ -62,7 +62,7 @@ class TestETFUniverseManagerRefactor:
     def test_etf_manager_initialization(self, etf_manager):
         """Test ETF manager initialization with proper configuration"""
         assert etf_manager.database_uri is not None
-        assert etf_manager.polygon_api_key == 'test_key'
+        assert etf_manager.massive_api_key == 'test_key'
         assert etf_manager.redis_host == 'localhost'
         assert etf_manager.min_aum_threshold == 1e9  # $1B
         assert etf_manager.min_volume_threshold == 5e6  # 5M

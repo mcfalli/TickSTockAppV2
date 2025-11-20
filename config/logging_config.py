@@ -22,11 +22,11 @@ class QueryDebugFilter(logging.Filter):
 
         # Patterns for connection-related loggers
         self.connection_patterns = [
-            'polygon_websocket_client', 'polygon_data_provider',
+            'massive_websocket_client', 'massive_data_provider',
             'synthetic_data_generator', 'simulated_data_provider',
-            'websocket.polygon_websocket_client', 'data_providers.polygon.polygon_data_provider',
+            'websocket.massive_websocket_client', 'data_providers.massive.massive_data_provider',
             'data_providers.simulated.synthetic_data_generator', 'data_providers.simulated.simulated_data_provider',
-            'core.polygon_data_provider', 'core.simulated_data_provider'
+            'core.massive_data_provider', 'core.simulated_data_provider'
         ]
 
     def filter(self, record):

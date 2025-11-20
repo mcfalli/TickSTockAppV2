@@ -89,7 +89,7 @@ class CreateProjectStructureDocumentation:
             ],
             'infrastructure': [
                 r'src[/\\]infrastructure', r'data.*sources', r'database', r'cache',
-                r'polygon', r'synthetic', r'messaging'
+                r'massive', r'synthetic', r'messaging'
             ],
             'presentation': [
                 r'src[/\\]presentation', r'websocket', r'converters', r'validators',
