@@ -74,7 +74,7 @@ Phase 3 implements advanced features building upon the foundation and automation
    class ETFUniverseManager:
        def __init__(self, db_connection, massive_client, redis_client):
            self.db = db_connection
-           self.polygon = massive_client
+           self.massive = massive_client
            self.redis = redis_client
            
        def expand_etf_universes(self):
@@ -92,7 +92,7 @@ Phase 3 implements advanced features building upon the foundation and automation
                
        def get_sector_etfs(self):
            """Fetch sector ETFs with AUM > $1B filter"""
-           sector_etfs = self.polygon.get_tickers(
+           sector_etfs = self.massive.get_tickers(
                type='ETF',
                category='sector'
            )
@@ -100,7 +100,7 @@ Phase 3 implements advanced features building upon the foundation and automation
            # Filter by AUM and liquidity
            filtered_etfs = []
            for etf in sector_etfs:
-               etf_details = self.polygon.get_ticker_details(etf['ticker'])
+               etf_details = self.massive.get_ticker_details(etf['ticker'])
                if (etf_details.get('market_cap', 0) > 1e9 and 
                    etf_details.get('avg_volume', 0) > 5e6):
                    filtered_etfs.append({

@@ -75,7 +75,7 @@ def build_filter_query(filters):
 **Enhancements**: Correlate sectors with fundamentals (e.g., boost Energy if XLE EPS positive).  
 **Key Code (Sector Rotation Detector)**:
 ```python
-from polygon_api_client import MassiveClient
+from massive_api_client import MassiveClient
 
 class MarketBreadthDetector:
     def __init__(self, client: MassiveClient):
@@ -90,7 +90,7 @@ class MarketBreadthDetector:
 ## Phase 5: My Focus Tab (2 Weeks)
 **Focus**: Watchlists, real-time alerts, performance analytics.  
 **Backend Synergies**: User-specific queries; hybrid tier alerts from `daily_intraday_patterns`.  
-**Enhancements**: P&L analytics with fundamental correlations (e.g., EPS boosts via `polygon-api-client`).  
+**Enhancements**: P&L analytics with fundamental correlations (e.g., EPS boosts via `massive-api-client`).  
 **Key Code (Watchlist API Example)**:
 ```python
 from flask import Blueprint, request, jsonify

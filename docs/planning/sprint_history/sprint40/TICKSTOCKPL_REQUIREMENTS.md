@@ -371,7 +371,7 @@ TickStockAppV2's Live Streaming dashboard requires real-time event data from Tic
     "severity": "critical",
     "message": "WebSocket connection lost to Massive",
     "timestamp": "2025-10-05T12:45:00.000Z",
-    "component": "polygon_websocket",
+    "component": "massive_websocket",
     "action_required": "Manual intervention needed - check API credentials",
     "recovery": null
   }
@@ -394,7 +394,7 @@ TickStockAppV2's Live Streaming dashboard requires real-time event data from Tic
     "severity": "info",
     "message": "WebSocket connection restored",
     "timestamp": "2025-10-05T12:50:00.000Z",
-    "component": "polygon_websocket",
+    "component": "massive_websocket",
     "action_required": null,
     "recovery": "Connection re-established successfully after 5 minutes"
   }

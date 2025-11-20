@@ -71,7 +71,7 @@ Phase 4 completes Sprint 14 with production-ready optimizations that ensure Tick
        def __init__(self, redis_client, db_connection, massive_client):
            self.redis = redis_client
            self.db = db_connection
-           self.polygon = massive_client
+           self.massive = massive_client
            self.trading_calendar = get_trading_calendar('NYSE')
            self.max_concurrent_jobs = 10
            self.api_rate_limit = 5  # requests per second

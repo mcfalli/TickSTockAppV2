@@ -292,7 +292,7 @@ Each phase must handle failures gracefully:
 # Required failure scenarios per phase
 FAILURE_SCENARIOS = {
     "phase1": ["scheduler_crash", "redis_disconnect", "db_timeout"],
-    "phase2": ["polygon_api_down", "rate_limit_hit", "partial_import"],
+    "phase2": ["massive_api_down", "rate_limit_hit", "partial_import"],
     "phase3": ["indicator_calculation_error", "cache_failure", "oom"],
     "phase4": ["pattern_detection_timeout", "invalid_indicator_data"],
     "phase5": ["websocket_disconnect", "buffer_overflow", "network_loss"],

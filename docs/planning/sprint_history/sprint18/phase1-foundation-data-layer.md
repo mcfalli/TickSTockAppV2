@@ -538,7 +538,7 @@ def default_error_handler(e):
 ### Task 1.4: Enhanced Data Integration (Week 2-3)
 
 #### 1.4.1 Fundamental Data Correlation
-**File**: `src/integrations/polygon_fundamentals.py`
+**File**: `src/integrations/massive_fundamentals.py`
 
 ```python
 from massive import RESTClient

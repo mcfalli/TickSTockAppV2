@@ -52,7 +52,7 @@
 - **Custom Logic**: Uses pandas/numpy/scipy (e.g., EWM for RSI/MACD, scipy.signal for peaks in Head and Shoulders, numpy for ATR true range). No TA-Lib.
 - **Storage**: JSONB in TimescaleDB (e.g., `{"rsi_14": 65.43, "atr": 2.5}`). Expirations: 7-30 days (daily), 1-4 hours (intraday), EOD (combo).
 - **Accuracy**: FMV methodology (<5% error, <1.3 cents median for AMD) via Massive historical data (20+ years). Sprint 13 results: 0% error for RSI, Momentum, RVOL, VWAP.
-- **Fundamental Correlation**: Boosted via `polygon-api-client` (e.g., `client.list_stock_financials("AAPL")` for EPS/revenue). Example: +10% confidence for bullish patterns with positive EPS.
+- **Fundamental Correlation**: Boosted via `massive-api-client` (e.g., `client.list_stock_financials("AAPL")` for EPS/revenue). Example: +10% confidence for bullish patterns with positive EPS.
 - **Scalability**: Multiprocessing for daily, asyncio for intraday/combo, SQLAlchemy indexes for <50ms queries.
 - **Validation**: Backtested with `backtesting_framework.md`, pytest-benchmark for performance (<50ms). Sprint 13 validated RSI (0.46–0.51ms), Momentum (0.24–0.34ms), RVOL (0.11ms), VWAP (0.18–0.20ms). Pattern tests pending import resolution.
 - **Sprint 13 Note**: Pattern testing deferred due to import chain complexity; infrastructure ready for full validation post-refactor.

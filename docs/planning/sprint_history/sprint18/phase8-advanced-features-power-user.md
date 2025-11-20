@@ -110,7 +110,7 @@ class CustomPatternBuilder {
 
     // ML Integration with scikit-learn via Python backend
     async enableMLEnhancements(pattern, symbols) {
-        const fundamentalData = await this.polygonClient.getFundamentals(symbols);
+        const fundamentalData = await this.massiveClient.getFundamentals(symbols);
         const response = await fetch('/api/ml/enhance-pattern', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

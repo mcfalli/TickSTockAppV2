@@ -12,7 +12,7 @@ Orchestrates the complete data import process for all configured symbols.
 ### 2. Universe Manager (`src/data/universe_manager.py`)
 Manages symbol lists from multiple sources (database, CSV, predefined).
 
-### 3. Enhanced Massive Fetcher (`src/data/polygon_fetcher_enhanced.py`)
+### 3. Enhanced Massive Fetcher (`src/data/massive_fetcher_enhanced.py`)
 Handles Massive API interactions with rate limiting and retry logic.
 
 ### 4. OHLCV Storage Service (`src/data/ohlcv_storage_service.py`)
@@ -349,7 +349,7 @@ Monitor the `tickstock:errors` channel for import failures:
   "version": "1.0",
   "payload": {
     "severity": "error",
-    "component": "polygon_fetcher",
+    "component": "massive_fetcher",
     "error_code": "API_RATE_LIMIT",
     "message": "Rate limit exceeded, backing off",
     "context": {

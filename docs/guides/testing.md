@@ -310,7 +310,7 @@ jobs:
 ### 2. Mocking External Services
 ```python
 @mock.patch('src.data.massive_client.MassiveClient')
-def test_with_mocked_polygon(mock_massive):
+def test_with_mocked_massive(mock_massive):
     """Test without hitting real Massive API"""
     mock_massive.get_ticker.return_value = test_data
     # Test logic here

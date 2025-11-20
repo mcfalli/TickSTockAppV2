@@ -46,7 +46,7 @@
 class IPOMonitor:
     def __init__(self):
         self.detection_sources = [
-            'polygon_api',      # Primary IPO data source
+            'massive_api',      # Primary IPO data source
             'sec_filings',      # S-1 registration monitoring
             'exchange_feeds',   # Direct exchange notifications
             'market_news'       # News-based IPO detection

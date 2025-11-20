@@ -307,7 +307,7 @@ Clearly define what TickStockPL must provide for Live Streaming to function.
     "severity": "critical",
     "message": "WebSocket connection lost",
     "timestamp": "2025-10-05T12:45:00Z",
-    "component": "polygon_websocket",
+    "component": "massive_websocket",
     "action_required": "Manual intervention needed"
   }
 }

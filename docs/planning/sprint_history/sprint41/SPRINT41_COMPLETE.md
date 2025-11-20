@@ -600,7 +600,7 @@ TickStockAppV2 dashboard displays
 **TickStockPL cannot distinguish synthetic from real data**:
 - Both implement same `BaseDataProvider` interface
 - Tick structure identical (OHLCV, bid/ask, volume, timestamp)
-- Source field indicates origin: `'simulated'` vs `'polygon'`
+- Source field indicates origin: `'simulated'` vs `'massive'`
 - Processing logic identical
 
 **Result**: Seamless testing of TickStockPL with synthetic data

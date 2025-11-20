@@ -30,7 +30,7 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-from polygon_api_client import MassiveClient
+from massive_api_client import MassiveClient
 from sqlalchemy import text
 from app import db, redis_client
 import json

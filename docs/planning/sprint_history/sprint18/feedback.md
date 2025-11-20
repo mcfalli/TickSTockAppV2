@@ -29,7 +29,7 @@ To advance this, I'm curating a new supporting document below: a Markdown file o
 **Status**: Initial Integration Concept  
 
 ## Overview
-This guide bridges the front-end design (per `efficient-pattern-scanner-design.md` and related docs) with our Python-based pattern library, ensuring seamless data flow from TimescaleDB-stored patterns/indicators to the UI's high-density tables, filters, and charts. We leverage Flask for REST/WebSocket APIs, SQLAlchemy for queries, and polygon-api-client for fundamental correlations, aligning with our three-tiered architecture and <50ms query goals.
+This guide bridges the front-end design (per `efficient-pattern-scanner-design.md` and related docs) with our Python-based pattern library, ensuring seamless data flow from TimescaleDB-stored patterns/indicators to the UI's high-density tables, filters, and charts. We leverage Flask for REST/WebSocket APIs, SQLAlchemy for queries, and massive-api-client for fundamental correlations, aligning with our three-tiered architecture and <50ms query goals.
 
 ## Key Integration Points
 
@@ -93,7 +93,7 @@ def scan_patterns():
     patterns = [dict(row) for row in result]
 
     # Correlate with fundamentals (e.g., boost conf if EPS positive)
-    from polygon_api_client import MassiveClient
+    from massive_api_client import MassiveClient
     client = MassiveClient()  # Assume initialized
     for p in patterns:
         financials = client.list_stock_financials(p['symbol'], limit=1)
@@ -112,7 +112,7 @@ def scan_patterns():
 ```python
 import pandas as pd
 import numpy as np
-from polygon_api_client import MassiveClient
+from massive_api_client import MassiveClient
 
 class MarketBreadthDetector:
     def __init__(self, client: MassiveClient):

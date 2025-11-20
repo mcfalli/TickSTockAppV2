@@ -252,7 +252,7 @@ POST /api/processing/schedule
 {
     "event": "error",
     "timestamp": "2025-01-26T21:20:00Z",
-    "source": "polygon_fetcher",
+    "source": "massive_fetcher",
     "version": "1.0",
     "payload": {
         "severity": "error",
