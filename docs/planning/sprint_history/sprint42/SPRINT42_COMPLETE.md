@@ -138,7 +138,7 @@ TickStockPL:
 ## 🔄 Data Flow (After Sprint 42)
 
 ```
-Market Data (Polygon/Synthetic)
+Market Data (Massive/Synthetic)
         ↓
 TickStockAppV2: MarketDataService
         ↓

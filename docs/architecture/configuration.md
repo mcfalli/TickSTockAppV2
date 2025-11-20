@@ -80,11 +80,11 @@ TickStockAppV2 uses a centralized configuration management system via `src/core/
 ### Data Provider Configuration
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `USE_POLYGON_API` | bool | False | Enable Polygon.io data provider |
-| `POLYGON_API_KEY` | str | '' | Polygon.io API key |
-| `POLYGON_WEBSOCKET_RECONNECT_DELAY` | int | 5 | Reconnection delay (seconds) |
+| `USE_POLYGON_API` | bool | False | Enable Massive.com data provider |
+| `MASSIVE_API_KEY` | str | '' | Massive.com API key |
+| `MASSIVE_WEBSOCKET_RECONNECT_DELAY` | int | 5 | Reconnection delay (seconds) |
 | `POLYGON_WEBSOCKET_MAX_RECONNECT_DELAY` | int | 60 | Maximum reconnection delay |
-| `POLYGON_WEBSOCKET_MAX_RETRIES` | int | 5 | Maximum retry attempts |
+| `MASSIVE_WEBSOCKET_MAX_RETRIES` | int | 5 | Maximum retry attempts |
 
 ## Processing Configuration
 

@@ -205,7 +205,7 @@ class StreamingEventSimulator:
         """Simulate a critical alert."""
         alert = {
             "type": "CONNECTION_LOST",
-            "message": "Lost connection to Polygon WebSocket",
+            "message": "Lost connection to Massive WebSocket",
             "severity": "critical",
             "timestamp": datetime.now(UTC).isoformat(),
             "data": {

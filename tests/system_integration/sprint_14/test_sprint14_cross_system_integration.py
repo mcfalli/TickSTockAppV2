@@ -30,7 +30,7 @@ import redis
 # Import TickStock components
 from src.core.services.market_data_subscriber import MarketDataSubscriber
 from src.data.eod_processor import EODProcessor
-from src.data.historical_loader import PolygonHistoricalLoader
+from src.data.historical_loader import MassiveHistoricalLoader
 from src.infrastructure.redis.redis_connection_manager import (
     RedisConnectionConfig,
     RedisConnectionManager,
@@ -118,7 +118,7 @@ class TestETFDataFlowCrossSystemIntegration:
             start_time = time.time()
 
             # 1. TickStockPL loads ETF data (producer role)
-            historical_loader = PolygonHistoricalLoader()
+            historical_loader = MassiveHistoricalLoader()
             etf_metadata = historical_loader._extract_etf_metadata({
                 'ticker': 'SPY',
                 'name': 'SPDR S&P 500 ETF Trust',

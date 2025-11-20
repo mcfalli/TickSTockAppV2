@@ -148,7 +148,7 @@ Active Symbols: 0
 Data Flow: 0.0 ticks/sec
 ```
 
-**Note**: Active Symbols shows 0 because TickStockPL is receiving ticks via Redis (not direct Polygon connection), so it doesn't track symbol counts the same way. This is expected behavior.
+**Note**: Active Symbols shows 0 because TickStockPL is receiving ticks via Redis (not direct Massive connection), so it doesn't track symbol counts the same way. This is expected behavior.
 
 ### Step 4: Check API Endpoint
 

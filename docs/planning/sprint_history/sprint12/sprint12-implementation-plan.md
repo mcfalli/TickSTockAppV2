@@ -99,7 +99,7 @@ Implementation Benefits:
 6. Conduct pre-validation with `architecture-validation-specialist` and relevant domain agents (1 day)
 
 🔥 Dependencies/Risks
-- Dependencies: Ensure Polygon/yfinance API keys ready for historical tests (from User Story 0.1); minimal new deps (stick to CDNs); queue agents early for consultations.
+- Dependencies: Ensure Massive/yfinance API keys ready for historical tests (from User Story 0.1); minimal new deps (stick to CDNs); queue agents early for consultations.
 - Risks: WebSocket lag in high-volume—mitigate with throttling; API rate limits—add retries; agent unavailability—fallback to manual reviews. Monitor via existing monitoring tools; test synthetic vs. real data to validate blending prep.
 
 🤖 Mandatory Agent Integration Workflow

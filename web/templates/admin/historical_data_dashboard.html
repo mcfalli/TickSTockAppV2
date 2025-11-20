@@ -351,7 +351,7 @@
         <!-- CSV Universe Loading -->
         <div class="job-controls">
             <h3>📋 CSV Universe Loading</h3>
-            <p>Load curated symbol lists and fetch fresh data from Polygon API</p>
+            <p>Load curated symbol lists and fetch fresh data from Massive API</p>
             <form id="csvUniverseForm" action="{{ url_for('admin_csv_universe_load') }}" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="form-row">
@@ -398,7 +398,7 @@
                             <option value="2">2 Years</option>
                             <option value="5">5 Years</option>
                         </select>
-                        <small class="form-text text-muted">How much historical OHLCV data to load from Polygon API</small>
+                        <small class="form-text text-muted">How much historical OHLCV data to load from Massive API</small>
                     </div>
 
                     <!-- Include OHLCV Data -->
@@ -408,7 +408,7 @@
                             <option value="true" selected>Yes - Load symbols + OHLCV daily data</option>
                             <option value="false">No - Load symbols only</option>
                         </select>
-                        <small class="form-text text-muted">Include daily OHLCV data from Polygon API</small>
+                        <small class="form-text text-muted">Include daily OHLCV data from Massive API</small>
                     </div>
                     
                     <!-- Load Button -->
@@ -428,7 +428,7 @@
                                 <div><strong>CSV File:</strong> <span id="csvEstimateFile">-</span></div>
                                 <div><strong>Symbols:</strong> <span id="csvEstimateCount">-</span></div>
                                 <div><strong>Duration:</strong> <span id="csvEstimateDuration">-</span></div>
-                                <div><strong>Data Source:</strong> <span>Polygon.io API</span></div>
+                                <div><strong>Data Source:</strong> <span>Massive.com API</span></div>
                                 <div><strong>Est. Time:</strong> <span id="csvEstimateTime">-</span></div>
                             </div>
                             <div style="margin-top: 10px;">
@@ -592,7 +592,7 @@ Enter 1 or 2:`);
                 document.getElementById('csvEstimateCount').textContent = symbolCount.toLocaleString();
                 document.getElementById('csvEstimateDuration').textContent = selectedYears.textContent;
                 document.getElementById('csvEstimateTime').textContent = estimatedTime;
-                document.getElementById('csvEstimateDescription').textContent = selectedOption.dataset.description || 'Curated symbol list with Polygon API data';
+                document.getElementById('csvEstimateDescription').textContent = selectedOption.dataset.description || 'Curated symbol list with Massive API data';
                 
                 estimateDiv.style.display = 'block';
             }

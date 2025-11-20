@@ -106,7 +106,7 @@ WHERE bar_timestamp >= NOW() - INTERVAL '2 minutes';"
 ```python
 # TickStockAppV2 → TickStockPL (Raw Market Data)
 INBOUND_CHANNELS = {
-    'market_ticks': 'tickstock:market:ticks',  # Raw tick data from Polygon/Synthetic
+    'market_ticks': 'tickstock:market:ticks',  # Raw tick data from Massive/Synthetic
 }
 
 # TickStockPL → TickStockAppV2 (Processed Results)

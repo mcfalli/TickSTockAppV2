@@ -240,9 +240,9 @@ enhanced_logger.log_error(
 # Enhanced for data feed issues
 enhanced_logger.log_error(
     severity='error',
-    message='Polygon WebSocket disconnected',
+    message='Massive WebSocket disconnected',
     category='network',
-    component='PolygonClient',
+    component='MassiveClient',
     context={'symbols_affected': len(symbols), 'duration': downtime}
 )
 ```

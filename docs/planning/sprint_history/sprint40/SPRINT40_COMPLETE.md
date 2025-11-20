@@ -40,12 +40,12 @@ Data Flow: 18.2 ticks/sec
 **File**: `src/core/services/market_data_service.py` (lines 248-276)
 
 **Functionality**:
-- TickStockAppV2 receives ticks from Polygon WebSocket
+- TickStockAppV2 receives ticks from Massive WebSocket
 - Processes ticks for internal use
 - **Forwards ticks** to Redis channel `tickstock:market:ticks`
 - TickStockPL subscribes to channel and receives forwarded ticks
 
-**Why Needed**: Polygon API allows only ONE WebSocket connection per API key. TickStockAppV2 connects and forwards to TickStockPL.
+**Why Needed**: Massive API allows only ONE WebSocket connection per API key. TickStockAppV2 connects and forwards to TickStockPL.
 
 **Performance**: <1ms overhead per tick, non-blocking publish
 
@@ -303,7 +303,7 @@ tps = health_data.get('ticks_per_second', 0.0)
 
 | Channel | Publisher | Subscriber | Purpose | Status |
 |---------|-----------|------------|---------|--------|
-| `tickstock:market:ticks` | TickStockAppV2 | TickStockPL | Forward Polygon ticks | ✅ Working |
+| `tickstock:market:ticks` | TickStockAppV2 | TickStockPL | Forward Massive ticks | ✅ Working |
 | `tickstock:streaming:session_started` | TickStockPL | TickStockAppV2 | Session lifecycle | ✅ Working |
 | `tickstock:streaming:session_stopped` | TickStockPL | TickStockAppV2 | Session lifecycle | ✅ Working |
 | `tickstock:streaming:health` | TickStockPL | TickStockAppV2 | Health metrics | ✅ Working |
@@ -311,7 +311,7 @@ tps = health_data.get('ticks_per_second', 0.0)
 ### Data Flow Verification
 
 ```
-Polygon WebSocket API
+Massive WebSocket API
   ↓ (Real-time ticks)
 TickStockAppV2 MarketDataService
   ↓ (Process internally)
@@ -333,7 +333,7 @@ User sees: "Status: HEALTHY, Active Symbols: 60, Data Flow: 18.2 ticks/sec"
 ```
 
 **Verification**:
-- ✅ Polygon ticks flowing (200+ ticks/min)
+- ✅ Massive ticks flowing (200+ ticks/min)
 - ✅ Redis forwarding working (300+ ticks forwarded to TickStockPL)
 - ✅ TickStockPL processing ticks (verified in logs)
 - ✅ Health events publishing every 10 seconds
@@ -541,7 +541,7 @@ Data Flow: 18.2 ticks/sec
 ### Known Limitations (Non-Blocking)
 
 1. **Active Symbols**: Shows 60 but should reflect actual symbols being processed
-   - **Reason**: TickStockPL receives ticks via Redis (not direct Polygon connection)
+   - **Reason**: TickStockPL receives ticks via Redis (not direct Massive connection)
    - **Impact**: Minor - doesn't affect functionality
    - **Status**: Acceptable for MVP
 

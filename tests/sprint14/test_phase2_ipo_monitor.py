@@ -51,7 +51,7 @@ def test_ipo_monitor_architecture():
 
         # Simulate IPO detection workflow
         workflow_steps = [
-            "Daily scan for new symbols via Polygon.io",
+            "Daily scan for new symbols via Massive.com",
             "Compare against existing symbols in database",
             "Process new symbols with metadata extraction",
             "Trigger 90-day historical backfill",

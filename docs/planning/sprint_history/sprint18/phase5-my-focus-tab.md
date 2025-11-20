@@ -14,7 +14,7 @@ Implement the My Focus tab to provide personalized watchlist management, intelli
 
 ✅ **Watchlist Management**: Support 5+ custom watchlists with 50 symbols each, <10ms updates  
 ✅ **Real-Time Alerts**: WebSocket-based pattern alerts with mobile push notifications  
-✅ **Performance Analytics**: Pattern-based P&L tracking with win rate analysis by confidence level + Polygon fundamental overlays for revenue surprise correlation  
+✅ **Performance Analytics**: Pattern-based P&L tracking with win rate analysis by confidence level + Massive fundamental overlays for revenue surprise correlation  
 ✅ **Intelligent Features**: Auto-focus charting, strategy optimization, performance benchmarking  
 ✅ **Social Features**: Shareable filter sets and watchlist export/import functionality  
 
@@ -433,7 +433,7 @@ def get_performance_analytics():
         # Overall portfolio metrics
         portfolio_metrics = calculate_portfolio_metrics(user_id, time_filter)
         
-        # Polygon Fundamental Overlays Enhancement
+        # Massive Fundamental Overlays Enhancement
         fundamental_correlations = calculate_fundamental_correlations(user_id, time_filter)
         
         return jsonify({
@@ -453,11 +453,11 @@ def get_performance_analytics():
         return jsonify({'error': 'Failed to generate performance analytics'}), 500
 
 def calculate_fundamental_correlations(user_id, time_filter):
-    """Calculate correlations between pattern performance and Polygon fundamentals"""
+    """Calculate correlations between pattern performance and Massive fundamentals"""
     from polygon import RESTClient
     
     try:
-        polygon_client = RESTClient(current_app.config['POLYGON_API_KEY'])
+        polygon_client = RESTClient(current_app.config['MASSIVE_API_KEY'])
         
         # Get user's symbols with pattern performance
         query = f"""
@@ -479,7 +479,7 @@ def calculate_fundamental_correlations(user_id, time_filter):
             win_rate = float(symbol_data.win_rate)
             
             try:
-                # Get fundamental data from Polygon
+                # Get fundamental data from Massive
                 financials = polygon_client.get_ticker_details(symbol)
                 
                 if financials and hasattr(financials, 'market_cap'):
@@ -525,7 +525,7 @@ def calculate_correlation_boost(win_rate, revenue_growth):
     return 0
 
 def classify_fundamental_strength(financials):
-    """Classify fundamental strength based on Polygon data"""
+    """Classify fundamental strength based on Massive data"""
     score = 0
     if hasattr(financials, 'market_cap') and financials.market_cap > 1e9:
         score += 1

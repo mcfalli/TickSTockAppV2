@@ -6,7 +6,7 @@ Update index.html as follows
 - Move the tab contents "Market Summary" to a grid-stack container
 - Move the tab "Charts" to a grid-stack container 
 - Move the tab "Alerts" to a grid-stack container 
-- Create a top "Market Movers" item and place in a grid-stack container populated with https://polygon.io/docs/rest/stocks/snapshots/top-market-movers
+- Create a top "Market Movers" item and place in a grid-stack container populated with https://massive.com/docs/rest/stocks/snapshots/top-market-movers
 - The remaining grid-stack containers contain static text "Container 1"
 - Remove tab and css that is no longer used as part of these adjustments
 
@@ -124,9 +124,9 @@ Update index.html as follows
 #### TASK-008: Implement Market Movers Widget
 - **Priority**: High
 - **Estimate**: 6 hours
-- **Description**: Create new Market Movers widget using Polygon.io API
+- **Description**: Create new Market Movers widget using Massive.com API
 - **Technical Details**:
-  - API Endpoint: https://polygon.io/docs/rest/stocks/snapshots/top-market-movers
+  - API Endpoint: https://massive.com/docs/rest/stocks/snapshots/top-market-movers
   - Implement data fetching service
   - Create display component
   - Add auto-refresh capability
@@ -251,7 +251,7 @@ Update index.html as follows
 - **Sprint Duration**: 14 days
 
 ## Dependencies
-- Polygon.io API access for Market Movers
+- Massive.com API access for Market Movers
 - grid-stack.js library (already installed)
 - app-gridstack.js controller (existing)
 - Existing WebSocket infrastructure

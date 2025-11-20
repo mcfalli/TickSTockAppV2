@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 import json
 
-from data.historical_loader import PolygonHistoricalLoader
+from data.historical_loader import MassiveHistoricalLoader
 
 
 def test_subset_loading():
@@ -21,7 +21,7 @@ def test_subset_loading():
     try:
         # Initialize loader
         print("1. Initializing historical loader...")
-        loader = PolygonHistoricalLoader()
+        loader = MassiveHistoricalLoader()
         print("+ Historical loader initialized\n")
 
         # Test 1: Create development universe entries

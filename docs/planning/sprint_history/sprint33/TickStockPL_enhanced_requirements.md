@@ -19,7 +19,7 @@ Every phase MUST include appropriate tests in the `tests/` folder structure:
 
 **Phase 2: Data Import Pipeline**
 - Location: `tests/unit/jobs/sprint33/test_daily_import_job.py`
-- Tests: Universe loading, Polygon fetching, batch processing, retry logic
+- Tests: Universe loading, Massive fetching, batch processing, retry logic
 - Integration: `tests/integration/sprint33/test_import_pipeline.py`
 
 **Phase 3: Indicator Processing**

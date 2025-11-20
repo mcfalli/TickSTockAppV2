@@ -22,7 +22,7 @@ Sprint 14 successfully delivered comprehensive data load and maintenance automat
   - Assets Under Management (AUM) tracking
   - Expense ratio monitoring  
   - Correlation analysis capabilities
-  - Enhanced metadata extraction from Polygon.io API
+  - Enhanced metadata extraction from Massive.com API
 - **Impact**: Full ETF support across the platform with rich metadata
 
 #### Subset Universe Loading
@@ -47,7 +47,7 @@ Sprint 14 successfully delivered comprehensive data load and maintenance automat
 - **File**: `automation/services/ipo_monitor.py` (845 lines)
 - **Accomplishment**: Daily IPO detection with 90-day historical backfill
   - Separate automation service architecture established
-  - Polygon.io IPO endpoint integration
+  - Massive.com IPO endpoint integration
   - Automated symbol table updates for new listings
 - **Impact**: Zero manual intervention for new stock additions
 

@@ -1493,7 +1493,7 @@ class PatternDiscoveryService {
      * Sprint 24: Generate mock chart data for development/demo
      * 
      * TODO: Replace with real market data API integration
-     * Required: Connect to Polygon.io or existing market data service
+     * Required: Connect to Massive.com or existing market data service
      * Impact: All charts show fake data instead of real market prices
      */
     generateMockChartData(symbol, timeframe) {

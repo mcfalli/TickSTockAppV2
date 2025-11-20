@@ -11,7 +11,7 @@ import pytest
 # Mock imports for data providers
 try:
     from src.core.interfaces.data_provider import DataProvider
-    from src.infrastructure.data_sources.polygon.provider import PolygonDataProvider
+    from src.infrastructure.data_sources.massive.provider import MassiveDataProvider
     from src.infrastructure.data_sources.synthetic.provider import SyntheticDataProvider
 except ImportError:
     # Create mock classes if modules don't exist
@@ -19,7 +19,7 @@ except ImportError:
         def get_tick(self, ticker):
             pass
 
-    class PolygonDataProvider(DataProvider):
+    class MassiveDataProvider(DataProvider):
         def __init__(self, api_key):
             self.api_key = api_key
 
@@ -46,17 +46,17 @@ class TestDataProviderInterface:
         assert hasattr(provider, 'get_tick')
 
 
-class TestPolygonDataProvider:
-    """Test Polygon.io data provider"""
+class TestMassiveDataProvider:
+    """Test Massive.com data provider"""
 
     @pytest.fixture
     def provider(self):
-        """Create PolygonDataProvider with test API key"""
-        return PolygonDataProvider(api_key="test_api_key_12345")
+        """Create MassiveDataProvider with test API key"""
+        return MassiveDataProvider(api_key="test_api_key_12345")
 
     @pytest.fixture
     def mock_api_response(self):
-        """Mock successful Polygon API response"""
+        """Mock successful Massive API response"""
         return {
             "status": "OK",
             "results": [
@@ -83,15 +83,15 @@ class TestPolygonDataProvider:
     def test_api_key_validation(self):
         """Should validate API key on initialization"""
         # Valid API key
-        provider = PolygonDataProvider("valid_key_123")
+        provider = MassiveDataProvider("valid_key_123")
         assert provider.api_key == "valid_key_123"
 
         # Test empty key handling
         with pytest.raises((ValueError, TypeError)):
-            PolygonDataProvider("")
+            MassiveDataProvider("")
 
         with pytest.raises((ValueError, TypeError)):
-            PolygonDataProvider(None)
+            MassiveDataProvider(None)
 
     @patch('requests.get')
     def test_successful_tick_retrieval(self, mock_get, provider, mock_api_response):
@@ -245,12 +245,12 @@ class TestDataProviderFactory:
     """Test data provider factory pattern"""
 
     def test_create_polygon_provider(self):
-        """Factory should create Polygon provider with API key"""
+        """Factory should create Massive provider with API key"""
         try:
             from src.infrastructure.data_sources.factory import create_data_provider
 
             provider = create_data_provider("polygon", api_key="test_key")
-            assert isinstance(provider, PolygonDataProvider)
+            assert isinstance(provider, MassiveDataProvider)
             assert provider.api_key == "test_key"
         except ImportError:
             # Factory not implemented yet
@@ -350,22 +350,22 @@ class TestDataProviderConfiguration:
         os.environ["USE_SIMULATED_DATA"] = "true"
         # Provider selection logic would go here
 
-        # Test Polygon provider selection
+        # Test Massive provider selection
         os.environ["USE_SIMULATED_DATA"] = "false"
-        os.environ["POLYGON_API_KEY"] = "test_key"
+        os.environ["MASSIVE_API_KEY"] = "test_key"
         # Provider selection logic would go here
 
         # Cleanup
         os.environ.pop("USE_SIMULATED_DATA", None)
-        os.environ.pop("POLYGON_API_KEY", None)
+        os.environ.pop("MASSIVE_API_KEY", None)
 
         assert True  # Test configuration handling exists
 
     def test_fallback_provider_logic(self):
         """Should fallback to synthetic if live provider fails"""
         # This would test the fallback logic in the application
-        # Mock Polygon provider failure
-        with patch.object(PolygonDataProvider, 'get_tick', side_effect=Exception("API Error")):
+        # Mock Massive provider failure
+        with patch.object(MassiveDataProvider, 'get_tick', side_effect=Exception("API Error")):
             # Application should fallback to synthetic provider
             # Implementation depends on application architecture
             assert True  # Test that fallback mechanism exists

@@ -31,7 +31,7 @@ Successfully removed the integration_events table and DatabaseIntegrationLogger 
    - Flask app starts cleanly
    - Redis connections established
    - WebSocket publisher active
-   - Polygon WebSocket connecting
+   - Massive WebSocket connecting
    - OHLCV persistence running
 
 ### ✅ TickStockPL Coordination

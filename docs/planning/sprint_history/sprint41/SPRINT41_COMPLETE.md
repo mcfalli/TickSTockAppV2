@@ -15,7 +15,7 @@ Sprint 41 successfully delivered a production-grade synthetic data generation sy
 ✅ **Development without API costs** - Generate realistic market data offline
 ✅ **Pattern testing** - Inject known patterns for validation
 ✅ **Scenario simulation** - Test crash, rally, volatile, and normal market conditions
-✅ **Seamless switching** - Toggle between real (Polygon) and synthetic data via configuration
+✅ **Seamless switching** - Toggle between real (Massive) and synthetic data via configuration
 ✅ **Sector-based realism** - Different volatility characteristics per sector
 ✅ **Time-of-day patterns** - Opening bell, lunch lull, closing hour behaviors
 ✅ **Comprehensive testing** - 7/7 integration tests passing (100%)
@@ -419,7 +419,7 @@ python -m pytest tests/integration/test_sprint41_synthetic_integration.py -v
 **Rationale**:
 - Data source switching happens at ingestion layer
 - TickStockPL consumes via Redis (source-agnostic)
-- Polygon WebSocket integration already in AppV2
+- Massive WebSocket integration already in AppV2
 - Matches prior architecture (TickStockApp legacy)
 
 ---
@@ -578,7 +578,7 @@ USE_SYNTHETIC_DATA=true
     ↓
 DataProviderFactory
     ↓
-SimulatedDataProvider (instead of PolygonDataProvider)
+SimulatedDataProvider (instead of MassiveDataProvider)
     ↓
 UniverseLoader → Load symbols (database or fallback)
     ↓

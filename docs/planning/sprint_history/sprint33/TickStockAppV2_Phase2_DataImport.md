@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 2 extends the daily processing infrastructure with actual data import capabilities from Polygon API. This phase introduces the complete data pipeline for fetching and storing OHLCV data.
+Phase 2 extends the daily processing infrastructure with actual data import capabilities from Massive API. This phase introduces the complete data pipeline for fetching and storing OHLCV data.
 
 ## New Components
 
@@ -12,8 +12,8 @@ Orchestrates the complete data import process for all configured symbols.
 ### 2. Universe Manager (`src/data/universe_manager.py`)
 Manages symbol lists from multiple sources (database, CSV, predefined).
 
-### 3. Enhanced Polygon Fetcher (`src/data/polygon_fetcher_enhanced.py`)
-Handles Polygon API interactions with rate limiting and retry logic.
+### 3. Enhanced Massive Fetcher (`src/data/polygon_fetcher_enhanced.py`)
+Handles Massive API interactions with rate limiting and retry logic.
 
 ### 4. OHLCV Storage Service (`src/data/ohlcv_storage_service.py`)
 Efficient batch storage of market data using PostgreSQL.
@@ -155,7 +155,7 @@ ORDER BY retry_count ASC;
 # Data Import Settings
 data_import:
   polygon:
-    api_key: "YOUR_POLYGON_API_KEY"  # Required for market data
+    api_key: "YOUR_MASSIVE_API_KEY"  # Required for market data
     rate_limit_ms: 12  # Respect API rate limits
     batch_size: 100
     timeout_seconds: 30
@@ -365,9 +365,9 @@ Monitor the `tickstock:errors` channel for import failures:
 
 | Code | Description | Recovery |
 |------|-------------|----------|
-| `API_RATE_LIMIT` | Polygon API rate limit hit | Automatic backoff and retry |
-| `API_KEY_INVALID` | Invalid Polygon API key | Manual configuration required |
-| `SYMBOL_NOT_FOUND` | Symbol not available in Polygon | Skip and continue |
+| `API_RATE_LIMIT` | Massive API rate limit hit | Automatic backoff and retry |
+| `API_KEY_INVALID` | Invalid Massive API key | Manual configuration required |
+| `SYMBOL_NOT_FOUND` | Symbol not available in Massive | Skip and continue |
 | `STORAGE_FAILED` | Database storage error | Retry or manual intervention |
 | `NETWORK_TIMEOUT` | Request timeout | Automatic retry |
 
@@ -412,7 +412,7 @@ python test_phase2.py
 
 This validates:
 - Universe manager functionality
-- Polygon API integration
+- Massive API integration
 - OHLCV storage operations
 - Progress tracking
 - Job execution

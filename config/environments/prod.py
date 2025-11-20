@@ -11,7 +11,7 @@ DATABASE_URI = None  # Set via environment variable
 REDIS_URL = None  # Set via environment variable
 
 # API Keys
-POLYGON_API_KEY = None  # Set via environment variable
+MASSIVE_API_KEY = None  # Set via environment variable
 
 # WebSocket
 WS_HEARTBEAT_INTERVAL = 60

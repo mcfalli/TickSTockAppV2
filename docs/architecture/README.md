@@ -103,7 +103,7 @@ tickstock.jobs.processing         # Processing commands
 
 **Real-time Streaming Flow:**
 ```
-Market Data (Polygon)
+Market Data (Massive)
         ↓
 TickStockAppV2: MarketDataService
         ↓

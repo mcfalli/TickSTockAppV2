@@ -1,4 +1,4 @@
-"""Simplified Polygon WebSocket client for TickStockPL integration.
+"""Simplified Massive WebSocket client for TickStockPL integration.
 
 PHASE 6 CLEANUP: Simplified to single connection WebSocket client with:
 - Single WebSocket connection (no multi-frequency)
@@ -23,8 +23,8 @@ from src.shared.utils import detect_market_status
 
 logger = logging.getLogger(__name__)
 
-class PolygonWebSocketClient:
-    """Simplified Polygon WebSocket client for basic tick data streaming."""
+class MassiveWebSocketClient:
+    """Simplified Massive WebSocket client for basic tick data streaming."""
 
     def __init__(self, api_key: str, on_tick_callback: Callable | None = None,
                  on_status_callback: Callable | None = None, config: dict | None = None):
@@ -34,7 +34,7 @@ class PolygonWebSocketClient:
         self.config = config or {}
 
         # Connection settings
-        self.url = "wss://socket.polygon.io/stocks"
+        self.url = "wss://socket.massive.com/stocks"
         self.ws = None
         self.connected = False
         self.should_reconnect = True
@@ -44,21 +44,21 @@ class PolygonWebSocketClient:
 
         # Reconnection settings
         self.reconnect_attempts = 0
-        self.max_reconnect_attempts = self.config.get('POLYGON_WEBSOCKET_MAX_RETRIES', 5)
-        self.reconnect_delay = self.config.get('POLYGON_WEBSOCKET_RECONNECT_DELAY', 5)
+        self.max_reconnect_attempts = self.config.get('MASSIVE_WEBSOCKET_MAX_RETRIES', 5)
+        self.reconnect_delay = self.config.get('MASSIVE_WEBSOCKET_RECONNECT_DELAY', 5)
 
         # Thread safety
         self._connection_lock = threading.Lock()
 
-        logger.info("POLYGON-CLIENT: Simplified WebSocket client initialized")
+        logger.info("MASSIVE-CLIENT: Simplified WebSocket client initialized")
 
     def connect(self) -> bool:
         """Establish WebSocket connection."""
-        logger.info(f"POLYGON-CLIENT: Connecting to {self.url}")
+        logger.info(f"MASSIVE-CLIENT: Connecting to {self.url}")
 
         with self._connection_lock:
             if self.ws and self.connected:
-                logger.info("POLYGON-CLIENT: Already connected")
+                logger.info("MASSIVE-CLIENT: Already connected")
                 return True
 
             # Clean up existing connection
@@ -98,17 +98,17 @@ class PolygonWebSocketClient:
 
             while time.time() - start_time < timeout:
                 if self.connected:
-                    logger.info("POLYGON-CLIENT: Connection established successfully")
+                    logger.info("MASSIVE-CLIENT: Connection established successfully")
                     self.reconnect_attempts = 0
                     return True
                 time.sleep(0.5)
 
-            logger.warning("POLYGON-CLIENT: Connection timed out")
+            logger.warning("MASSIVE-CLIENT: Connection timed out")
             return False
 
     def disconnect(self):
         """Disconnect from WebSocket."""
-        logger.info("POLYGON-CLIENT: Disconnecting")
+        logger.info("MASSIVE-CLIENT: Disconnecting")
         self.should_reconnect = False
 
         if self.ws:
@@ -127,7 +127,7 @@ class PolygonWebSocketClient:
             tickers = [tickers]
 
         if not self.connected:
-            logger.warning("POLYGON-CLIENT: Cannot subscribe - not connected")
+            logger.warning("MASSIVE-CLIENT: Cannot subscribe - not connected")
             return False
 
         # Filter new tickers
@@ -140,13 +140,13 @@ class PolygonWebSocketClient:
         subscribe_message = {"action": "subscribe", "params": ",".join(formatted_tickers)}
 
         try:
-            logger.info(f"POLYGON-CLIENT: Subscribing to {len(new_tickers)} tickers: {', '.join(new_tickers)}")
+            logger.info(f"MASSIVE-CLIENT: Subscribing to {len(new_tickers)} tickers: {', '.join(new_tickers)}")
             self.ws.send(json.dumps(subscribe_message))
             self.subscribed_tickers.update(new_tickers)
-            logger.info(f"POLYGON-CLIENT: Total subscribed tickers: {len(self.subscribed_tickers)}")
+            logger.info(f"MASSIVE-CLIENT: Total subscribed tickers: {len(self.subscribed_tickers)}")
             return True
         except Exception as e:
-            logger.error(f"POLYGON-CLIENT: Error subscribing: {e}")
+            logger.error(f"MASSIVE-CLIENT: Error subscribing: {e}")
             return False
 
     def unsubscribe(self, tickers: list[str]) -> bool:
@@ -155,7 +155,7 @@ class PolygonWebSocketClient:
             tickers = [tickers]
 
         if not self.connected:
-            logger.warning("POLYGON-CLIENT: Cannot unsubscribe - not connected")
+            logger.warning("MASSIVE-CLIENT: Cannot unsubscribe - not connected")
             return False
 
         # Filter existing tickers
@@ -168,25 +168,25 @@ class PolygonWebSocketClient:
         unsubscribe_message = {"action": "unsubscribe", "params": ",".join(formatted_tickers)}
 
         try:
-            logger.info(f"POLYGON-CLIENT: Unsubscribing from {len(existing_tickers)} tickers")
+            logger.info(f"MASSIVE-CLIENT: Unsubscribing from {len(existing_tickers)} tickers")
             self.ws.send(json.dumps(unsubscribe_message))
             self.subscribed_tickers.difference_update(existing_tickers)
             return True
         except Exception as e:
-            logger.error(f"POLYGON-CLIENT: Error unsubscribing: {e}")
+            logger.error(f"MASSIVE-CLIENT: Error unsubscribing: {e}")
             return False
 
     def _on_open(self, ws):
         """Handle WebSocket connection open."""
-        logger.info("POLYGON-CLIENT: WebSocket opened, sending authentication")
+        logger.info("MASSIVE-CLIENT: WebSocket opened, sending authentication")
 
         # Send authentication
         auth_msg = {"action": "auth", "params": self.api_key}
         try:
             ws.send(json.dumps(auth_msg))
-            logger.info("POLYGON-CLIENT: Authentication sent")
+            logger.info("MASSIVE-CLIENT: Authentication sent")
         except Exception as e:
-            logger.error(f"POLYGON-CLIENT: Failed to send authentication: {e}")
+            logger.error(f"MASSIVE-CLIENT: Failed to send authentication: {e}")
             return
 
     def _on_message(self, ws, message):
@@ -200,7 +200,7 @@ class PolygonWebSocketClient:
             else:
                 self._process_message(data)
         except Exception as e:
-            logger.error(f"POLYGON-CLIENT: Error processing message: {e}")
+            logger.error(f"MASSIVE-CLIENT: Error processing message: {e}")
 
     def _process_message(self, msg):
         """Process individual message."""
@@ -208,7 +208,7 @@ class PolygonWebSocketClient:
             if msg.get('status') == 'auth_success':
                 self.auth_received = True
                 self.connected = True
-                logger.info("POLYGON-CLIENT: Authentication confirmed - connection established")
+                logger.info("MASSIVE-CLIENT: Authentication confirmed - connection established")
                 if self.on_status_callback:
                     self.on_status_callback('connected', {'message': 'Authentication successful'})
             else:
@@ -222,14 +222,14 @@ class PolygonWebSocketClient:
 
                     # Only log summary when all subscriptions are confirmed
                     if len(self.subscription_confirmations) == len(self.subscribed_tickers):
-                        logger.info(f"POLYGON-CLIENT: [SUCCESS] All {len(self.subscribed_tickers)} ticker subscriptions confirmed: {', '.join(sorted(self.subscribed_tickers))}")
+                        logger.info(f"MASSIVE-CLIENT: [SUCCESS] All {len(self.subscribed_tickers)} ticker subscriptions confirmed: {', '.join(sorted(self.subscribed_tickers))}")
                     # Log progress for large subscription sets
                     #elif len(self.subscribed_tickers) > 5:
-                    #    logger.info(f"POLYGON-CLIENT: Subscription progress: {len(self.subscription_confirmations)}/{len(self.subscribed_tickers)} confirmed")
+                    #    logger.info(f"MASSIVE-CLIENT: Subscription progress: {len(self.subscription_confirmations)}/{len(self.subscribed_tickers)} confirmed")
                     #else:
-                    #    logger.info(f"POLYGON-CLIENT: Confirmed subscription: {ticker}")
+                    #    logger.info(f"MASSIVE-CLIENT: Confirmed subscription: {ticker}")
                 #else:
-                #    logger.info(f"POLYGON-CLIENT: Status update - {status}: {message}")
+                #    logger.info(f"MASSIVE-CLIENT: Status update - {status}: {message}")
 
                 if self.on_status_callback:
                     self.on_status_callback('status_update', {'status': status, 'message': message})
@@ -252,7 +252,7 @@ class PolygonWebSocketClient:
             elif event_type == 'Q':  # Quote
                 self._process_quote_event(event)
         except Exception as e:
-            logger.error(f"POLYGON-CLIENT: Error processing tick event: {e}")
+            logger.error(f"MASSIVE-CLIENT: Error processing tick event: {e}")
 
     def _process_aggregate_event(self, event: dict):
         """Process aggregate bar events."""
@@ -270,7 +270,7 @@ class PolygonWebSocketClient:
             price=price,
             volume=event.get('v', 0),
             timestamp=end_timestamp_seconds,
-            source='polygon',
+            source='massive',
             event_type='A',
             market_status=market_status,
             tick_open=event.get('o'),
@@ -293,7 +293,7 @@ class PolygonWebSocketClient:
             price=event.get('p'),
             volume=event.get('s', 0),
             timestamp=event.get('t', 0) / 1000.0,
-            source='polygon',
+            source='massive',
             event_type='T',
             market_status='REGULAR'
         )
@@ -310,7 +310,7 @@ class PolygonWebSocketClient:
             price=midpoint,
             volume=0,
             timestamp=event.get('t', 0) / 1000.0,
-            source='polygon',
+            source='massive',
             event_type='Q',
             market_status='REGULAR',
             bid=bid,
@@ -320,7 +320,7 @@ class PolygonWebSocketClient:
 
     def _on_error(self, ws, error):
         """Handle WebSocket errors."""
-        logger.error(f"POLYGON-CLIENT: WebSocket error: {error}")
+        logger.error(f"MASSIVE-CLIENT: WebSocket error: {error}")
         self.connected = False
         if self.on_status_callback:
             self.on_status_callback('error', {'error': str(error)})
@@ -328,7 +328,7 @@ class PolygonWebSocketClient:
 
     def _on_close(self, ws, close_status_code, close_msg):
         """Handle WebSocket connection close."""
-        logger.info(f"POLYGON-CLIENT: Connection closed: {close_status_code} - {close_msg}")
+        logger.info(f"MASSIVE-CLIENT: Connection closed: {close_status_code} - {close_msg}")
         self.connected = False
         if self.on_status_callback:
             self.on_status_callback('disconnected', None)
@@ -337,16 +337,16 @@ class PolygonWebSocketClient:
     def _attempt_reconnect(self):
         """Attempt to reconnect with backoff."""
         if not self.should_reconnect or self.reconnect_attempts >= self.max_reconnect_attempts:
-            logger.error("POLYGON-CLIENT: Max reconnect attempts reached")
+            logger.error("MASSIVE-CLIENT: Max reconnect attempts reached")
             return
 
         self.reconnect_attempts += 1
         delay = self.reconnect_delay * self.reconnect_attempts
-        logger.info(f"POLYGON-CLIENT: Attempting reconnect in {delay}s (attempt {self.reconnect_attempts})")
+        logger.info(f"MASSIVE-CLIENT: Attempting reconnect in {delay}s (attempt {self.reconnect_attempts})")
         time.sleep(delay)
 
         if self.connect():
-            logger.info("POLYGON-CLIENT: Reconnection successful")
+            logger.info("MASSIVE-CLIENT: Reconnection successful")
             # Re-subscribe to existing tickers
             if self.subscribed_tickers:
                 self.subscribe(list(self.subscribed_tickers))
@@ -361,4 +361,4 @@ class PolygonWebSocketClient:
 
     def check_subscriptions(self):
         """Log subscription status."""
-        logger.info(f"POLYGON-CLIENT: Connected: {self.connected}, Subscribed tickers: {len(self.subscribed_tickers)}")
+        logger.info(f"MASSIVE-CLIENT: Connected: {self.connected}, Subscribed tickers: {len(self.subscribed_tickers)}")

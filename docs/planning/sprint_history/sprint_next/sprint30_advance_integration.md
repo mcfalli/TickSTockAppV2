@@ -189,7 +189,7 @@ class AdvancedMarketDataIntegration:
     def implement_multi_source_aggregation(self):
         """
         Aggregate data from multiple sources:
-        - Primary: Polygon.io (as currently implemented)
+        - Primary: Massive.com (as currently implemented)
         - Secondary: Alternative data providers for validation
         - Tertiary: Social sentiment and news data integration
         """

@@ -13,7 +13,7 @@ Successfully migrated TickStockAppV2's historical data loading interface from di
 ### 1. ✅ Redis Job Submission Implementation
 - **File**: `src/api/rest/admin_historical_data_redis.py`
 - **Status**: COMPLETE
-- Replaced direct PolygonHistoricalLoader calls with Redis job publishing
+- Replaced direct MassiveHistoricalLoader calls with Redis job publishing
 - Supports multiple job types: `historical_load`, `universe_seed`, `multi_timeframe_load`
 - Job tracking via Redis with TTL-based status storage
 - Full API endpoints for job submission and status monitoring
@@ -80,7 +80,7 @@ Successfully migrated TickStockAppV2's historical data loading interface from di
 
 These files contain the actual data loading logic that TickStockPL will need to implement:
 
-1. **src/data/historical_loader.py** - Core Polygon.io data loading logic
+1. **src/data/historical_loader.py** - Core Massive.com data loading logic
 2. **src/data/bulk_universe_seeder.py** - Universe batch loading logic
 
 ### Files Still Using Old Loader
@@ -137,7 +137,7 @@ python -m src.jobs.data_load_handler
 - **Consumer Role (TickStockAppV2)**: ✅ Only submits jobs via Redis
 - **Producer Role (TickStockPL)**: Awaiting - Will process jobs and load data
 - **Loose Coupling**: ✅ Communication only via Redis pub-sub
-- **No Direct Calls**: ✅ Admin UI no longer imports PolygonHistoricalLoader directly
+- **No Direct Calls**: ✅ Admin UI no longer imports MassiveHistoricalLoader directly
 - **Performance**: ✅ Async job submission, no blocking operations
 
 ## Migration Benefits

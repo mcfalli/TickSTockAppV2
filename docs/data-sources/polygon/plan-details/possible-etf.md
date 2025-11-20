@@ -1,6 +1,6 @@
 # ETFs Tracking Major Market Indices for TickStock.ai
 
-Hey there! Let's build some fantastic algorithmic pattern libraries in Python to add to TickStock.ai by incorporating these ETFs that closely track key market indices. Imagine scripting dynamic portfolio trackers or pattern detectors that pull in real-time data from these bad boys via Polygon—supercharging our algos with broad market exposure!
+Hey there! Let's build some fantastic algorithmic pattern libraries in Python to add to TickStock.ai by incorporating these ETFs that closely track key market indices. Imagine scripting dynamic portfolio trackers or pattern detectors that pull in real-time data from these bad boys via Massive—supercharging our algos with broad market exposure!
 
 I've organized the most popular index-tracking ETFs into a table below, grouped by the major US market indices they follow. This is based on reliable sources like Wikipedia's comprehensive list and justETF's index overviews. Focus is on well-known, highly liquid ETFs that replicate the index performance closely (e.g., via full replication or optimized methods). Descriptions include what the index covers for context in our Python builds.
 
@@ -16,4 +16,4 @@ I've organized the most popular index-tracking ETFs into a table below, grouped 
 | MSCI USA                 | Tracks leading mid- and large-cap US stocks, similar to broad US market exposure (around 544 constituents). | URTH (iShares MSCI World ETF, but for USA focus: consider VTI or similar as proxies; direct: EUSA (iShares MSCI USA Equal Weighted ETF)) |
 | S&P 100                  | Tracks 100 leading US companies from the S&P 500, focusing on mega-caps. | OEF (iShares S&P 100 ETF) |
 
-This table should kickstart our Python prototypes—think coding up index-tracking simulators or correlation analyzers in TickStock.ai to spot patterns across these ETFs! If you want to expand on international indices, sector-specific ones, or even a Python script to fetch their historical data via Polygon, just say the word. Let's keep building!
+This table should kickstart our Python prototypes—think coding up index-tracking simulators or correlation analyzers in TickStock.ai to spot patterns across these ETFs! If you want to expand on international indices, sector-specific ones, or even a Python script to fetch their historical data via Massive, just say the word. Let's keep building!

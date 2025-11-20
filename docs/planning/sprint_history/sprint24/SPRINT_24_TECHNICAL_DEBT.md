@@ -62,7 +62,7 @@ generateMockChartData(symbol, timeframe) {
     // ... ALGORITHMIC PRICE GENERATION
 }
 ```
-**Required Fix**: Integrate with Polygon.io market data API or existing market data service
+**Required Fix**: Integrate with Massive.com market data API or existing market data service
 **Impact**: All stock charts show fake data, not real market prices
 **Test Impact**: Cannot validate chart accuracy or real-time updates
 

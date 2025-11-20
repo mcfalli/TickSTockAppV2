@@ -35,7 +35,7 @@ def test_redis_config():
 
 @pytest.fixture
 def mock_polygon_api_key():
-    """Mock Polygon.io API key for testing."""
+    """Mock Massive.com API key for testing."""
     return "test_polygon_api_key_sprint14"
 
 

@@ -132,7 +132,7 @@ tests/
 ### Mock Strategy
 - **Database**: Comprehensive PostgreSQL mocking with realistic responses
 - **Redis**: Async Redis client mocking with message capture utilities
-- **External APIs**: Polygon.io response mocking (where applicable)
+- **External APIs**: Massive.com response mocking (where applicable)
 - **Performance**: Fast mock responses for performance testing isolation
 
 ## Performance Requirements Validation

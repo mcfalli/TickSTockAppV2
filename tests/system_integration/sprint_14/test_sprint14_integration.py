@@ -19,7 +19,7 @@ import pytest
 import redis
 
 from src.data.eod_processor import EODProcessor
-from src.data.historical_loader import PolygonHistoricalLoader
+from src.data.historical_loader import MassiveHistoricalLoader
 
 
 class TestETFDataFlowIntegration:
@@ -27,9 +27,9 @@ class TestETFDataFlowIntegration:
 
     @patch('src.data.historical_loader.psycopg2.connect')
     @patch('src.data.historical_loader.requests.Session.get')
-    def test_etf_loading_to_database_integration(self, mock_get, mock_connect, historical_loader: PolygonHistoricalLoader):
+    def test_etf_loading_to_database_integration(self, mock_get, mock_connect, historical_loader: MassiveHistoricalLoader):
         """Test ETF data loading flows correctly to database."""
-        # Arrange: Mock Polygon.io API response
+        # Arrange: Mock Massive.com API response
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -82,10 +82,10 @@ class TestETFDataFlowIntegration:
         mock_get.assert_called()
         api_call_url = mock_get.call_args[1]['url']
         assert etf_symbol in api_call_url
-        assert 'aggs' in api_call_url  # Polygon aggregates endpoint
+        assert 'aggs' in api_call_url  # Massive aggregates endpoint
 
     @patch('src.data.historical_loader.psycopg2.connect')
-    def test_etf_universe_creation_database_integration(self, mock_connect, historical_loader: PolygonHistoricalLoader):
+    def test_etf_universe_creation_database_integration(self, mock_connect, historical_loader: MassiveHistoricalLoader):
         """Test ETF universe creation integrates with cache_entries table."""
         # Arrange: Mock database connection
         mock_conn = Mock()
@@ -123,7 +123,7 @@ class TestETFDataFlowIntegration:
             assert len(universe_data['etfs']) > 0
 
     @patch('src.data.historical_loader.psycopg2.connect')
-    def test_symbols_table_etf_integration(self, mock_connect, historical_loader: PolygonHistoricalLoader):
+    def test_symbols_table_etf_integration(self, mock_connect, historical_loader: MassiveHistoricalLoader):
         """Test symbols table integration with ETF-specific fields."""
         # Arrange: Mock database and simulate symbol update
         mock_conn = Mock()
@@ -461,7 +461,7 @@ class TestCrossSystemPerformanceIntegration:
     @patch('src.data.historical_loader.psycopg2.connect')
     @patch('src.data.historical_loader.requests.Session.get')
     def test_end_to_end_etf_loading_performance(self, mock_get, mock_connect,
-                                               historical_loader: PolygonHistoricalLoader, performance_timer):
+                                               historical_loader: MassiveHistoricalLoader, performance_timer):
         """Test end-to-end ETF loading performance integration."""
         # Arrange: Mock API and database
         mock_response = Mock()
@@ -706,10 +706,10 @@ class TestDataConsistencyIntegration:
 def historical_loader():
     """Create historical loader instance for integration testing."""
     with patch.dict('os.environ', {
-        'POLYGON_API_KEY': 'test_key_integration',
+        'MASSIVE_API_KEY': 'test_key_integration',
         'DATABASE_URI': 'postgresql://test:test@localhost:5432/tickstock_integration'
     }):
-        return PolygonHistoricalLoader()
+        return MassiveHistoricalLoader()
 
 
 @pytest.fixture

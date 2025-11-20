@@ -5,7 +5,7 @@ ETF Universe Management System - Sprint 14 Phase 3
 This service manages comprehensive ETF universe expansion and maintenance:
 - Expands ETF universes across 5+ major themes with 200+ symbols
 - Applies AUM and liquidity-based filtering (AUM > $1B, Volume > 5M)
-- Integrates with Polygon.io for ETF metadata and validation
+- Integrates with Massive.com for ETF metadata and validation
 - Publishes universe updates via Redis to TickStockApp
 - Maintains ETF correlation and relationship mapping
 
@@ -53,7 +53,7 @@ class ETFUniverseManager:
     - Multi-theme universe organization (Sector, Growth, Value, International, Commodities)
     - Liquidity and AUM-based filtering for quality ETF selection
     - Real-time universe updates via Redis pub-sub
-    - Integration with Polygon.io for metadata validation
+    - Integration with Massive.com for metadata validation
     - Performance tracking and correlation analysis
     """
 
@@ -64,7 +64,7 @@ class ETFUniverseManager:
             'DATABASE_URI',
             'postgresql://app_readwrite:OLD_PASSWORD_2024@localhost/tickstock'
         )
-        self.polygon_api_key = polygon_api_key or config.get('POLYGON_API_KEY')
+        self.polygon_api_key = polygon_api_key or config.get('MASSIVE_API_KEY')
         self.redis_host = redis_host or config.get('REDIS_HOST', 'localhost')
         self.redis_port = config.get('REDIS_PORT', 6379)
         # ETF filtering criteria

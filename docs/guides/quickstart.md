@@ -196,7 +196,7 @@ loader.load_intraday_data(
 ```
 
 #### Data Sources
-- **Primary**: Polygon.io API (requires API key in .env)
+- **Primary**: Massive.com API (requires API key in .env)
 - **Test Data**: Synthetic generator for development
 ```bash
 # Generate test data
@@ -255,7 +255,7 @@ FLASK_PORT=8502
 1. **Configure Settings**: See [Configuration Guide](./configuration.md)
 2. **Setup Authentication**: Configure user roles and permissions
 3. **Load Market Data**: Import symbols and historical data
-4. **Connect Data Sources**: Configure Polygon API or other providers
+4. **Connect Data Sources**: Configure Massive API or other providers
 5. **Deploy Production**: See deployment documentation
 
 ## Support

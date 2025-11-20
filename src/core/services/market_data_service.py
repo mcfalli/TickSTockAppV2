@@ -109,8 +109,8 @@ class MarketDataService:
         use_synthetic = self.config.get('USE_SYNTHETIC_DATA', False)
         use_polygon = self.config.get('USE_POLYGON_API', False)
 
-        if use_polygon and self.config.get('POLYGON_API_KEY'):
-            logger.info("MARKET-DATA-SERVICE: Initializing Polygon WebSocket adapter")
+        if use_polygon and self.config.get('MASSIVE_API_KEY'):
+            logger.info("MARKET-DATA-SERVICE: Initializing Massive WebSocket adapter")
             self.data_adapter = RealTimeDataAdapter(
                 config=self.config,
                 tick_callback=self._handle_tick_data,

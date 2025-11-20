@@ -35,7 +35,7 @@ tests/
 ### 1. ETF Integration Testing (38 tests)
 **Status**: ✓ Complete  
 **Coverage Areas**:
-- ETF metadata extraction from Polygon.io API responses
+- ETF metadata extraction from Massive.com API responses
 - Issuer detection from name patterns (Vanguard, BlackRock, State Street, etc.)
 - Correlation reference assignment (SPY, IWM, QQQ mapping)
 - ETF universe creation in cache_entries (growth, sectors, value, broad_market)
@@ -44,7 +44,7 @@ tests/
 - Performance benchmarks for bulk ETF loading
 
 **Key Test Classes**:
-- `TestETFMetadataExtraction` - Polygon.io data processing
+- `TestETFMetadataExtraction` - Massive.com data processing
 - `TestETFUniverseCreation` - Cache_entries universe management  
 - `TestETFDataValidation` - Data validation and API integration
 - `TestETFLoadingPerformance` - 50+ ETF loading in <30 minutes
@@ -186,7 +186,7 @@ tests/
 - ✓ Development universe isolation
 
 ### API Integration  
-- ✓ Polygon.io ETF endpoint integration
+- ✓ Massive.com ETF endpoint integration
 - ✓ ETF-specific metadata extraction
 - ✓ Rate limiting and error handling
 - ✓ Development vs production API configurations

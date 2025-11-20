@@ -90,7 +90,7 @@ This index lists the core Markdown files defining TickStock.ai's current system 
 **Sprint 16 Dashboard Grid Modernization (2025-09-02)**:
 - **Grid Infrastructure**: GridStack.js configuration extended to 6 containers in 2x3 responsive layout
 - **Layout Transformation**: Complete migration from tab-based to grid-based dashboard interface
-- **Market Movers Widget**: New Polygon.io API integration with `/api/market-movers` endpoint (25ms average response)
+- **Market Movers Widget**: New Massive.com API integration with `/api/market-movers` endpoint (25ms average response)
 - **Performance Optimization**: 33% page load improvement (4.2s → 2.8s), 15% bundle size reduction
 - **Code Cleanup**: Removed 800+ lines obsolete tab infrastructure, consolidated CSS architecture
 - **Testing Coverage**: 3,200+ lines comprehensive test coverage across 7 test suites (API, widget, integration)

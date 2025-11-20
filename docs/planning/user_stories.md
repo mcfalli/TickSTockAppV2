@@ -22,7 +22,7 @@ This document consolidates all user stories for TickStock.ai, organized by compl
 **So that** I can validate patterns and run accurate backtests on real market data
 
 **Implementation**:
-- Enhanced `PolygonHistoricalLoader` with SIC code mapping
+- Enhanced `MassiveHistoricalLoader` with SIC code mapping
 - Automatic symbol creation and metadata enrichment
 - ETF support with specialized handling
 - Admin dashboard integration

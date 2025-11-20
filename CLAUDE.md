@@ -58,7 +58,7 @@ ps aux | grep "flask run"
 
 ## Architecture Essentials
 
-**TickStock.ai** is a high-performance platform for real-time and batch processing of market data, analyzing over 4,000 stock symbols with sub-millisecond efficiency. It leverages a three-tiered architecture—Daily Batch Processing, Intraday Streaming, and Combo Hybrid Intelligence—to detect technical patterns (e.g., Doji, breakouts) and calculate indicators (e.g., RSI, MACD) across intraday, hourly, daily, weekly, and monthly timeframes. Built with Python (pandas, NumPy, SciPy), it integrates Polygon API data and supports modular expansion via a dynamic loading system (NO FALLBACK policy).
+**TickStock.ai** is a high-performance platform for real-time and batch processing of market data, analyzing over 4,000 stock symbols with sub-millisecond efficiency. It leverages a three-tiered architecture—Daily Batch Processing, Intraday Streaming, and Combo Hybrid Intelligence—to detect technical patterns (e.g., Doji, breakouts) and calculate indicators (e.g., RSI, MACD) across intraday, hourly, daily, weekly, and monthly timeframes. Built with Python (pandas, NumPy, SciPy), it integrates Massive API data and supports modular expansion via a dynamic loading system (NO FALLBACK policy).
 
 **Components:**
 - **TickStockAppV2**: Manages UI, authentication, and real-time WebSocket updates; consumes events and triggers jobs via Redis.

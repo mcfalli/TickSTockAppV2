@@ -143,7 +143,7 @@
 - **Usage**: Symbol universe management and caching
 
 ### symbols_related_tickers
-- **Purpose**: Symbol relationships from Polygon API
+- **Purpose**: Symbol relationships from Massive API
 - **Fields**:
   - id: integer - Primary key
   - symbol: varchar(20) - Primary symbol

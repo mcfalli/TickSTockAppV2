@@ -369,7 +369,7 @@ TickStockAppV2's Live Streaming dashboard requires real-time event data from Tic
   "type": "critical_alert",
   "alert": {
     "severity": "critical",
-    "message": "WebSocket connection lost to Polygon",
+    "message": "WebSocket connection lost to Massive",
     "timestamp": "2025-10-05T12:45:00.000Z",
     "component": "polygon_websocket",
     "action_required": "Manual intervention needed - check API credentials",

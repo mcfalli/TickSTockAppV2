@@ -11,7 +11,7 @@ This summary merges all 8 phases into a unified roadmap, highlighting UI deliver
 ## Phase 1: Foundation & Data Layer (2-3 Weeks)
 **Focus**: APIs, DB optimizations, WebSockets.  
 **Backend Synergies**: Unified queries from `daily_patterns`, `intraday_patterns`, and `daily_intraday_patterns`; Redis caching for 70% load reduction.  
-**Enhancements**: Add Polygon fundamental correlations in `/api/patterns/scan` for confidence boosts (e.g., +10% for positive EPS).  
+**Enhancements**: Add Massive fundamental correlations in `/api/patterns/scan` for confidence boosts (e.g., +10% for positive EPS).  
 **Key Code (Flask Endpoint Example)**:
 ```python
 from flask import Blueprint, jsonify
@@ -71,18 +71,18 @@ def build_filter_query(filters):
 
 ## Phase 4: Market Breadth Tab (2 Weeks)
 **Focus**: Index/ETF patterns, sector heatmaps, breadth indicators.  
-**Backend Synergies**: ETF detections via `src/patterns/combo/`; Polygon for live OHLCV data.  
+**Backend Synergies**: ETF detections via `src/patterns/combo/`; Massive for live OHLCV data.  
 **Enhancements**: Correlate sectors with fundamentals (e.g., boost Energy if XLE EPS positive).  
 **Key Code (Sector Rotation Detector)**:
 ```python
-from polygon_api_client import PolygonClient
+from polygon_api_client import MassiveClient
 
 class MarketBreadthDetector:
-    def __init__(self, client: PolygonClient):
+    def __init__(self, client: MassiveClient):
         self.client = client
 
     def analyze_sector_rotation(self):
-        sectors = self.get_sector_data()  # From Polygon aggregates
+        sectors = self.get_sector_data()  # From Massive aggregates
         return sorted(sectors, key=lambda s: s['performance'], reverse=True)
 ```
 **Targets**: 30s real-time updates, <25ms index queries.  
@@ -172,7 +172,7 @@ class CustomPatternEvaluator(BasePattern):
 **Targets**: <200ms custom evaluations, <5s for 1k+ symbol bulk ops.  
 
 ## Post-Sprint Considerations
-- **Testing**: 95%+ coverage with pytest/Jest; backtest all phases with FMV metrics (<5% error via Polygon historical data).  
+- **Testing**: 95%+ coverage with pytest/Jest; backtest all phases with FMV metrics (<5% error via Massive historical data).  
 - **Deployment**: Kubernetes for scaling; Prometheus for monitoring.  
 - **Extensions**: Phase 9 for ML-driven pattern enhancements (e.g., clustering with scikit-learn).  
 - **Risks & Mitigations**: High-volume real-time—use Redis pub-sub; API failures—implement circuit breakers.  

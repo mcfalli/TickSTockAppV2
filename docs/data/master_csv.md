@@ -2,13 +2,13 @@
 
 **Created**: 2025-09-12  
 **Purpose**: Central registry of all CSV universe files for controlled symbol loading  
-**Strategy**: CSV defines symbols → Polygon API provides details → Database stores both symbols + OHLCV data  
+**Strategy**: CSV defines symbols → Massive API provides details → Database stores both symbols + OHLCV data  
 
 ## Overview
 
-This registry tracks all CSV files used for universe loading in TickStock. Each CSV contains curated symbol lists that control which stocks/ETFs are loaded from Polygon.io API into the database.
+This registry tracks all CSV files used for universe loading in TickStock. Each CSV contains curated symbol lists that control which stocks/ETFs are loaded from Massive.com API into the database.
 
-**Key Principle**: CSV files control WHICH symbols to load, Polygon API provides WHAT data for those symbols.
+**Key Principle**: CSV files control WHICH symbols to load, Massive API provides WHAT data for those symbols.
 
 ## Stock Universe Files
 
@@ -181,13 +181,13 @@ git tag csv-update-2025-q3
 ### **CSV Loading Flow**
 1. **Admin selects CSV** from dropdown
 2. **System reads CSV** symbols list
-3. **Polygon API called** for each symbol to get full details
+3. **Massive API called** for each symbol to get full details
 4. **Database updated** with both `symbols` and `ohlcv_daily` data
 5. **Load tracked** in `symbol_load_log` table
 
 ### **Performance Considerations**
 - **Batch processing**: Load symbols in batches of 100
-- **Rate limiting**: Respect Polygon API limits
+- **Rate limiting**: Respect Massive API limits
 - **Progress tracking**: Show admin load progress
 - **Error handling**: Continue on individual symbol failures
 
@@ -211,5 +211,5 @@ git tag csv-update-2025-q3
 1. **Create database table**: `symbol_load_log`
 2. **Generate CSV files**: Populate with actual symbol lists
 3. **Update admin interface**: Add CSV dropdown selection
-4. **Implement CSV loading**: Enhance bulk loader for CSV → Polygon → Database flow
+4. **Implement CSV loading**: Enhance bulk loader for CSV → Massive → Database flow
 5. **Testing**: Validate full loading workflow

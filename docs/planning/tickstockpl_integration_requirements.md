@@ -38,7 +38,7 @@ TickStockAppV2 (consumer) is fully operational and listening for pattern events.
 ### These are FLEXIBLE based on your implementation:
 
 1. **Pattern Detection Logic**: Use your existing algorithms
-2. **Market Data Source**: Your choice (Polygon, synthetic, etc.)
+2. **Market Data Source**: Your choice (Massive, synthetic, etc.)
 3. **Service Architecture**: Adapt to your existing structure
 4. **Timing/Intervals**: Adjust based on your requirements
 5. **Error Handling**: Implement per your standards
@@ -546,7 +546,7 @@ When starting `run_pattern_detection_service.py`, verify:
 - [ ] Database connection established (localhost:5432)
 - [ ] Startup event logged to `integration_events` table
 - [ ] Heartbeat timer started (60-second interval)
-- [ ] Market data source connected (Polygon.io API or synthetic)
+- [ ] Market data source connected (Massive.com API or synthetic)
 - [ ] Pattern detection loop running
 - [ ] Test pattern successfully published and logged
 
@@ -662,7 +662,7 @@ When TickStockAppV2 submits a CSV universe load job:
    - Load symbols from `csv_file` (e.g., sp_500.csv, nasdaq_100.csv)
    - Universe files located in standard data directory
 
-3. **Fetch Historical Data from Polygon.io**:
+3. **Fetch Historical Data from Massive.com**:
    - Use specified `years` parameter for timeframe
    - Respect API rate limits (5 calls/minute for free tier)
    - Implement exponential backoff for rate limit errors
@@ -783,7 +783,7 @@ ohlcv_monthly: 0 records (EMPTY - never populated)
 - [ ] Subscribe to `tickstock.jobs.data_load` Redis channel
 - [ ] Parse incoming job messages correctly
 - [ ] Load CSV universe files (sp_500.csv, nasdaq_100.csv, etc.)
-- [ ] Implement Polygon.io API client with rate limiting
+- [ ] Implement Massive.com API client with rate limiting
 - [ ] Create data aggregation functions:
   - [ ] Minute → Hourly aggregation
   - [ ] Hourly → Daily aggregation

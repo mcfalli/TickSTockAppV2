@@ -132,7 +132,7 @@
 **Dates**: September 2, 2025 (2 weeks)  
 **Key Accomplishments**:
 - **Grid Infrastructure**: Transformed tabbed interface to modern 6-container GridStack.js layout
-- **Market Movers Widget**: Implemented Polygon.io API integration with <50ms response time
+- **Market Movers Widget**: Implemented Massive.com API integration with <50ms response time
 - **Performance Improvements**: 33% page load improvement (4.2s → 2.8s) and 15% bundle size reduction
 - **Infrastructure Cleanup**: Removed 800+ lines of obsolete tab code, consolidated CSS architecture
 - **Responsive Design**: Full mobile/tablet support with optimized breakpoints

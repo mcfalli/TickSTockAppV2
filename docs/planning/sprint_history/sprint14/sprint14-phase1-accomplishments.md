@@ -71,7 +71,7 @@ liquidity_score INTEGER              -- Proprietary liquidity rating
 #### **ETF Universe Creation**
 **Enhanced**: `src/data/historical_loader.py`
 - **Development Universe**: 40 carefully selected ETFs across 4 themes
-- **Polygon.io Integration**: Automated ETF metadata extraction
+- **Massive.com Integration**: Automated ETF metadata extraction
 - **Theme Classification**: Technology, Healthcare, Finance, Consumer sectors
 - **Quality Filtering**: AUM > $1B, Volume > 10M shares, Expense ratio < 0.75%
 

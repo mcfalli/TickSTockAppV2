@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
-from data.historical_loader import PolygonHistoricalLoader
+from data.historical_loader import MassiveHistoricalLoader
 
 
 def test_etf_loading():
@@ -17,7 +17,7 @@ def test_etf_loading():
     print("=" * 50)
 
     # Initialize loader
-    loader = PolygonHistoricalLoader()
+    loader = MassiveHistoricalLoader()
 
     # Test ETF symbols
     test_symbols = ['SPY', 'QQQ', 'VTI']

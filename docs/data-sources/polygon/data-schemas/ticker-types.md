@@ -1,5 +1,5 @@
 # Ticker Types
-https://polygon.io/docs/rest/stocks/tickers/ticker-types
+https://massive.com/docs/rest/stocks/tickers/ticker-types
 
 
 

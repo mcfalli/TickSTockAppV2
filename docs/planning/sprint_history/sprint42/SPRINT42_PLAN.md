@@ -35,7 +35,7 @@
 **Move ALL OHLCV aggregation to TickStockPL** to align with documented architecture:
 
 ```
-[Polygon/Synthetic Data]
+[Massive/Synthetic Data]
     ↓
 [TickStockAppV2: Raw Forwarder ONLY]
     └─→ Forwards raw ticks to Redis ✅ (NO aggregation, NO DB writes)

@@ -1,7 +1,7 @@
 """Simplified real-time data adapter for TickStockPL integration.
 
 PHASE 6 CLEANUP: Simplified to basic data forwarding with:
-- Simple Polygon WebSocket client integration
+- Simple Massive WebSocket client integration
 - Basic synthetic data simulation
 - Standard callback patterns
 - Redis publishing ready
@@ -14,7 +14,7 @@ import time
 from collections.abc import Callable
 
 from src.infrastructure.data_sources.factory import DataProviderFactory
-from src.presentation.websocket.polygon_client import PolygonWebSocketClient
+from src.presentation.websocket.massive_client import MassiveWebSocketClient
 
 logger = logging.getLogger(__name__)
 
@@ -27,22 +27,22 @@ class RealTimeDataAdapter:
         self.status_callback = status_callback
         self.client = None
 
-        # Initialize Polygon WebSocket client if configured
-        if config.get('USE_POLYGON_API') and config.get('POLYGON_API_KEY'):
-            self.client = PolygonWebSocketClient(
-                api_key=config['POLYGON_API_KEY'],
+        # Initialize Massive WebSocket client if configured
+        if config.get('USE_POLYGON_API') and config.get('MASSIVE_API_KEY'):
+            self.client = MassiveWebSocketClient(
+                api_key=config['MASSIVE_API_KEY'],
                 on_tick_callback=self.tick_callback,
                 on_status_callback=self.status_callback,
                 config=config
             )
-            logger.info("REAL-TIME-ADAPTER: Initialized with Polygon WebSocket client")
+            logger.info("REAL-TIME-ADAPTER: Initialized with Massive WebSocket client")
         else:
             logger.info("REAL-TIME-ADAPTER: No WebSocket client - using synthetic data only")
 
     def connect(self, tickers: list[str]) -> bool:
         """Connect to data source and subscribe to tickers."""
         if self.client:
-            logger.info(f"REAL-TIME-ADAPTER: Connecting to Polygon WebSocket with {len(tickers)} tickers")
+            logger.info(f"REAL-TIME-ADAPTER: Connecting to Massive WebSocket with {len(tickers)} tickers")
             success = self.client.connect()
             if success:
                 self.client.subscribe(tickers)

@@ -120,7 +120,7 @@ class SyntheticDataBuilder:
         vwap = (open_price + high_price + low_price + close_price) / 4
 
         return {
-            'ev': 'AM',  # Polygon aggregate minute event
+            'ev': 'AM',  # Massive aggregate minute event
             'sym': ticker,
             'o': open_price,
             'h': high_price,

@@ -16,7 +16,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.data.historical_loader import PolygonHistoricalLoader
+from src.data.historical_loader import MassiveHistoricalLoader
 
 
 class TestCLIParameterParsing:
@@ -103,7 +103,7 @@ class TestDevelopmentUniverseCreation:
     """Test development universe creation and management."""
 
     @patch('src.data.historical_loader.psycopg2.connect')
-    def test_create_dev_universes(self, mock_connect, historical_loader: PolygonHistoricalLoader):
+    def test_create_dev_universes(self, mock_connect, historical_loader: MassiveHistoricalLoader):
         """Test creation of development universes in cache_entries."""
         # Arrange: Mock database connection
         mock_conn = Mock()
@@ -295,7 +295,7 @@ class TestSubsetLoadingPerformance:
 
     @patch('src.data.historical_loader.psycopg2.connect')
     @patch('src.data.historical_loader.requests.Session.get')
-    def test_dev_universe_loading_performance(self, mock_get, mock_connect, historical_loader: PolygonHistoricalLoader, performance_timer):
+    def test_dev_universe_loading_performance(self, mock_get, mock_connect, historical_loader: MassiveHistoricalLoader, performance_timer):
         """Test development universe loading meets <5 minute benchmark."""
         # Arrange: Mock API responses for development load
         mock_response = Mock()
@@ -344,7 +344,7 @@ class TestSubsetLoadingPerformance:
         print(f"Development Load Performance: {len(dev_symbols)} symbols in {performance_timer.elapsed:.2f}s ({symbols_per_minute:.1f} symbols/min)")
 
     @patch('src.data.historical_loader.requests.Session.get')
-    def test_api_rate_limiting_optimization(self, mock_get, historical_loader: PolygonHistoricalLoader, performance_timer):
+    def test_api_rate_limiting_optimization(self, mock_get, historical_loader: MassiveHistoricalLoader, performance_timer):
         """Test optimized API rate limiting for development environments."""
         # Arrange: Mock API response
         mock_response = Mock()
@@ -459,10 +459,10 @@ class TestDevelopmentDataOptimizations:
 def historical_loader():
     """Create historical loader instance for testing."""
     with patch.dict('os.environ', {
-        'POLYGON_API_KEY': 'test_key_12345',
+        'MASSIVE_API_KEY': 'test_key_12345',
         'DATABASE_URI': 'postgresql://test:test@localhost:5432/tickstock_test'
     }):
-        loader = PolygonHistoricalLoader()
+        loader = MassiveHistoricalLoader()
         return loader
 
 

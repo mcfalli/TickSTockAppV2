@@ -1,4 +1,4 @@
-"""Simplified Polygon.io data provider for TickStockPL integration.
+"""Simplified Massive.com data provider for TickStockPL integration.
 
 PHASE 6 CLEANUP: Simplified to basic API interactions with:
 - Simple REST API calls
@@ -21,29 +21,30 @@ from src.core.interfaces.data_provider import DataProvider
 
 logger = logging.getLogger(__name__)
 
-class PolygonDataProvider(DataProvider):
-    """Simplified Polygon.io API client for basic market data."""
+class MassiveDataProvider(DataProvider):
+    """Simplified Massive.com API client for basic market data."""
 
     def __init__(self, config: dict[str, Any]):
         self.config = config
-        self.api_key = config.get('POLYGON_API_KEY')
-        self.base_url = "https://api.polygon.io"
+        # Backward compatibility: fall back to POLYGON_API_KEY if MASSIVE_API_KEY not set
+        self.api_key = config.get('MASSIVE_API_KEY') or config.get('POLYGON_API_KEY')
+        self.base_url = "https://api.massive.com"
         self.session = requests.Session()
         self.market_timezone = pytz.timezone(config.get('MARKET_TIMEZONE', 'US/Eastern'))
 
         if not self.api_key:
-            logger.warning("POLYGON-PROVIDER: No API key provided")
+            logger.warning("MASSIVE-PROVIDER: No API key provided")
         else:
-            logger.info("POLYGON-PROVIDER: Initialized with API key")
+            logger.info("MASSIVE-PROVIDER: Initialized with API key")
 
-    def convert_polygon_tick(self, ws_data: dict) -> TickData:
-        """Convert Polygon WebSocket data to TickData."""
-        return TickData.from_polygon_ws(ws_data)
+    def convert_massive_tick(self, ws_data: dict) -> TickData:
+        """Convert Massive WebSocket data to TickData."""
+        return TickData.from_massive_ws(ws_data)
 
     def _make_request(self, endpoint: str, params: dict = None) -> dict:
-        """Make a simple request to the Polygon API."""
+        """Make a simple request to the Massive API."""
         if not self.api_key:
-            logger.error("POLYGON-PROVIDER: API key required")
+            logger.error("MASSIVE-PROVIDER: API key required")
             return {"status": "error", "message": "API key required"}
 
         url = f"{self.base_url}{endpoint}"
@@ -55,11 +56,11 @@ class PolygonDataProvider(DataProvider):
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            logger.error(f"POLYGON-PROVIDER: API request error: {e}")
+            logger.error(f"MASSIVE-PROVIDER: API request error: {e}")
             return {"status": "error", "message": str(e)}
 
     def get_market_status(self) -> str:
-        """Get current market status from Polygon API."""
+        """Get current market status from Massive API."""
         try:
             result = self._make_request("/v1/marketstatus/now")
 
@@ -77,7 +78,7 @@ class PolygonDataProvider(DataProvider):
                 return "CLOSED"
             return self._get_market_status_from_time()
         except Exception as e:
-            logger.error(f"POLYGON-PROVIDER: Error getting market status: {e}")
+            logger.error(f"MASSIVE-PROVIDER: Error getting market status: {e}")
             return self._get_market_status_from_time()
 
     def _get_market_status_from_time(self) -> str:
@@ -101,7 +102,7 @@ class PolygonDataProvider(DataProvider):
 
         if result.get("status") == "OK" and result.get("results"):
             return result["results"]["p"]
-        logger.warning(f"POLYGON-PROVIDER: Failed to get price for {ticker}")
+        logger.warning(f"MASSIVE-PROVIDER: Failed to get price for {ticker}")
         return None
 
     def get_ticker_details(self, ticker: str) -> dict[str, Any]:
@@ -129,7 +130,7 @@ class PolygonDataProvider(DataProvider):
                 "sector": "Unknown",
                 "last_updated": datetime.now().isoformat()
             }
-        logger.warning(f"POLYGON-PROVIDER: Failed to get details for {ticker}")
+        logger.warning(f"MASSIVE-PROVIDER: Failed to get details for {ticker}")
         return {
             "ticker": ticker,
             "error": True,
@@ -149,9 +150,9 @@ class PolygonDataProvider(DataProvider):
         return results
 
     def is_available(self) -> bool:
-        """Check if Polygon API is available."""
+        """Check if Massive API is available."""
         if not self.api_key:
-            logger.warning("POLYGON-PROVIDER: No API key available")
+            logger.warning("MASSIVE-PROVIDER: No API key available")
             return False
 
         try:
@@ -162,10 +163,10 @@ class PolygonDataProvider(DataProvider):
                                   timeout=10)
             success = response.status_code == 200
             if success:
-                logger.info("POLYGON-PROVIDER: API availability confirmed")
+                logger.info("MASSIVE-PROVIDER: API availability confirmed")
             else:
-                logger.warning(f"POLYGON-PROVIDER: API availability check failed - status: {response.status_code}")
+                logger.warning(f"MASSIVE-PROVIDER: API availability check failed - status: {response.status_code}")
             return success
         except Exception as e:
-            logger.error(f"POLYGON-PROVIDER: Availability check failed: {e}")
+            logger.error(f"MASSIVE-PROVIDER: Availability check failed: {e}")
             return False

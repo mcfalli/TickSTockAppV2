@@ -25,7 +25,7 @@ Every Sprint 16 task MUST follow this sequence:
 5. `tickstock-test-specialist` - Comprehensive testing
 
 ### Market Movers Widget (TASK-008)
-**Trigger**: Implementing Polygon.io API integration
+**Trigger**: Implementing Massive.com API integration
 **Required Agents**:
 1. `architecture-validation-specialist` - API pattern review
 2. `appv2-integration-specialist` - Widget implementation
@@ -90,7 +90,7 @@ ALWAYS:
 - Files: `index.html`, `*.js` (tab-specific)
 - Agents: `appv2-integration-specialist` → `redis-integration-specialist` → `integration-testing-specialist`
 
-### Polygon.io Integration
+### Massive.com Integration
 - New file: `market-movers.js` (or similar)
 - Agents: `appv2-integration-specialist` → `integration-testing-specialist` → `tickstock-test-specialist`
 
@@ -122,13 +122,13 @@ ALWAYS:
 
 ### Example 3: Market Movers Widget (TASK-008)
 ```
-1. Task: "Implement Market Movers with Polygon API"
+1. Task: "Implement Market Movers with Massive API"
 2. Launch: architecture-validation-specialist
    - "Review Market Movers widget architecture"
 3. Launch: appv2-integration-specialist
-   - "Create Market Movers widget with Polygon.io API"
+   - "Create Market Movers widget with Massive.com API"
 4. Launch: integration-testing-specialist
-   - "Test Polygon API integration and error handling"
+   - "Test Massive API integration and error handling"
 5. Launch: tickstock-test-specialist
    - "Full widget test suite including API mocking"
 ```

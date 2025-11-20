@@ -177,7 +177,7 @@ Database Query Performance:
 ### 🔄 IPO Discovery Workflow
 ```
 IPO Monitor Service
-├── 1. Daily Polygon.io scan
+├── 1. Daily Massive.com scan
 ├── 2. New symbol discovery
 ├── 3. Symbol record creation
 ├── 4. 90-day historical backfill
@@ -308,7 +308,7 @@ python run_integration_tests.py --full-suite --report-file integration_report.js
 DATABASE_URI=postgresql://app_readwrite:4pp_U$3r_2024!@localhost/tickstock
 REDIS_HOST=localhost
 REDIS_PORT=6379
-POLYGON_API_KEY=your_polygon_key
+MASSIVE_API_KEY=your_polygon_key
 ```
 
 **Test Categories**:

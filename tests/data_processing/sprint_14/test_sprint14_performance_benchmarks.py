@@ -20,7 +20,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from src.data.eod_processor import EODProcessor
-from src.data.historical_loader import PolygonHistoricalLoader
+from src.data.historical_loader import MassiveHistoricalLoader
 
 
 @pytest.mark.performance
@@ -30,7 +30,7 @@ class TestETFLoadingPerformanceBenchmarks:
     @patch('src.data.historical_loader.psycopg2.connect')
     @patch('src.data.historical_loader.requests.Session.get')
     def test_etf_loading_50_symbols_30_minute_benchmark(self, mock_get, mock_connect,
-                                                       historical_loader: PolygonHistoricalLoader, performance_timer):
+                                                       historical_loader: MassiveHistoricalLoader, performance_timer):
         """Test ETF loading meets 50+ ETFs in <30 minutes benchmark."""
         # Arrange: Mock API responses for 1 year of data
         mock_response = Mock()
@@ -113,7 +113,7 @@ class TestETFLoadingPerformanceBenchmarks:
     @patch('src.data.historical_loader.psycopg2.connect')
     @patch('src.data.historical_loader.requests.Session.get')
     def test_etf_metadata_extraction_performance_at_scale(self, mock_get, mock_connect,
-                                                         historical_loader: PolygonHistoricalLoader, performance_timer):
+                                                         historical_loader: MassiveHistoricalLoader, performance_timer):
         """Test ETF metadata extraction performance at scale."""
         # Arrange: Large set of ETF ticker data
         etf_data_set = []
@@ -154,7 +154,7 @@ class TestETFLoadingPerformanceBenchmarks:
 
     @patch('src.data.historical_loader.psycopg2.connect')
     def test_etf_universe_creation_performance_benchmark(self, mock_connect,
-                                                        historical_loader: PolygonHistoricalLoader, performance_timer):
+                                                        historical_loader: MassiveHistoricalLoader, performance_timer):
         """Test ETF universe creation performance benchmark."""
         # Arrange: Mock database operations
         mock_conn = Mock()
@@ -185,7 +185,7 @@ class TestDevelopmentLoadingPerformanceBenchmarks:
     @patch('src.data.historical_loader.psycopg2.connect')
     @patch('src.data.historical_loader.requests.Session.get')
     def test_development_subset_5_minute_benchmark(self, mock_get, mock_connect,
-                                                  historical_loader: PolygonHistoricalLoader, performance_timer):
+                                                  historical_loader: MassiveHistoricalLoader, performance_timer):
         """Test development subset loading meets <5 minute benchmark."""
         # Arrange: Mock API responses for 6 months data
         mock_response = Mock()
@@ -448,7 +448,7 @@ class TestAPIRateLimitingPerformanceBenchmarks:
     """Performance benchmarks for API rate limiting and error rates."""
 
     @patch('src.data.historical_loader.requests.Session.get')
-    def test_api_rate_limiting_error_rate_benchmark(self, mock_get, historical_loader: PolygonHistoricalLoader, performance_timer):
+    def test_api_rate_limiting_error_rate_benchmark(self, mock_get, historical_loader: MassiveHistoricalLoader, performance_timer):
         """Test API rate limiting maintains <5% error rate during bulk operations."""
         # Arrange: Mock API responses with some failures
         responses = []
@@ -563,8 +563,8 @@ class TestConcurrentOperationsPerformanceBenchmarks:
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             # Create historical loader instance for each thread
             def extract_metadata(etf_data):
-                with patch.dict('os.environ', {'POLYGON_API_KEY': 'test', 'DATABASE_URI': 'test'}):
-                    loader = PolygonHistoricalLoader()
+                with patch.dict('os.environ', {'MASSIVE_API_KEY': 'test', 'DATABASE_URI': 'test'}):
+                    loader = MassiveHistoricalLoader()
                     return loader._extract_etf_metadata(etf_data)
 
             # Submit all extraction tasks
@@ -723,10 +723,10 @@ class TestMemoryAndResourceBenchmarks:
 def historical_loader():
     """Create historical loader for performance testing."""
     with patch.dict('os.environ', {
-        'POLYGON_API_KEY': 'test_key_performance',
+        'MASSIVE_API_KEY': 'test_key_performance',
         'DATABASE_URI': 'postgresql://test:test@localhost:5432/tickstock_perf'
     }):
-        return PolygonHistoricalLoader()
+        return MassiveHistoricalLoader()
 
 
 @pytest.fixture

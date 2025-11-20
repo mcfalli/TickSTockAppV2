@@ -2,7 +2,7 @@
 
 PHASE 6 CLEANUP: Simplified to basic factory pattern with:
 - Simple synthetic data provider
-- Basic Polygon WebSocket integration
+- Basic Massive WebSocket integration
 - Direct instantiation without complex configuration logic
 
 Removed: Multi-frequency complexity, validation layers, fallback logic.
@@ -11,7 +11,7 @@ import logging
 from typing import Any
 
 from src.core.interfaces.data_provider import DataProvider
-from src.infrastructure.data_sources.polygon.provider import PolygonDataProvider
+from src.infrastructure.data_sources.massive.provider import MassiveDataProvider
 from src.infrastructure.data_sources.synthetic.provider import SimulatedDataProvider
 
 logger = logging.getLogger(__name__)
@@ -24,20 +24,20 @@ class DataProviderFactory:
         """Get data provider based on simple configuration."""
         use_synthetic = config.get('USE_SYNTHETIC_DATA', False)
         use_polygon = config.get('USE_POLYGON_API', False)
-        polygon_api_key = config.get('POLYGON_API_KEY', '')
+        polygon_api_key = config.get('MASSIVE_API_KEY', '')
 
         logger.info(f"DATA-PROVIDER-FACTORY: USE_SYNTHETIC_DATA={use_synthetic}, USE_POLYGON_API={use_polygon}")
 
-        # Simple priority: Polygon if configured, otherwise synthetic
+        # Simple priority: Massive if configured, otherwise synthetic
         if use_polygon and polygon_api_key:
             try:
-                provider = PolygonDataProvider(config)
+                provider = MassiveDataProvider(config)
                 if provider.is_available():
-                    logger.info("DATA-PROVIDER-FACTORY: Using Polygon provider")
+                    logger.info("DATA-PROVIDER-FACTORY: Using Massive provider")
                     return provider
-                logger.warning("DATA-PROVIDER-FACTORY: Polygon API not available, falling back to synthetic")
+                logger.warning("DATA-PROVIDER-FACTORY: Massive API not available, falling back to synthetic")
             except Exception as e:
-                logger.error(f"DATA-PROVIDER-FACTORY: Polygon initialization failed: {e}")
+                logger.error(f"DATA-PROVIDER-FACTORY: Massive initialization failed: {e}")
 
         # Default to synthetic
         logger.info("DATA-PROVIDER-FACTORY: Using synthetic provider")

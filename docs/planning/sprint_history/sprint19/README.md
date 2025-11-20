@@ -74,7 +74,7 @@ Implement the foundational backend infrastructure for the Pattern Discovery UI D
 - **Connection Pooling**: Efficient database resource management
 
 ### Integration Points
-- **Polygon.io**: Market data integration with fundamental overlays
+- **Massive.com**: Market data integration with fundamental overlays
 - **TimescaleDB**: Time-series optimized pattern storage
 - **Redis**: Caching + pub-sub messaging
 - **Flask-SocketIO**: WebSocket server implementation

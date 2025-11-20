@@ -38,7 +38,7 @@ You are a Redis integration specialist with deep expertise in pub-sub architectu
 ```python
 # TickStockAppV2 → TickStockPL (Raw Market Data)
 INBOUND_CHANNELS = {
-    'market_ticks': 'tickstock:market:ticks',      # Raw tick data from Polygon/Synthetic
+    'market_ticks': 'tickstock:market:ticks',      # Raw tick data from Massive/Synthetic
 }
 
 # TickStockPL → TickStockAppV2 (Processed Results)

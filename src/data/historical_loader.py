@@ -1,6 +1,6 @@
 """
 Historical Data Loader for TickStock.ai
-Loads historical OHLCV data from Polygon.io API into TimescaleDB.
+Loads historical OHLCV data from Massive.com API into TimescaleDB.
 
 This module provides selective data loading with:
 - Batch processing by date ranges
@@ -42,25 +42,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class PolygonHistoricalLoader:
-    """Loads historical market data from Polygon.io API"""
+class MassiveHistoricalLoader:
+    """Loads historical market data from Massive.com API"""
 
     def __init__(self, api_key: str = None, database_uri: str = None):
         """
         Initialize historical data loader.
 
         Args:
-            api_key: Polygon.io API key (defaults to config POLYGON_API_KEY)
+            api_key: Massive.com API key (defaults to config MASSIVE_API_KEY)
             database_uri: Database connection string (defaults to config DATABASE_URI)
         """
         config = get_config()
-        self.api_key = api_key or config.get('POLYGON_API_KEY')
+        self.api_key = api_key or config.get('MASSIVE_API_KEY')
         self.database_uri = database_uri or config.get('DATABASE_URI')
         # API key only required for data fetching, not for summary/database operations
         if not self.database_uri:
             raise ValueError("DATABASE_URI environment variable or database_uri parameter required")
 
-        self.base_url = "https://api.polygon.io"
+        self.base_url = "https://api.massive.com"
         self.rate_limit_delay = 12  # 5 calls per minute = 12 sec between calls
         self.session = requests.Session()
         self.batch_size = 1000  # Records per database insert
@@ -87,7 +87,7 @@ class PolygonHistoricalLoader:
 
     def _make_api_request(self, endpoint: str, params: dict = None) -> dict:
         """
-        Make rate-limited API request to Polygon.io.
+        Make rate-limited API request to Massive.com.
         
         Args:
             endpoint: API endpoint (e.g., '/v2/aggs/ticker/AAPL/range/1/day/2023-01-01/2024-01-01')
@@ -97,7 +97,7 @@ class PolygonHistoricalLoader:
             JSON response as dictionary
         """
         if not self.api_key:
-            raise ValueError("POLYGON_API_KEY required for API requests")
+            raise ValueError("MASSIVE_API_KEY required for API requests")
 
         url = f"{self.base_url}{endpoint}"
         params = params or {}
@@ -131,7 +131,7 @@ class PolygonHistoricalLoader:
 
     def fetch_symbol_metadata(self, symbol: str) -> dict[str, Any] | None:
         """
-        Fetch symbol metadata from Polygon.io tickers endpoint.
+        Fetch symbol metadata from Massive.com tickers endpoint.
         
         Args:
             symbol: Stock ticker (e.g., 'AAPL')
@@ -202,10 +202,10 @@ class PolygonHistoricalLoader:
 
     def _extract_etf_metadata(self, ticker_data: dict[str, Any]) -> dict[str, Any]:
         """
-        Extract ETF-specific metadata from Polygon.io response.
+        Extract ETF-specific metadata from Massive.com response.
         
         Args:
-            ticker_data: Raw ticker data from Polygon.io API
+            ticker_data: Raw ticker data from Massive.com API
             
         Returns:
             Dictionary with ETF-specific fields
@@ -339,7 +339,7 @@ class PolygonHistoricalLoader:
 
     def fetch_etf_details(self, symbol: str) -> dict[str, Any] | None:
         """
-        Fetch detailed ETF information from Polygon.io.
+        Fetch detailed ETF information from Massive.com.
         This supplements the basic ticker metadata with ETF-specific details.
         
         Args:
@@ -387,7 +387,7 @@ class PolygonHistoricalLoader:
         This replaces the hardcoded mapping from maint_get_stocks.py with database-driven approach.
         
         Args:
-            sic_code: SIC code from Polygon API
+            sic_code: SIC code from Massive API
             
         Returns:
             tuple: (sector, industry) strings
@@ -458,7 +458,7 @@ class PolygonHistoricalLoader:
     def ensure_symbol_exists(self, symbol: str) -> bool:
         """
         Ensure symbol exists in symbols table, create or update with latest metadata.
-        Always fetches fresh metadata from Polygon.io to capture any updates.
+        Always fetches fresh metadata from Massive.com to capture any updates.
         
         Args:
             symbol: Stock ticker to check/create/update
@@ -1158,13 +1158,13 @@ class PolygonHistoricalLoader:
 
 def main():
     """CLI entry point for historical data loading."""
-    parser = argparse.ArgumentParser(description='Load historical data from Polygon.io')
+    parser = argparse.ArgumentParser(description='Load historical data from Massive.com')
     parser.add_argument('--symbols', help='Comma-separated list of symbols (e.g., AAPL,MSFT)')
     parser.add_argument('--universe', default='top_50', help='Stock universe key from cache_entries')
     parser.add_argument('--years', type=float, default=1, help='Years of historical data to load')
     parser.add_argument('--timespan', default='day', choices=['day', 'minute'], help='Data timespan')
     parser.add_argument('--multiplier', type=int, default=1, help='Time multiplier')
-    parser.add_argument('--api-key', help='Polygon.io API key (overrides env var)')
+    parser.add_argument('--api-key', help='Massive.com API key (overrides env var)')
     parser.add_argument('--database-uri', help='Database URI (overrides env var)')
     parser.add_argument('--summary', action='store_true', help='Show data summary only')
 
@@ -1172,7 +1172,7 @@ def main():
 
     try:
         # Initialize loader
-        loader = PolygonHistoricalLoader(
+        loader = MassiveHistoricalLoader(
             api_key=args.api_key,
             database_uri=args.database_uri
         )

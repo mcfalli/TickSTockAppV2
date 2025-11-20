@@ -61,7 +61,7 @@ Phase 2 builds upon Phase 1's foundation to implement comprehensive automation a
            today = datetime.now().date()
            yesterday = today - timedelta(days=1)
            
-           # Fetch new listings from Polygon.io
+           # Fetch new listings from Massive.com
            new_listings = self.polygon_client.get_tickers(
                types='CS,ET', 
                date=yesterday,
@@ -116,7 +116,7 @@ Phase 2 builds upon Phase 1's foundation to implement comprehensive automation a
 
 #### Implementation Tasks
 - [ ] **IPO Detection Service** (3 days)
-  - Daily Polygon.io new listings scanner
+  - Daily Massive.com new listings scanner
   - Symbol change and delisting detection logic
   - FMV integration for new IPO anomaly detection
   - Database integration for symbol tracking
@@ -351,7 +351,7 @@ Phase 2 builds upon Phase 1's foundation to implement comprehensive automation a
 - **Backfill Status Channel**: `backfill_status` for historical data job updates
 
 ### External API Integration
-- **Polygon.io New Listings**: Daily IPO and new symbol detection
+- **Massive.com New Listings**: Daily IPO and new symbol detection
 - **Reference Data Changes**: Symbol change and delisting monitoring
 - **FMV Integration**: Anomaly detection and validation support
 - **Enhanced Rate Limiting**: Multi-service API throttling coordination

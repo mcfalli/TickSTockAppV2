@@ -1,6 +1,6 @@
 # Sprint 41 - Production-Grade Simulated Data Architecture
 
-**Sprint Goal**: Implement a robust, production-ready simulated data generation system with clean interface abstraction, enabling seamless switching between real (Polygon) and mock data sources for development, testing, and demonstration environments.
+**Sprint Goal**: Implement a robust, production-ready simulated data generation system with clean interface abstraction, enabling seamless switching between real (Massive) and mock data sources for development, testing, and demonstration environments.
 
 **Status**: 📋 PLANNING
 **Priority**: HIGH
@@ -23,7 +23,7 @@ Currently, TickStockAppV2 has fragmented synthetic data capabilities:
 - ❌ Mock streaming events exist but are disconnected from main data flow
 
 **Impact**: Developers cannot effectively test the system without:
-1. Active Polygon API subscription ($$$)
+1. Active Massive API subscription ($$$)
 2. Live market hours
 3. Real TickStockPL processing pipeline
 
@@ -43,7 +43,7 @@ Implement a **production-grade simulated data architecture** that:
 ### Location: **TickStockAppV2**
 
 **Rationale**:
-- TickStockAppV2 already has Polygon WebSocket integration
+- TickStockAppV2 already has Massive WebSocket integration
 - Data source switching happens at the ingestion layer (TickStockAppV2)
 - TickStockPL consumes ticks via Redis (source-agnostic)
 - Prior working model exists in `TickStockApp\data_providers`
@@ -62,7 +62,7 @@ Implement a **production-grade simulated data architecture** that:
 │        ┌──────┴────────┐                                    │
 │        │               │                                    │
 │   ┌────▼────┐    ┌────▼────────────┐                       │
-│   │ Polygon │    │ Simulated       │                       │
+│   │ Massive │    │ Simulated       │                       │
 │   │ Provider│    │ Data Provider   │                       │
 │   │         │    │ (Enhanced)      │                       │
 │   └────┬────┘    └────┬────────────┘                       │
@@ -130,11 +130,11 @@ class DataProviderFactory:
 
     @classmethod
     def get_provider(cls, config: Dict[str, Any]) -> DataProvider:
-        # Simple priority: Synthetic > Polygon > Default
+        # Simple priority: Synthetic > Massive > Default
         if config.get('USE_SYNTHETIC_DATA'):
             return SimulatedDataProvider(config)
         if config.get('USE_POLYGON_API'):
-            return PolygonDataProvider(config)
+            return MassiveDataProvider(config)
         return SimulatedDataProvider(config)
 ```
 
@@ -406,7 +406,7 @@ class StreamingDataProvider(DataProvider):
 ```
 
 **Implementation**:
-- `PolygonDataProvider` implements `StreamingDataProvider`
+- `MassiveDataProvider` implements `StreamingDataProvider`
 - `SimulatedDataProvider` implements `StreamingDataProvider`
 - Factory returns `StreamingDataProvider` when available
 
@@ -475,7 +475,7 @@ SYNTHETIC_NEWS_EVENTS=false  # Simulate random news spikes
 │  if USE_SYNTHETIC_DATA:                                         │
 │      return SimulatedDataProvider(config)                       │
 │  elif USE_POLYGON_API:                                          │
-│      return PolygonDataProvider(config)                         │
+│      return MassiveDataProvider(config)                         │
 │  else:                                                           │
 │      return SimulatedDataProvider(config)  # Fallback           │
 └────────────────────────┬────────────────────────────────────────┘
@@ -570,7 +570,7 @@ SYNTHETIC_NEWS_EVENTS=false  # Simulate random news spikes
 | Requirement | Success Criteria |
 |-------------|-----------------|
 | Data Source Switching | ✅ `USE_SYNTHETIC_DATA=true` enables synthetic mode |
-| | ✅ `USE_SYNTHETIC_DATA=false` uses Polygon API |
+| | ✅ `USE_SYNTHETIC_DATA=false` uses Massive API |
 | | ✅ No code changes required to switch |
 | Interface Abstraction | ✅ All components use `DataProvider` interface |
 | | ✅ Source-agnostic tick processing |

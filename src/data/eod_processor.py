@@ -23,7 +23,7 @@ import psycopg2
 import redis
 from psycopg2.extras import RealDictCursor
 
-from .historical_loader import PolygonHistoricalLoader
+from .historical_loader import MassiveHistoricalLoader
 
 # Configure logging
 logging.basicConfig(
@@ -45,7 +45,7 @@ class EODProcessor:
 
         self.conn = None
         self.redis_client = None
-        self.historical_loader = PolygonHistoricalLoader()
+        self.historical_loader = MassiveHistoricalLoader()
 
         # Market timing configuration
         self.market_close_time = dt_time(16, 30)  # 4:30 PM ET

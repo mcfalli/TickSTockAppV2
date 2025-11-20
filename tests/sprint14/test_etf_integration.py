@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from data.historical_loader import PolygonHistoricalLoader
+from data.historical_loader import MassiveHistoricalLoader
 
 
 def test_etf_integration():
@@ -19,7 +19,7 @@ def test_etf_integration():
     try:
         # Initialize loader
         print("1. Initializing historical loader...")
-        loader = PolygonHistoricalLoader()
+        loader = MassiveHistoricalLoader()
         print("+ Historical loader initialized\n")
 
         # Test 1: Create ETF universes

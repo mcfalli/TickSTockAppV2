@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-TickStockPL Streaming service cannot establish WebSocket connection to Polygon API due to **concurrent connection conflict** with TickStockAppV2. Both applications are attempting to use the same Polygon API key, but Polygon allows only **ONE WebSocket connection per API key**.
+TickStockPL Streaming service cannot establish WebSocket connection to Massive API due to **concurrent connection conflict** with TickStockAppV2. Both applications are attempting to use the same Massive API key, but Massive allows only **ONE WebSocket connection per API key**.
 
 ---
 
@@ -38,10 +38,10 @@ Line 510: [TickStockPL Streaming] Stopping streaming session (market_close)
 ### Comparison: TickStockAppV2 (Working)
 
 ```
-Line 295: [TickStockAppV2] POLYGON-CLIENT: WebSocket opened, sending authentication
-Line 297: [TickStockAppV2] POLYGON-CLIENT: Authentication confirmed - connection established ✅
-Line 299: [TickStockAppV2] POLYGON-CLIENT: Subscribing to 70 tickers
-Line 303: [TickStockAppV2] POLYGON-CLIENT: All 70 ticker subscriptions confirmed ✅
+Line 295: [TickStockAppV2] MASSIVE-CLIENT: WebSocket opened, sending authentication
+Line 297: [TickStockAppV2] MASSIVE-CLIENT: Authentication confirmed - connection established ✅
+Line 299: [TickStockAppV2] MASSIVE-CLIENT: Subscribing to 70 tickers
+Line 303: [TickStockAppV2] MASSIVE-CLIENT: All 70 ticker subscriptions confirmed ✅
 Line 304-313: [TickStockAppV2] Processing ticks successfully ✅
 ```
 
@@ -51,20 +51,20 @@ Line 304-313: [TickStockAppV2] Processing ticks successfully ✅
 
 ### The Conflict
 
-Both TickStockPL and TickStockAppV2 are attempting to establish **separate WebSocket connections** to Polygon:
+Both TickStockPL and TickStockAppV2 are attempting to establish **separate WebSocket connections** to Massive:
 
 | Application | Purpose | Connection Target | Status |
 |-------------|---------|-------------------|--------|
-| **TickStockAppV2** | Real-time UI updates (70 symbols) | `wss://socket.polygon.io/stocks` | ✅ Connected |
-| **TickStockPL** | Pattern/indicator detection (60 symbols) | `wss://socket.polygon.io` | ❌ Failed |
+| **TickStockAppV2** | Real-time UI updates (70 symbols) | `wss://socket.massive.com/stocks` | ✅ Connected |
+| **TickStockPL** | Pattern/indicator detection (60 symbols) | `wss://socket.massive.com` | ❌ Failed |
 
-### Polygon API Limitation
+### Massive API Limitation
 
-**Polygon.io WebSocket API allows only ONE concurrent connection per API key.**
+**Massive.com WebSocket API allows only ONE concurrent connection per API key.**
 
 When TickStockPL attempts to connect:
 1. TickStockAppV2 already holds the active WebSocket connection
-2. Polygon API rejects TickStockPL's connection request
+2. Massive API rejects TickStockPL's connection request
 3. TickStockPL streaming service fails and shuts down immediately
 
 ### Architecture Impact
@@ -72,7 +72,7 @@ When TickStockPL attempts to connect:
 This violates the intended **loose coupling architecture**:
 - TickStockPL should be the **producer** (data collection + processing)
 - TickStockAppV2 should be the **consumer** (UI display only)
-- Current setup has TickStockAppV2 connecting directly to Polygon (tight coupling)
+- Current setup has TickStockAppV2 connecting directly to Massive (tight coupling)
 
 ---
 
@@ -80,23 +80,23 @@ This violates the intended **loose coupling architecture**:
 
 ### Recommended Approach
 
-**TickStockAppV2 should forward Polygon data to TickStockPL via Redis**, not connect to Polygon independently.
+**TickStockAppV2 should forward Massive data to TickStockPL via Redis**, not connect to Massive independently.
 
 ### Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Polygon.io                            │
-│              wss://socket.polygon.io                     │
+│                    Massive.com                            │
+│              wss://socket.massive.com                     │
 └────────────────────┬────────────────────────────────────┘
                      │
                      │ WebSocket (ONE connection)
                      ▼
         ┌────────────────────────────┐
         │    TickStockAppV2          │
-        │  (Polygon Client Only)     │
+        │  (Massive Client Only)     │
         │                            │
-        │  - Connect to Polygon      │
+        │  - Connect to Massive      │
         │  - Receive tick data       │
         │  - Forward to Redis        │
         └────────────┬───────────────┘
@@ -193,7 +193,7 @@ REDIS_MARKET_TICK_CHANNEL=tickstock:market:ticks
 
 **Current** (lines 500-507):
 ```python
-# Attempts WebSocket connection to Polygon (FAILS)
+# Attempts WebSocket connection to Massive (FAILS)
 self.connection_manager = ConnectionManager(polygon_url)
 self.websocket_handler = DatabaseWebSocketHandler(symbols)
 self.connection_manager.start()  # ERROR: Connection conflict
@@ -267,8 +267,8 @@ def _start_streaming(self, session_id):
 
 **TickStockAppV2 `.env`**:
 ```ini
-# Polygon API (TickStockAppV2 connects)
-POLYGON_API_KEY=your_api_key_here
+# Massive API (TickStockAppV2 connects)
+MASSIVE_API_KEY=your_api_key_here
 
 # Redis forwarding
 REDIS_MARKET_TICK_CHANNEL=tickstock:market:ticks
@@ -277,8 +277,8 @@ MARKET_TICK_FORWARD_ENABLED=true
 
 **TickStockPL `.env`**:
 ```ini
-# Polygon API key NOT needed (consumes from Redis)
-# POLYGON_API_KEY=  # REMOVE or comment out
+# Massive API key NOT needed (consumes from Redis)
+# MASSIVE_API_KEY=  # REMOVE or comment out
 
 # Redis subscription
 REDIS_MARKET_TICK_CHANNEL=tickstock:market:ticks
@@ -290,7 +290,7 @@ MARKET_TICK_SOURCE=redis  # Options: redis, websocket
 ## Benefits of This Solution
 
 ### 1. **Resolves Connection Conflict** ✅
-- Only ONE Polygon WebSocket connection (TickStockAppV2)
+- Only ONE Massive WebSocket connection (TickStockAppV2)
 - TickStockPL receives data via Redis (no conflict)
 
 ### 2. **Proper Architecture** ✅
@@ -299,12 +299,12 @@ MARKET_TICK_SOURCE=redis  # Options: redis, websocket
 - Redis: Message broker (loose coupling)
 
 ### 3. **Scalability** ✅
-- Can add more consumers without additional Polygon connections
+- Can add more consumers without additional Massive connections
 - Redis can handle high-throughput message delivery
 - Pattern detection can scale independently
 
 ### 4. **Cost Efficiency** ✅
-- No need for multiple Polygon API subscriptions
+- No need for multiple Massive API subscriptions
 - Single WebSocket connection handles all symbols
 - Reduced API rate limit concerns
 
@@ -320,7 +320,7 @@ MARKET_TICK_SOURCE=redis  # Options: redis, websocket
 ### Step 1: Verify Current State
 
 ```bash
-# Check Polygon connections
+# Check Massive connections
 redis-cli PUBSUB CHANNELS "tickstock:market:*"
 
 # Expected: No market tick channel (not yet implemented)
@@ -361,13 +361,13 @@ redis-cli SUBSCRIBE tickstock:market:ticks
 
 ## Alternative Solutions (Not Recommended)
 
-### ❌ Alternative 1: Separate Polygon API Keys
+### ❌ Alternative 1: Separate Massive API Keys
 
-**Cost**: Requires purchasing additional Polygon subscription
+**Cost**: Requires purchasing additional Massive subscription
 **Complexity**: Managing multiple API keys
 **Architecture**: Violates loose coupling principle
 
-### ❌ Alternative 2: Disable TickStockAppV2 Polygon Connection
+### ❌ Alternative 2: Disable TickStockAppV2 Massive Connection
 
 **Problem**: TickStockAppV2 loses real-time market data
 **Impact**: UI cannot display live prices
@@ -418,7 +418,7 @@ redis-cli SUBSCRIBE tickstock:market:ticks
 
 1. `src/services/streaming_scheduler.py` - Replace WebSocket with Redis subscriber
 2. `src/streaming/redis_tick_subscriber.py` - New file for Redis subscription
-3. `.env` - Remove/comment Polygon API key, add Redis config
+3. `.env` - Remove/comment Massive API key, add Redis config
 4. `config/tickstockpl_config_manager.py` - Add Redis subscriber config
 
 ---

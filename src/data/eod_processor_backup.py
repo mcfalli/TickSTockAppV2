@@ -39,7 +39,7 @@ except ImportError:
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import redis
-from historical_loader import PolygonHistoricalLoader
+from historical_loader import MassiveHistoricalLoader
 
 # Configure logging
 logging.basicConfig(
@@ -69,7 +69,7 @@ class EODProcessor:
         # Initialize connections
         self.conn = None
         self.redis_client = None
-        self.historical_loader = PolygonHistoricalLoader()
+        self.historical_loader = MassiveHistoricalLoader()
         
         # Market timing configuration
         self.market_close_time = dt_time(16, 30)  # 4:30 PM ET

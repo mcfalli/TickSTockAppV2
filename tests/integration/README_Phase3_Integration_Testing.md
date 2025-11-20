@@ -182,8 +182,8 @@ export TEST_DB_PORT=5432
 export TEST_REDIS_HOST=localhost
 export TEST_REDIS_PORT=6379
 
-# Optional: Polygon API for ETF validation
-export POLYGON_API_KEY="your_test_key"
+# Optional: Massive API for ETF validation
+export MASSIVE_API_KEY="your_test_key"
 ```
 
 ### Test Execution

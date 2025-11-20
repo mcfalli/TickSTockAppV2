@@ -133,7 +133,7 @@ class CreateProjectStructureDocumentation:
                 'UniverseService', 'AnalyticsManager', 'StartupService'
             ],
             'data_providers': [
-                'DataProviderFactory', 'PolygonDataProvider', 'SyntheticDataProvider',
+                'DataProviderFactory', 'MassiveDataProvider', 'SyntheticDataProvider',
                 'RealTimeDataAdapter', 'DataProvider'
             ],
             'event_processors': [
@@ -142,7 +142,7 @@ class CreateProjectStructureDocumentation:
             ],
             'websocket_layer': [
                 'WebSocketManager', 'WebSocketPublisher', 'DataPublisher',
-                'WebSocketDataFilter', 'WebSocketAnalytics', 'PolygonWebSocketClient'
+                'WebSocketDataFilter', 'WebSocketAnalytics', 'MassiveWebSocketClient'
             ],
             'domain_events': [
                 'BaseEvent', 'HighLowEvent', 'TrendEvent', 'SurgeEvent',
@@ -510,7 +510,7 @@ class CreateProjectStructureDocumentation:
             'market_data_processing': {
                 'purpose': 'Real-time market data ingestion and processing',
                 'key_components': [],
-                'data_sources': ['Polygon.io WebSocket', 'Synthetic Data Generator'],
+                'data_sources': ['Massive.com WebSocket', 'Synthetic Data Generator'],
                 'processing_capacity': '4,000+ tickers with sub-millisecond processing'
             },
             'event_detection': {
@@ -581,7 +581,7 @@ class CreateProjectStructureDocumentation:
             {
                 'name': 'Market Data Pipeline',
                 'stages': [
-                    'Data Source (Polygon/Synthetic)',
+                    'Data Source (Massive/Synthetic)',
                     'WebSocket Ingestion',
                     'MarketDataService.handle_tick()',
                     'EventProcessor.process_tick()',
@@ -776,7 +776,7 @@ class CreateProjectStructureDocumentation:
         """Identify external system dependencies."""
         return {
             'data_sources': [
-                'Polygon.io WebSocket API',
+                'Massive.com WebSocket API',
                 'Synthetic Data Generator (development)'
             ],
             'databases': [

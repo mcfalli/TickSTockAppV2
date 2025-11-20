@@ -29,7 +29,7 @@
 ### Current State
 
 **TickStockAppV2** (INCORRECT - Violates Architecture):
-- ✅ Receives ticks from Polygon/Synthetic sources
+- ✅ Receives ticks from Massive/Synthetic sources
 - ✅ Forwards raw ticks to Redis `tickstock:market:ticks`
 - ❌ **ALSO** aggregates ticks via `OHLCVPersistenceService`
 - ❌ **ALSO** writes directly to `ohlcv_1min` table
@@ -50,7 +50,7 @@
 ### Desired (Correct) Flow
 
 ```
-[Polygon/Synthetic Data]
+[Massive/Synthetic Data]
     ↓
 [TickStockAppV2: Raw Forwarder ONLY]
     └─→ Publishes raw ticks to Redis 'tickstock:market:ticks' ✅

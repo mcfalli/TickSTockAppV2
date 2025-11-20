@@ -73,8 +73,8 @@ FEATURE_WEBSOCKET_STREAMING=true
 
 # Data Sources
 DATA_SOURCE_TYPE=polygon          # polygon | synthetic | csv
-POLYGON_API_KEY=your-api-key
-POLYGON_BASE_URL=https://api.polygon.io
+MASSIVE_API_KEY=your-api-key
+POLYGON_BASE_URL=https://api.massive.com
 SYNTHETIC_TICK_RATE=100           # Ticks per second for synthetic data
 
 # Monitoring

@@ -31,7 +31,7 @@ Phase 1 establishes the foundational data management capabilities for TickStock.
    - Review existing historical_loader.py architecture
    - Ensure ETF support maintains role separation (TickStockApp consumer role)
    - Validate database schema impact for symbols table enhancement
-   - Check API integration patterns for Polygon.io ETF endpoints
+   - Check API integration patterns for Massive.com ETF endpoints
 
 2. **`database-query-specialist`**: Design database modifications
    - Schema updates for symbols table (type, AUM, expense_ratio fields)
@@ -56,7 +56,7 @@ Phase 1 establishes the foundational data management capabilities for TickStock.
 
 2. **Historical Loader Enhancement**
    - Modify `scripts/historical_loader.py` to support ETF universe loading
-   - Add Polygon.io ETF endpoint integration
+   - Add Massive.com ETF endpoint integration
    - Implement ETF-specific data validation and processing
    - Add FMV field support for approximated intraday values
 
@@ -90,7 +90,7 @@ Phase 1 establishes the foundational data management capabilities for TickStock.
   - Implement ETF symbol classification logic
   - Add ETF data validation and processing rules
 
-- [ ] **Polygon.io ETF Integration** (2 days)
+- [ ] **Massive.com ETF Integration** (2 days)
   - Implement ETF-specific API endpoints
   - Add AUM and expense ratio data capture
   - Implement API rate limiting for bulk ETF loads
@@ -166,7 +166,7 @@ Phase 1 establishes the foundational data management capabilities for TickStock.
 - [ ] **Development Universe Setup** (1 day)
   - Create "dev_top_10", "dev_sectors", "dev_etfs" universes
   - Implement local caching mechanisms
-  - Add Polygon delayed data integration for cost savings (15-min delay ~52% market share per Equities.xlsx)
+  - Add Massive delayed data integration for cost savings (15-min delay ~52% market share per Equities.xlsx)
 
 - [ ] **Performance Optimization** (1 day)  
   - Progress reporting for smaller datasets
@@ -264,9 +264,9 @@ Phase 1 establishes the foundational data management capabilities for TickStock.
 - **ohlcv_daily/ohlcv_1min**: FMV field support for approximated values
 
 ### API Integration Requirements
-- **Polygon.io ETF endpoints**: Enhanced data fetching for ETF-specific information
+- **Massive.com ETF endpoints**: Enhanced data fetching for ETF-specific information
 - **Rate limiting**: Improved throttling for increased data volumes
-- **Delayed data**: Development environment cost optimization (clarified for Polygon 15-min delay)
+- **Delayed data**: Development environment cost optimization (clarified for Massive 15-min delay)
 
 ### Configuration Management
 - **Development profiles**: Separate configurations for dev vs production
@@ -282,7 +282,7 @@ Phase 1 establishes the foundational data management capabilities for TickStock.
 - **ETF Loading Functions**: Complete test coverage for new ETF functionality
 - **Subset Loading Logic**: Development universe loading and time range limitations  
 - **EOD Scheduling**: Market calendar integration and data validation logic
-- **API Integration**: Polygon.io ETF endpoint integration and rate limiting
+- **API Integration**: Massive.com ETF endpoint integration and rate limiting
 - **Target Coverage**: >80% for all new functionality, with Python-specific hooks
 
 ### Integration Testing Requirements (MANDATORY)

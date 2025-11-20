@@ -1,11 +1,11 @@
-https://polygon.io/docs/websocket/quickstart
+https://massive.com/docs/websocket/quickstart
 
 
 WebSocket Quickstart
-Get started with the Polygon.io WebSocket API
-A screenshot displaying a JSON response with options data on one side and a graphical user interface presenting the same information, illustrating the types of applications you can build with Polygon.io data
+Get started with the Massive.com WebSocket API
+A screenshot displaying a JSON response with options data on one side and a graphical user interface presenting the same information, illustrating the types of applications you can build with Massive.com data
 
-The Polygon.io WebSocket API provides streaming market data from major U.S. exchanges and other sources. For most users, integrating our official client libraries is the easiest and quickest way to handle authentication, subscription management, and message parsing. To get started, you will need to sign up for an account and authenticate your requests using an API key.
+The Massive.com WebSocket API provides streaming market data from major U.S. exchanges and other sources. For most users, integrating our official client libraries is the easiest and quickest way to handle authentication, subscription management, and message parsing. To get started, you will need to sign up for an account and authenticate your requests using an API key.
 
 If you're building a real-time dashboard or trading system, WebSockets are ideal for event-driven updates. For one-time queries or smaller, filtered data requests, consider using our REST API. And if you're looking to download historical data in CSV format, our Flat Files are available via a web-based browser or S3-compatible tools.
 
@@ -30,7 +30,7 @@ Install wscat
 
 npm install -g wscat
 Connecting to the WebSocket
-Polygon.io offers both delayed and real-time data feeds depending on your needs.
+Massive.com offers both delayed and real-time data feeds depending on your needs.
 
 15-minute Delayed Data:
 
@@ -38,14 +38,14 @@ Polygon.io offers both delayed and real-time data feeds depending on your needs.
 Connect to 15-minute delayed feed
 
 
-wscat -c wss://delayed.polygon.io/stocks
+wscat -c wss://delayed.massive.com/stocks
 Real-Time Data:
 
 
 Connect to real-time feed
 
 
-wscat -c wss://socket.polygon.io/stocks
+wscat -c wss://socket.massive.com/stocks
 Server to Client (Upon Successful Connection):
 
 

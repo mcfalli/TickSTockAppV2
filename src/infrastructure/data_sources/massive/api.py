@@ -1,6 +1,6 @@
 """
-Polygon.io API integration module for the Stock Market High/Low Tracker.
-This module handles API interactions with Polygon.io for real-time stock data.
+Massive.com API integration module for the Stock Market High/Low Tracker.
+This module handles API interactions with Massive.com for real-time stock data.
 """
 
 import logging
@@ -18,21 +18,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class PolygonAPI:
-    """Class to handle Polygon.io API interactions"""
+class MassiveAPI:
+    """Class to handle Massive.com API interactions"""
 
     def __init__(self, api_key: str = None):
         """
-        Initialize the Polygon API client.
+        Initialize the Massive API client.
         
         Args:
-            api_key: Polygon.io API key. If None, tries to get from environment variable.
+            api_key: Massive.com API key. If None, tries to get from environment variable.
         """
-        self.api_key = api_key or os.environ.get('POLYGON_API_KEY')
+        # Backward compatibility: fall back to POLYGON_API_KEY if MASSIVE_API_KEY not set
+        self.api_key = api_key or os.environ.get('MASSIVE_API_KEY') or os.environ.get('POLYGON_API_KEY')
         if not self.api_key:
-            logger.warning("POLYGON-API: No Polygon API key provided. Please set POLYGON_API_KEY environment variable.")
+            logger.warning("MASSIVE-API: No Massive API key provided. Please set MASSIVE_API_KEY environment variable.")
 
-        self.base_url = "https://api.polygon.io"
+        self.base_url = "https://api.massive.com"
         self.session = requests.Session()
         self.rate_limit_remaining = 100  # Initial assumption
         self.rate_limit_reset = 0
@@ -44,12 +45,12 @@ class PolygonAPI:
             now = time.time()
             if now < self.rate_limit_reset:
                 sleep_time = self.rate_limit_reset - now + 1  # +1 second buffer
-                logger.info(f"POLYGON-API: Rate limit approaching, sleeping for {sleep_time:.2f} seconds")
+                logger.info(f"MASSIVE-API: Rate limit approaching, sleeping for {sleep_time:.2f} seconds")
                 time.sleep(sleep_time)
 
     def _make_request(self, endpoint: str, params: dict = None) -> dict:
         """
-        Make a request to the Polygon API with rate limit handling.
+        Make a request to the Massive API with rate limit handling.
         
         Args:
             endpoint: API endpoint to call
@@ -59,7 +60,7 @@ class PolygonAPI:
             JSON response as dictionary
         """
         if not self.api_key:
-            raise ValueError("Polygon API key is required")
+            raise ValueError("Massive API key is required")
 
         self._handle_rate_limit()
 
@@ -79,7 +80,7 @@ class PolygonAPI:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            logger.error(f"POLYGON-API: API request error: {e}")
+            logger.error(f"MASSIVE-API: API request error: {e}")
             return {"status": "error", "message": str(e)}
 
     def get_market_status(self) -> str:
@@ -107,7 +108,7 @@ class PolygonAPI:
             # Fallback to time-based determination
             return self._get_market_status_from_time()
         except Exception as e:
-            logger.error(f"POLYGON-API: Error getting market status: {e}")
+            logger.error(f"MASSIVE-API: Error getting market status: {e}")
             return self._get_market_status_from_time()
 
     def _get_market_status_from_time(self) -> str:

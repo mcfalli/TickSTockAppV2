@@ -134,7 +134,7 @@ except ImportError:
 - `DATABASE_URI` - Primary database connection
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB` - Redis configuration
 - `TICKSTOCKPL_HOST`, `TICKSTOCKPL_PORT`, `TICKSTOCKPL_API_KEY` - Sprint 36 integration
-- `POLYGON_API_KEY` - Market data provider
+- `MASSIVE_API_KEY` - Market data provider
 - 150+ other parameters
 
 ## Remaining os.getenv() Usage

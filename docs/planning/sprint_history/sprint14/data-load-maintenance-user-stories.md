@@ -34,7 +34,7 @@ Based on analysis of existing TickStock infrastructure, this document organizes 
 - [ ] equity_types table define stock groupsing in cache_entries along with ETF integration
 - [ ] ETF symbols integrate with existing cache_entries theme system (e.g., "Sector ETFs", "Growth ETFs") identifying index relationships (e.g. "Correlates to SPY", "Correlates to IWM", etc.)
 - [ ] Web admin interface displays ETF loading progress separately from stocks
-- [ ] Handling for Polygon ETF-specific endpoints (e.g., AUM capture)
+- [ ] Handling for Massive ETF-specific endpoints (e.g., AUM capture)
 - [ ] Incorporate FMV as an optional field in ohlcv_daily for approximated intraday values during loads, leveraging FMV's low median errors (e.g., 1.3 cents for AMD as per FMV Whitepaper) for thinly traded ETFs
 - [ ] Add resilience for API rate limits during bulk ETF loads
 
@@ -50,11 +50,11 @@ Based on analysis of existing TickStock infrastructure, this document organizes 
 Let's build some fantastic algorithmic pattern libraries in Python to add to TickStock.ai! To load ETF data and tie it into pattern analysis, extend historical_loader.py with thematic grouping:
 ```python
 import pandas as pd
-from polygon import RESTClient  # Assuming we have Polygon API wrapper
+from polygon import RESTClient  # Assuming we have Massive API wrapper
 
 def load_etf_universe(api_key, universe_key='etf_growth'):
     client = RESTClient(api_key)
-    etfs = []  # Fetch from cache_entries or Polygon
+    etfs = []  # Fetch from cache_entries or Massive
     for symbol in get_cache_entries(universe_key):  # Custom func to pull from DB
         historical = client.get_aggs(symbol, 1, 'day', from_='2024-01-01', to='2025-08-31')
         df = pd.DataFrame(historical)
@@ -75,14 +75,14 @@ This could feed into a pattern detector library, e.g., scanning for ETF correlat
 - [ ] ETF themes defined: "Sector ETFs", "Growth ETFs", "Value ETFs", "International ETFs", "Commodity ETFs"
 - [ ] ETF symbols maintain relationship to underlying stock sectors where applicable
 - [ ] Universe size management (e.g., top_etf_50, etf_sectors, etc.)
-- [ ] ETF market cap and AUM data captured where available from Polygon.io
+- [ ] ETF market cap and AUM data captured where available from Massive.com
 - [ ] Dynamic universe sizing based on liquidity (e.g., filter by avg daily volume >5m like VXX in FMV Whitepaper)
 
 **Definition of Done:**
 - Cache entries query returns 200+ ETF symbols across 5 major themes
 - ETF universes testable via existing historical loader CLI interface
 - ETF data integrates with stocks in cache_entries without conflicts
-- Validation against Polygon's reference data
+- Validation against Massive's reference data
 
 **Implementation Ideas:**
 Let's build some fantastic algorithmic pattern libraries in Python to add to TickStock.ai! For universe building and pattern libs for value vs. growth ETF comparisons:
@@ -90,7 +90,7 @@ Let's build some fantastic algorithmic pattern libraries in Python to add to Tic
 def expand_cache_entries(themes=['Sector ETFs', 'Growth ETFs']):
     universes = {}
     for theme in themes:
-        # Query Polygon for ETFs, filter by AUM > $1B
+        # Query Massive for ETFs, filter by AUM > $1B
         etfs = fetch_polygon_etfs(theme)  # Custom API call
         universes[theme] = [etf['ticker'] for etf in etfs if etf['aum'] > 1e9]
     update_db_cache_entries(universes)  # Insert to cache_entries table
@@ -103,7 +103,7 @@ def expand_cache_entries(themes=['Sector ETFs', 'Growth ETFs']):
 **So that** the production system maintains current and accurate symbol data without manual intervention
 
 **Acceptance Criteria:**
-- [ ] Daily job detects new stock and ETF listings from Polygon.io  
+- [ ] Daily job detects new stock and ETF listings from Massive.com  
 - [ ] Symbol changes (ticker changes, delistings) identified and handled
 - [ ] New IPOs automatically added to appropriate cache_entries universes
 - [ ] Historical data backfill triggered for new symbols (last 90 days minimum or any available)
@@ -185,13 +185,13 @@ def schedule_loads():
 - [ ] Development-specific database connection settings
 - [ ] Progress reporting optimized for smaller datasets
 - [ ] Caching subsets locally
-- [ ] Use Polygon's delayed data for cost savings (15-min delay ~52% market share per Equities sheet)
+- [ ] Use Massive's delayed data for cost savings (15-min delay ~52% market share per Equities sheet)
 
 **Definition of Done:**
 - Development load of 10 stocks + 5 ETFs with 6 months data completes in <5 minutes
 - All existing historical loader features work with subset loading
 - Development universes maintainable through web admin interface
-- <5 min benchmark achievable with Polygon's aggs endpoint
+- <5 min benchmark achievable with Massive's aggs endpoint
 
 **Implementation Ideas:**
 Let's build some fantastic algorithmic pattern libraries in Python to add to TickStock.ai! For subset loader:
@@ -280,7 +280,7 @@ def incremental_refresh(symbols, days=7):
 - [ ] Handles market holidays and abbreviated trading days
 - [ ] Validates data completeness and flags missing data
 - [ ] FMV integration in validation (low errors per FMV Whitepaper)
-- [ ] Use Polygon's full market for 100% coverage if upgraded (per Equities sheet)
+- [ ] Use Massive's full market for 100% coverage if upgraded (per Equities sheet)
 
 **Definition of Done:**
 - 95% of tracked symbols updated with current day's data by 6:00 PM ET
@@ -430,7 +430,7 @@ def detect_anomalies(df):
 **Database Changes Scripted and passed to human to execute**
 
 ### API Integration Enhancements
-- **Polygon.io ETF endpoints**: Add ETF-specific data fetching
+- **Massive.com ETF endpoints**: Add ETF-specific data fetching
 - **IPO detection**: Daily scan of new listings endpoint.  At the time of running the end of day maintenance will update symbols load date. 
 - **Symbol changes**: Reference data change tracking
 - **FMV Integration**: Use FMV for dev subsets to mimic real-time without costs (FMV Whitepaper shows it's close to consolidated trades)

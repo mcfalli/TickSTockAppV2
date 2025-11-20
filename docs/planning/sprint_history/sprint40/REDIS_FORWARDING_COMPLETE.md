@@ -62,8 +62,8 @@ if self.data_publisher and self.data_publisher.redis_client:
 
 ```
 ┌─────────────────────────────────────────┐
-│         Polygon.io WebSocket            │
-│      wss://socket.polygon.io/stocks     │
+│         Massive.com WebSocket            │
+│      wss://socket.massive.com/stocks     │
 └─────────────────┬───────────────────────┘
                   │
                   │ Real-time ticks
@@ -205,7 +205,7 @@ python start_all_services.py
 
 **Expected Output**:
 ```
-[TickStockAppV2] POLYGON-CLIENT: Connection established successfully
+[TickStockAppV2] MASSIVE-CLIENT: Connection established successfully
 [TickStockAppV2] All 70 ticker subscriptions confirmed
 [TickStockPL Streaming] STREAMING: Starting Redis tick listener loop
 [TickStockPL Streaming] STREAMING: Subscribed to tickstock:market:ticks

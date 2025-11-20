@@ -23,7 +23,7 @@ from typing import Any
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.data.historical_loader import PolygonHistoricalLoader
+from src.data.historical_loader import MassiveHistoricalLoader
 
 # Configure logging for production
 logging.basicConfig(
@@ -42,7 +42,7 @@ class HistoricalDataScheduler:
     def __init__(self, config_file: str = None):
         """Initialize scheduler with configuration"""
         self.config = self._load_config(config_file)
-        self.loader = PolygonHistoricalLoader()
+        self.loader = MassiveHistoricalLoader()
         self.running = True
 
         # Setup signal handlers for graceful shutdown
@@ -320,7 +320,7 @@ Type=simple
 User=tickstock
 Group=tickstock
 WorkingDirectory={os.path.dirname(os.path.abspath(__file__))}
-Environment=POLYGON_API_KEY=your_api_key_here
+Environment=MASSIVE_API_KEY=your_api_key_here
 Environment=DATABASE_URI=postgresql://user:pass@localhost/tickstock
 ExecStart={sys.executable} {__file__} --daemon
 Restart=always

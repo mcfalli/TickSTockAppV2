@@ -7,15 +7,15 @@
 
 ## Overview
 
-The historical data loading functionality has been migrated from TickStockAppV2 to TickStockPL. TickStockAppV2 must now submit data loading jobs via Redis instead of directly calling the PolygonHistoricalLoader.
+The historical data loading functionality has been migrated from TickStockAppV2 to TickStockPL. TickStockAppV2 must now submit data loading jobs via Redis instead of directly calling the MassiveHistoricalLoader.
 
 ## What Has Changed
 
 ### ❌ OLD Approach (Direct Calls)
-TickStockAppV2 was directly importing and calling PolygonHistoricalLoader:
+TickStockAppV2 was directly importing and calling MassiveHistoricalLoader:
 ```python
-from src.data.historical_loader import PolygonHistoricalLoader
-loader = PolygonHistoricalLoader()
+from src.data.historical_loader import MassiveHistoricalLoader
+loader = MassiveHistoricalLoader()
 result = loader.load_historical_data(symbols, years, timespan)
 ```
 
@@ -47,10 +47,10 @@ redis_client.publish('tickstock.jobs.data_load', json.dumps(job_data))
 **Current Implementation** (lines to replace):
 ```python
 # Look for imports like:
-from src.data.historical_loader import PolygonHistoricalLoader
+from src.data.historical_loader import MassiveHistoricalLoader
 
 # Look for direct calls like:
-loader = PolygonHistoricalLoader()
+loader = MassiveHistoricalLoader()
 result = loader.load_historical_data(...)
 ```
 
@@ -313,7 +313,7 @@ If you encounter any issues:
 - [ ] Progress bar updates during loading
 - [ ] Jobs complete successfully
 - [ ] Data appears in database
-- [ ] No direct imports of PolygonHistoricalLoader remain
+- [ ] No direct imports of MassiveHistoricalLoader remain
 - [ ] All tests pass
 
 ---

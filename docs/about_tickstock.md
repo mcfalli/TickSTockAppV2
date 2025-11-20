@@ -4,9 +4,9 @@
 
 ## Key Capabilities
 
-- **Real-Time Intraday Processing**: Ingests live data streams from providers like Polygon API, processing thousands of symbols per minute to detect short-term patterns (e.g., volume spikes, momentum shifts) and calculate indicators (e.g., RSI, relative volume) on 1-minute to hourly bars, enabling immediate identification of trading opportunities.
+- **Real-Time Intraday Processing**: Ingests live data streams from providers like Massive API, processing thousands of symbols per minute to detect short-term patterns (e.g., volume spikes, momentum shifts) and calculate indicators (e.g., RSI, relative volume) on 1-minute to hourly bars, enabling immediate identification of trading opportunities.
 - **Daily Batch Analysis**: Performs end-of-day computations on stored universes, analyzing daily, weekly, and monthly OHLCV data to uncover longer-term patterns (e.g., head-and-shoulders, breakouts) and indicators (e.g., MACD crossovers, SMA trends). Results are stored in TimescaleDB for historical querying and backtesting.
-- **Hybrid Combo Detection**: Correlates intraday signals with daily/weekly setups, enhancing confidence through multi-timeframe validation and fundamental integrations (e.g., EPS surprises, news sentiment >0.5 from Polygon APIs) to achieve <5% false positives (inspired by FMV Whitepaper metrics).
+- **Hybrid Combo Detection**: Correlates intraday signals with daily/weekly setups, enhancing confidence through multi-timeframe validation and fundamental integrations (e.g., EPS surprises, news sentiment >0.5 from Massive APIs) to achieve <5% false positives (inspired by FMV Whitepaper metrics).
 - **Modular Extensibility**: Utilizes a dynamic loading system (NO FALLBACK policy) configured via database tables (`pattern_definitions`, `indicator_definitions`) for seamless expansion of 11+ patterns and 15+ indicators. Supports optional scikit-learn enhancements for machine learning-refined detections.
 - **Performance & Scalability**: Achieves >300 symbols/second throughput, >92% cache hit rates, and sub-millisecond pattern detection, integrated with Flask for web services, SQLAlchemy for DB operations, and Matplotlib for visualizations within a Windows-based VSCode/Python/PostgreSQL ecosystem.
 
@@ -32,7 +32,7 @@
 
 **Core Responsibilities**:
 - **Pattern Detection**: Executes 11+ pattern algorithms (e.g., Doji, Hammer) with sub-millisecond performance across multiple timeframes.
-- **Data Processing**: Converts raw data into StandardOHLCV format and integrates multi-provider data (e.g., Polygon, Alpha Vantage).
+- **Data Processing**: Converts raw data into StandardOHLCV format and integrates multi-provider data (e.g., Massive, Alpha Vantage).
 - **Backtesting Engine**: Provides a comprehensive framework with institutional-grade metrics for validating patterns and indicators.
 - **Database Management**: Maintains full read/write access to TimescaleDB, including schema creation and optimization for hypertables (e.g., `ohlcv_1min`, `daily_patterns`).
 - **Event Publishing**: Publishes pattern detections and backtest results to Redis channels for consumption by TickStockAppV2.
@@ -73,13 +73,13 @@ graph TD
     H --> I[Detect Patterns (e.g., Bullish Engulfing)]
     F --> J[Tier 3: Combo Hybrid]
     I --> J
-    J --> K[Correlate Signals + Fundamentals (Polygon API)]
+    J --> K[Correlate Signals + Fundamentals (Massive API)]
     K --> L[Store Results (e.g., daily_patterns, intraday_indicators)]
     L --> M[Publish Events via Redis (tickstock:monitoring)]
     M --> N[End: Alert/Visualize Outputs]
 ```
 
 ## Next Steps
-- **Validation**: Test performance claims (e.g., >300 symbols/second, sub-millisecond detection) using Polygon API data for symbols like AAPL across daily and intraday timeframes.
+- **Validation**: Test performance claims (e.g., >300 symbols/second, sub-millisecond detection) using Massive API data for symbols like AAPL across daily and intraday timeframes.
 - **Enhancements**: Prioritize fundamental correlations (e.g., EPS surprise >0 or news sentiment >0.5) to refine pattern confidence or expand to new patterns (e.g., Doji) with multi-timeframe logic.
 - **Visualization**: Develop Matplotlib-based visualizations for detected patterns and indicators, stored in `daily_patterns` or `intraday_indicators`.

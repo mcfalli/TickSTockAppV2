@@ -195,7 +195,7 @@ def test_service_integration(service_factory):
 | Redis | Mock (`mock_redis`) | Real (DB 15) | Integration tests validate pub-sub flow |
 | Database | Mock (`mock_database`) | Real (test schema) | Integration tests validate queries |
 | WebSocket | Mock (`mock_websocket_manager`) | Real (SocketIO test client) | Integration tests validate broadcast |
-| Polygon API | **Always mock** | **Always mock** | External, rate-limited, costs money |
+| Massive API | **Always mock** | **Always mock** | External, rate-limited, costs money |
 | Time (`time.time()`) | Mock (freeze time) | Real | Unit tests need deterministic time |
 
 ### Mock Fixtures
@@ -292,10 +292,10 @@ class TestPatternFlowComplete:
 **Reference**: `docs/guides/testing.md:312-317`
 
 ```python
-# ALWAYS mock external APIs (Polygon, external services)
-@mock.patch('src.data.polygon_client.PolygonClient')
+# ALWAYS mock external APIs (Massive, external services)
+@mock.patch('src.data.polygon_client.MassiveClient')
 def test_with_mocked_polygon(mock_polygon):
-    """Test without hitting real Polygon API"""
+    """Test without hitting real Massive API"""
     # Set up mock response
     mock_polygon.get_ticker.return_value = {
         'ticker': 'AAPL',
@@ -304,7 +304,7 @@ def test_with_mocked_polygon(mock_polygon):
         'last_price': 150.25
     }
 
-    # Test service that uses Polygon
+    # Test service that uses Massive
     service = MarketDataService(mock_polygon)
     ticker_info = service.get_ticker_info('AAPL')
 
@@ -648,7 +648,7 @@ Does the fixture need isolation (mock objects)?
 
 ### Mock vs Real Decision Tree
 ```
-Is it an external API (Polygon, third-party)?
+Is it an external API (Massive, third-party)?
   YES → ALWAYS mock
   NO ↓
 

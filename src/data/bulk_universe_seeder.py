@@ -5,7 +5,7 @@ Enhanced bulk loading capabilities for admin interface with testing limiters.
 Features:
 - Predefined universe loading (S&P 500, Russell 3000, etc.)
 - Testing limits for controlled seeding
-- Polygon.io API integration for fresh symbol data
+- Massive.com API integration for fresh symbol data
 - Cache organization auto-creation
 """
 
@@ -79,7 +79,7 @@ class BulkUniverseSeeder:
             name="S&P 500",
             description="S&P 500 Index stocks",
             estimated_count=500,
-            api_endpoint="https://api.polygon.io/v3/reference/tickers",
+            api_endpoint="https://api.massive.com/v3/reference/tickers",
             filter_criteria={
                 "market": "stocks",
                 "active": "true",
@@ -92,7 +92,7 @@ class BulkUniverseSeeder:
             name="Russell 3000",
             description="Russell 3000 Index stocks",
             estimated_count=3000,
-            api_endpoint="https://api.polygon.io/v3/reference/tickers",
+            api_endpoint="https://api.massive.com/v3/reference/tickers",
             filter_criteria={
                 "market": "stocks",
                 "active": "true",
@@ -105,7 +105,7 @@ class BulkUniverseSeeder:
             name="NASDAQ 100",
             description="NASDAQ 100 Index stocks",
             estimated_count=100,
-            api_endpoint="https://api.polygon.io/v3/reference/tickers",
+            api_endpoint="https://api.massive.com/v3/reference/tickers",
             filter_criteria={
                 "market": "stocks",
                 "active": "true",
@@ -119,7 +119,7 @@ class BulkUniverseSeeder:
             name="All ETFs",
             description="All active Exchange Traded Funds",
             estimated_count=2500,
-            api_endpoint="https://api.polygon.io/v3/reference/tickers",
+            api_endpoint="https://api.massive.com/v3/reference/tickers",
             filter_criteria={
                 "market": "stocks",
                 "type": "ETF",
@@ -213,10 +213,10 @@ class BulkUniverseSeeder:
 
             logger.info(f"BULK-SEEDER: Loading {config.name} universe (limit: {request.limit})")
 
-            # Fetch symbols from Polygon API
+            # Fetch symbols from Massive API
             symbols_data = self._fetch_symbols_from_polygon(config, request)
             if not symbols_data:
-                result.errors.append("No symbols retrieved from Polygon API")
+                result.errors.append("No symbols retrieved from Massive API")
                 return result
 
             # Apply testing limiter
@@ -250,7 +250,7 @@ class BulkUniverseSeeder:
         return result
 
     def _fetch_symbols_from_polygon(self, config: UniverseConfig, request: BulkLoadRequest) -> list[dict[str, Any]]:
-        """Fetch symbols from Polygon.io API or CSV file for curated lists."""
+        """Fetch symbols from Massive.com API or CSV file for curated lists."""
 
         # Handle curated ETFs - load from CSV file
         if request.universe_type == UniverseType.CURATED_ETFS:
@@ -266,13 +266,13 @@ class BulkUniverseSeeder:
             try:
                 # Prepare API request
                 if next_url:
-                    # next_url from Polygon API is already a complete URL
+                    # next_url from Massive API is already a complete URL
                     url = next_url
                     # Use next_url directly (already includes params and apikey)
                     response = self.session.get(url)
                 else:
                     # First request - build parameters
-                    url = config.api_endpoint or "https://api.polygon.io/v3/reference/tickers"
+                    url = config.api_endpoint or "https://api.massive.com/v3/reference/tickers"
                     params = config.filter_criteria.copy() if config.filter_criteria else {}
                     params["apikey"] = self.polygon_api_key
                     # Avoid duplicate limit parameter
@@ -304,7 +304,7 @@ class BulkUniverseSeeder:
                         logger.error(f"BULK-SEEDER: API error response: {e.response.text}")
                 break
 
-        logger.info(f"BULK-SEEDER: Fetched {len(all_symbols)} symbols from Polygon API")
+        logger.info(f"BULK-SEEDER: Fetched {len(all_symbols)} symbols from Massive API")
         return all_symbols
 
     def _load_curated_etfs_from_csv(self) -> list[dict[str, Any]]:
@@ -322,7 +322,7 @@ class BulkUniverseSeeder:
             with open(csv_path, newline='', encoding='utf-8') as csvfile:
                 reader = csv.DictReader(csvfile)
                 for row in reader:
-                    # Create symbol data in Polygon API format for compatibility
+                    # Create symbol data in Massive API format for compatibility
                     symbol_data = {
                         'ticker': row['symbol'],
                         'symbol': row['symbol'],

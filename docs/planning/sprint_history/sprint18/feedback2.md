@@ -1,16 +1,16 @@
 # Review of Proposed UI Buildout Phases
 
-As the Super Algorithmic Pattern Library Curator for TickStock.ai, I'm absolutely pumped about these proposed phases for the UI buildout! This structured, incremental approach is a masterstroke—it aligns flawlessly with our three-tiered detection architecture, ensuring our Python modules (like those in `src/patterns/` and `src/indicators/`) feed into a performant, trader-centric dashboard without overwhelming the development sprint. The emphasis on performance (<50ms queries, virtual scrolling for thousands of patterns) and modularity (e.g., GoldenLayout for tabs) will make our pre-computed patterns shine, especially when correlated with Polygon fundamentals for boosted confidence scores. Kudos on incorporating real-time WebSockets early and phasing in advanced features like sector heatmaps—it's going to supercharge pattern discovery!
+As the Super Algorithmic Pattern Library Curator for TickStock.ai, I'm absolutely pumped about these proposed phases for the UI buildout! This structured, incremental approach is a masterstroke—it aligns flawlessly with our three-tiered detection architecture, ensuring our Python modules (like those in `src/patterns/` and `src/indicators/`) feed into a performant, trader-centric dashboard without overwhelming the development sprint. The emphasis on performance (<50ms queries, virtual scrolling for thousands of patterns) and modularity (e.g., GoldenLayout for tabs) will make our pre-computed patterns shine, especially when correlated with Massive fundamentals for boosted confidence scores. Kudos on incorporating real-time WebSockets early and phasing in advanced features like sector heatmaps—it's going to supercharge pattern discovery!
 
 ### High-Level Strengths
 - **Phased Progression**: Starting with foundation/data layer (Phase 1) and building up to market context (Phase 4) ensures stability before complexity. This mirrors our backend's bootstrap philosophy—minimal dependencies, maximal impact.
 - **Performance Focus**: Consistent benchmarks (e.g., <100ms for complex filters in Phase 3) and optimizations (Redis caching, materialized views) will handle our high-volume data from TimescaleDB seamlessly.
-- **UI/Backend Synergy**: Love how Phase 2's DataTable.js integrates with our Flask APIs, and Phase 4's MarketBreadthDetector.py ties into Polygon for live ETF analysis. This sets up perfect hooks for our patterns (e.g., detecting "Ascending Triangle" on SPY with numpy polyfit).
+- **UI/Backend Synergy**: Love how Phase 2's DataTable.js integrates with our Flask APIs, and Phase 4's MarketBreadthDetector.py ties into Massive for live ETF analysis. This sets up perfect hooks for our patterns (e.g., detecting "Ascending Triangle" on SPY with numpy polyfit).
 - **Testing Rigor**: Comprehensive Jest/Pytest suites in each phase hit our 95%+ coverage goal, validating against FMV-inspired accuracy (<5% error).
 - **Responsive Design**: Mobile-first considerations ensure traders can scan on-the-go, aligning with our real-time intraday tier.
 
 ### Potential Enhancements (With Excitement to Iterate!)
-- **Fundamental Correlation Boost**: In Phase 4, extend the MarketBreadthDetector to query Polygon financials (e.g., EPS surprises) and adjust sector strength dynamically—could add a 10-15% confidence lift to patterns.
+- **Fundamental Correlation Boost**: In Phase 4, extend the MarketBreadthDetector to query Massive financials (e.g., EPS surprises) and adjust sector strength dynamically—could add a 10-15% confidence lift to patterns.
 - **Pattern Library Hooks**: Phase 3's advanced filters could include our custom indicators (e.g., RSI ranges via scipy.signal). Suggest adding a "Fundamental Filter" toggle for patterns aligned with positive revenue growth.
 - **Scalability Tweaks**: For Phase 1's WebSockets, consider asyncio in Python for handling 100+ users; test with simulated loads from our backtesting framework.
 - **Edge Case Coverage**: Add more tests for expired patterns (e.g., expiry_filter in Phase 3) to match our table expirations (7-30 days for daily).
@@ -36,7 +36,7 @@ This roadmap consolidates the proposed UI phases with our backend pattern librar
 ## Phase 1: Foundation & Data Layer (2-3 Weeks)
 **Focus**: Backend APIs, DB optimizations, WebSockets.  
 **Backend Synergies**: Aligns with `src/patterns/base.py` for unified queries; uses SQLAlchemy for TimescaleDB indexes.  
-**Enhancements**: Add Polygon correlation in `/api/patterns/scan` for fundamental boosts.  
+**Enhancements**: Add Massive correlation in `/api/patterns/scan` for fundamental boosts.  
 **Code Snippet (Flask Endpoint Example)**:
 ```python
 from flask import Blueprint, jsonify
@@ -87,20 +87,20 @@ def build_filter_query(filters):
 
 ## Phase 4: Market Breadth Tab (2 Weeks)
 **Focus**: Index patterns, sector heatmaps, breadth indicators.  
-**Backend Synergies**: Extends `src/patterns/combo/` for ETF detections; Polygon for live data.  
+**Backend Synergies**: Extends `src/patterns/combo/` for ETF detections; Massive for live data.  
 **Enhancements**: Correlate sectors with fundamentals (e.g., boost Energy if XLE EPS positive).  
 **Code Snippet (Sector Rotation Detector)**:
 ```python
 class MarketBreadthDetector:
     def analyze_sector_rotation(self):
-        sectors = self.get_sector_data()  # From Polygon
+        sectors = self.get_sector_data()  # From Massive
         return sorted(sectors, key=lambda s: s['performance'], reverse=True)
 ```
 **Milestones**: 30s real-time updates, <25ms index queries.  
 
 ## Overall Roadmap Considerations
 - **Testing**: 95%+ coverage via pytest/Jest; backtest UI patterns against FMV metrics (<5% error).
-- **Dependencies**: Polygon-api-client for fundamentals; Flask-SocketIO for real-time.
+- **Dependencies**: Massive-api-client for fundamentals; Flask-SocketIO for real-time.
 - **Risks & Mitigations**: High data volume—use virtual scrolling; API failures—graceful degradation.
 - **Future Phases Tease**: Phase 5 (My Focus Tab) for watchlists; Phase 6 (Advanced Charting) with matplotlib annotations.
 

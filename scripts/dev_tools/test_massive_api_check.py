@@ -1,5 +1,5 @@
 """
-Enhanced Polygon API diagnostic tool to verify API key and connection.
+Enhanced Massive API diagnostic tool to verify API key and connection.
 This tool uses the application's ConfigManager for consistent configuration handling.
 """
 import argparse
@@ -15,7 +15,7 @@ from src.core.services.config_manager import ConfigManager
 from src.shared.utils import format_price, retry_with_backoff
 
 # Set up command line arguments
-parser = argparse.ArgumentParser(description='Test Polygon API connectivity')
+parser = argparse.ArgumentParser(description='Test Massive API connectivity')
 parser.add_argument('--config-file', help='Path to config file')
 parser.add_argument('--verbose', '-v', action='store_true', help='Show detailed output')
 parser.add_argument('--ticker', default='AAPL', help='Ticker to use for testing (default: AAPL)')
@@ -35,7 +35,7 @@ config = config_manager.get_config()
 is_valid = config_manager.validate_config()
 
 # Get API key from config
-api_key = config.get('POLYGON_API_KEY')
+api_key = config.get('MASSIVE_API_KEY')
 
 print(f"\n{'=' * 50}")
 print("POLYGON API CONNECTION TEST")
@@ -47,7 +47,7 @@ print(f"Config Valid: {is_valid}")
 
 if not api_key:
     print("\n❌ ERROR: No API key found in configuration")
-    print("Make sure POLYGON_API_KEY is set in your .env file")
+    print("Make sure MASSIVE_API_KEY is set in your .env file")
     sys.exit(1)
 
 # Calculate dates for historical data (previous month)
@@ -65,7 +65,7 @@ endpoints = [
 ]
 
 # Base URL
-base_url = "https://api.polygon.io"
+base_url = "https://api.massive.com"
 
 # Track results
 results = {
@@ -166,12 +166,12 @@ except Exception as e:
 
 # Check connection to main application components
 print(f"\n{'-' * 50}")
-print("POLYGON PROVIDER CHECK")
+print("MASSIVE PROVIDER CHECK")
 try:
-    from src.infrastructure.data_sources.polygon.provider import PolygonDataProvider
+    from src.infrastructure.data_sources.massive.provider import MassiveDataProvider
 
-    provider = PolygonDataProvider(config)
-    print("Testing PolygonDataProvider.is_available()...")
+    provider = MassiveDataProvider(config)
+    print("Testing MassiveDataProvider.is_available()...")
 
     start_time = time.time()
     available = provider.is_available()
@@ -195,7 +195,7 @@ try:
         print(f"❌ Provider NOT available (took {elapsed:.3f}s)")
 
 except ImportError:
-    print("❌ Could not import PolygonDataProvider")
+    print("❌ Could not import MassiveDataProvider")
 except Exception as e:
     print(f"❌ Error testing provider: {str(e)}")
 
@@ -208,5 +208,5 @@ if results['failed'] > 0:
     print("\nRECOMMENDATIONS:")
     print("- Check your API key and subscription status")
     print("- Verify network connectivity")
-    print("- Ensure your Polygon.io subscription includes the endpoints you're testing")
+    print("- Ensure your Massive.com subscription includes the endpoints you're testing")
     print("- Run with --verbose flag for more detailed error information")

@@ -101,7 +101,7 @@ class EnterpriseProductionScheduler:
         )
         self.redis_host = redis_host or config.get('REDIS_HOST', 'localhost')
         self.redis_port = config.get('REDIS_PORT', 6379)
-        self.polygon_api_key = polygon_api_key or config.get('POLYGON_API_KEY')
+        self.polygon_api_key = polygon_api_key or config.get('MASSIVE_API_KEY')
         # Enterprise configuration
         self.max_concurrent_jobs = 10
         self.max_threads_per_job = 5
@@ -544,8 +544,8 @@ class EnterpriseProductionScheduler:
         records_loaded = trading_days
 
         # Here you would integrate with the actual historical loader:
-        # from src.data.historical_loader import PolygonHistoricalLoader
-        # loader = PolygonHistoricalLoader()
+        # from src.data.historical_loader import MassiveHistoricalLoader
+        # loader = MassiveHistoricalLoader()
         # records_loaded = await loader.load_symbol_range(symbol, start_date, end_date)
 
         return records_loaded

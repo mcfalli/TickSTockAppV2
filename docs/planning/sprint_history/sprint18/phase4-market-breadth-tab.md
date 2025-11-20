@@ -30,7 +30,7 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-from polygon_api_client import PolygonClient
+from polygon_api_client import MassiveClient
 from sqlalchemy import text
 from app import db, redis_client
 import json
@@ -41,7 +41,7 @@ class MarketBreadthDetector:
     Advanced market breadth analysis for index/ETF patterns and sector rotation
     """
     
-    def __init__(self, polygon_client: PolygonClient):
+    def __init__(self, polygon_client: MassiveClient):
         self.client = polygon_client
         self.major_indices = ['SPY', 'QQQ', 'IWM', 'VXX', 'DIA']
         self.sector_etfs = {

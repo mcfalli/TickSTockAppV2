@@ -19,7 +19,7 @@ except:
 # Add src to path
 sys.path.append('src')
 
-from src.data.historical_loader import PolygonHistoricalLoader
+from src.data.historical_loader import MassiveHistoricalLoader
 
 def test_loader_functionality():
     """Test historical loader with mock data"""
@@ -28,7 +28,7 @@ def test_loader_functionality():
     
     # Initialize loader with database only (no API key needed for testing)
     try:
-        loader = PolygonHistoricalLoader(
+        loader = MassiveHistoricalLoader(
             database_uri='config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')'
         )
         print("Success: Loader initialized successfully")
@@ -96,8 +96,8 @@ def test_loader_functionality():
             print(f"Success: API error handled correctly: {e}")
         
         print("\n=== All tests completed successfully! ===")
-        print("\nTo load real data from Polygon.io:")
-        print("1. Set POLYGON_API_KEY environment variable")
+        print("\nTo load real data from Massive.com:")
+        print("1. Set MASSIVE_API_KEY environment variable")
         print("2. Run: python -m src.data.historical_loader --universe top_50 --years 1")
         print("3. Or with specific symbols: python -m src.data.historical_loader --symbols AAPL,MSFT,NVDA --years 1")
         

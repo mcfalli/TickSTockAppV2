@@ -71,7 +71,7 @@ TickStockPL processing is **critical to application success**, yet we currently 
 - **pattern**: Pattern detection errors
 - **indicator**: Indicator calculation errors
 - **database**: Database connection/query errors
-- **network**: Network/API errors (including Polygon.io)
+- **network**: Network/API errors (including Massive.com)
 - **validation**: Data validation errors
 - **performance**: Performance threshold violations
 - **configuration**: Configuration errors

@@ -132,7 +132,7 @@ def after_request(response):
 - **Unit Tests**: Cover Redis consumer APIs, WebSocket handlers (`tests/unit/sprint19/test_redis_consumer.py`).
 - **Integration Tests**: Validate Redis-to-WebSocket pipeline (`tests/integration/sprint19/test_event_flow.py`).
 - **Performance Tests**: Benchmark <50ms APIs, <100ms WebSocket with pytest-benchmark.
-- **Backtesting**: Validate Redis patterns against Polygon historical data (<5% error per FMV).
+- **Backtesting**: Validate Redis patterns against Massive historical data (<5% error per FMV).
 
 ## Deployment Checklist
 - [ ] Read-only DB connections configured  

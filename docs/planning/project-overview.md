@@ -22,7 +22,7 @@ We focus on extensibility—starting with core patterns (candlesticks, charts, t
 - **TickStockPL** (Pattern Library Services): Microservices for pattern detection—includes scanner, data loaders, and event publishing. Runs separately for modularity/scalability, feeding signals to TickStockApp via Redis pub-sub
 
 ### High-Level Processing Flow
-1. **Data Ingestion**: Pull OHLCV from APIs (Polygon or yfinance free tier), databases, or real-time feeds (WebSockets via TickStockApp)
+1. **Data Ingestion**: Pull OHLCV from APIs (Massive or yfinance free tier), databases, or real-time feeds (WebSockets via TickStockApp)
 2. **Preprocessing**: Clean, resample (to 1min/daily), and blend historical + live data using DataBlender for unified DataFrames
 3. **Pattern Scanning**: Analyze blended data in TickStockPL using modular classes (BasePattern, PatternScanner); detect patterns and publish events on finds via Redis pub-sub for loose coupling
 4. **Event Handling**: TickStockApp subscribes to Redis channels, consuming signals for user actions (UI alerts, automated trades, or DB logging)
@@ -43,7 +43,7 @@ This setup ensures decoupling: TickStockPL processes data independently, publish
 
 ### Data Management
 - Historical and real-time data blending via DataBlender
-- Support for multiple data sources (Polygon API, yfinance, WebSocket feeds)
+- Support for multiple data sources (Massive API, yfinance, WebSocket feeds)
 - Database persistence for OHLCV data, symbols, and event logs
 - Data preprocessing and resampling capabilities
 

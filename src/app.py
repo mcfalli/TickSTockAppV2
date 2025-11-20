@@ -2438,7 +2438,7 @@ def main():
 
         logger.info("=" * 60)
         logger.info("[SUCCESS] TICKSTOCK APPLICATION READY")
-        logger.info(f"[INFO] Data Source: {'Synthetic' if config.get('USE_SYNTHETIC_DATA') else 'Polygon API'}")
+        logger.info(f"[INFO] Data Source: {'Synthetic' if config.get('USE_SYNTHETIC_DATA') else 'Massive API'}")
         logger.info(f"[INFO] Redis: {'Connected' if redis_client else 'Disabled'}")
         logger.info("[INFO] SocketIO: Enabled")
         logger.info("=" * 60)

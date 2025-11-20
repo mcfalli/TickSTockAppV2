@@ -60,7 +60,7 @@ class TestSyntheticDataFlowIntegration:
         # Generate per-minute data
         minute_data = provider.generate_frequency_data('AAPL', DataFrequency.PER_MINUTE)
 
-        # Verify Polygon AM event structure
+        # Verify Massive AM event structure
         assert isinstance(minute_data, dict)
         assert minute_data['ev'] == 'AM'
         assert minute_data['sym'] == 'AAPL'
@@ -88,7 +88,7 @@ class TestSyntheticDataFlowIntegration:
         # Generate FMV data
         fmv_data = provider.generate_frequency_data('AAPL', DataFrequency.FAIR_VALUE)
 
-        # Verify Polygon FMV event structure
+        # Verify Massive FMV event structure
         assert isinstance(fmv_data, dict)
         assert fmv_data['ev'] == 'FMV'
         assert fmv_data['sym'] == 'AAPL'

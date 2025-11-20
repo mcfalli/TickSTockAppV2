@@ -258,7 +258,7 @@ POST /api/processing/schedule
         "severity": "error",
         "component": "data_import",
         "error_code": "RATE_LIMIT_EXCEEDED",
-        "message": "Polygon API rate limit hit",
+        "message": "Massive API rate limit hit",
         "context": {
             "symbol": "AAPL",
             "retry_after": 60

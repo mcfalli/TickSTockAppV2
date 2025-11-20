@@ -1,9 +1,9 @@
-# Polygon Stocks Business Plan Summary for TickStock.ai
+# Massive Stocks Business Plan Summary for TickStock.ai
 
 Hey there! As we gear up to build some fantastic algorithmic pattern libraries in Python for TickStock.ai, let's organize this Stocks Business offering into a clean Markdown file. This will make it super easy to reference while prototyping those per-minute WebSocket connections and FMV integrations. I've pulled together the key details from our conversation, the FMV Whitepaper, and the Equities Excel sheet into a structured format below—perfect for aligning our Python scripts with real-time data feeds and pattern recognition algos!
 
 ## Overview
-The Stocks Business plan from Polygon is a solid base for US equities data, ideal for development and prototyping without hefty barriers. It includes everything from historical data to real-time FMV prices, with optional add-ons for more advanced needs. Let's dive into the details!
+The Stocks Business plan from Massive is a solid base for US equities data, ideal for development and prototyping without hefty barriers. It includes everything from historical data to real-time FMV prices, with optional add-ons for more advanced needs. Let's dive into the details!
 
 ## Key Features Table
 
@@ -16,7 +16,7 @@ The Stocks Business plan from Polygon is a solid base for US equities data, idea
 | **Market Operating Hours**| 4:00 AM - 8:00 PM ET (pre-market, regular, post-market). |
 | **Data Types & Features**| - **Fair Market Value (FMV)**: Real-time spot price calculated in-house; updates ~once per second during regular sessions.<br>- **Aggregates & Indicators**: Per-minute OHLCV bars (based on FMV spot price and consolidated SIP volume); available pre/regular/post-market.<br>- **Second-Level Aggregates**: Not included (minute-level only).<br>- **Snapshots**: Included.<br>- **Trades**: 15-minute delayed from Tape A (NYSE), Tape B (Regionals), and IEX.<br>- **Quotes**: Historical only; 15-minute delayed from Tape A/B and IEX.<br>- **Reference**: Full access. |
 | **WebSockets & API Access** | - Unlimited API requests.<br>- 3 simultaneous WebSockets.<br>- Available WebSockets: Aggregates (per-minute OHLCV), Trades (15-min delayed), Quotes (15-min delayed), FMV.<br>- Cadence Example (subscribing to ~10K equities): During regular market, expect per-minute bar updates at the top of each minute (potentially 100% of symbols updating if changes occur; not always every stock every minute—depends on activity). FMV: ~1 update/second per symbol. Pre/post-market: Sporadic, based on trades. Use `.*` for all-symbol subscription (high volume—fire-hose mode). |
-| **Pricing (Polygon Fees)** | $1,999/month base. Startup discounts: 50% off first 12 months; 90% off for 3-month integration period. Free 30-day trial available. |
+| **Pricing (Massive Fees)** | $1,999/month base. Startup discounts: 50% off first 12 months; 90% off for 3-month integration period. Free 30-day trial available. |
 | **Exchange Fees & Restrictions** | - No exchange approvals required.<br>- No annual/access/non-display fees.<br>- EOD/Historical and 15-Minute Delayed: Free (CTA/UTP).<br>- Real-time FMV: Free.<br>- Add-ons (e.g., Full Market Real-Time, Nasdaq Basic): Extra $500–$2,000/month each, with potential exchange fees (e.g., Nasdaq user fees $0.45–$0.90 per external non-pro user). |
 | **Add-On Feeds (Optional)** | Expandable with: Full Market Delayed (+$500/mo), IEX (+$500/mo), EDGX (+$2,000/mo), Nasdaq Last Sale (+$2,000/mo), Nasdaq Basic (+$2,000/mo), Full Market (+$2,000/mo). These add real-time trades/quotes, second-level aggregates, etc., but introduce exchange approvals and fees. |
 | **Other Notes**          | - Ideal for development/prototyping without high barriers.<br>- FMV methodology: Algorithmic predictor of next trade price using market factors; more accurate than single-exchange last trades (per whitepaper tests).<br>- No second-level data in base plan or IEX add-on. |

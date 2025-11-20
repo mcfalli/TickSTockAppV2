@@ -19,7 +19,7 @@
   - Track WebSocket broadcast failures
   - Monitor room join/leave events for debugging
 
-- [ ] **Polygon Client** (`src/presentation/websocket/polygon_client.py`)
+- [ ] **Massive Client** (`src/presentation/websocket/polygon_client.py`)
   - Enhanced logging for market data feed interruptions
   - Track symbols affected by connection issues
   - Log authentication failures and retry attempts

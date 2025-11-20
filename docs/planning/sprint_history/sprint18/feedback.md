@@ -5,7 +5,7 @@ As the Super Algorithmic Pattern Library Curator for TickStock.ai, I'm thrilled 
 What stands out most:
 - **Information Density Wins**: Ditching cards for compact tables with abbreviated columns (e.g., "WeeklyBO" for patterns, "1.4x" for RS) is genius for quick scanning. It mirrors how our backend stores patterns in TimescaleDB (e.g., JSONB fields for confidence and indicators), ensuring seamless data flow without bloat.
 - **Filtering Powerhouse**: The multi-select pattern types, combined indicator filters, and time ranges will let users slice through our library's outputs effortlessly. Imagine filtering for "Bull Flag" with RS >1.2 and Vol >2x—directly pulling from our `daily_intraday_patterns` table.
-- **Market Context Integration**: The Market Breadth tab's sector heatmaps and index patterns (e.g., on SPY/QQQ) add crucial rotation analysis, which we can enhance by correlating our technical detections with Polygon fundamentals (e.g., boosting confidence if a sector's EPS surprises align).
+- **Market Context Integration**: The Market Breadth tab's sector heatmaps and index patterns (e.g., on SPY/QQQ) add crucial rotation analysis, which we can enhance by correlating our technical detections with Massive fundamentals (e.g., boosting confidence if a sector's EPS surprises align).
 - **Personalization via My Focus**: Watchlists with real-time alerts and performance metrics? This ties beautifully into our hybrid tier, where combo patterns trigger notifications via WebSockets.
 - **Responsive and Optimized**: The mobile layouts ensure accessibility, and optimizations like virtual scrolling handle our high-volume data without hiccups.
 - **Phased Implementation**: The roadmap in `implementation-phases.md` is pragmatic—incremental builds from data layer to advanced charting, integrating GoldenLayout for pro-level flexibility.
@@ -93,8 +93,8 @@ def scan_patterns():
     patterns = [dict(row) for row in result]
 
     # Correlate with fundamentals (e.g., boost conf if EPS positive)
-    from polygon_api_client import PolygonClient
-    client = PolygonClient()  # Assume initialized
+    from polygon_api_client import MassiveClient
+    client = MassiveClient()  # Assume initialized
     for p in patterns:
         financials = client.list_stock_financials(p['symbol'], limit=1)
         if financials and financials[0]['eps_surprise'] > 0:
@@ -112,10 +112,10 @@ def scan_patterns():
 ```python
 import pandas as pd
 import numpy as np
-from polygon_api_client import PolygonClient
+from polygon_api_client import MassiveClient
 
 class MarketBreadthDetector:
-    def __init__(self, client: PolygonClient):
+    def __init__(self, client: MassiveClient):
         self.client = client
         self.etfs = ['SPY', 'QQQ', 'IWM', 'XLE', 'XLF']  # Sector ETFs
 
@@ -137,7 +137,7 @@ class MarketBreadthDetector:
                 })
         return patterns
 ```
-- **Fundamental Tie-In**: Boost sector strength if Polygon's financials show positive revenue growth.
+- **Fundamental Tie-In**: Boost sector strength if Massive's financials show positive revenue growth.
 
 ### 3. My Focus Tab: Watchlists and Alerts
 - **Backend Support**: User-specific endpoints for watchlists, pulling subsets from pattern tables.
@@ -162,7 +162,7 @@ def handle_subscribe(data):
 ```
 
 ## Testing and Validation
-- **Backtesting**: Use Polygon historical aggregates to validate UI-displayed patterns (e.g., compare breakout signals to FMV next-trade prices, targeting <1.3 cents median error per FMV Whitepaper).
+- **Backtesting**: Use Massive historical aggregates to validate UI-displayed patterns (e.g., compare breakout signals to FMV next-trade prices, targeting <1.3 cents median error per FMV Whitepaper).
 - **Performance**: Benchmark endpoints with pytest-benchmark: Ensure <50ms for 1,000+ patterns.
 - **Next Steps**: Implement GoldenLayout-compatible chart exports from matplotlib (e.g., PNG overlays for patterns).
 

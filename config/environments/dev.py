@@ -11,7 +11,7 @@ DATABASE_URI = "postgresql://localhost/tickstock_dev"
 REDIS_URL = "redis://localhost:6379/0"
 
 # API Keys (use .env for actual values)
-POLYGON_API_KEY = None  # Set in .env
+MASSIVE_API_KEY = None  # Set in .env
 
 # WebSocket
 WS_HEARTBEAT_INTERVAL = 30

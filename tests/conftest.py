@@ -317,7 +317,7 @@ def mock_ticks():
 
 @pytest.fixture
 def mock_polygon_data():
-    """Mock Polygon API response data"""
+    """Mock Massive API response data"""
     return {
         "results": [
             {
@@ -339,7 +339,7 @@ def mock_polygon_data():
 # SPRINT 101: Multi-frequency test fixtures
 @pytest.fixture
 def mock_polygon_am_data():
-    """Mock Polygon AM (per-minute aggregate) event data"""
+    """Mock Massive AM (per-minute aggregate) event data"""
     timestamp_ms = int(time.time() * 1000)
     return {
         "ev": "AM",
@@ -361,7 +361,7 @@ def mock_polygon_am_data():
 
 @pytest.fixture
 def mock_polygon_fmv_data():
-    """Mock Polygon FMV (fair market value) event data"""
+    """Mock Massive FMV (fair market value) event data"""
     return {
         "ev": "FMV",
         "fmv": 150.75,  # Fair market value
@@ -376,7 +376,7 @@ def multi_frequency_config():
     return {
         "ENABLE_PER_MINUTE_EVENTS": True,
         "ENABLE_FMV_EVENTS": True,
-        "POLYGON_API_KEY": "test_api_key",
+        "MASSIVE_API_KEY": "test_api_key",
         "POLYGON_BUSINESS_API_KEY": "test_business_api_key",
         "EMISSION_INTERVAL": 1.0,
         "COLLECTION_INTERVAL": 0.5
@@ -494,7 +494,7 @@ def test_config():
         "TESTING": True,
         "DATABASE_URI": "sqlite:///:memory:",
         "REDIS_URL": "redis://localhost:6379/15",  # Test database
-        "POLYGON_API_KEY": "test_api_key",
+        "MASSIVE_API_KEY": "test_api_key",
         "USE_SIMULATED_DATA": True,
         "LOG_LEVEL": "DEBUG"
     }

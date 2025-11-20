@@ -1,15 +1,15 @@
 # WebSockets Integration for TickStock.ai
 
 ## Overview
-TickStockApp handles real-time data ingestion via WebSockets (e.g., Polygon.io's wss://socket.polygon.io/stocks), providing per-minute OHLCV updates for symbols. This data is forwarded to TickStockPL's `DataBlender` for blending with historical data, enabling pattern scanning (batch and real-time) and event publishing to TickStockApp. The pipeline supports high-frequency patterns (e.g., Day1Breakout) and daily aggregations, storing live data in the database for persistence.
+TickStockApp handles real-time data ingestion via WebSockets (e.g., Massive.com's wss://socket.massive.com/stocks), providing per-minute OHLCV updates for symbols. This data is forwarded to TickStockPL's `DataBlender` for blending with historical data, enabling pattern scanning (batch and real-time) and event publishing to TickStockApp. The pipeline supports high-frequency patterns (e.g., Day1Breakout) and daily aggregations, storing live data in the database for persistence.
 
 ## Location
 - **WebSockets Handler**: In TickStockApp, likely in `src/data/websockets_handler.py` or similar module.
-- **Functionality**: Connects to Polygon WebSockets, subscribes to symbols (e.g., AAPL, TSLA), processes per-minute bars, and forwards to TickStockPL.
+- **Functionality**: Connects to Massive WebSockets, subscribes to symbols (e.g., AAPL, TSLA), processes per-minute bars, and forwards to TickStockPL.
 
 ## Data Flow
 1. **Ingestion (TickStockApp)**:
-   - Connects to Polygon WebSockets using `websocket-client` or Polygon's Python client.
+   - Connects to Massive WebSockets using `websocket-client` or Massive's Python client.
    - Receives OHLCV messages (e.g., {'symbol': 'AAPL', 'timestamp': '2025-08-23T07:10:00Z', 'open': 150.0, 'high': 151.2, 'low': 149.8, 'close': 150.5, 'volume': 10000}).
    - Optionally aggregates ticks to 1min bars in-memory (pandas).
    - Sends to TickStockPL via Redis (channel: "tickstock_data") or direct call for dev.
@@ -46,7 +46,7 @@ redis_client = redis.Redis.from_url('redis://localhost:6379')
 DATA_CHANNEL = 'tickstock_data'
 
 def on_message(ws, message):
-    data = json.loads(message)  # Polygon WebSocket format
+    data = json.loads(message)  # Massive WebSocket format
     tick = {
         'symbol': data['sym'],
         'timestamp': pd.to_datetime(data['t'], unit='ms'),
@@ -63,9 +63,9 @@ def on_message(ws, message):
 
 def start_websockets(symbols):
     ws = websocket.WebSocketApp(
-        'wss://socket.polygon.io/stocks',
+        'wss://socket.massive.com/stocks',
         on_message=on_message,
-        header={'Authorization': f'Bearer {config.get('POLYGON_API_KEY')}'}
+        header={'Authorization': f'Bearer {config.get('MASSIVE_API_KEY')}'}
     )
     ws.send(json.dumps({'action': 'subscribe', 'params': f'A.{",".join(symbols)}'}))  # Aggregate bars
     ws.run_forever()
@@ -97,7 +97,7 @@ def start_websockets(symbols):
 
 ## Notes
 - **Frequency**: Per-minute WebSockets align with `ohlcv_1min` for intraday patterns (e.g., Day1Breakout). Resample for higher timeframes in `DataBlender`.
-- **Fallback**: If WebSockets fail, TickStockApp can pull recent data via Polygon's REST (get_historical_data.md).
+- **Fallback**: If WebSockets fail, TickStockApp can pull recent data via Massive's REST (get_historical_data.md).
 - **Scale**: Redis ensures low-latency data transfer; in dev, use in-memory queue (pubsub.py) to save costs.
 
 This pipeline is implemented in Sprint 10 (sprint_plan.md).

@@ -145,7 +145,7 @@ Phase 3 implements advanced features building upon the foundation and automation
    - Implement correlation tracking (SPY, IWM, sector relationships)
    - Dynamic universe sizing based on market conditions
    - Integration with existing cache_entries query system
-   - Validation against Polygon's reference data
+   - Validation against Massive's reference data
 
 **Phase 3c: Quality Assurance (MANDATORY)**
 1. **`tickstock-test-specialist`**: Universe expansion testing
@@ -167,7 +167,7 @@ Phase 3 implements advanced features building upon the foundation and automation
   - Data validation and integrity checks
 
 - [ ] **ETF Universe Collection System** (3 days)
-  - Polygon.io ETF data collection and filtering
+  - Massive.com ETF data collection and filtering
   - AUM and liquidity-based universe building
   - ETF correlation and relationship mapping
   - Integration with existing cache_entries system
@@ -182,7 +182,7 @@ Phase 3 implements advanced features building upon the foundation and automation
 - [ ] Cache entries query returns 200+ ETF symbols across 5 major themes
 - [ ] ETF universes testable via existing historical loader CLI interface
 - [ ] ETF data integrates with stocks in cache_entries without conflicts
-- [ ] Validation against Polygon's reference data with 99% accuracy
+- [ ] Validation against Massive's reference data with 99% accuracy
 - [ ] Dynamic universe sizing based on liquidity filters functional
 
 ---
@@ -530,7 +530,7 @@ Phase 3 implements advanced features building upon the foundation and automation
 - **ETF Correlation Channel**: `etf_correlation_update` for relationship changes
 
 ### External API Integration
-- **Polygon.io ETF Universe**: Comprehensive ETF data collection and filtering
+- **Massive.com ETF Universe**: Comprehensive ETF data collection and filtering
 - **Market Data Validation**: ETF relationship and correlation validation
 - **Performance Analytics**: Universe performance and liquidity monitoring
 - **Enhanced Metadata**: ETF expense ratios, AUM, and index relationships

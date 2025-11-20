@@ -23,13 +23,13 @@ from src.utils.auth_decorators import admin_required
 # Historical loader will be imported on demand to avoid pandas dependency at startup
 
 def _get_historical_loader():
-    """Import and return PolygonHistoricalLoader on demand."""
+    """Import and return MassiveHistoricalLoader on demand."""
     try:
         import sys
         from pathlib import Path
         sys.path.append(str(Path(__file__).parent.parent.parent))
-        from src.data.historical_loader import PolygonHistoricalLoader
-        return PolygonHistoricalLoader
+        from src.data.historical_loader import MassiveHistoricalLoader
+        return MassiveHistoricalLoader
     except ImportError as e:
         raise ImportError(f"Historical loader not available: {e}")
 
@@ -58,8 +58,8 @@ def register_admin_historical_routes(app):
         """Main admin dashboard for historical data management"""
         try:
             # Get current data status
-            PolygonHistoricalLoader = _get_historical_loader()
-            loader = PolygonHistoricalLoader()
+            MassiveHistoricalLoader = _get_historical_loader()
+            loader = MassiveHistoricalLoader()
 
             daily_summary = loader.get_data_summary('day')
             minute_summary = loader.get_data_summary('minute')
@@ -71,7 +71,7 @@ def register_admin_historical_routes(app):
             config = get_config()
             BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
             bulk_seeder = BulkUniverseSeeder(
-                polygon_api_key=config.get('POLYGON_API_KEY'),
+                polygon_api_key=config.get('MASSIVE_API_KEY'),
                 database_uri=config.get('DATABASE_URI')
             )
             available_universes = bulk_seeder.get_available_universes()
@@ -130,8 +130,8 @@ def register_admin_historical_routes(app):
                     return redirect(url_for('admin_historical_dashboard'))
             elif load_type == 'universe':
                 try:
-                    PolygonHistoricalLoader = _get_historical_loader()
-                    loader = PolygonHistoricalLoader()
+                    MassiveHistoricalLoader = _get_historical_loader()
+                    loader = MassiveHistoricalLoader()
                     symbols = loader.load_symbols_from_cache(universe_key)
                     if not symbols:
                         flash(f'No symbols found in universe: {universe_key}', 'error')
@@ -171,8 +171,8 @@ def register_admin_historical_routes(app):
                     job_data['status'] = 'running'
                     job_data['log_messages'].append(f"Started loading {len(job_data['symbols'])} symbols")
 
-                    PolygonHistoricalLoader = _get_historical_loader()
-                    loader = PolygonHistoricalLoader()
+                    MassiveHistoricalLoader = _get_historical_loader()
+                    loader = MassiveHistoricalLoader()
 
                     for i, symbol in enumerate(job_data['symbols']):
                         if job_data['status'] == 'cancelled':
@@ -324,7 +324,7 @@ def register_admin_historical_routes(app):
             config = get_config()
             BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
             bulk_seeder = BulkUniverseSeeder(
-                polygon_api_key=config.get('POLYGON_API_KEY'),
+                polygon_api_key=config.get('MASSIVE_API_KEY'),
                 database_uri=config.get('DATABASE_URI')
             )
 
@@ -461,7 +461,7 @@ def register_admin_historical_routes(app):
             config = get_config()
             BulkUniverseSeeder, UniverseType, BulkLoadRequest = _get_bulk_universe_seeder()
             bulk_seeder = BulkUniverseSeeder(
-                polygon_api_key=config.get('POLYGON_API_KEY'),
+                polygon_api_key=config.get('MASSIVE_API_KEY'),
                 database_uri=config.get('DATABASE_URI')
             )
 
@@ -501,8 +501,8 @@ def register_admin_historical_routes(app):
     def admin_data_summary():
         """Get detailed data summary via AJAX"""
         try:
-            PolygonHistoricalLoader = _get_historical_loader()
-            loader = PolygonHistoricalLoader()
+            MassiveHistoricalLoader = _get_historical_loader()
+            loader = MassiveHistoricalLoader()
 
             # Get detailed statistics
             import psycopg2
@@ -556,8 +556,8 @@ def register_admin_historical_routes(app):
 
             if cleanup_type == 'duplicates':
                 # Remove duplicate records (keep latest)
-                PolygonHistoricalLoader = _get_historical_loader()
-                loader = PolygonHistoricalLoader()
+                MassiveHistoricalLoader = _get_historical_loader()
+                loader = MassiveHistoricalLoader()
                 loader._connect_db()
 
                 with loader.conn.cursor() as cursor:
@@ -575,8 +575,8 @@ def register_admin_historical_routes(app):
                 cutoff_days = int(request.form.get('cutoff_days', '2190'))  # 6 years default
                 cutoff_date = datetime.now() - timedelta(days=cutoff_days)
 
-                PolygonHistoricalLoader = _get_historical_loader()
-                loader = PolygonHistoricalLoader()
+                MassiveHistoricalLoader = _get_historical_loader()
+                loader = MassiveHistoricalLoader()
                 loader._connect_db()
 
                 with loader.conn.cursor() as cursor:
@@ -791,8 +791,8 @@ def register_admin_historical_routes(app):
                     conn.commit()
 
                     # Import historical loader
-                    PolygonHistoricalLoader = _get_historical_loader()
-                    loader = PolygonHistoricalLoader()
+                    MassiveHistoricalLoader = _get_historical_loader()
+                    loader = MassiveHistoricalLoader()
 
                     # Process each symbol
                     for i, symbol in enumerate(job_data['symbols']):
@@ -803,7 +803,7 @@ def register_admin_historical_routes(app):
                         job_data['progress'] = int((i / len(job_data['symbols'])) * 100)
 
                         try:
-                            # Step 1: Ensure symbol exists in symbols table (with full Polygon.io data)
+                            # Step 1: Ensure symbol exists in symbols table (with full Massive.com data)
                             symbol_created = loader.ensure_symbol_exists(symbol)
 
                             if symbol_created:

@@ -193,7 +193,7 @@ Use these severity levels consistently:
 | **pattern** | Pattern detection issues | Insufficient data, pattern calculation errors |
 | **indicator** | Technical indicator errors | Moving average failures, RSI calculation errors |
 | **database** | Database operations | Connection errors, query failures |
-| **network** | External API/network issues | Polygon.io timeouts, connection failures |
+| **network** | External API/network issues | Massive.com timeouts, connection failures |
 | **validation** | Data validation failures | Invalid symbols, malformed data |
 | **performance** | Performance issues | Slow processing, threshold violations |
 | **configuration** | Config/setup issues | Missing environment variables, invalid settings |

@@ -42,7 +42,7 @@ BaseDataProvider (Abstract)
             └── Publishes: TickData objects
 
 DataProviderFactory
-    └── Creates: SimulatedDataProvider or PolygonDataProvider
+    └── Creates: SimulatedDataProvider or MassiveDataProvider
                  based on USE_SYNTHETIC_DATA config
 ```
 

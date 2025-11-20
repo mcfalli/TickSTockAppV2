@@ -2,7 +2,7 @@
 Comprehensive test script that checks:
 1. Environment variable loading
 2. Config parsing
-3. Polygon API connection
+3. Massive API connection
 4. Data provider factory behavior
 """
 import json
@@ -34,15 +34,15 @@ config = config_manager.get_config()
 config_manager.validate_config()
 
 # Extract key configuration values
-api_key = config.get('POLYGON_API_KEY')
+api_key = config.get('MASSIVE_API_KEY')
 use_polygon = config.get('USE_POLYGON_API')
 
 print(f"USE_POLYGON_API config value: {use_polygon}")
-print(f"POLYGON_API_KEY config value: {'[SET]' if api_key else '[NOT SET]'}")
+print(f"MASSIVE_API_KEY config value: {'[SET]' if api_key else '[NOT SET]'}")
 
 if not api_key:
     print("ERROR: No API key found in configuration")
-    print("Make sure POLYGON_API_KEY is set in your .env file")
+    print("Make sure MASSIVE_API_KEY is set in your .env file")
     sys.exit(1)
 
 # Step 2: Config Validation
@@ -59,7 +59,7 @@ print(f"  - USE_SYNTHETIC_DATA: {config.get('USE_SYNTHETIC_DATA')}")
 print("\nSTEP 3: DIRECT API TEST\n")
 
 # Base URL
-base_url = "https://api.polygon.io"
+base_url = "https://api.massive.com"
 
 # Test endpoint
 endpoint = "/v1/marketstatus/now"
@@ -96,9 +96,9 @@ try:
     from src.infrastructure.data_sources.factory import DataProviderFactory
     print("SUCCESS: DataProviderFactory imported")
 
-    print("\nTrying to import polygon_data_provider...")
-    from src.infrastructure.data_sources.polygon.provider import PolygonDataProvider
-    print("SUCCESS: PolygonDataProvider imported")
+    print("\nTrying to import massive_data_provider...")
+    from src.infrastructure.data_sources.massive.provider import MassiveDataProvider
+    print("SUCCESS: MassiveDataProvider imported")
 
     print("\nUsing DataProviderFactory with loaded config...")
     try:
@@ -112,17 +112,17 @@ try:
         is_available = provider.is_available()
         print(f"is_available() returned: {is_available}")
 
-        # If we got SimulatedDataProvider despite asking for Polygon
+        # If we got SimulatedDataProvider despite asking for Massive
         if not use_polygon and provider_type == 'SimulatedDataProvider':
             print("NOTE: Using SimulatedDataProvider as configured")
-        elif use_polygon and provider_type != 'PolygonDataProvider':
+        elif use_polygon and provider_type != 'MassiveDataProvider':
             print(f"WARNING: Received {provider_type} despite USE_POLYGON_API=True")
 
-            # Try PolygonDataProvider directly
-            print("\nTesting PolygonDataProvider directly:")
-            polygon_provider = PolygonDataProvider(config)
+            # Try MassiveDataProvider directly
+            print("\nTesting MassiveDataProvider directly:")
+            polygon_provider = MassiveDataProvider(config)
             polygon_available = polygon_provider.is_available()
-            print(f"Direct PolygonDataProvider.is_available() returned: {polygon_available}")
+            print(f"Direct MassiveDataProvider.is_available() returned: {polygon_available}")
 
     except Exception as e:
         print(f"Error creating provider: {e}")

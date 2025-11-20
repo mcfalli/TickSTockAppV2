@@ -119,8 +119,8 @@ def scan_patterns():
     patterns = [dict(row) for row in result]
 
     # Enhanced: Correlate with fundamentals (boost confidence with EPS surprises)
-    from polygon_api_client import PolygonClient
-    client = PolygonClient()  # Assume initialized
+    from polygon_api_client import MassiveClient
+    client = MassiveClient()  # Assume initialized
     for p in patterns:
         try:
             financials = client.list_stock_financials(p['symbol'], limit=1)
@@ -179,7 +179,7 @@ ON daily_patterns USING GIN (indicators);
 ```python
 import pandas as pd
 import numpy as np
-from polygon_api_client import PolygonClient
+from polygon_api_client import MassiveClient
 from typing import List, Dict
 from datetime import datetime, timedelta
 
@@ -189,7 +189,7 @@ class MarketBreadthDetector:
     Integrates with TickStockPL pattern detection engines.
     """
     
-    def __init__(self, client: PolygonClient):
+    def __init__(self, client: MassiveClient):
         self.client = client
         self.major_indices = ['SPY', 'QQQ', 'IWM', 'DIA']
         self.sector_etfs = {
@@ -404,7 +404,7 @@ class MarketBreadthDetector:
 ```python
 from flask import Blueprint, jsonify
 from src.analysis.market_breadth_detector import MarketBreadthDetector
-from polygon_api_client import PolygonClient
+from polygon_api_client import MassiveClient
 
 breadth_bp = Blueprint('breadth', __name__)
 
@@ -412,7 +412,7 @@ breadth_bp = Blueprint('breadth', __name__)
 def get_market_breadth():
     """Get comprehensive market breadth data."""
     try:
-        client = PolygonClient()  # Initialize with API key
+        client = MassiveClient()  # Initialize with API key
         detector = MarketBreadthDetector(client)
         
         # Get index patterns
@@ -610,7 +610,7 @@ def validate_pattern_accuracy(symbol, pattern_data):
     try:
         # Get FMV next-trade price prediction
         fmv_prediction = get_fmv_prediction(symbol)  # From FMV calculation
-        actual_next_price = get_next_trade_price(symbol)  # From Polygon
+        actual_next_price = get_next_trade_price(symbol)  # From Massive
         
         # Calculate prediction error
         error = abs(fmv_prediction - actual_next_price) / actual_next_price * 100
@@ -636,6 +636,6 @@ def validate_pattern_accuracy(symbol, pattern_data):
 3. **WebSocket Integration**: Set up real-time pattern update broadcasting
 4. **Performance Testing**: Establish benchmarking with <50ms targets
 5. **Chart Integration**: Develop matplotlib-based pattern overlays for GoldenLayout
-6. **Fundamental Data**: Integrate Polygon fundamentals API for pattern confidence boosting
+6. **Fundamental Data**: Integrate Massive fundamentals API for pattern confidence boosting
 
 This integration ensures our pattern library drives a responsive, data-rich UI that transforms pre-computed patterns into actionable trading insights with sub-50ms performance and real-time updates.

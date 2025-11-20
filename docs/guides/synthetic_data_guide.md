@@ -61,7 +61,7 @@ INFO - SYNTHETIC-PROVIDER: Pattern injection enabled (10% frequency)
 USE_SYNTHETIC_DATA=false
 ```
 
-Restart services. Application will now use Polygon API data.
+Restart services. Application will now use Massive API data.
 
 ---
 

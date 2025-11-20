@@ -199,7 +199,7 @@ All tests must pass these quality gates for production deployment:
 - **Redis**: Comprehensive AsyncMock for pub-sub operations
 - **Database**: psycopg2 connection mocking with realistic data
 - **Docker**: Container lifecycle and port mapping simulation
-- **External APIs**: Polygon.io and market data provider mocking
+- **External APIs**: Massive.com and market data provider mocking
 
 ### Fixtures and Test Data
 - Realistic financial symbols and date ranges

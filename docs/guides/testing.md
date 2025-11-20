@@ -309,9 +309,9 @@ jobs:
 
 ### 2. Mocking External Services
 ```python
-@mock.patch('src.data.polygon_client.PolygonClient')
+@mock.patch('src.data.polygon_client.MassiveClient')
 def test_with_mocked_polygon(mock_polygon):
-    """Test without hitting real Polygon API"""
+    """Test without hitting real Massive API"""
     mock_polygon.get_ticker.return_value = test_data
     # Test logic here
 ```

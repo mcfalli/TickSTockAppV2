@@ -251,7 +251,7 @@ def write_executive_summary(f, structure: dict, components: dict):
 
     f.write('### Key Technologies\n')
     f.write('- **Backend**: Python 3.x, Flask, Flask-SocketIO\n')
-    f.write('- **Real-time Data**: Polygon.io WebSocket API, Socket.IO\n')
+    f.write('- **Real-time Data**: Massive.com WebSocket API, Socket.IO\n')
     f.write('- **Processing**: Multi-threaded event detection pipeline with priority queues\n')
     f.write('- **Database**: PostgreSQL with SQLAlchemy ORM\n')
     f.write('- **Caching**: In-memory caching with CacheControl\n\n')
@@ -263,7 +263,7 @@ def write_data_flow_architecture(f, components: dict):
 
     f.write('### Primary Data Pipeline\n')
     f.write('```\n')
-    f.write('[Polygon WebSocket API]\n')
+    f.write('[Massive WebSocket API]\n')
     f.write('         ↓\n')
     f.write('  RealTimeDataAdapter\n')
     f.write('         ↓\n')
@@ -287,7 +287,7 @@ def write_data_flow_architecture(f, components: dict):
     f.write('```\n\n')
 
     f.write('### Key Processing Stages\n')
-    f.write('1. **Data Ingestion**: WebSocket connection to Polygon for real-time ticks\n')
+    f.write('1. **Data Ingestion**: WebSocket connection to Massive for real-time ticks\n')
     f.write('2. **Event Detection**: Pattern recognition for market events\n')
     f.write('3. **Priority Queuing**: Event prioritization based on universe membership\n')
     f.write('4. **Accumulation**: Session-based event counting and analytics\n')
@@ -436,7 +436,7 @@ def write_configuration_notes(f):
     f.write('## Configuration & Deployment\n\n')
 
     f.write('### Environment Variables\n')
-    f.write('- `POLYGON_API_KEY`: Required for real-time data\n')
+    f.write('- `MASSIVE_API_KEY`: Required for real-time data\n')
     f.write('- `USE_REAL_DATA`: Toggle between real/simulated data\n')
     f.write('- `DATABASE_URL`: PostgreSQL connection string\n')
     f.write('- `REDIS_URL`: Optional Redis cache\n\n')

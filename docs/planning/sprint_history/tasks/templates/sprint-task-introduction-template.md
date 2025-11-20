@@ -38,7 +38,7 @@ Choose the appropriate functional area for your Sprint:
 | `data_processing/` | Data channels, providers, data types | Channels, routers, OHLCV/FMV data |
 | `websocket_communication/` | WebSocket publishers, clients, protocols | WebSocket publisher, real-time communication |
 | `market_data/` | Market data services, aggregation, analytics | MarketDataService, analytics, aggregation |
-| `infrastructure/` | Database, caching, external APIs | Database integration, Redis, Polygon API |
+| `infrastructure/` | Database, caching, external APIs | Database integration, Redis, Massive API |
 | `user_management/` | Authentication, preferences, sessions | User auth, preferences, session management |
 | `system_integration/` | End-to-end, performance, regression | System-wide tests, performance benchmarks |
 

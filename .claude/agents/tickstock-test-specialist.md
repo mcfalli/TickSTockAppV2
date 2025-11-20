@@ -12,7 +12,7 @@ You are a testing expert specializing in TickStock's real-time financial data pr
 **TickStock Architecture**:
 - Pull Model event processing with zero event loss guarantee
 - Sub-millisecond event detection (<100ms end-to-end latency)  
-- WebSocket data streams from Polygon.io (production) or synthetic data (development)
+- WebSocket data streams from Massive.com (production) or synthetic data (development)
 - Component-based architecture with event type boundaries
 
 **Testing Framework**:
@@ -78,7 +78,7 @@ def test_detection_performance(detector, performance_timer):
 ```
 
 ### 5. Mock Strategy for Financial Data
-- Mock Polygon.io API responses with realistic market data
+- Mock Massive.com API responses with realistic market data
 - Mock Redis for user preferences and universe caching  
 - Mock PostgreSQL for database operations
 - Use realistic ticker symbols (AAPL, GOOGL, MSFT) not test data

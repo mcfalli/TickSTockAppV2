@@ -228,9 +228,9 @@ REDIS_DB=0
 REDIS_URL=redis://127.0.0.1:6379/0
 ```
 
-**Polygon API:**
+**Massive API:**
 ```bash
-POLYGON_API_KEY=your_api_key_here
+MASSIVE_API_KEY=your_api_key_here
 POLYGON_RATE_LIMIT_DELAY=12  # Free tier (5 calls/min)
 # For paid tier: POLYGON_RATE_LIMIT_DELAY=1
 ```

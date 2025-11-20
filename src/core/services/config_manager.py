@@ -74,10 +74,10 @@ class ConfigManager:
         'COLLECTION_INTERVAL': COLLECTION_INTERVAL,
         'EMISSION_INTERVAL': EMISSION_INTERVAL,
         'USE_POLYGON_API': False,
-        'POLYGON_API_KEY': '',
-        'POLYGON_WEBSOCKET_RECONNECT_DELAY': 5,
+        'MASSIVE_API_KEY': '',
+        'MASSIVE_WEBSOCKET_RECONNECT_DELAY': 5,
         'POLYGON_WEBSOCKET_MAX_RECONNECT_DELAY': 60,
-        'POLYGON_WEBSOCKET_MAX_RETRIES': 5,
+        'MASSIVE_WEBSOCKET_MAX_RETRIES': 5,
         'API_CACHE_TTL': 60,
         'API_MIN_REQUEST_INTERVAL': 0.05,
         'API_BATCH_SIZE': 25,
@@ -190,7 +190,7 @@ class ConfigManager:
 
         # Multi-frequency configuration defaults
         'DATA_SOURCE_MODE': 'production',
-        'ACTIVE_DATA_PROVIDERS': ['polygon'],
+        'ACTIVE_DATA_PROVIDERS': ['massive'],
         'ENABLE_MULTI_FREQUENCY': False,
         'WEBSOCKET_SUBSCRIPTIONS_FILE': 'config/websocket_subscriptions.json',
         'PROCESSING_CONFIG_FILE': 'config/processing_config.json',
@@ -247,10 +247,10 @@ class ConfigManager:
         'COLLECTION_INTERVAL': float,
         'EMISSION_INTERVAL': float,
         'USE_POLYGON_API': bool,
-        'POLYGON_API_KEY': str,
-        'POLYGON_WEBSOCKET_RECONNECT_DELAY': int,
+        'MASSIVE_API_KEY': str,
+        'MASSIVE_WEBSOCKET_RECONNECT_DELAY': int,
         'POLYGON_WEBSOCKET_MAX_RECONNECT_DELAY': int,
-        'POLYGON_WEBSOCKET_MAX_RETRIES': int,
+        'MASSIVE_WEBSOCKET_MAX_RETRIES': int,
         'API_CACHE_TTL': int,
         'API_MIN_REQUEST_INTERVAL': float,
         'API_BATCH_SIZE': int,
@@ -516,8 +516,8 @@ class ConfigManager:
         warnings = []
 
         # Legacy validation
-        if self.config.get('USE_POLYGON_API') and not self.config.get('POLYGON_API_KEY'):
-            errors.append("POLYGON_API_KEY is required when USE_POLYGON_API is enabled")
+        if self.config.get('USE_POLYGON_API') and not self.config.get('MASSIVE_API_KEY'):
+            errors.append("MASSIVE_API_KEY is required when USE_POLYGON_API is enabled")
 
         if self.config.get('USE_SYNTHETIC_DATA') and self.config.get('USE_POLYGON_API'):
             warnings.append("Both USE_SYNTHETIC_DATA and USE_POLYGON_API enabled; prioritizing synthetic data")
@@ -603,9 +603,9 @@ class ConfigManager:
         if invalid_providers:
             errors.append(f"Invalid providers in ACTIVE_DATA_PROVIDERS: {invalid_providers}")
 
-        # Polygon API key validation
-        if 'polygon' in active_providers and not self.config.get('POLYGON_API_KEY'):
-            errors.append("POLYGON_API_KEY required when 'polygon' is in ACTIVE_DATA_PROVIDERS")
+        # Massive API key validation
+        if 'polygon' in active_providers and not self.config.get('MASSIVE_API_KEY'):
+            errors.append("MASSIVE_API_KEY required when 'polygon' is in ACTIVE_DATA_PROVIDERS")
 
         # Connection pool validation
         pool_size = self.config.get('WEBSOCKET_CONNECTION_POOL_SIZE', 3)

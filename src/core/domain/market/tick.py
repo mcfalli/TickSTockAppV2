@@ -157,9 +157,9 @@ class TickData:
         }
 
     @classmethod
-    def from_polygon_ws(cls, data: dict) -> 'TickData':
-        """Create from Polygon WebSocket data."""
-        # Polygon WebSocket format
+    def from_massive_ws(cls, data: dict) -> 'TickData':
+        """Create from Massive WebSocket data."""
+        # Massive WebSocket format
         return cls(
             ticker=data['sym'],
             price=data['p'],

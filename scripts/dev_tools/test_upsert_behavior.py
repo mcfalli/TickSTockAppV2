@@ -19,7 +19,7 @@ except:
 # Add src to path
 sys.path.append('src')
 
-from src.data.historical_loader import PolygonHistoricalLoader
+from src.data.historical_loader import MassiveHistoricalLoader
 
 def test_upsert_behavior():
     """Test how the loader handles existing vs new data"""
@@ -27,7 +27,7 @@ def test_upsert_behavior():
     print("=== Testing Upsert Behavior ===\n")
     
     try:
-        loader = PolygonHistoricalLoader(
+        loader = MassiveHistoricalLoader(
             database_uri='config.get('DATABASE_URI', 'postgresql://app_readwrite:password@localhost:5432/tickstock')'
         )
         

@@ -287,7 +287,7 @@ TickStockApp (Consumer):
 ### ✅ **Enterprise IPO Monitoring**
 
 #### **Comprehensive IPO Pipeline**
-- **Multi-source Detection**: Polygon API, SEC filings, exchange feeds, news sources
+- **Multi-source Detection**: Massive API, SEC filings, exchange feeds, news sources
 - **90-day Backfill**: Complete historical IPO coverage with metadata enrichment
 - **Smart Classification**: Automated sector assignment and market cap estimation
 - **Real-time Integration**: Immediate notifications and database updates
