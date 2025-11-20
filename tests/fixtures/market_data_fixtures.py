@@ -203,7 +203,7 @@ def create_test_config() -> dict[str, Any]:
 
         # Data source settings
         'USE_SYNTHETIC_DATA': True,
-        'USE_POLYGON_API': False,
+        'USE_MASSIVE_API': False,
         'DATA_SOURCE': 'synthetic',
 
         # Market settings

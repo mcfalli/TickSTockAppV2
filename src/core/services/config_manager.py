@@ -73,7 +73,7 @@ class ConfigManager:
         'TICKSTOCK_DB_PASSWORD': 'password',  # Default placeholder - must be set in .env
         'COLLECTION_INTERVAL': COLLECTION_INTERVAL,
         'EMISSION_INTERVAL': EMISSION_INTERVAL,
-        'USE_POLYGON_API': False,
+        'USE_MASSIVE_API': False,
         'MASSIVE_API_KEY': '',
         'MASSIVE_WEBSOCKET_RECONNECT_DELAY': 5,
         'POLYGON_WEBSOCKET_MAX_RECONNECT_DELAY': 60,
@@ -246,7 +246,7 @@ class ConfigManager:
         'UPDATE_INTERVAL': float,
         'COLLECTION_INTERVAL': float,
         'EMISSION_INTERVAL': float,
-        'USE_POLYGON_API': bool,
+        'USE_MASSIVE_API': bool,
         'MASSIVE_API_KEY': str,
         'MASSIVE_WEBSOCKET_RECONNECT_DELAY': int,
         'POLYGON_WEBSOCKET_MAX_RECONNECT_DELAY': int,
@@ -516,12 +516,12 @@ class ConfigManager:
         warnings = []
 
         # Legacy validation
-        if self.config.get('USE_POLYGON_API') and not self.config.get('MASSIVE_API_KEY'):
-            errors.append("MASSIVE_API_KEY is required when USE_POLYGON_API is enabled")
+        if self.config.get('USE_MASSIVE_API') and not self.config.get('MASSIVE_API_KEY'):
+            errors.append("MASSIVE_API_KEY is required when USE_MASSIVE_API is enabled")
 
-        if self.config.get('USE_SYNTHETIC_DATA') and self.config.get('USE_POLYGON_API'):
-            warnings.append("Both USE_SYNTHETIC_DATA and USE_POLYGON_API enabled; prioritizing synthetic data")
-            self.config['USE_POLYGON_API'] = False
+        if self.config.get('USE_SYNTHETIC_DATA') and self.config.get('USE_MASSIVE_API'):
+            warnings.append("Both USE_SYNTHETIC_DATA and USE_MASSIVE_API enabled; prioritizing synthetic data")
+            self.config['USE_MASSIVE_API'] = False
 
         # Multi-frequency validation
         if self.config.get('ENABLE_MULTI_FREQUENCY'):
@@ -669,13 +669,13 @@ class ConfigManager:
         """Automatically migrate legacy configuration to multi-frequency format."""
         migrations_applied = []
 
-        # Migrate USE_POLYGON_API to ACTIVE_DATA_PROVIDERS
-        if self.config.get('USE_POLYGON_API'):
+        # Migrate USE_MASSIVE_API to ACTIVE_DATA_PROVIDERS
+        if self.config.get('USE_MASSIVE_API'):
             providers = list(self.config.get('ACTIVE_DATA_PROVIDERS', []))
             if 'polygon' not in providers:
                 providers.append('polygon')
                 self.config['ACTIVE_DATA_PROVIDERS'] = providers
-                migrations_applied.append('USE_POLYGON_API -> ACTIVE_DATA_PROVIDERS')
+                migrations_applied.append('USE_MASSIVE_API -> ACTIVE_DATA_PROVIDERS')
 
         # Migrate USE_SYNTHETIC_DATA to ACTIVE_DATA_PROVIDERS
         if self.config.get('USE_SYNTHETIC_DATA'):
@@ -805,7 +805,7 @@ class ConfigManager:
     def get_legacy_config_value(self, key):
         """Get configuration value using legacy key names for backward compatibility."""
         legacy_mappings = {
-            'USE_POLYGON_API': lambda: 'polygon' in self.config.get('ACTIVE_DATA_PROVIDERS', []),
+            'USE_MASSIVE_API': lambda: 'polygon' in self.config.get('ACTIVE_DATA_PROVIDERS', []),
             'USE_SYNTHETIC_DATA': lambda: 'synthetic' in self.config.get('ACTIVE_DATA_PROVIDERS', [])
         }
 

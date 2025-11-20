@@ -81,7 +81,7 @@ class TestPerformanceBenchmarks:
         """Mock configuration for performance testing."""
         return {
             'USE_SYNTHETIC_DATA': True,
-            'USE_POLYGON_API': False,
+            'USE_MASSIVE_API': False,
             'REDIS_HOST': 'localhost',
             'REDIS_PORT': 6379,
             'DATABASE_URL': 'postgresql://test:test@localhost/test'

@@ -23,10 +23,10 @@ class DataProviderFactory:
     def get_provider(cls, config: dict[str, Any]) -> DataProvider:
         """Get data provider based on simple configuration."""
         use_synthetic = config.get('USE_SYNTHETIC_DATA', False)
-        use_polygon = config.get('USE_POLYGON_API', False)
+        use_polygon = config.get('USE_MASSIVE_API', False)
         polygon_api_key = config.get('MASSIVE_API_KEY', '')
 
-        logger.info(f"DATA-PROVIDER-FACTORY: USE_SYNTHETIC_DATA={use_synthetic}, USE_POLYGON_API={use_polygon}")
+        logger.info(f"DATA-PROVIDER-FACTORY: USE_SYNTHETIC_DATA={use_synthetic}, USE_MASSIVE_API={use_polygon}")
 
         # Simple priority: Massive if configured, otherwise synthetic
         if use_polygon and polygon_api_key:

@@ -55,7 +55,7 @@ class TestMarketDataServicePersistence:
         """Mock configuration for testing."""
         return {
             'USE_SYNTHETIC_DATA': True,
-            'USE_POLYGON_API': False,
+            'USE_MASSIVE_API': False,
             'SYMBOL_UNIVERSE_KEY': 'test_universe',
             'DATABASE_URL': 'postgresql://test:test@localhost/tickstock_test',
             'REDIS_HOST': 'localhost',

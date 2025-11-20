@@ -35,9 +35,9 @@ config_manager.validate_config()
 
 # Extract key configuration values
 api_key = config.get('MASSIVE_API_KEY')
-use_polygon = config.get('USE_POLYGON_API')
+use_polygon = config.get('USE_MASSIVE_API')
 
-print(f"USE_POLYGON_API config value: {use_polygon}")
+print(f"USE_MASSIVE_API config value: {use_polygon}")
 print(f"MASSIVE_API_KEY config value: {'[SET]' if api_key else '[NOT SET]'}")
 
 if not api_key:
@@ -49,7 +49,7 @@ if not api_key:
 print("\nSTEP 2: CONFIG VALIDATION\n")
 
 # Check config types and values
-print(f"USE_POLYGON_API type: {type(use_polygon).__name__}, value: {use_polygon}")
+print(f"USE_MASSIVE_API type: {type(use_polygon).__name__}, value: {use_polygon}")
 print("Other relevant config values:")
 print(f"  - MARKET_TIMEZONE: {config.get('MARKET_TIMEZONE')}")
 print(f"  - UPDATE_INTERVAL: {config.get('UPDATE_INTERVAL')}")
@@ -116,7 +116,7 @@ try:
         if not use_polygon and provider_type == 'SimulatedDataProvider':
             print("NOTE: Using SimulatedDataProvider as configured")
         elif use_polygon and provider_type != 'MassiveDataProvider':
-            print(f"WARNING: Received {provider_type} despite USE_POLYGON_API=True")
+            print(f"WARNING: Received {provider_type} despite USE_MASSIVE_API=True")
 
             # Try MassiveDataProvider directly
             print("\nTesting MassiveDataProvider directly:")

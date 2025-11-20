@@ -28,7 +28,7 @@ class RealTimeDataAdapter:
         self.client = None
 
         # Initialize Massive WebSocket client if configured
-        if config.get('USE_POLYGON_API') and config.get('MASSIVE_API_KEY'):
+        if config.get('USE_MASSIVE_API') and config.get('MASSIVE_API_KEY'):
             self.client = MassiveWebSocketClient(
                 api_key=config['MASSIVE_API_KEY'],
                 on_tick_callback=self.tick_callback,
