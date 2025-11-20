@@ -24,11 +24,11 @@ class MassiveAPI:
     def __init__(self, api_key: str = None):
         """
         Initialize the Massive API client.
-        
+
         Args:
             api_key: Massive.com API key. If None, tries to get from environment variable.
         """
-        # Backward compatibility: fall back to POLYGON_API_KEY if MASSIVE_API_KEY not set
+        # Legacy support: fallback to deprecated API key name if new name not found
         self.api_key = api_key or os.environ.get('MASSIVE_API_KEY') or os.environ.get('POLYGON_API_KEY')
         if not self.api_key:
             logger.warning("MASSIVE-API: No Massive API key provided. Please set MASSIVE_API_KEY environment variable.")

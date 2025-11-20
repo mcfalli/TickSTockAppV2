@@ -26,7 +26,7 @@ class MassiveDataProvider(DataProvider):
 
     def __init__(self, config: dict[str, Any]):
         self.config = config
-        # Backward compatibility: fall back to POLYGON_API_KEY if MASSIVE_API_KEY not set
+        # Legacy support: fallback to deprecated API key name if new name not found
         self.api_key = config.get('MASSIVE_API_KEY') or config.get('POLYGON_API_KEY')
         self.base_url = "https://api.massive.com"
         self.session = requests.Session()
