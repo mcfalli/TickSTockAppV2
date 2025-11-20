@@ -107,9 +107,9 @@ class MarketDataService:
     def _init_data_adapter(self):
         """Initialize the appropriate data adapter."""
         use_synthetic = self.config.get('USE_SYNTHETIC_DATA', False)
-        use_polygon = self.config.get('USE_MASSIVE_API', False)
+        use_massive = self.config.get('USE_MASSIVE_API', False)
 
-        if use_polygon and self.config.get('MASSIVE_API_KEY'):
+        if use_massive and self.config.get('MASSIVE_API_KEY'):
             logger.info("MARKET-DATA-SERVICE: Initializing Massive WebSocket adapter")
             self.data_adapter = RealTimeDataAdapter(
                 config=self.config,
