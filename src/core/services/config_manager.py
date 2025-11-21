@@ -805,7 +805,7 @@ class ConfigManager:
     def get_legacy_config_value(self, key):
         """Get configuration value using legacy key names for backward compatibility."""
         legacy_mappings = {
-            'USE_MASSIVE_API': lambda'massive' in self.config.get('ACTIVE_DATA_PROVIDERS', []),
+            'USE_MASSIVE_API': lambda: 'massive' in self.config.get('ACTIVE_DATA_PROVIDERS', []),
             'USE_SYNTHETIC_DATA': lambda: 'synthetic' in self.config.get('ACTIVE_DATA_PROVIDERS', [])
         }
 
