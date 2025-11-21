@@ -20,7 +20,15 @@
 - **Event Consumer**: Subscribes to a single Redis channel to consume pattern detection events and backtest results from TickStockPL.
 - **Job Triggering**: Submits backtest and analysis requests to TickStockPL via Redis job channels.
 - **Result Display**: Visualizes TickStockPL-computed patterns, indicators, and backtest results in the UI.
-- **Basic Data Ingestion**: Receives raw market data and forwards it to Redis for TickStockPL processing.
+- **WebSocket Data Ingestion**: Receives raw market data through flexible WebSocket architecture:
+  - **Single-Connection Mode** (default): Single WebSocket connection handles all tickers, providing backward compatibility with existing configurations.
+  - **Multi-Connection Mode** (optional): Up to 3 concurrent WebSocket connections with independent ticker subscriptions, enabling:
+    - **3x Throughput Capacity**: 300+ tickers vs 100 on single connection, maximizing Massive API account limits.
+    - **Priority Routing**: Isolate high-value tickers on dedicated connections for guaranteed data flow.
+    - **Partial Failover**: System remains operational with 2/3 connections if one fails.
+    - **Flexible Ticker Assignment**: Universe keys (preferred) or direct symbol lists per connection.
+    - **Thread-Safe Aggregation**: Unified callback flow from all connections maintains data consistency.
+  - All ingested data forwarded to Redis for TickStockPL processing.
 - **Read-Only Database Access**: Queries TimescaleDB for UI elements (e.g., symbol dropdowns) without accessing pattern/indicator data.
 
 **Boundaries**:

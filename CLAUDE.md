@@ -69,8 +69,18 @@ ps aux | grep "flask run"
 - Performs daily batch analysis for long-term trends, stored in TimescaleDB
 - Correlates multi-timeframe signals with fundamentals (e.g., EPS surprises) for <5% false positives
 - Achieves >300 symbols/second, >92% cache hit rates, with Flask, SQLAlchemy, and Matplotlib integration
+- **Multi-Connection WebSocket Architecture**: Supports up to 3 concurrent WebSocket connections to Massive API for 3x throughput capacity, priority ticker routing, and partial failover capability
 
 **Redis Pub-Sub**: Ensures loose coupling between components, with channels like tickstock.events.patterns and tickstock:monitoring for real-time events and metrics.
+
+**WebSocket Data Ingestion**:
+- **Single-Connection Mode** (default): Single WebSocket connection handles all tickers (backward compatible)
+- **Multi-Connection Mode** (optional): Up to 3 concurrent connections with independent ticker subscriptions
+  - Priority routing: Isolate high-value tickers on dedicated connections
+  - Failover: 2/3 connections remain operational if one fails  
+  - Throughput: 3x capacity (300+ tickers vs 100 on single connection)
+  - Configuration: Universe keys or direct symbol lists per connection
+  - Thread-safe callback aggregation for unified data flow
 
 
 
@@ -349,6 +359,24 @@ TRACE_LEVEL=VERBOSE
 
 # TickStockPL Integration
 TICKSTOCKPL_API_URL=http://localhost:8080
+
+# Multi-Connection WebSocket (optional - default: single connection)
+# Enable to utilize up to 3 concurrent WebSocket connections for better throughput
+USE_MULTI_CONNECTION=false  # Set to true to enable multi-connection mode
+WEBSOCKET_CONNECTIONS_MAX=3  # Maximum concurrent connections (Massive API limit)
+
+# Connection 1: Primary tickers (high-priority symbols)
+WEBSOCKET_CONNECTION_1_ENABLED=true
+WEBSOCKET_CONNECTION_1_NAME=primary
+WEBSOCKET_CONNECTION_1_UNIVERSE_KEY=market_leaders:top_500  # Preferred method
+# WEBSOCKET_CONNECTION_1_SYMBOLS=AAPL,NVDA,TSLA,MSFT  # Alternative: direct symbols
+
+# Connection 2: Secondary tickers (optional)
+WEBSOCKET_CONNECTION_2_ENABLED=false
+WEBSOCKET_CONNECTION_2_UNIVERSE_KEY=finance_sector:large_cap
+
+# Connection 3: Tertiary tickers (optional)
+WEBSOCKET_CONNECTION_3_ENABLED=false
 ```
 
 ## Common Pitfalls & Solutions

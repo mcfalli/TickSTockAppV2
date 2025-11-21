@@ -11,6 +11,7 @@
 - Performs daily batch analysis for long-term trends, stored in TimescaleDB
 - Correlates multi-timeframe signals with fundamentals (e.g., EPS surprises) for <5% false positives
 - Achieves >300 symbols/second, >92% cache hit rates, with Flask, SQLAlchemy, and Matplotlib integration
+- Multi-connection WebSocket support: Up to 3 concurrent connections for 3x throughput capacity, priority ticker routing, and partial failover capability
 
 ## Quick Start
 
