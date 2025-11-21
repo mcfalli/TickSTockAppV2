@@ -79,7 +79,7 @@ def detect_role_boundary_violations(file_path: str) -> list:
                 'message': 'Metrics calculation belongs in TickStockPL backtesting engine'
             },
             {
-                'pattern': r'polygon\w*client|alpha.*vantage.*client',
+                'pattern': r'(polygon|massive)\w*client|alpha.*vantage.*client',
                 'violation': 'api_provider_logic',
                 'message': 'Multi-provider logic and fallbacks belong in TickStockPL'
             },
