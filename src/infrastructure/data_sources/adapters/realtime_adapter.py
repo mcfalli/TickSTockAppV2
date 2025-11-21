@@ -8,6 +8,7 @@ PHASE 6 CLEANUP: Simplified to basic data forwarding with:
 
 Removed: Multi-frequency complexity, elaborate connection management.
 """
+
 import logging
 import threading
 import time
@@ -18,6 +19,7 @@ from src.presentation.websocket.massive_client import MassiveWebSocketClient
 
 logger = logging.getLogger(__name__)
 
+
 class RealTimeDataAdapter:
     """Simplified adapter for real-time data streams."""
 
@@ -27,26 +29,48 @@ class RealTimeDataAdapter:
         self.status_callback = status_callback
         self.client = None
 
-        # Initialize Massive WebSocket client if configured
-        if config.get('USE_MASSIVE_API') and config.get('MASSIVE_API_KEY'):
-            self.client = MassiveWebSocketClient(
-                api_key=config['MASSIVE_API_KEY'],
-                on_tick_callback=self.tick_callback,
-                on_status_callback=self.status_callback,
-                config=config
-            )
-            logger.info("REAL-TIME-ADAPTER: Initialized with Massive WebSocket client")
+        # Initialize Massive WebSocket client(s) if configured
+        if config.get("USE_MASSIVE_API") and config.get("MASSIVE_API_KEY"):
+            # Check for multi-connection mode (Sprint 51)
+            use_multi_connection = config.get("USE_MULTI_CONNECTION", False)
+
+            if use_multi_connection:
+                # MULTI-CONNECTION MODE (up to 3 connections)
+                from src.infrastructure.websocket.multi_connection_manager import (
+                    MultiConnectionManager,
+                )
+
+                self.client = MultiConnectionManager(
+                    config=config,
+                    on_tick_callback=self.tick_callback,
+                    on_status_callback=self.status_callback,
+                    max_connections=config.get("WEBSOCKET_CONNECTIONS_MAX", 3),
+                )
+                logger.info("REAL-TIME-ADAPTER: Initialized with Multi-Connection Manager")
+            else:
+                # SINGLE CONNECTION MODE (backward compatible)
+                self.client = MassiveWebSocketClient(
+                    api_key=config["MASSIVE_API_KEY"],
+                    on_tick_callback=self.tick_callback,
+                    on_status_callback=self.status_callback,
+                    config=config,
+                )
+                logger.info("REAL-TIME-ADAPTER: Initialized with single Massive WebSocket client")
         else:
             logger.info("REAL-TIME-ADAPTER: No WebSocket client - using synthetic data only")
 
     def connect(self, tickers: list[str]) -> bool:
         """Connect to data source and subscribe to tickers."""
         if self.client:
-            logger.info(f"REAL-TIME-ADAPTER: Connecting to Massive WebSocket with {len(tickers)} tickers")
+            logger.info(
+                f"REAL-TIME-ADAPTER: Connecting to Massive WebSocket with {len(tickers)} tickers"
+            )
             success = self.client.connect()
             if success:
                 self.client.subscribe(tickers)
-                logger.info(f"REAL-TIME-ADAPTER: Connected and subscribed to {len(tickers)} tickers")
+                logger.info(
+                    f"REAL-TIME-ADAPTER: Connected and subscribed to {len(tickers)} tickers"
+                )
                 return True
             logger.error("REAL-TIME-ADAPTER: WebSocket connection failed")
             return False
@@ -59,6 +83,7 @@ class RealTimeDataAdapter:
             self.client.disconnect()
             logger.info("REAL-TIME-ADAPTER: Disconnected from WebSocket")
 
+
 class SyntheticDataAdapter(RealTimeDataAdapter):
     """Adapter for synthetic data generation."""
 
@@ -69,7 +94,9 @@ class SyntheticDataAdapter(RealTimeDataAdapter):
 
     def connect(self, tickers: list[str]) -> bool:
         """Start synthetic data generation."""
-        logger.info(f"REAL-TIME-ADAPTER: Starting synthetic data generation for {len(tickers)} tickers")
+        logger.info(
+            f"REAL-TIME-ADAPTER: Starting synthetic data generation for {len(tickers)} tickers"
+        )
         self.connected = True
         self.tickers = tickers
 
@@ -82,12 +109,14 @@ class SyntheticDataAdapter(RealTimeDataAdapter):
         """Generate synthetic tick data continuously."""
         try:
             data_provider = DataProviderFactory.get_provider(self.config)
-            update_interval = self.config.get('SYNTHETIC_UPDATE_INTERVAL', 1.0)
+            update_interval = self.config.get("SYNTHETIC_UPDATE_INTERVAL", 1.0)
 
-            logger.info(f"REAL-TIME-ADAPTER: Synthetic generation started with {update_interval}s interval")
+            logger.info(
+                f"REAL-TIME-ADAPTER: Synthetic generation started with {update_interval}s interval"
+            )
 
             while self.connected:
-                for ticker in getattr(self, 'tickers', []):
+                for ticker in getattr(self, "tickers", []):
                     try:
                         tick_data = data_provider.generate_tick_data(ticker)
                         self.tick_callback(tick_data)

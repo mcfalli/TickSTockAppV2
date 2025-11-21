@@ -17,6 +17,8 @@ import pytest
 
 # Avoid circular imports by importing specific components
 from src.infrastructure.data_sources.synthetic.types import DataFrequency
+from src.infrastructure.data_sources.adapters.realtime_adapter import SyntheticDataAdapter
+from src.infrastructure.data_sources.factory import DataProviderFactory
 
 from src.core.domain.market.tick import TickData
 
