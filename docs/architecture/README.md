@@ -14,6 +14,7 @@ TickStockAppV2 is a **standalone application** for real-time market data analysi
 - **[Service Dependencies & Startup](service-dependencies.md)** - Critical startup requirements, virtual environment setup, and inter-service communication
 - **[Redis Integration](redis-integration.md)** - Pub-sub messaging patterns
 - **[WebSocket Integration](websockets-integration.md)** - Real-time browser communication
+- **[Massive Per-Minute Aggregates](massive-per-minute-aggregates.md)** - Per-minute OHLCV implementation (98.6% DB write reduction)
 - **[Configuration](configuration.md)** - Environment variables and settings
 
 ## System Architecture
