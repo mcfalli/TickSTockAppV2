@@ -135,8 +135,8 @@ class MassiveWebSocketClient:
         if not new_tickers:
             return True
 
-        # Format subscription message (per-second aggregates)
-        formatted_tickers = [f"A.{ticker}" for ticker in new_tickers]
+        # Format subscription message (per-minute aggregates)
+        formatted_tickers = [f"AM.{ticker}" for ticker in new_tickers]
         subscribe_message = {"action": "subscribe", "params": ",".join(formatted_tickers)}
 
         try:
@@ -164,7 +164,7 @@ class MassiveWebSocketClient:
             return True
 
         # Format unsubscription message
-        formatted_tickers = [f"A.{ticker}" for ticker in existing_tickers]
+        formatted_tickers = [f"AM.{ticker}" for ticker in existing_tickers]
         unsubscribe_message = {"action": "unsubscribe", "params": ",".join(formatted_tickers)}
 
         try:
@@ -245,7 +245,7 @@ class MassiveWebSocketClient:
             event_type = event.get('ev')
             ticker = event.get('sym')
 
-            if event_type == 'A':  # Aggregate
+            if event_type in ('A', 'AM'):  # Aggregate (per-second or per-minute)
                 self._process_aggregate_event(event)
             elif event_type == 'T':  # Trade
                 self._process_trade_event(event)
