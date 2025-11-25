@@ -218,7 +218,8 @@ class MassiveWebSocketClient:
 
                 # Handle subscription confirmations specially
                 if status == 'success' and message and message.startswith('subscribed to:'):
-                    ticker = message.replace('subscribed to: A.', '')
+                    # Extract ticker from "subscribed to: AM.TICKER" or "subscribed to: A.TICKER"
+                    ticker = message.replace('subscribed to: AM.', '').replace('subscribed to: A.', '')
                     self.subscription_confirmations.add(ticker)
 
                     # Only log summary when all subscriptions are confirmed
