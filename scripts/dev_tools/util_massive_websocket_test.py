@@ -45,7 +45,7 @@ class MassiveWebSocketTester:
         self.verbose = verbose
 
         # WebSocket URL (stocks aggregates per minute)
-        self.ws_url = "wss://socket.massive.io/stocks"
+        self.ws_url = "wss://socket.massive.com/stocks"
 
         # Connection stats
         self.connections = {}

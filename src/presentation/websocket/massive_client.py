@@ -192,6 +192,7 @@ class MassiveWebSocketClient:
     def _on_message(self, ws, message):
         """Handle incoming WebSocket messages."""
         try:
+            logger.debug(f"MASSIVE-CLIENT: Message received (len={len(message)})")
             data = json.loads(message)
 
             if isinstance(data, list):

@@ -2309,6 +2309,13 @@ def main():
             app.register_blueprint(admin_users_bp)
             logger.info("STARTUP: Admin user management routes registered successfully")
 
+            # Sprint 52: Register admin WebSocket monitoring dashboard
+            logger.info("STARTUP: Registering admin WebSocket monitoring routes...")
+            from src.api.rest.admin_websockets import admin_websockets_bp, AdminWebSocketNamespace
+            app.register_blueprint(admin_websockets_bp)
+            socketio.on_namespace(AdminWebSocketNamespace('/admin-ws'))
+            logger.info("STARTUP: Admin WebSocket monitoring dashboard registered successfully")
+
             # Sprint 33 Phase 5: Register streaming dashboard and API endpoints
             from src.api.streaming_routes import streaming_bp
             app.register_blueprint(streaming_bp)

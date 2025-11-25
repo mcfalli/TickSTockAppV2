@@ -14,6 +14,10 @@ TickStockAppV2 provides flexible WebSocket client architecture with two operatio
 USE_MASSIVE_API=true
 MASSIVE_API_KEY=your_api_key
 USE_MULTI_CONNECTION=false  # or omit (defaults to false)
+
+# Symbol source for single-connection mode
+SYMBOL_UNIVERSE_KEY=market_leaders:top_100  # Loads from cache_entries table
+# Or use default fallback: ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'NFLX', 'META', 'NVDA']
 ```
 
 **Characteristics**:
@@ -22,12 +26,14 @@ USE_MULTI_CONNECTION=false  # or omit (defaults to false)
 - Suitable for monitoring up to ~100 tickers
 - Simple configuration and management
 - Single point of failure (connection loss impacts all tickers)
+- **License Requirement**: Free/Starter Massive API licenses support 1 connection
 
 **Use Cases**:
 - Development and testing environments
 - Small to medium ticker universes (<100 symbols)
 - Simple monitoring scenarios
 - Deployments where high availability is not critical
+- **Required for Free/Starter Massive API licenses** (multi-connection requires Business tier)
 
 ### Multi-Connection Mode (Optional)
 
@@ -64,6 +70,7 @@ WEBSOCKET_CONNECTION_3_UNIVERSE_KEY=emerging:high_growth
 - **Partial Failover**: System remains operational with 2/3 connections if one fails
 - **Thread-Safe Aggregation**: Unified callback flow maintains data consistency
 - Managed by `MultiConnectionManager` (drop-in replacement for `MassiveWebSocketClient`)
+- **License Requirement**: Requires Massive API Business tier license (Free/Starter limited to 1 connection)
 
 **Implementation Details**:
 - **Ticker Assignment**:
@@ -91,6 +98,117 @@ WEBSOCKET_CONNECTION_3_UNIVERSE_KEY=emerging:high_growth
 | Configuration | Simple (2 keys) | Detailed (18+ keys) |
 | Use Case | Dev/Test, Small Universe | Production, Large Universe |
 | Backward Compatible | N/A | Yes (default: disabled) |
+
+## Configuration Details and Symbol Loading
+
+### Single-Connection Mode Symbol Source
+
+In single-connection mode (`USE_MULTI_CONNECTION=false`), symbols are loaded via the `MarketDataService._get_universe()` method:
+
+**Symbol Loading Flow**:
+1. `MarketDataService` reads `SYMBOL_UNIVERSE_KEY` from configuration
+2. Calls `CacheControl.get_universe_tickers(universe_key)` to load symbols from `cache_entries` table
+3. Passes ticker list to `RealTimeDataAdapter.connect(universe)`
+4. `RealTimeDataAdapter` creates single `MassiveWebSocketClient` and subscribes all tickers
+
+**Configuration Settings Used**:
+- ✅ `SYMBOL_UNIVERSE_KEY` - **Primary symbol source** (e.g., `market_leaders:top_100`)
+- ❌ `WEBSOCKET_CONNECTION_X_SYMBOLS` - **Ignored** (only used in multi-connection mode)
+- ❌ `WEBSOCKET_CONNECTION_X_UNIVERSE_KEY` - **Ignored** (only used in multi-connection mode)
+
+**Example Configuration**:
+```bash
+# .env for single-connection mode
+USE_MULTI_CONNECTION=false
+SYMBOL_UNIVERSE_KEY=stock_etf_test:combo_test  # Loads 70 tickers from database
+
+# Alternative universe keys:
+# SYMBOL_UNIVERSE_KEY=market_leaders:top_100    # 100 top stocks
+# SYMBOL_UNIVERSE_KEY=market_leaders:top_500    # 500 stocks (verify API limit)
+```
+
+**Fallback Behavior**:
+- If `SYMBOL_UNIVERSE_KEY` universe not found in cache, uses hardcoded default:
+  ```python
+  ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'NFLX', 'META', 'NVDA']
+  ```
+
+### Multi-Connection Mode Symbol Source
+
+In multi-connection mode (`USE_MULTI_CONNECTION=true`), symbols are loaded per-connection via `MultiConnectionManager._load_connection_config()`:
+
+**Symbol Loading Flow**:
+1. `MultiConnectionManager` reads `WEBSOCKET_CONNECTION_X_ENABLED` for each connection (X = 1, 2, 3)
+2. For each enabled connection:
+   - **Option A**: If `WEBSOCKET_CONNECTION_X_UNIVERSE_KEY` set, loads from `CacheControl.get_universe_tickers()`
+   - **Option B**: If `WEBSOCKET_CONNECTION_X_SYMBOLS` set, parses comma-separated list
+3. Creates separate `MassiveWebSocketClient` for each connection with its ticker list
+4. Subscribes each connection independently
+
+**Configuration Settings Used**:
+- ✅ `WEBSOCKET_CONNECTION_X_UNIVERSE_KEY` - Preferred (e.g., `market_leaders:top_50`)
+- ✅ `WEBSOCKET_CONNECTION_X_SYMBOLS` - Alternative for static lists (e.g., `AAPL,NVDA,TSLA`)
+- ❌ `SYMBOL_UNIVERSE_KEY` - **Ignored** (only used in single-connection mode)
+
+**Example Configuration**:
+```bash
+# .env for multi-connection mode
+USE_MULTI_CONNECTION=true
+
+# Connection 1: Direct symbols (7 tickers)
+WEBSOCKET_CONNECTION_1_ENABLED=true
+WEBSOCKET_CONNECTION_1_SYMBOLS=AAPL,NVDA,TSLA,MSFT,GOOGL,META,AMZN
+
+# Connection 2: Universe key (50 tickers)
+WEBSOCKET_CONNECTION_2_ENABLED=true
+WEBSOCKET_CONNECTION_2_UNIVERSE_KEY=market_leaders:top_50
+
+# Connection 3: Another universe (100 tickers)
+WEBSOCKET_CONNECTION_3_ENABLED=true
+WEBSOCKET_CONNECTION_3_UNIVERSE_KEY=market_leaders:top_100
+```
+
+### Code Path Initialization
+
+The `RealTimeDataAdapter` (`src/infrastructure/data_sources/adapters/realtime_adapter.py`) conditionally initializes based on `USE_MULTI_CONNECTION`:
+
+```python
+# realtime_adapter.py __init__ method
+if config.get("USE_MASSIVE_API") and config.get("MASSIVE_API_KEY"):
+    use_multi_connection = config.get("USE_MULTI_CONNECTION", False)
+
+    if use_multi_connection:
+        # MULTI-CONNECTION MODE
+        from src.infrastructure.websocket.multi_connection_manager import MultiConnectionManager
+
+        self.client = MultiConnectionManager(
+            config=config,
+            on_tick_callback=self.tick_callback,
+            on_status_callback=self.status_callback,
+            max_connections=config.get("WEBSOCKET_CONNECTIONS_MAX", 3),
+        )
+        logger.info("REAL-TIME-ADAPTER: Initialized with Multi-Connection Manager")
+    else:
+        # SINGLE CONNECTION MODE (backward compatible)
+        self.client = MassiveWebSocketClient(
+            api_key=config["MASSIVE_API_KEY"],
+            on_tick_callback=self.tick_callback,
+            on_status_callback=self.status_callback,
+            config=config,
+        )
+        logger.info("REAL-TIME-ADAPTER: Initialized with single Massive WebSocket client")
+```
+
+**Key Files**:
+- `src/core/services/market_data_service.py` - Service that manages universe loading
+  - Method: `_get_universe()` - Loads symbols from `SYMBOL_UNIVERSE_KEY` (single-connection only)
+  - Method: `_service_loop()` - Calls `adapter.connect(universe)` with loaded symbols
+- `src/infrastructure/data_sources/adapters/realtime_adapter.py` - Adapter initialization
+  - Conditionally creates `MassiveWebSocketClient` OR `MultiConnectionManager`
+- `src/infrastructure/websocket/multi_connection_manager.py` - Multi-connection coordinator
+  - Method: `_load_connection_config()` - Loads per-connection universe keys or symbol lists
+- `src/presentation/websocket/massive_client.py` - Single WebSocket client
+  - Handles authentication, subscription, and message callbacks
 
 ### Technical Implementation
 
@@ -201,6 +319,7 @@ This pipeline is implemented in Sprint 10 (sprint_plan.md).
 
 ## Related Documentation
 
+- **[`diagrams/websocket-single-connection-flow.md`](diagrams/websocket-single-connection-flow.md)** - Complete flow diagram for single-connection mode
 - **[`system-architecture.md`](system-architecture.md)** - Complete system architecture overview
 - **[`database-architecture.md`](database-architecture.md)** - Database schema for data storage
 - **[`pattern-library-architecture.md`](pattern-library-architecture.md)** - Pattern scanning architecture

@@ -195,7 +195,7 @@ class StreamingBuffer:
 
                 # Log flush attempt
                 buffer_status = f"patterns={len(self.pattern_buffer)}, indicators={len(self.indicator_buffer)}"
-                logger.info(f"STREAMING-BUFFER: Flush cycle #{self.stats['flush_cycles']} - {buffer_status}")
+                #logger.info(f"STREAMING-BUFFER: Flush cycle #{self.stats['flush_cycles']} - {buffer_status}")
 
                 self._flush_all()
                 self.stats['flush_cycles'] += 1

@@ -782,7 +782,7 @@ similar_working_features:
 # ═══════════════════════════════════════════════════════════════
 
 external_documentation:
-  - url: https://docs.massive.io/websocket/getting-started
+  - url: https://docs.massive.com/websocket/getting-started
     why: "Massive API WebSocket documentation (connection limits, message formats)"
     critical: "Confirm 3 connection limit per API key, message format specifications"
 

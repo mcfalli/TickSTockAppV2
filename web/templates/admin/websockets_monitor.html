@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Connections Monitor - TickStock Admin</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+          rel="stylesheet">
+
+    <style>
+        .conn-1-border { border-left: 4px solid #007bff; }
+        .conn-2-border { border-left: 4px solid #28a745; }
+        .conn-3-border { border-left: 4px solid #fd7e14; }
+
+        .conn-1-bg { background-color: #e7f3ff; }
+        .conn-2-bg { background-color: #e7f7e7; }
+        .conn-3-bg { background-color: #fff3e7; }
+
+        .ticker-stream {
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .ticker-item {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .ticker-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .status-pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line"></i> TickStock Admin
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/admin/monitoring">Monitoring</a>
+                <a class="nav-link" href="/admin/users">Users</a>
+                <a class="nav-link active" href="/admin/websockets">WebSocket Connections</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>WebSocket Connections Monitor</h2>
+            <div>
+                <button class="btn btn-warning" id="pauseBtn">
+                    <i class="fas fa-pause"></i> Pause Updates
+                </button>
+                <button class="btn btn-secondary" id="refreshBtn">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <div class="alert alert-info mb-4" role="alert">
+            <i class="fas fa-circle status-pulse" id="statusIndicator"></i>
+            <span id="statusText">Connecting to WebSocket...</span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card conn-1-border">
+                    <div class="card-header d-flex justify-content-between align-items-center conn-1-bg">
+                        <h5 class="mb-0">
+                            <i class="fas fa-plug"></i> Connection 1
+                        </h5>
+                        <span class="badge rounded-pill text-bg-secondary" id="status1">Unknown</span>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="text-muted">Configuration</h6>
+                        <p class="mb-2">
+                            <strong>Name:</strong> <span id="name1">-</span><br>
+                            <strong>Universe Key:</strong> <span id="universe1">-</span><br>
+                            <strong>Tickers:</strong> <span id="tickerCount1">0</span>
+                        </p>
+
+                        <h6 class="text-muted mt-3">Metrics</h6>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="metric-value" id="msgCount1">0</div>
+                                <div class="metric-label">Messages</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="metric-value" id="throughput1">0</div>
+                                <div class="metric-label">msg/sec</div>
+                            </div>
+                        </div>
+                        <div class="row text-center mt-2">
+                            <div class="col-6">
+                                <div class="metric-value" id="errors1">0</div>
+                                <div class="metric-label">Errors</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="metric-value" id="uptime1">-</div>
+                                <div class="metric-label">Uptime</div>
+                            </div>
+                        </div>
+
+                        <h6 class="text-muted mt-3">Live Data Stream</h6>
+                        <div class="ticker-stream" id="tickerStream1">
+                            <p class="text-center text-muted py-4">Waiting for ticks...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="card conn-2-border">
+                    <div class="card-header d-flex justify-content-between align-items-center conn-2-bg">
+                        <h5 class="mb-0">
+                            <i class="fas fa-plug"></i> Connection 2
+                        </h5>
+                        <span class="badge rounded-pill text-bg-secondary" id="status2">Unknown</span>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="text-muted">Configuration</h6>
+                        <p class="mb-2">
+                            <strong>Name:</strong> <span id="name2">-</span><br>
+                            <strong>Universe Key:</strong> <span id="universe2">-</span><br>
+                            <strong>Tickers:</strong> <span id="tickerCount2">0</span>
+                        </p>
+
+                        <h6 class="text-muted mt-3">Metrics</h6>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="metric-value" id="msgCount2">0</div>
+                                <div class="metric-label">Messages</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="metric-value" id="throughput2">0</div>
+                                <div class="metric-label">msg/sec</div>
+                            </div>
+                        </div>
+                        <div class="row text-center mt-2">
+                            <div class="col-6">
+                                <div class="metric-value" id="errors2">0</div>
+                                <div class="metric-label">Errors</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="metric-value" id="uptime2">-</div>
+                                <div class="metric-label">Uptime</div>
+                            </div>
+                        </div>
+
+                        <h6 class="text-muted mt-3">Live Data Stream</h6>
+                        <div class="ticker-stream" id="tickerStream2">
+                            <p class="text-center text-muted py-4">Waiting for ticks...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="card conn-3-border">
+                    <div class="card-header d-flex justify-content-between align-items-center conn-3-bg">
+                        <h5 class="mb-0">
+                            <i class="fas fa-plug"></i> Connection 3
+                        </h5>
+                        <span class="badge rounded-pill text-bg-secondary" id="status3">Unknown</span>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="text-muted">Configuration</h6>
+                        <p class="mb-2">
+                            <strong>Name:</strong> <span id="name3">-</span><br>
+                            <strong>Universe Key:</strong> <span id="universe3">-</span><br>
+                            <strong>Tickers:</strong> <span id="tickerCount3">0</span>
+                        </p>
+
+                        <h6 class="text-muted mt-3">Metrics</h6>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="metric-value" id="msgCount3">0</div>
+                                <div class="metric-label">Messages</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="metric-value" id="throughput3">0</div>
+                                <div class="metric-label">msg/sec</div>
+                            </div>
+                        </div>
+                        <div class="row text-center mt-2">
+                            <div class="col-6">
+                                <div class="metric-value" id="errors3">0</div>
+                                <div class="metric-label">Errors</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="metric-value" id="uptime3">-</div>
+                                <div class="metric-label">Uptime</div>
+                            </div>
+                        </div>
+
+                        <h6 class="text-muted mt-3">Live Data Stream</h6>
+                        <div class="ticker-stream" id="tickerStream3">
+                            <p class="text-center text-muted py-4">Waiting for ticks...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="{{ url_for('static', filename='js/admin-websocket-monitor.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const monitor = new AdminWebSocketMonitor();
+            monitor.initialize();
+        });
+    </script>
+</body>
+</html>

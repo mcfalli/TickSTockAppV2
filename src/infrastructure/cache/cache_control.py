@@ -200,8 +200,8 @@ class CacheControl:
             # Build universes from stock_universe entries
             for category_name, category_data in self.cache['stock_universes'].items():
                 for universe_key, universe_data in category_data.items():
-                    # Create universe key
-                    full_key = f"{category_name}_{universe_key}"
+                    # Create universe key (use colon format to match config convention)
+                    full_key = f"{category_name}:{universe_key}"
 
                     # Extract tickers based on data format
                     tickers = []

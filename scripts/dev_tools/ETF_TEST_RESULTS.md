@@ -132,7 +132,7 @@ Since Python 3.13 has SSL issues, consider testing WebSocket with Node.js:
 ```javascript
 // Quick WebSocket test (Node.js)
 const WebSocket = require('ws');
-const ws = new WebSocket('wss://socket.massive.io/stocks');
+const ws = new WebSocket('wss://socket.massive.com/stocks');
 
 ws.on('open', function open() {
     ws.send(JSON.stringify({action: 'auth', params: 'YOUR_API_KEY'}));
