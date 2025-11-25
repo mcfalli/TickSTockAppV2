@@ -235,7 +235,7 @@ class MassiveWebSocketClient:
 
                 if self.on_status_callback:
                     self.on_status_callback('status_update', {'status': status, 'message': message})
-        elif msg.get('ev') in ['A', 'T', 'Q']:
+        elif msg.get('ev') in ['A', 'AM', 'T', 'Q']:
             self._process_tick_event(msg)
 
     def _process_tick_event(self, event: dict):
