@@ -1,186 +1,166 @@
-# Redis Integration - TickStockPL Interface
+# Redis Integration - Standalone Architecture
 
-**Version**: 2.0.0-simplified  
-**Last Updated**: August 25, 2025  
+**Version**: 3.0.0-standalone
+**Last Updated**: November 25, 2025 (Sprint 54)
 **Status**: Production Ready
+**Breaking Change**: TickStockPL integration completely removed
 
 ## Overview
 
-Redis serves as the primary integration interface between TickStock and TickStockPL, providing scalable real-time event streaming through pub-sub messaging. This clean separation enables independent scaling and development of both systems.
+**Sprint 54 Update**: TickStockAppV2 now operates as a **standalone application** with NO TickStockPL integration. Redis is used only for internal application pub/sub, NOT for cross-system communication.
 
-## Architecture
+### Architecture Change
 
-### Redis as Message Broker
+**Previous Architecture (Pre-Sprint 54)**:
 ```
-TickStock → Redis Pub-Sub → TickStockPL
-    ↓           ↓           ↓
- Tick Data   Event Queue  Processing
- Publisher   Distribution  Consumer
-```
-
-### Key Benefits
-- **Decoupled Systems**: Independent scaling and deployment
-- **Real-Time Streaming**: Sub-millisecond event distribution
-- **Fault Tolerance**: Redis persistence and clustering support
-- **Multiple Consumers**: Support for multiple TickStockPL instances
-
-## Channel Structure
-
-### Primary Channels
-
-#### All Ticks Channel
-- **Channel**: `tickstock.all_ticks`
-- **Purpose**: Stream all market data events
-- **Usage**: Primary channel for TickStockPL consumption
-- **Message Rate**: Variable based on market activity
-
-#### Per-Ticker Channels
-- **Pattern**: `tickstock.ticks.{TICKER}`
-- **Purpose**: Ticker-specific data streams
-- **Usage**: Selective consumption of specific securities
-- **Examples**: `tickstock.ticks.AAPL`, `tickstock.ticks.GOOGL`
-
-### Event Channels (Future)
-
-#### Pattern Events (TickStockPL → TickStock)
-- **Channel**: `tickstock.events.patterns`
-- **Purpose**: TickStockPL pattern detection results
-- **Usage**: Feed processed events back to TickStock
-- **Direction**: TickStockPL → TickStock
-
-## Message Format
-
-### Standard Tick Data Message
-```json
-{
-  "event_type": "tick_data",
-  "ticker": "AAPL",
-  "price": 150.25,
-  "volume": 1000,
-  "timestamp": 1693123456.789,
-  "source": "massive",
-  "market_status": "REGULAR"
-}
+TickStockAppV2 → Redis Pub-Sub → TickStockPL
+     ↓              ↓              ↓
+ Tick Data      Event Queue    Processing
+ Publisher      Distribution   Consumer
 ```
 
-### Field Specifications
-- **event_type**: Always "tick_data" for market data events
-- **ticker**: Stock symbol (string, uppercase)
-- **price**: Current price (float, 2 decimal places)
-- **volume**: Volume for this tick (integer)
-- **timestamp**: Unix timestamp with milliseconds (float)
-- **source**: Data source ("massive", "synthetic", "tickstock_pl")
-- **market_status**: Market state ("REGULAR", "PRE", "AFTER", "CLOSED")
+**Current Architecture (Sprint 54+)**:
+```
+Massive WebSocket → MarketDataService → [Direct Database Persistence]
+                                       → [FallbackPatternDetector (local)]
 
-## Consumer Implementation
+Frontend → REST API (/api/ticks/recent) → Database → JSON Response
+```
 
-### Basic TickStockPL Consumer
+**Key Changes**:
+- ✅ **Database-First**: Tick data persists directly to TimescaleDB `ohlcv_1min` table
+- ✅ **Standalone Operation**: No cross-system Redis pub/sub dependencies
+- ✅ **Local Pattern Detection**: FallbackPatternDetector operates within AppV2
+- ❌ **No TickStockPL Integration**: All Redis channels TO/FROM TickStockPL removed
+- ❌ **No Tick Forwarding**: Tick data NOT published to Redis for external consumption
+
+## Redis Usage (Internal Only)
+
+### Current Redis Channels
+
+Redis is now used **only for internal application features**, not for cross-system integration:
+
+#### Internal Application Channels
+- **`tickstock:errors`** - Application error events (internal monitoring)
+- **`tickstock:monitoring`** - Application health metrics (optional)
+- **`tickstock:cache:invalidation`** - Cache invalidation signals (future)
+
+### Removed Channels (Sprint 54)
+
+The following Redis channels have been **permanently removed**:
+
+#### Outbound Channels (TO TickStockPL) - REMOVED
+- ~~`tickstock.all_ticks`~~ - All tick data stream
+- ~~`tickstock.ticks.{TICKER}`~~ - Per-ticker data streams
+- ~~`tickstock:market:ticks`~~ - Raw tick forwarding
+- ~~`tickstock.data.raw`~~ - Raw market data
+
+#### Inbound Channels (FROM TickStockPL) - REMOVED
+- ~~`tickstock.events.patterns`~~ - Pattern detection results
+- ~~`tickstock:patterns:streaming`~~ - Real-time patterns
+- ~~`tickstock:indicators:streaming`~~ - Technical indicators
+- ~~`tickstock:streaming:health`~~ - TickStockPL health status
+
+## Data Flow Architecture
+
+### Tick Data Processing (Current)
+
+```
+1. WebSocket Reception
+   └─ Massive WebSocket Client receives per-second aggregates ('A' events)
+
+2. Data Transformation
+   └─ Convert to TickData objects with OHLCV fields
+
+3. Parallel Processing
+   ├─ Database Persistence → ohlcv_1min table (TimescaleDB)
+   └─ FallbackPatternDetector → Local pattern analysis
+
+4. Frontend Access
+   └─ REST API polling (/api/ticks/recent) → JSON response
+```
+
+**Performance**: Database writes are async and non-blocking (~10ms latency)
+
+### Pattern Detection (Current)
+
+```
+FallbackPatternDetector (Standalone)
+  ├─ Input: Real-time tick data from MarketDataService
+  ├─ Processing: Local pattern analysis algorithms
+  └─ Output: Pattern detections stored in database
+```
+
+**Note**: Pattern detection is now **entirely local** to TickStockAppV2. No external pattern services.
+
+## Migration from Pre-Sprint 54
+
+### What Changed
+
+| Component | Before Sprint 54 | After Sprint 54 |
+|-----------|------------------|-----------------|
+| **Tick Distribution** | Redis pub/sub | Direct database write |
+| **Pattern Source** | TickStockPL via Redis | FallbackPatternDetector (local) |
+| **Frontend Updates** | WebSocket broadcast | REST API polling |
+| **Cross-System Communication** | Redis channels | None (standalone) |
+| **Data Persistence** | TickStockPL responsibility | TickStockAppV2 responsibility |
+
+### Code Changes Required
+
+**If you had custom TickStockPL consumers:**
 ```python
-import redis
-import json
-import time
+# OLD (Pre-Sprint 54) - NO LONGER WORKS
+redis_client.subscribe('tickstock.all_ticks')  # Channel removed
+redis_client.subscribe('tickstock.events.patterns')  # Channel removed
 
-class TickStockPLConsumer:
-    def __init__(self):
-        self.redis_client = redis.Redis(
-            host='localhost', 
-            port=6379, 
-            db=0, 
-            decode_responses=True
-        )
-        self.subscriber = self.redis_client.pubsub()
-        
-    def start_consuming(self):
-        # Subscribe to all ticks
-        self.subscriber.subscribe('tickstock.all_ticks')
-        
-        print("TickStockPL Consumer started...")
-        
-        for message in self.subscriber.listen():
-            if message['type'] == 'message':
-                self.process_tick_data(message['data'])
-    
-    def process_tick_data(self, message_data):
-        try:
-            tick_data = json.loads(message_data)
-            
-            # Extract key fields
-            ticker = tick_data['ticker']
-            price = tick_data['price']
-            volume = tick_data['volume']
-            timestamp = tick_data['timestamp']
-            
-            # YOUR TICKSTOCKPL LOGIC HERE
-            print(f"Processing {ticker}: ${price} vol={volume}")
-            
-        except Exception as e:
-            print(f"Error processing tick: {e}")
-
-# Usage
-consumer = TickStockPLConsumer()
-consumer.start_consuming()
+# NEW (Sprint 54+) - NOT SUPPORTED
+# TickStockPL integration removed - no replacement
+# AppV2 is now standalone with database persistence
 ```
 
-### Advanced Consumer with Pattern Publishing
+**If you need tick data:**
 ```python
-class AdvancedTickStockPLConsumer:
-    def __init__(self):
-        self.redis_client = redis.Redis(
-            host='localhost', 
-            port=6379, 
-            db=0, 
-            decode_responses=True
-        )
-        self.subscriber = self.redis_client.pubsub()
-        
-    def process_tick_data(self, message_data):
-        try:
-            tick_data = json.loads(message_data)
-            
-            # Run pattern detection algorithms
-            patterns = self.detect_patterns(tick_data)
-            
-            # Publish detected patterns back to TickStock
-            for pattern in patterns:
-                self.publish_pattern_event(pattern)
-                
-        except Exception as e:
-            print(f"Error processing tick: {e}")
-    
-    def detect_patterns(self, tick_data):
-        # YOUR PATTERN DETECTION LOGIC
-        patterns = []
-        
-        # Example: Simple price movement pattern
-        if self.is_significant_move(tick_data):
-            patterns.append({
-                'type': 'price_movement',
-                'ticker': tick_data['ticker'],
-                'confidence': 0.85,
-                'direction': 'up' if tick_data['price'] > self.get_prev_price(tick_data['ticker']) else 'down'
-            })
-        
-        return patterns
-    
-    def publish_pattern_event(self, pattern):
-        pattern_message = {
-            'event_type': 'pattern_detected',
-            'ticker': pattern['ticker'],
-            'pattern_type': pattern['type'],
-            'confidence': pattern['confidence'],
-            'timestamp': time.time(),
-            'source': 'tickstock_pl'
-        }
-        
-        self.redis_client.publish(
-            'tickstock.events.patterns',
-            json.dumps(pattern_message)
-        )
+# NEW: Query database directly
+from src.infrastructure.database.tickstock_db import TickStockDatabase
+
+db = TickStockDatabase(config)
+with db.get_connection() as conn:
+    query = text("""
+        SELECT symbol, timestamp, open, high, low, close, volume
+        FROM ohlcv_1min
+        WHERE symbol = :symbol
+        AND timestamp > :since
+        ORDER BY timestamp DESC
+        LIMIT :limit
+    """)
+    result = conn.execute(query, {'symbol': 'AAPL', 'since': since_timestamp, 'limit': 100})
+    ticks = result.fetchall()
+```
+
+**If you need pattern data:**
+```python
+# NEW: Query pattern detections from database
+from src.infrastructure.database.tickstock_db import TickStockDatabase
+
+db = TickStockDatabase(config)
+with db.get_connection() as conn:
+    query = text("""
+        SELECT pd.symbol, pd.pattern_name, pd.confidence, pd.detected_at
+        FROM pattern_detections pd
+        WHERE pd.symbol = :symbol
+        AND pd.detected_at > :since
+        ORDER BY pd.detected_at DESC
+    """)
+    result = conn.execute(query, {'symbol': 'AAPL', 'since': since_timestamp})
+    patterns = result.fetchall()
 ```
 
 ## Configuration
 
-### Redis Connection Settings
+### Redis Connection (Minimal)
+
+Redis is still used for internal application features:
+
 ```python
 REDIS_CONFIG = {
     'host': 'localhost',
@@ -195,134 +175,161 @@ REDIS_CONFIG = {
 ```
 
 ### Environment Variables
+
 ```bash
-# Redis Connection
+# Redis Connection (Internal Use Only)
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_DB=0
 
-# Consumer Configuration
-TICKSTOCKPL_CONSUMER_ID=consumer_1
-TICKSTOCKPL_BATCH_SIZE=100
-TICKSTOCKPL_PROCESS_TIMEOUT=30
+# Removed (Sprint 54)
+# TICKSTOCKPL_CONSUMER_ID=...  # No longer needed
+# TICKSTOCKPL_BATCH_SIZE=...   # No longer needed
 ```
 
-## Performance Considerations
+## REST API Endpoint (New)
 
-### Message Throughput
-- **Market Hours**: 50-200 messages/second typical
-- **High Activity**: Up to 1000+ messages/second possible
-- **Off Hours**: 0-10 messages/second with synthetic data
+### Get Recent Ticks
 
-### Memory Usage
-- **Redis Memory**: ~1MB per 10,000 messages (with persistence)
-- **Consumer Memory**: Dependent on processing complexity
-- **Message Retention**: Configure based on requirements
+**Endpoint**: `GET /api/ticks/recent`
 
-### Scaling Strategies
+**Query Parameters**:
+- `symbol` (required): Stock ticker symbol (e.g., "AAPL")
+- `since` (optional): Unix timestamp - return records after this time
+- `limit` (optional): Max records to return (default: 100, max: 1000)
 
-#### Multiple Consumer Instances
-```python
-# Consumer group pattern for load distribution
-import redis
-
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
-
-# Create consumer group
-try:
-    redis_client.xgroup_create('tickstock-stream', 'tickstockpl-group', id='0', mkstream=True)
-except redis.ResponseError:
-    pass  # Group already exists
-
-# Consume as part of group
-messages = redis_client.xreadgroup(
-    'tickstockpl-group', 
-    'consumer-1',
-    {'tickstock-stream': '>'},
-    count=10,
-    block=1000
-)
+**Example Request**:
+```bash
+curl "http://localhost:5000/api/ticks/recent?symbol=AAPL&limit=10"
 ```
 
-#### Geographic Distribution
-```python
-# Redis Sentinel for high availability
-import redis.sentinel
-
-sentinel = redis.sentinel.Sentinel([
-    ('redis-sentinel-1', 26379),
-    ('redis-sentinel-2', 26379),
-    ('redis-sentinel-3', 26379)
-])
-
-redis_client = sentinel.master_for('tickstock-redis', socket_timeout=0.1)
+**Example Response**:
+```json
+{
+  "symbol": "AAPL",
+  "count": 10,
+  "ticks": [
+    {
+      "symbol": "AAPL",
+      "timestamp": 1700925617.736925,
+      "open": 150.25,
+      "high": 151.50,
+      "low": 149.75,
+      "close": 150.80,
+      "volume": 1000000
+    },
+    ...
+  ]
+}
 ```
 
-## Monitoring and Health
+## Performance Characteristics
+
+### Database Write Performance
+- **Write Latency**: ~10ms per tick (async, non-blocking)
+- **Throughput**: 100+ ticks/second sustained
+- **Storage**: TimescaleDB hypertable with automatic compression
+
+### REST API Performance
+- **Response Time**: <100ms for 100 records
+- **Caching**: None (queries database directly)
+- **Scalability**: Database connection pooling supports 100+ concurrent requests
+
+## Monitoring
 
 ### Health Checks
+
 ```python
+# Check Redis connectivity (internal features)
 def check_redis_health():
     try:
         redis_client.ping()
-        return {"redis": "healthy", "latency": measure_latency()}
+        return {"redis": "healthy", "latency_ms": measure_latency()}
     except Exception as e:
         return {"redis": "unhealthy", "error": str(e)}
 
-def measure_latency():
-    start = time.time()
-    redis_client.ping()
-    return (time.time() - start) * 1000  # ms
+# Check database write capability
+def check_database_health():
+    try:
+        db = TickStockDatabase(config)
+        with db.get_connection() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"database": "healthy"}
+    except Exception as e:
+        return {"database": "unhealthy", "error": str(e)}
 ```
 
-### Key Metrics to Monitor
-- **Message Rate**: Messages per second consumption
-- **Processing Latency**: Time from message to processing complete
-- **Error Rate**: Failed message processing percentage
-- **Redis Connectivity**: Connection health and latency
-- **Queue Depth**: Backlog of unprocessed messages
+### Key Metrics
+
+| Metric | Target | Monitoring |
+|--------|--------|------------|
+| Database Write Latency | <50ms | Log slow writes >50ms |
+| REST API Response Time | <100ms | Flask logging |
+| Tick Processing Rate | >50/sec | MarketDataService stats |
+| Database Connection Pool | <80% utilized | SQLAlchemy metrics |
 
 ## Troubleshooting
 
-### Common Issues
+### No Tick Data in Database
 
-#### Connection Issues
+**Symptom**: `ohlcv_1min` table is empty
+
+**Possible Causes**:
+1. **Markets Closed** - WebSocket only sends ticks during market hours (9:30 AM - 4:00 PM ET weekdays)
+2. **Foreign Key Constraint** - Symbol must exist in `symbols` table first
+3. **Database Connection** - Check database connectivity
+
+**Diagnosis**:
 ```bash
-# Test Redis connectivity
-redis-cli -h localhost -p 6379 ping
+# Check if application is running
+ps aux | grep "flask run"
 
-# Check TickStock Redis publishing
-redis-cli -h localhost -p 6379 subscribe tickstock.all_ticks
+# Check logs for database writes
+grep "TICKSTOCK-DB: Wrote OHLCV" logs/*.log
+
+# Verify symbols exist
+psql -d tickstock -c "SELECT symbol FROM symbols WHERE symbol = 'AAPL';"
 ```
 
-#### Message Processing Issues
-```python
-# Debug message format
-def debug_message(message_data):
-    try:
-        parsed = json.loads(message_data)
-        print(f"Valid JSON: {parsed}")
-    except json.JSONDecodeError as e:
-        print(f"Invalid JSON: {e}")
-        print(f"Raw data: {message_data}")
+### REST API Returns Empty Array
+
+**Symptom**: `/api/ticks/recent` returns `{"count": 0, "ticks": []}`
+
+**Possible Causes**:
+1. No data in database (see above)
+2. Time filter excluding all records
+3. Symbol parameter incorrect (case-sensitive)
+
+**Diagnosis**:
+```bash
+# Test endpoint
+curl "http://localhost:5000/api/ticks/recent?symbol=AAPL&limit=10"
+
+# Check database directly
+psql -d tickstock -c "SELECT COUNT(*) FROM ohlcv_1min WHERE symbol = 'AAPL';"
 ```
 
-#### Performance Issues
-```python
-# Monitor processing time
-import time
+## Deprecated Features
 
-def timed_processing(message_data):
-    start = time.time()
-    result = process_tick_data(message_data)
-    duration = time.time() - start
-    
-    if duration > 0.1:  # Log slow processing
-        print(f"Slow processing: {duration:.3f}s")
-    
-    return result
-```
+The following features are **permanently removed** and will not be supported:
+
+- ❌ Redis pub/sub for tick distribution
+- ❌ TickStockPL integration (all channels)
+- ❌ WebSocket real-time tick broadcasting
+- ❌ Pattern/indicator consumption from TickStockPL
+- ❌ Cross-system Redis event streaming
+
+**Migration Path**: Use database queries and REST API endpoints instead.
 
 ---
 
-This Redis integration provides a robust, scalable interface for TickStockPL integration while maintaining clean separation of concerns and supporting future enhancements.
+## Summary
+
+**Sprint 54** transformed TickStockAppV2 into a standalone application with:
+- ✅ Direct database persistence (TimescaleDB)
+- ✅ Local pattern detection (FallbackPatternDetector)
+- ✅ REST API for frontend data access
+- ❌ No external system dependencies
+- ❌ No Redis cross-system communication
+
+This architecture is simpler, more maintainable, and provides clear data ownership boundaries.

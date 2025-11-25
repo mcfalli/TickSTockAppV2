@@ -11,6 +11,8 @@ Sprint 10 Phase 1: Database Integration
 import logging
 import time
 from contextlib import contextmanager
+from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import create_engine, text
@@ -358,6 +360,79 @@ class TickStockDatabase:
         except Exception as e:
             logger.error(f"TICKSTOCK-DB: Failed to get pattern performance: {e}")
             return []
+
+    def write_ohlcv_1min(
+        self,
+        symbol: str,
+        timestamp: datetime,
+        open_price: Decimal,
+        high_price: Decimal,
+        low_price: Decimal,
+        close_price: Decimal,
+        volume: int
+    ) -> bool:
+        """
+        Write OHLCV 1-minute bar to TimescaleDB hypertable with upsert logic.
+
+        Sprint 54: WebSocket Processing Simplification
+        - Enables direct database persistence from WebSocket tick stream
+        - Uses ON CONFLICT DO UPDATE for idempotent writes
+        - Optimized for TimescaleDB time-series insertion
+
+        Args:
+            symbol: Stock ticker (must exist in symbols table - foreign key constraint)
+            timestamp: Minute boundary timestamp (timezone-aware)
+            open: Opening price for the minute
+            high: Highest price in the minute
+            low: Lowest price in the minute
+            close: Closing price for the minute
+            volume: Trading volume for the minute
+
+        Returns:
+            bool: True if write successful, False on any error
+
+        Performance:
+            - Target: <50ms per insert
+            - Uses connection pooling via SQLAlchemy context manager
+            - Batch writes recommended for high-volume (>100 ticks/sec)
+        """
+        try:
+            with self.get_connection() as conn:
+                # ON CONFLICT requires exact constraint name from database schema
+                query = text("""
+                    INSERT INTO ohlcv_1min (symbol, timestamp, open, high, low, close, volume)
+                    VALUES (:symbol, :timestamp, :open, :high, :low, :close, :volume)
+                    ON CONFLICT (symbol, timestamp) DO UPDATE SET
+                        open = EXCLUDED.open,
+                        high = EXCLUDED.high,
+                        low = EXCLUDED.low,
+                        close = EXCLUDED.close,
+                        volume = EXCLUDED.volume
+                """)
+
+                # SQLAlchemy 2.x requires dict parameters
+                params = {
+                    'symbol': symbol,
+                    'timestamp': timestamp,
+                    'open': open_price,
+                    'high': high_price,
+                    'low': low_price,
+                    'close': close_price,
+                    'volume': volume
+                }
+
+                conn.execute(query, params)
+                conn.commit()  # CRITICAL: Explicit commit required for writes
+
+                logger.debug(
+                    f"TICKSTOCK-DB: Wrote OHLCV {symbol} at {timestamp}: "
+                    f"O={open_price} H={high_price} L={low_price} C={close_price} V={volume}"
+                )
+                return True
+
+        except Exception as e:
+            logger.error(f"TICKSTOCK-DB: Failed to write OHLCV for {symbol} at {timestamp}: {e}")
+            return False
 
     def health_check(self) -> dict[str, Any]:
         """Comprehensive health check for database connection."""

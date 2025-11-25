@@ -9,11 +9,12 @@ PHASE 8 CLEANUP: Simplified to essential data processing with:
 Removed: Complex orchestration, analytics coordination, worker pools, universe management.
 """
 
-import json
 import logging
 import threading
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 from src.core.domain.market.tick import TickData
@@ -21,8 +22,6 @@ from src.infrastructure.data_sources.adapters.realtime_adapter import (
     RealTimeDataAdapter,
     SyntheticDataAdapter,
 )
-from src.presentation.websocket.data_publisher import DataPublisher
-from src.presentation.websocket.publisher import WebSocketPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +49,7 @@ class MarketDataService:
         self.stats = ServiceStats()
 
         # Core components
-        self.data_publisher = DataPublisher(config, self)
-        self.websocket_publisher = WebSocketPublisher(config, socketio, self) if socketio else None
+        # DataPublisher removed in Sprint 54 - frontend polls REST endpoint instead
         self.data_adapter = None
 
         # Thread management
@@ -178,13 +176,20 @@ class MarketDataService:
         return default_universe
 
     def _handle_tick_data(self, tick_data: TickData):
-        """Handle incoming tick data."""
+        """Handle incoming tick data - simplified for standalone AppV2.
+        
+        Sprint 54: WebSocket Processing Simplification
+        - Removed ALL TickStockPL integration (Redis publishing TO TickStockPL)
+        - Removed DataPublisher for tick broadcasting
+        - Added direct database persistence to ohlcv_1min table
+        - PRESERVED FallbackPatternDetector for local pattern detection
+        """
         try:
-            # Update statistics
+            # STAGE 1: Update statistics (PRESERVED)
             self.stats.ticks_processed += 1
             self.stats.last_tick_time = time.time()
 
-            # Feed tick data to fallback pattern detector for analysis
+            # STAGE 2: Feed to fallback pattern detector (PRESERVED - Decision 2)
             # Import here to avoid circular import
             from src.app import fallback_pattern_detector
             if fallback_pattern_detector and fallback_pattern_detector.is_active:
@@ -195,68 +200,55 @@ class MarketDataService:
                     tick_data.timestamp
                 )
 
-            # Publish tick data
-            if self.data_publisher:
-                result = self.data_publisher.publish_tick_data(tick_data)
-                if result.success:
-                    self.stats.events_published += 1
+            # STAGE 3: Write to database (NEW - Sprint 54)
+            try:
+                # Extract OHLCV fields from TickData
+                symbol = tick_data.ticker
 
-            # Publish raw tick data to Redis for TickStockPL processing
-            if self.data_publisher and self.data_publisher.redis_client:
-                try:
-                    raw_data = {
-                        'ticker': tick_data.ticker,
-                        'price': tick_data.price,
-                        'volume': tick_data.volume,
-                        'timestamp': tick_data.timestamp,
-                        'event_type': tick_data.event_type,
-                        'source': tick_data.source,
-                        'tick_open': getattr(tick_data, 'tick_open', None),
-                        'tick_high': getattr(tick_data, 'tick_high', None),
-                        'tick_low': getattr(tick_data, 'tick_low', None),
-                        'tick_close': getattr(tick_data, 'tick_close', None),
-                        'tick_volume': getattr(tick_data, 'tick_volume', None),
-                        'tick_vwap': getattr(tick_data, 'tick_vwap', None),
-                        'bid': getattr(tick_data, 'bid', None),
-                        'ask': getattr(tick_data, 'ask', None)
-                    }
-                    self.data_publisher.redis_client.publish('tickstock.data.raw', json.dumps(raw_data))
-                except Exception as e:
-                    logger.error(f"MARKET-DATA-SERVICE: Failed to publish raw data to Redis: {e}")
+                # Convert Unix timestamp to timezone-aware datetime
+                timestamp = datetime.fromtimestamp(tick_data.timestamp, tz=UTC)
 
-            # Forward tick to TickStockPL streaming service (Sprint 40)
-            if self.data_publisher and self.data_publisher.redis_client:
-                try:
-                    # Format tick data for TickStockPL streaming service
-                    market_tick = {
-                        'type': 'market_tick',
-                        'symbol': tick_data.ticker,
-                        'price': tick_data.price,
-                        'volume': tick_data.volume or 0,
-                        'timestamp': tick_data.timestamp,
-                        'source': 'massive'
-                    }
+                # Use tick-level OHLCV if available (Massive 'A' events), else fall back to current price
+                open_price = getattr(tick_data, 'tick_open', None) or tick_data.price
+                high_price = getattr(tick_data, 'tick_high', None) or tick_data.price
+                low_price = getattr(tick_data, 'tick_low', None) or tick_data.price
+                close_price = getattr(tick_data, 'tick_close', None) or tick_data.price
+                volume = getattr(tick_data, 'tick_volume', None) or tick_data.volume or 0
 
-                    # Publish to TickStockPL streaming channel
-                    self.data_publisher.redis_client.publish(
-                        'tickstock:market:ticks',
-                        json.dumps(market_tick)
-                    )
+                # Lazy initialize database connection
+                if not hasattr(self, '_db'):
+                    from src.core.services.config_manager import get_config
+                    from src.infrastructure.database.tickstock_db import TickStockDatabase
+                    self._db = TickStockDatabase(get_config())
 
-                    # Log every 100 forwarded ticks
-                    if not hasattr(self, '_forwarded_tick_count'):
-                        self._forwarded_tick_count = 0
-                    self._forwarded_tick_count += 1
+                # Write to database (async, non-blocking)
+                success = self._db.write_ohlcv_1min(
+                    symbol=symbol,
+                    timestamp=timestamp,
+                    open_price=Decimal(str(open_price)),
+                    high_price=Decimal(str(high_price)),
+                    low_price=Decimal(str(low_price)),
+                    close_price=Decimal(str(close_price)),
+                    volume=int(volume)
+                )
 
-                    if self._forwarded_tick_count % 100 == 0:
-                        logger.debug(f"MARKET-DATA-SERVICE: Forwarded {self._forwarded_tick_count} ticks to TickStockPL streaming")
+                if success:
+                    # Track successful database writes
+                    if not hasattr(self.stats, 'database_writes_completed'):
+                        self.stats.database_writes_completed = 0
+                    self.stats.database_writes_completed += 1
+                else:
+                    logger.warning(f"MARKET-DATA-SERVICE: Database write failed for {symbol} at {timestamp}")
 
-                except Exception as e:
-                    logger.error(f"MARKET-DATA-SERVICE: Failed to forward tick to TickStockPL: {e}")
+            except Exception as e:
+                logger.error(f"MARKET-DATA-SERVICE: Database write error for {tick_data.ticker}: {e}")
 
-            # Log first few ticks for debugging
+            # STAGE 4: Debug logging (PRESERVED)
             if self.stats.ticks_processed <= 10:
-                logger.info(f"MARKET-DATA-SERVICE: Processed tick #{self.stats.ticks_processed}: {tick_data.ticker} @ ${tick_data.price}")
+                logger.info(
+                    f"MARKET-DATA-SERVICE: Processed tick #{self.stats.ticks_processed}: "
+                    f"{tick_data.ticker} @ ${tick_data.price}"
+                )
 
         except Exception as e:
             logger.error(f"MARKET-DATA-SERVICE: Error handling tick data: {e}")

@@ -105,21 +105,12 @@ class RedisEventSubscriber:
             EventType.CRITICAL_ALERT: []
         }
 
-        # TickStockPL event channels
+        # Sprint 54: TickStockPL Integration Removed - AppV2 now standalone
+        # All Redis subscriptions FROM TickStockPL removed per Decision 3
+        # Pattern detection now handled locally by FallbackPatternDetector
         self.channels = {
-            'tickstock.events.patterns': EventType.PATTERN_DETECTED,
-            'tickstock.events.backtesting.progress': EventType.BACKTEST_PROGRESS,
-            'tickstock.events.backtesting.results': EventType.BACKTEST_RESULT,
-            'tickstock.health.status': EventType.SYSTEM_HEALTH,
-            # Phase 5 streaming channels
-            'tickstock:streaming:session_started': EventType.STREAMING_SESSION_STARTED,
-            'tickstock:streaming:session_stopped': EventType.STREAMING_SESSION_STOPPED,
-            'tickstock:streaming:health': EventType.STREAMING_HEALTH,
-            'tickstock:patterns:streaming': EventType.STREAMING_PATTERN,
-            'tickstock:patterns:detected': EventType.STREAMING_PATTERN,  # High confidence patterns
-            'tickstock:indicators:streaming': EventType.STREAMING_INDICATOR,
-            'tickstock:alerts:indicators': EventType.INDICATOR_ALERT,
-            'tickstock:alerts:critical': EventType.CRITICAL_ALERT
+            # All TickStockPL channels removed - AppV2 is now completely standalone
+            # No longer consuming patterns, indicators, or events from TickStockPL
         }
 
         # User subscription tracking

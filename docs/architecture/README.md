@@ -1,12 +1,13 @@
 # TickStockAppV2 Architecture
 
-**Version**: 3.1.0
-**Last Updated**: October 17, 2025 (Sprint 42/43)
+**Version**: 4.0.0-standalone
+**Last Updated**: November 25, 2025 (Sprint 54)
 **Status**: Production Ready
+**Breaking Change**: TickStockPL integration removed - now standalone
 
 ## Overview
 
-TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem. It provides the user interface, authentication, and real-time WebSocket delivery while consuming processed events from TickStockPL via Redis pub-sub architecture.
+TickStockAppV2 is a **standalone application** for real-time market data analysis. It provides user interface, authentication, local pattern detection, and database persistence for WebSocket tick data. **Sprint 54** removed all TickStockPL integration, making the application completely self-contained.
 
 ## Quick Links
 
@@ -18,27 +19,29 @@ TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem.
 ## System Architecture
 
 ```
-[Market Data] → [TickStockAppV2: Ingestion] → [Redis] → [TickStockPL: Processing]
-                                                   ↓
-[Browser UI] ← [TickStockAppV2: WebSocket] ← [Redis] ← [TickStockPL: Events]
+[Massive WebSocket] → [MarketDataService] → [TimescaleDB (ohlcv_1min)]
+                              ↓
+                    [FallbackPatternDetector] → [pattern_detections table]
+
+[Browser UI] ← [REST API (/api/ticks/recent)] ← [TimescaleDB Query]
 ```
 
 ### Core Responsibilities
 
-**TickStockAppV2 (This Application)**
+**TickStockAppV2 (Standalone Application)**
 - User authentication and session management
-- Real-time WebSocket broadcasting to browsers
+- WebSocket tick data ingestion from Massive API
+- Direct database persistence (ohlcv_1min table)
+- Local pattern detection via FallbackPatternDetector
 - Dashboard UI and visualizations
-- Redis event consumption from TickStockPL
-- Job submission to TickStockPL via Redis
-- Read-only database queries for UI elements
+- REST API for frontend data polling
+- Database read/write operations
 
-**TickStockPL (Processing Engine)**
-- Pattern detection and indicator calculations
-- Heavy data processing and backtesting
-- Database schema management
-- Event publishing to Redis channels
-- OHLCV data management
+**Removed (Sprint 54)**
+- ~~Redis event consumption from TickStockPL~~
+- ~~Job submission to TickStockPL~~
+- ~~WebSocket real-time broadcasting~~
+- ~~Pattern/indicator consumption from external services~~
 
 ## Component Architecture
 
@@ -74,74 +77,68 @@ TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem.
 
 ## Redis Integration
 
-### Channel Structure (Updated Sprint 42/43)
+### Channel Structure (Updated Sprint 54 - MINIMAL)
 ```
-# Streaming Events from TickStockPL (consumed by AppV2)
-tickstock:patterns:streaming      # Real-time pattern detections (all confidence levels)
-tickstock:patterns:detected       # High confidence patterns (≥80%)
-tickstock:indicators:streaming    # Real-time indicator calculations
-tickstock:streaming:health        # Streaming session health metrics
+# Internal Application Channels ONLY
+tickstock:errors                  # Application error events (internal)
+tickstock:monitoring              # Application health metrics (optional)
 
-# Legacy Events (still supported)
-tickstock.events.patterns         # Pattern detection results
-tickstock.events.indicators       # Indicator calculations
-tickstock.events.processing       # Processing status updates
-
-# System Channels
-tickstock:monitoring              # System metrics and health
-tickstock:errors                  # Error messages
-
-# Market Data Flow (Sprint 42)
-tickstock:market:ticks            # Raw tick data (AppV2 → TickStockPL)
-
-# Jobs to TickStockPL (published by AppV2)
-tickstock.jobs.backtest           # Backtest requests
-tickstock.jobs.processing         # Processing commands
+# ALL REMOVED (Sprint 54):
+# ~~tickstock:patterns:streaming~~      # TickStockPL integration removed
+# ~~tickstock:patterns:detected~~       # TickStockPL integration removed
+# ~~tickstock:indicators:streaming~~    # TickStockPL integration removed
+# ~~tickstock:streaming:health~~        # TickStockPL integration removed
+# ~~tickstock.events.patterns~~         # TickStockPL integration removed
+# ~~tickstock.events.indicators~~       # TickStockPL integration removed
+# ~~tickstock:market:ticks~~            # No longer forwarding to TickStockPL
+# ~~tickstock.jobs.*~~                  # No TickStockPL job submission
 ```
 
-### Message Flow (Sprint 42/43 Architecture)
+**Note**: Redis is now used ONLY for internal application features, NOT for cross-system communication.
 
-**Real-time Streaming Flow:**
+### Message Flow (Sprint 54 - Standalone Architecture)
+
+**Database-First Tick Processing:**
 ```
-Market Data (Massive)
+Massive WebSocket API ('A' aggregate events)
         ↓
-TickStockAppV2: MarketDataService
-        ↓
-Redis: tickstock:market:ticks (raw ticks)
-        ↓
-TickStockPL: RedisTickSubscriber
-        ↓
-TickStockPL: TickAggregator (1-min bars)
-        ↓
-TickStockPL: StreamingPatternJob (bar 1-2 detection)
-        ↓
-Redis: tickstock:patterns:streaming (pattern events)
-        ↓
-TickStockAppV2: RedisEventSubscriber
-        ↓
-TickStockAppV2: StreamingBuffer (250ms flush)
-        ↓
-TickStockAppV2: WebSocket broadcast
-        ↓
-Browser: Live Streaming Dashboard
+MarketDataService._handle_tick_data()
+        ├─ Database Write → ohlcv_1min table (async, <10ms)
+        └─ FallbackPatternDetector → local pattern analysis
+                ↓
+        pattern_detections table
 ```
 
-**Key Improvements (Sprint 42/43):**
-- ✅ OHLCV aggregation moved to TickStockPL (single source of truth)
-- ✅ Pattern detection at bar 1-2 (vs. old 5-bar minimum)
-- ✅ Streaming buffer with 250ms flush cycles
-- ✅ Pattern-specific bar requirements (no blanket delays)
+**Frontend Data Access:**
+```
+Browser JavaScript
+        ↓
+Poll REST API: GET /api/ticks/recent?symbol=AAPL&limit=100
+        ↓
+TimescaleDB Query (ohlcv_1min table)
+        ↓
+JSON Response (OHLCV data)
+        ↓
+Browser Dashboard Update
+```
+
+**Key Improvements (Sprint 54):**
+- ✅ TickStockPL integration removed (standalone operation)
+- ✅ Direct database persistence (TimescaleDB)
+- ✅ Local pattern detection (FallbackPatternDetector)
+- ✅ REST API for frontend polling (vs. WebSocket broadcast)
+- ✅ Simplified architecture (no Redis cross-system pub/sub)
+- ✅ Database-first data flow (no intermediate message queues)
 
 ## Performance Targets
 
 | Operation | Target | Actual | Status | Sprint |
 |-----------|--------|--------|--------|--------|
-| Pattern Detection | <2 min | 1-2 min | ✅ | 43 |
-| WebSocket Delivery | <100ms | ~50ms | ✅ | - |
-| API Response | <50ms | ~30ms | ✅ | - |
-| Redis Operation | <10ms | ~5ms | ✅ | - |
-| Streaming Buffer Flush | 250ms | 250ms | ✅ | 42 |
-| UI Update | <200ms | ~150ms | ✅ | - |
+| Database Write (OHLCV) | <50ms | ~10ms | ✅ | 54 |
+| Tick Processing | <1ms | <1ms | ✅ | 54 |
+| REST API Response | <100ms | ~45ms | ✅ | 54 |
+| Pattern Detection (Local) | <2 min | TBD | ⚠️ | 54 |
+| WebSocket Connection | Active | 70 tickers | ✅ | 54 |
 | Cache Hit Rate | >90% | 92% | ✅ | - |
 
 ## Configuration
