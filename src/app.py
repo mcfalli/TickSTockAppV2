@@ -2326,6 +2326,12 @@ def main():
             app.register_blueprint(redis_monitor_bp)
             logger.info("STARTUP: Redis monitoring dashboard registered successfully")
 
+            # Sprint 60: Register cache management API
+            logger.info("STARTUP: Registering cache management routes...")
+            from src.api.rest.admin_cache import admin_cache_bp
+            app.register_blueprint(admin_cache_bp)
+            logger.info("STARTUP: Cache management routes registered successfully")
+
             # Register Real Pattern Discovery APIs (Sprint 10 Complete)
             logger.info("STARTUP: Registering real pattern discovery APIs...")
             try:

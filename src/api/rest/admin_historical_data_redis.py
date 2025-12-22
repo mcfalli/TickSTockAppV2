@@ -207,20 +207,18 @@ def register_admin_historical_routes(app):
             try:
                 redis_client.publish('tickstock.jobs.data_load', json.dumps(job_data))
 
-                # Store initial status
+                # Store initial status (using hash format for consistency)
                 initial_status = {
                     'status': 'submitted',
-                    'progress': 0,
+                    'progress': '0',
                     'message': 'Job submitted to processing queue',
                     'description': job_description,
                     'submitted_at': datetime.now().isoformat()
                 }
 
-                redis_client.setex(
-                    f'tickstock.jobs.status:{job_id}',  # TickStockPL format
-                    86400,  # 24 hour TTL (matches TickStockPL)
-                    json.dumps(initial_status)
-                )
+                job_key = f'tickstock.jobs.status:{job_id}'
+                redis_client.hset(job_key, mapping=initial_status)
+                redis_client.expire(job_key, 86400)  # 24 hour TTL
 
                 # Add to job history
                 job_history.append({
@@ -302,12 +300,25 @@ def register_admin_historical_routes(app):
     @app.route('/admin/historical-data/job/<job_id>/status')
     @login_required
     def admin_job_status(job_id):
-        """Get job status from Redis (TickStockPL format)"""
+        """Get job status from Redis (supports both hash and string formats)"""
         try:
-            status_data = redis_client.get(f'tickstock.jobs.status:{job_id}')
+            job_key = f'tickstock.jobs.status:{job_id}'
+            # Handle both hash and string formats (TickStockPL uses strings, AppV2 uses hashes)
+            key_type = redis_client.type(job_key)
+            status = {}
 
-            if status_data:
-                status = json.loads(status_data)
+            if key_type == b'string' or key_type == 'string':
+                # TickStockPL format: JSON string
+                status_data = redis_client.get(job_key)
+                if status_data:
+                    if isinstance(status_data, bytes):
+                        status_data = status_data.decode()
+                    status = json.loads(status_data)
+            elif key_type == b'hash' or key_type == 'hash':
+                # AppV2 format: hash
+                status = redis_client.hgetall(job_key)
+
+            if status:
                 return jsonify({
                     'success': True,
                     'job_id': job_id,
@@ -521,23 +532,56 @@ def register_admin_historical_routes(app):
     @app.route('/api/admin/job-status/<job_id>')
     @login_required
     def api_job_status(job_id):
-        """API endpoint for getting job status"""
+        """API endpoint for getting job status (supports both hash and string formats)"""
         try:
-            status_data = redis_client.get(f'job:status:{job_id}')
+            job_key = f'tickstock.jobs.status:{job_id}'
 
-            if status_data:
-                status = json.loads(status_data)
+            # Check key type first (TickStockPL uses string, we use hash)
+            key_type = redis_client.type(job_key)
+
+            if key_type == b'none' or key_type == 'none':
+                return jsonify({
+                    'success': False,
+                    'message': 'Job not found'
+                }), 404
+
+            status = {}
+
+            if key_type == b'string' or key_type == 'string':
+                # TickStockPL format: JSON string
+                status_data = redis_client.get(job_key)
+                if status_data:
+                    if isinstance(status_data, bytes):
+                        status_data = status_data.decode()
+                    status = json.loads(status_data)
+
+            elif key_type == b'hash' or key_type == 'hash':
+                # TickStockAppV2 format: hash
+                status_data = redis_client.hgetall(job_key)
+                if status_data:
+                    status = {
+                        k.decode() if isinstance(k, bytes) else k:
+                        v.decode() if isinstance(v, bytes) else v
+                        for k, v in status_data.items()
+                    }
+
+            if status:
                 return jsonify({
                     'success': True,
                     'job_id': job_id,
                     **status
                 })
+
             return jsonify({
                 'success': False,
                 'message': 'Job not found'
             }), 404
 
         except Exception as e:
+            app.logger.error(
+                f"Error reading job {job_key}: {e}",
+                exc_info=True
+            )
             return jsonify({'success': False, 'error': str(e)}), 500
 
     @app.route('/admin/historical-data/jobs/status')
@@ -555,9 +599,22 @@ def register_admin_historical_routes(app):
 
             for key in job_keys:
                 try:
-                    status_data = redis_client.get(key)
-                    if status_data:
-                        status = json.loads(status_data)
+                    # Handle both hash and string formats (TickStockPL uses strings, AppV2 uses hashes)
+                    key_type = redis_client.type(key)
+                    status = {}
+
+                    if key_type == b'string' or key_type == 'string':
+                        # TickStockPL format: JSON string
+                        status_data = redis_client.get(key)
+                        if status_data:
+                            if isinstance(status_data, bytes):
+                                status_data = status_data.decode()
+                            status = json.loads(status_data)
+                    elif key_type == b'hash' or key_type == 'hash':
+                        # AppV2 format: hash
+                        status = redis_client.hgetall(key)
+
+                    if status:
                         job_id = key.split(':')[-1]
 
                         # Check if job is active
@@ -678,5 +735,240 @@ def register_admin_historical_routes(app):
             app.logger.error(f"Error in CSV universe load: {str(e)}")
             flash(f'Error loading CSV universe: {str(e)}', 'danger')
             return redirect(url_for('admin_historical_dashboard'))
+
+    @app.route('/admin/historical-data/universes', methods=['GET'])
+    @login_required
+    @admin_required
+    def get_available_universes():
+        """Return list of available ETF and stock_etf_combo universes for dropdown."""
+        try:
+            from src.infrastructure.cache.cache_control import CacheControl
+            cache_control = CacheControl()
+
+            universes = []
+
+            # Debug: Log cache structure
+            app.logger.info(f"Cache keys: {list(cache_control.cache.keys())}")
+            app.logger.info(
+                f"ETF universes present: {'etf_universes' in cache_control.cache}"
+            )
+            app.logger.info(
+                f"Stock ETF combos present: "
+                f"{'stock_etf_combos' in cache_control.cache}"
+            )
+
+            # Get ETF universes (nested: cache['etf_universes'][name][key] = value)
+            if 'etf_universes' in cache_control.cache:
+                etf_cache = cache_control.cache['etf_universes']
+                app.logger.info(
+                    f"ETF universes structure: {type(etf_cache)}, "
+                    f"items: {list(etf_cache.keys()) if etf_cache else 'empty'}"
+                )
+
+                for name, keys_dict in etf_cache.items():
+                    app.logger.info(
+                        f"Processing ETF universe name='{name}', "
+                        f"type={type(keys_dict)}"
+                    )
+
+                    # Iterate through each key within this name group
+                    if isinstance(keys_dict, dict):
+                        for key, value in keys_dict.items():
+                            if isinstance(value, list):
+                                symbol_count = len(value)
+                            else:
+                                symbol_count = len(value.get('symbols', []))
+
+                            universes.append({
+                                'key': f'etf_universe:{key}',
+                                'name': name,
+                                'type': 'etf_universe',
+                                'symbol_count': symbol_count
+                            })
+                            app.logger.info(
+                                f"Added ETF universe: {name} "
+                                f"(key={key}, count={symbol_count})"
+                            )
+
+            # Get stock_etf_combo universes (nested structure)
+            if 'stock_etf_combos' in cache_control.cache:
+                combo_cache = cache_control.cache['stock_etf_combos']
+                app.logger.info(
+                    f"Stock ETF combos structure: {type(combo_cache)}, "
+                    f"items: {list(combo_cache.keys()) if combo_cache else 'empty'}"
+                )
+
+                for name, keys_dict in combo_cache.items():
+                    if isinstance(keys_dict, dict):
+                        for key, value in keys_dict.items():
+                            if isinstance(value, list):
+                                symbol_count = len(value)
+                            else:
+                                symbol_count = len(value.get('symbols', []))
+
+                            universes.append({
+                                'key': f'stock_etf_combo:{key}',
+                                'name': name,
+                                'type': 'stock_etf_combo',
+                                'symbol_count': symbol_count
+                            })
+                            app.logger.info(
+                                f"Added combo universe: {name} "
+                                f"(key={key}, count={symbol_count})"
+                            )
+
+            app.logger.info(
+                f"Returning {len(universes)} total universes for dropdown"
+            )
+            return jsonify({'universes': universes, 'count': len(universes)})
+
+        except Exception as e:
+            app.logger.error(f"Failed to fetch universes: {e}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/admin/historical-data/trigger-universe-load', methods=['POST'])
+    @login_required
+    @admin_required
+    def trigger_universe_load():
+        """Submit bulk load job for symbols from CSV file or cached universe (unified endpoint)."""
+        try:
+            # Get parameters
+            csv_file = request.form.get('csv_file')
+            universe_key_full = request.form.get('universe_key')
+            years = request.form.get('years', 1, type=float)
+            include_ohlcv = request.form.get('include_ohlcv', 'true') == 'true'
+
+            symbols = []
+            source_name = ''
+
+            # Determine source: CSV file or cached universe
+            if csv_file:
+                # === CSV FILE MODE ===
+                app.logger.info(f"CSV mode: {csv_file}, years={years}, OHLCV={include_ohlcv}")
+
+                # Read symbols from CSV file
+                import csv
+                import os
+                csv_path = os.path.join('data/universes', csv_file)
+
+                if not os.path.exists(csv_path):
+                    return jsonify({'error': f'CSV file not found: {csv_file}'}), 404
+
+                with open(csv_path, 'r') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        symbol = row.get('symbol', '').strip()
+                        if symbol:
+                            symbols.append(symbol)
+
+                source_name = csv_file
+                app.logger.info(f"Loaded {len(symbols)} symbols from CSV: {csv_file}")
+
+            elif universe_key_full:
+                # === CACHED UNIVERSE MODE ===
+                app.logger.info(f"Cached mode: {universe_key_full}, years={years}")
+
+                # Parse universe key (format: "etf_universe:etf_core")
+                if ':' not in universe_key_full:
+                    return jsonify({'error': 'Invalid universe key format'}), 400
+
+                universe_type, universe_key = universe_key_full.split(':', 1)
+
+                # Get symbols from cache
+                from src.infrastructure.cache.cache_control import CacheControl
+                cache_control = CacheControl()
+
+                if universe_type == 'etf_universe':
+                    for name, keys_dict in cache_control.cache.get('etf_universes', {}).items():
+                        if universe_key in keys_dict:
+                            value = keys_dict[universe_key]
+                            symbols = value if isinstance(value, list) else value.get('symbols', [])
+                            app.logger.info(f"Found universe in cache category '{name}', key '{universe_key}'")
+                            break
+
+                elif universe_type == 'stock_etf_combo':
+                    for name, keys_dict in cache_control.cache.get('stock_etf_combos', {}).items():
+                        if universe_key in keys_dict:
+                            value = keys_dict[universe_key]
+                            symbols = value if isinstance(value, list) else value.get('symbols', [])
+                            app.logger.info(f"Found combo universe in cache category '{name}', key '{universe_key}'")
+                            break
+
+                if not symbols:
+                    app.logger.error(f"No symbols found for {universe_type}:{universe_key}")
+                    return jsonify({'error': f'No symbols found for: {universe_key}'}), 404
+
+                source_name = universe_key_full
+                app.logger.info(f"Found {len(symbols)} symbols from cache: {universe_key_full}")
+                app.logger.info(f"Symbols list: {symbols}")
+
+            else:
+                return jsonify({'error': 'Either csv_file or universe_key required'}), 400
+
+            if not symbols:
+                return jsonify({'error': f'No symbols found in {source_name}'}), 404
+
+            app.logger.info(f"Total symbols to load: {len(symbols)} from {source_name}")
+
+            # Generate job ID
+            import random
+            import time
+            job_id = f"universe_load_{int(time.time())}_{random.randint(0, 9999)}"  # noqa: S311
+
+            # Publish to Redis
+            message = {
+                'job_id': job_id,
+                'job_type': 'csv_universe_load',  # TickStockPL recognizes this type
+                'source': source_name,
+                'symbols': symbols,
+                'years': years,
+                'submitted_at': datetime.now().isoformat()
+            }
+
+            app.logger.info(
+                f"Publishing job {job_id}: {len(symbols)} symbols - {symbols}"
+            )
+
+            subscriber_count = redis_client.publish(
+                'tickstock.jobs.data_load',
+                json.dumps(message)
+            )
+            app.logger.info(
+                f"Published job to Redis: {job_id}, "
+                f"subscribers={subscriber_count}"
+            )
+
+            if subscriber_count == 0:
+                app.logger.warning(
+                    "No subscribers on tickstock.jobs.data_load - "
+                    "is TickStockPL running?"
+                )
+
+            # Store job status in Redis
+            job_key = f"tickstock.jobs.status:{job_id}"
+            redis_client.hset(job_key, mapping={
+                'status': 'submitted',
+                'progress': 0,
+                'message': f'Submitted {len(symbols)} symbols from {source_name}',
+                'total_symbols': len(symbols),
+                'submitted_at': datetime.now().isoformat()
+            })
+            redis_client.expire(job_key, 86400)  # 24-hour TTL
+
+            app.logger.info(
+                f"Universe load job submitted successfully: {job_id}, "
+                f"{len(symbols)} symbols"
+            )
+
+            return jsonify({
+                'success': True,
+                'job_id': job_id,
+                'symbol_count': len(symbols),
+                'source': source_name
+            })
+
+        except Exception as e:
+            app.logger.error(f"Failed to submit universe load: {e}")
+            return jsonify({'error': str(e)}), 500
 
     return app

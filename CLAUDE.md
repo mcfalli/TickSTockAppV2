@@ -54,6 +54,27 @@ python start_all_services.py
 # Monitor WebSocket connections
 ps aux | grep "flask run"
 # Expected: Flask process running with active port
+
+# Sprint 60: Data Maintenance Commands
+# Load ETF holdings (incremental update)
+python scripts/cache_maintenance/load_etf_holdings.py --mode incremental
+# Expected: Skips unchanged ETFs, updates modified ones
+
+# Load universes
+python scripts/cache_maintenance/load_universes.py --mode full
+# Expected: Loads nasdaq100, sp500, dow30, russell3000
+
+# Enrich sector classifications
+python scripts/cache_maintenance/enrich_sectors.py --mode full
+# Expected: ~500 stocks classified from sector ETFs
+
+# Generate data quality report
+python scripts/cache_maintenance/generate_report.py --summary
+# Expected: Summary report with coverage metrics
+
+# Generate detailed markdown report
+python scripts/cache_maintenance/generate_report.py --detail --format markdown
+# Expected: Comprehensive report with ETF/universe breakdowns
 ```
 
 ## Architecture Essentials
@@ -299,6 +320,43 @@ User: app_readwrite
 # Pattern data comes via Redis pub-sub from TickStockPL
 ```
 
+### RelationshipCache Usage (Sprint 60)
+```python
+# Use cache for all relationship queries (sub-millisecond access)
+from src.core.services.relationship_cache import get_relationship_cache
+
+cache = get_relationship_cache()
+
+# Get ETF holdings
+holdings = cache.get_etf_holdings('SPY')  # Returns list of symbols
+
+# Get stock's ETFs
+etfs = cache.get_stock_etfs('AAPL')  # Returns list of ETF symbols
+
+# Get stock sector
+sector = cache.get_stock_sector('AAPL')  # Returns {'sector': '...', 'industry': '...'}
+
+# Get all stocks in a sector
+stocks = cache.get_sector_stocks('information_technology')  # Returns list
+
+# Get universe members
+members = cache.get_universe_members('nasdaq100')  # Returns list
+
+# Sprint 61: Get universe symbols (WebSocket universe loading)
+# Single universe
+symbols = cache.get_universe_symbols('nasdaq100')  # Returns 102 symbols
+symbols = cache.get_universe_symbols('SPY')  # Returns 504 ETF holdings
+
+# Multi-universe join (distinct union)
+symbols = cache.get_universe_symbols('SPY:nasdaq100')  # Returns ~518 distinct symbols
+symbols = cache.get_universe_symbols('SPY:QQQ:dow30')  # Returns ~522 distinct symbols
+
+# Cache management endpoints
+# GET  /admin/cache/stats    - View cache statistics
+# POST /admin/cache/refresh  - Invalidate and refresh
+# POST /admin/cache/warm     - Pre-populate cache
+```
+
 ### Essential Database Queries
 ```sql
 -- Check active user sessions
@@ -333,6 +391,29 @@ FROM daily_patterns
 WHERE detected_at >= CURRENT_DATE
 GROUP BY pattern_name
 ORDER BY detections DESC;
+
+-- Sprint 59: ETF/Theme/Sector Queries
+-- Get ETF holdings
+SELECT gm.symbol
+FROM definition_groups dg
+JOIN group_memberships gm ON dg.id = gm.group_id
+WHERE dg.name = 'SPY' AND dg.type = 'ETF' AND dg.environment = 'DEFAULT';
+
+-- Reverse lookup (Stock → ETFs)
+SELECT dg.name
+FROM definition_groups dg
+JOIN group_memberships gm ON dg.id = gm.group_id
+WHERE gm.symbol = 'AAPL' AND dg.type = 'ETF' AND dg.environment = 'DEFAULT';
+
+-- Get theme members
+SELECT gm.symbol
+FROM definition_groups dg
+JOIN group_memberships gm ON dg.id = gm.group_id
+WHERE dg.name = 'crypto_miners' AND dg.type = 'THEME' AND dg.environment = 'DEFAULT';
+
+-- Count groups by type
+SELECT type, COUNT(*) FROM definition_groups
+WHERE environment = 'DEFAULT' GROUP BY type;
 ```
 
 ### Environment Variables (.env)
@@ -455,7 +536,80 @@ python run_tests.py
 - ✅ Redis channels verified working (patterns + indicators flowing)
 - See: `docs/planning/sprints/sprint43/SPRINT43_COMPLETE.md`
 
-### System Integration Points (Updated Sprint 42/43)
+### Sprint 55 - COMPLETE ✅ (November 27, 2025)
+**ETF Universe Integration & Cache Audit**
+- ✅ Added ETF universe dropdown to Historical Data admin page
+- ✅ Bulk universe loading: 3-36 symbols with single click
+- ✅ Workflow improvement: 5-10 min → <30 sec (90%+ reduction)
+- ✅ GET `/admin/historical-data/universes` endpoint (<10ms via CacheControl)
+- ✅ POST `/admin/historical-data/trigger-universe-load` endpoint
+- ✅ JavaScript handlers with progress polling
+- ✅ Cache entries data quality: 100% (254 naming violations fixed, 20 NULL timestamps fixed)
+- ✅ Comprehensive documentation: audit report + maintenance procedures
+- ✅ Zero regression: Integration tests pass identically to baseline
+- ✅ 100% backward compatible: All existing functionality preserved
+- See: `docs/planning/sprints/sprint55/SPRINT55_COMPLETE.md`
+
+### Sprint 59 - COMPLETE ✅ (December 21, 2025)
+**Relational Database Migration: ETF-Stock Relationships**
+- ✅ Migrated from JSONB cache_entries to relational tables
+- ✅ Created definition_groups table (ETFs, themes, sectors)
+- ✅ Created group_memberships table (many-to-many relationships)
+- ✅ Updated all 6 cache_maintenance scripts
+- ✅ 10-50x query performance improvement for complex queries
+- ✅ Proper referential integrity with foreign keys
+- ✅ Zero data loss - all 24 ETFs, 20 themes, 11 sectors migrated
+- ✅ 100% bidirectional integrity (11,778 relationships validated)
+- See: `docs/planning/sprints/sprint59/SPRINT59_COMPLETE.md`
+
+### Sprint 60 - COMPLETE ✅ (December 21, 2025)
+**Production-Ready Data Management & Caching**
+- ✅ **Phase 1: Data Loading Procedures**
+  - Smart ETF/universe loaders with incremental update mode
+  - MD5 checksum-based change detection
+  - Pre/post-load validation gates
+  - Sector enrichment: 1.38% → 13.41% coverage (+446 stocks)
+- ✅ **Phase 2: Runtime Caching Layer**
+  - RelationshipCache with <1ms access times
+  - 10 query methods, TTL-based expiration
+  - Cache management API endpoints
+  - Performance: 37ms → 0.01ms (cache hit)
+- ✅ **Phase 3: Data Quality Reporting**
+  - Report generator with summary/detail views
+  - Console, Markdown, JSON output formats
+  - Real-time coverage and quality metrics
+- ✅ **Phase 4: Documentation**
+  - Comprehensive maintenance procedures
+  - Load strategy documentation
+  - CSV format specifications
+- See: `docs/planning/sprints/sprint60/SPRINT60_PLAN.md`
+
+### Sprint 61 - COMPLETE ✅ (December 21, 2025)
+**WebSocket Universe Loading via RelationshipCache**
+- ✅ **Phase 1: Extend RelationshipCache**
+  - Added `get_universe_symbols(universe_key)` method
+  - Multi-universe join support: `sp500:nasdaq100` creates distinct union
+  - Supports UNIVERSE and ETF types
+  - <1ms cache hit performance
+- ✅ **Phase 2: Update WebSocket Integration**
+  - Migrated multi-connection manager to use RelationshipCache
+  - Migrated market data service (single-connection) to RelationshipCache
+  - Removed dependency on CacheControl for stock/universe loading
+- ✅ **Phase 3: Deprecate CacheControl**
+  - Added deprecation warnings to `get_universe_tickers()`
+  - Updated class docstring with migration guidance
+  - CacheControl now handles non-stock types only
+- ✅ **Phase 4: Testing & Validation**
+  - 12 integration tests: all passing
+  - Cache performance: 56% hit rate during tests
+  - Multi-universe joins working: SPY:nasdaq100 = 518 distinct symbols
+- ✅ **Phase 5: Documentation**
+  - Updated websockets-integration.md with new universe keys
+  - Updated CLAUDE.md with Sprint 61 status
+  - Added usage examples for multi-universe joins
+- See: `docs/planning/sprints/sprint61/SPRINT61_PLAN.md`
+
+### System Integration Points (Updated Sprint 42/43/55/59/60/61)
 - **TickStockPL API**: HTTP commands on port 8080
 - **Redis Streaming Channels**:
   - `tickstock:patterns:streaming` - Real-time pattern detections ✅
@@ -463,6 +617,7 @@ python run_tests.py
   - `tickstock:indicators:streaming` - Real-time indicators ✅
   - `tickstock:market:ticks` - Raw tick forwarding (AppV2 → PL) ✅
   - `tickstock:streaming:health` - Health metrics ✅
+  - `tickstock.jobs.data_load` - Historical data load jobs (Sprint 55) ✅
 - **Database**: Read-only queries for UI data (enforced)
 - **WebSocket**: Real-time browser updates (<100ms delivery)
 

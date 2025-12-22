@@ -13,10 +13,20 @@ logger = logging.getLogger(__name__)
 
 class CacheControl:
     """
-    Singleton class to manage cached stock lists and metadata.
-    
-    Loads data from cache_entries table and provides access methods
-    for application settings, stock universes, and ETF universes.
+    Singleton class to manage cached application settings and themes.
+
+    NOTE: As of Sprint 61, stock/ETF/universe loading has migrated to RelationshipCache.
+    This class now handles:
+    - app_settings (application configuration)
+    - cache_config (cache configuration)
+    - themes (custom stock groupings)
+
+    For stock universes, ETF holdings, and sectors, use:
+        from src.core.services.relationship_cache import get_relationship_cache
+        cache = get_relationship_cache()
+        symbols = cache.get_universe_symbols('nasdaq100')
+
+    Legacy support for cache_entries table will be maintained for non-stock data types.
     """
 
     _instance = None
@@ -363,7 +373,35 @@ class CacheControl:
         return self.cache.get('universe_metadata', {})
 
     def get_universe_tickers(self, universe_key: str) -> list[str]:
-        """Get ticker list for a specific universe."""
+        """
+        Get ticker list for a specific universe.
+
+        DEPRECATED (Sprint 61): This method is deprecated for stock/universe loading.
+        Use RelationshipCache.get_universe_symbols() instead for:
+        - Stock universes (NASDAQ-100, S&P 500, Dow 30, Russell 3000)
+        - ETF holdings (SPY, QQQ, etc.)
+        - Multi-universe joins (e.g., 'sp500:nasdaq100')
+
+        Example migration:
+            # Old (deprecated):
+            from src.infrastructure.cache.cache_control import CacheControl
+            cache = CacheControl()
+            symbols = cache.get_universe_tickers('nasdaq100')
+
+            # New (recommended):
+            from src.core.services.relationship_cache import get_relationship_cache
+            cache = get_relationship_cache()
+            symbols = cache.get_universe_symbols('nasdaq100')
+
+        This method now only supports legacy theme-based universes from cache_entries.
+        """
+        # Log deprecation warning
+        logger.warning(
+            f"DEPRECATED: CacheControl.get_universe_tickers('{universe_key}') is deprecated. "
+            "Use RelationshipCache.get_universe_symbols() instead for stock/ETF/universe loading. "
+            "See class docstring for migration instructions."
+        )
+
         if not self._initialized:
             logger.warning("CacheControl not initialized, cannot get universe tickers")
             return []

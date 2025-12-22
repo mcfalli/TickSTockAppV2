@@ -105,26 +105,34 @@ WEBSOCKET_CONNECTION_3_UNIVERSE_KEY=emerging:high_growth
 
 In single-connection mode (`USE_MULTI_CONNECTION=false`), symbols are loaded via the `MarketDataService._get_universe()` method:
 
-**Symbol Loading Flow**:
+**Symbol Loading Flow** (Sprint 61: Updated to use RelationshipCache):
 1. `MarketDataService` reads `SYMBOL_UNIVERSE_KEY` from configuration
-2. Calls `CacheControl.get_universe_tickers(universe_key)` to load symbols from `cache_entries` table
-3. Passes ticker list to `RealTimeDataAdapter.connect(universe)`
-4. `RealTimeDataAdapter` creates single `MassiveWebSocketClient` and subscribes all tickers
+2. Calls `RelationshipCache.get_universe_symbols(universe_key)` to load symbols from `definition_groups`/`group_memberships` tables
+3. Supports multi-universe join (e.g., `SPY:nasdaq100` loads distinct union of both)
+4. Passes ticker list to `RealTimeDataAdapter.connect(universe)`
+5. `RealTimeDataAdapter` creates single `MassiveWebSocketClient` and subscribes all tickers
 
 **Configuration Settings Used**:
 - ✅ `SYMBOL_UNIVERSE_KEY` - **Primary symbol source** (e.g., `market_leaders:top_100`)
 - ❌ `WEBSOCKET_CONNECTION_X_SYMBOLS` - **Ignored** (only used in multi-connection mode)
 - ❌ `WEBSOCKET_CONNECTION_X_UNIVERSE_KEY` - **Ignored** (only used in multi-connection mode)
 
-**Example Configuration**:
+**Example Configuration** (Sprint 61: Updated universe keys):
 ```bash
 # .env for single-connection mode
 USE_MULTI_CONNECTION=false
-SYMBOL_UNIVERSE_KEY=stock_etf_test:combo_test  # Loads 70 tickers from database
 
-# Alternative universe keys:
-# SYMBOL_UNIVERSE_KEY=market_leaders:top_100    # 100 top stocks
-# SYMBOL_UNIVERSE_KEY=market_leaders:top_500    # 500 stocks (verify API limit)
+# Single universe (UNIVERSE type):
+SYMBOL_UNIVERSE_KEY=nasdaq100          # 102 NASDAQ-100 stocks
+# SYMBOL_UNIVERSE_KEY=dow30            # 30 Dow Jones stocks
+
+# Single ETF holdings:
+# SYMBOL_UNIVERSE_KEY=SPY              # 504 S&P 500 stocks (via SPY ETF)
+# SYMBOL_UNIVERSE_KEY=QQQ              # 102 NASDAQ-100 stocks (via QQQ ETF)
+
+# Multi-universe join (distinct union):
+# SYMBOL_UNIVERSE_KEY=SPY:nasdaq100    # ~518 distinct stocks (SPY + NASDAQ-100)
+# SYMBOL_UNIVERSE_KEY=SPY:QQQ:dow30    # ~522 distinct stocks (union of all 3)
 ```
 
 **Fallback Behavior**:
@@ -137,10 +145,11 @@ SYMBOL_UNIVERSE_KEY=stock_etf_test:combo_test  # Loads 70 tickers from database
 
 In multi-connection mode (`USE_MULTI_CONNECTION=true`), symbols are loaded per-connection via `MultiConnectionManager._load_connection_config()`:
 
-**Symbol Loading Flow**:
+**Symbol Loading Flow** (Sprint 61: Updated to use RelationshipCache):
 1. `MultiConnectionManager` reads `WEBSOCKET_CONNECTION_X_ENABLED` for each connection (X = 1, 2, 3)
 2. For each enabled connection:
-   - **Option A**: If `WEBSOCKET_CONNECTION_X_UNIVERSE_KEY` set, loads from `CacheControl.get_universe_tickers()`
+   - **Option A**: If `WEBSOCKET_CONNECTION_X_UNIVERSE_KEY` set, loads from `RelationshipCache.get_universe_symbols()`
+     - Supports multi-universe join (e.g., `SPY:nasdaq100` loads distinct union)
    - **Option B**: If `WEBSOCKET_CONNECTION_X_SYMBOLS` set, parses comma-separated list
 3. Creates separate `MassiveWebSocketClient` for each connection with its ticker list
 4. Subscribes each connection independently
@@ -150,7 +159,7 @@ In multi-connection mode (`USE_MULTI_CONNECTION=true`), symbols are loaded per-c
 - ✅ `WEBSOCKET_CONNECTION_X_SYMBOLS` - Alternative for static lists (e.g., `AAPL,NVDA,TSLA`)
 - ❌ `SYMBOL_UNIVERSE_KEY` - **Ignored** (only used in single-connection mode)
 
-**Example Configuration**:
+**Example Configuration** (Sprint 61: Updated universe keys):
 ```bash
 # .env for multi-connection mode
 USE_MULTI_CONNECTION=true
@@ -159,13 +168,13 @@ USE_MULTI_CONNECTION=true
 WEBSOCKET_CONNECTION_1_ENABLED=true
 WEBSOCKET_CONNECTION_1_SYMBOLS=AAPL,NVDA,TSLA,MSFT,GOOGL,META,AMZN
 
-# Connection 2: Universe key (50 tickers)
+# Connection 2: Single universe (102 tickers)
 WEBSOCKET_CONNECTION_2_ENABLED=true
-WEBSOCKET_CONNECTION_2_UNIVERSE_KEY=market_leaders:top_50
+WEBSOCKET_CONNECTION_2_UNIVERSE_KEY=nasdaq100
 
-# Connection 3: Another universe (100 tickers)
+# Connection 3: Multi-universe join (518 distinct tickers)
 WEBSOCKET_CONNECTION_3_ENABLED=true
-WEBSOCKET_CONNECTION_3_UNIVERSE_KEY=market_leaders:top_100
+WEBSOCKET_CONNECTION_3_UNIVERSE_KEY=SPY:nasdaq100
 ```
 
 ### Code Path Initialization

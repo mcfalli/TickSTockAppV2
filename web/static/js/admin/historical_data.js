@@ -13,6 +13,7 @@ class HistoricalDataManager {
         this.initializeElements();
         this.attachEventListeners();
         this.initializeRedisStatus();
+        this.initializeUniverseHandlers();
     }
 
     initializeElements() {
@@ -477,9 +478,262 @@ class HistoricalDataManager {
 
         return '';
     }
+
+    /**
+     * Load available universes from backend and populate dropdown
+     */
+    async loadUniverses() {
+        const select = document.getElementById('universe-select');
+
+        try {
+            if (!select) {
+                console.error('Universe select element not found in DOM');
+                return;
+            }
+
+            console.log('Fetching universes from /admin/historical-data/universes...');
+            const response = await fetch('/admin/historical-data/universes');
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('Universes response:', data);
+
+            select.innerHTML = '<option value="">Select a universe...</option>';
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            if (data.universes && data.universes.length > 0) {
+                console.log(`Loading ${data.universes.length} universes into dropdown`);
+
+                data.universes.forEach(universe => {
+                    const option = document.createElement('option');
+                    option.value = universe.key;
+                    option.textContent = `${universe.name} (${universe.symbol_count} symbols)`;
+                    option.dataset.symbolCount = universe.symbol_count;
+                    option.dataset.universeName = universe.name;
+                    select.appendChild(option);
+                });
+
+                const triggerButton = document.getElementById('trigger-universe-load');
+                if (triggerButton) {
+                    triggerButton.disabled = false;
+                }
+
+                console.log('Universes loaded successfully');
+            } else {
+                console.warn('No universes found in response');
+                select.innerHTML = '<option value="">No universes available</option>';
+            }
+        } catch (error) {
+            console.error('Failed to load universes:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+
+            if (select) {
+                select.innerHTML = `<option value="">Error: ${error.message}</option>`;
+            }
+
+            // Show user-friendly notification if available
+            if (typeof this.showNotification === 'function') {
+                this.showNotification(`Failed to load universes: ${error.message}`, 'error');
+            }
+        }
+    }
+
+    /**
+     * Handle universe selection change - show preview
+     */
+    handleUniverseChange(event) {
+        const select = event.target;
+        const selectedOption = select.options[select.selectedIndex];
+
+        if (select.value && selectedOption) {
+            const symbolCount = selectedOption.dataset.symbolCount;
+            const universeName = selectedOption.dataset.universeName;
+
+            const preview = document.getElementById('universe-preview');
+            const previewText = document.getElementById('preview-text');
+
+            if (preview && previewText) {
+                previewText.innerHTML = `
+                    <strong>Universe:</strong> ${universeName}<br>
+                    <strong>Symbol Count:</strong> ${symbolCount}<br>
+                    <strong>Action:</strong> This will load ${symbolCount} symbols with the selected duration
+                `;
+                preview.style.display = 'block';
+            }
+        } else {
+            const preview = document.getElementById('universe-preview');
+            if (preview) {
+                preview.style.display = 'none';
+            }
+        }
+    }
+
+    /**
+     * Submit universe bulk load
+     */
+    async submitUniverseLoad(event) {
+        event.preventDefault();
+
+        const form = event.target;
+        const formData = new FormData(form);
+
+        // Check which data source is selected
+        const dataSource = document.querySelector('input[name="data_source"]:checked')?.value;
+        const csvFile = formData.get('csv_file');
+        const universeKey = formData.get('universe_key');
+        const years = formData.get('years');
+
+        console.log('Data source:', dataSource);
+        console.log('CSV file:', csvFile);
+        console.log('Universe key:', universeKey);
+        console.log('Years:', years);
+
+        // Validate based on selected data source
+        if (dataSource === 'csv') {
+            if (!csvFile) {
+                this.showNotification('Please select a CSV file', 'error');
+                return;
+            }
+            // Clear universe_key to avoid confusion
+            formData.delete('universe_key');
+            console.log('CSV mode validated');
+        } else if (dataSource === 'cached') {
+            if (!universeKey) {
+                this.showNotification('Please select a cached universe', 'error');
+                return;
+            }
+            // Clear csv_file to avoid confusion
+            formData.delete('csv_file');
+            console.log('Cached universe mode validated');
+        } else {
+            this.showNotification('Please select a data source', 'error');
+            return;
+        }
+
+        try {
+            console.log('Sending POST request to /admin/historical-data/trigger-universe-load');
+
+            const response = await fetch('/admin/historical-data/trigger-universe-load', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(formData)
+            });
+
+            console.log('Response status:', response.status, response.statusText);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Response error:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('Response data:', data);
+
+            if (data.success) {
+                this.showNotification(
+                    `Universe load submitted! Job ID: ${data.job_id.substring(0, 8)}... (${data.symbol_count} symbols)`,
+                    'success'
+                );
+
+                // Show progress container
+                const progressContainer = document.getElementById('universe-progress');
+                const statusText = document.getElementById('universe-status');
+
+                if (progressContainer) {
+                    progressContainer.style.display = 'block';
+                }
+
+                if (statusText) {
+                    statusText.textContent = `Loading ${data.symbol_count} symbols from ${data.universe_key}...`;
+                }
+
+                // Start polling job status
+                this.startPollingJobStatus(data.job_id);
+            } else {
+                this.showNotification(`Failed: ${data.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Universe load submission failed:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+            this.showNotification(
+                `Failed to submit universe load: ${error.message}`,
+                'error'
+            );
+        }
+    }
+
+    /**
+     * Handle data source toggle (CSV vs Cached Universe)
+     */
+    handleDataSourceToggle() {
+        const dataSource = document.querySelector('input[name="data_source"]:checked')?.value;
+        const csvGroup = document.getElementById('csv-file-group');
+        const cachedGroup = document.getElementById('cached-universe-group');
+
+        if (dataSource === 'csv') {
+            csvGroup.style.display = 'flex';
+            cachedGroup.style.display = 'none';
+        } else if (dataSource === 'cached') {
+            csvGroup.style.display = 'none';
+            cachedGroup.style.display = 'flex';
+        }
+
+        console.log(`Data source toggled to: ${dataSource}`);
+    }
+
+    /**
+     * Initialize universe-related event listeners
+     */
+    initializeUniverseHandlers() {
+        // Data source radio buttons toggle
+        const dataSourceRadios = document.querySelectorAll('input[name="data_source"]');
+        dataSourceRadios.forEach(radio => {
+            radio.addEventListener('change', () => this.handleDataSourceToggle());
+        });
+
+        // Universe selection change event
+        const universeSelect = document.getElementById('universe-select');
+        if (universeSelect) {
+            universeSelect.addEventListener('change', (e) => this.handleUniverseChange(e));
+        }
+
+        // Universe load form submission
+        const universeLoadForm = document.getElementById('universeLoadForm');
+        if (universeLoadForm) {
+            universeLoadForm.addEventListener('submit', (e) => this.submitUniverseLoad(e));
+        }
+
+        // Load universes on initialization
+        this.loadUniverses();
+
+        // Initialize data source toggle state
+        this.handleDataSourceToggle();
+    }
 }
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    // Prevent duplicate instantiation
+    if (window.historicalDataManager) {
+        console.log('HistoricalDataManager already initialized, skipping...');
+        return;
+    }
+    console.log('Initializing HistoricalDataManager...');
     window.historicalDataManager = new HistoricalDataManager();
+    console.log('HistoricalDataManager initialized');
 });

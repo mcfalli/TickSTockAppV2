@@ -782,13 +782,13 @@ def get_health_status(self) -> dict[str, Any]:
 def _log_heartbeat(self):
     """Log periodic heartbeat every 60 seconds"""
     
-    logger.info(
-        f"REDIS-SUBSCRIBER HEARTBEAT: "
-        f"Alive on {len(self.channels)} channels | "
-        f"Events: {self.stats['events_received']} received, "
-        f"{self.stats['events_processed']} processed | "
-        f"Uptime: {round(time.time() - self.stats['start_time'])}s"
-    )
+    #logger.info(
+    #    f"REDIS-SUBSCRIBER HEARTBEAT: "
+    #    f"Alive on {len(self.channels)} channels | "
+    #    f"Events: {self.stats['events_received']} received, "
+    #    f"{self.stats['events_processed']} processed | "
+    #    f"Uptime: {round(time.time() - self.stats['start_time'])}s"
+    #)
     
     self.stats['last_heartbeat'] = time.time()
 ```

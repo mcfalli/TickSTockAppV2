@@ -156,13 +156,14 @@ class MultiConnectionManager:
                     f"from universe: {universe_key}"
                 )
 
-                # Import CacheControl to get universe tickers
-                from src.infrastructure.cache.cache_control import CacheControl
+                # Sprint 61: Use RelationshipCache instead of CacheControl
+                # Supports multi-universe join (e.g., 'sp500:nasdaq100')
+                from src.core.services.relationship_cache import get_relationship_cache
 
-                cache = CacheControl()
+                cache = get_relationship_cache()
 
-                # Get tickers from cache
-                universe_tickers = cache.get_universe_tickers(universe_key)
+                # Get tickers from cache (supports multi-universe join with colon separator)
+                universe_tickers = cache.get_universe_symbols(universe_key)
 
                 if universe_tickers and len(universe_tickers) > 0:
                     logger.info(

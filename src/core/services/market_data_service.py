@@ -156,12 +156,13 @@ class MarketDataService:
             universe_key = self.config.get('SYMBOL_UNIVERSE_KEY', 'market_leaders:top_50')
             logger.info(f"MARKET-DATA-SERVICE: Loading universe from key: {universe_key}")
 
-            # Import here to avoid circular imports
-            from src.infrastructure.cache.cache_control import CacheControl
-            cache = CacheControl()
+            # Sprint 61: Use RelationshipCache instead of CacheControl
+            # Supports multi-universe join (e.g., 'sp500:nasdaq100')
+            from src.core.services.relationship_cache import get_relationship_cache
+            cache = get_relationship_cache()
 
-            # Get tickers from cache
-            universe_tickers = cache.get_universe_tickers(universe_key)
+            # Get tickers from cache (supports multi-universe join with colon separator)
+            universe_tickers = cache.get_universe_symbols(universe_key)
 
             if universe_tickers and len(universe_tickers) > 0:
                 logger.info(f"MARKET-DATA-SERVICE: Using universe '{universe_key}' with {len(universe_tickers)} tickers: {', '.join(universe_tickers[:10])}{'...' if len(universe_tickers) > 10 else ''}")

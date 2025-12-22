@@ -855,9 +855,9 @@ class RedisEventSubscriber:
         try:
             # Log heartbeat to database
             # Also log to standard logger
-            logger.info(f"REDIS-SUBSCRIBER HEARTBEAT: Alive and listening on {len(self.channels)} channels | "
-                       f"Events: {self.stats['events_received']} received, {self.stats['events_processed']} processed | "
-                       f"Uptime: {round(time.time() - self.stats['start_time'])}s")
+            #logger.info(f"REDIS-SUBSCRIBER HEARTBEAT: Alive and listening on {len(self.channels)} channels | "
+            #           f"Events: {self.stats['events_received']} received, {self.stats['events_processed']} processed | "
+            #           f"Uptime: {round(time.time() - self.stats['start_time'])}s")
 
             self.stats['last_heartbeat'] = time.time()
 

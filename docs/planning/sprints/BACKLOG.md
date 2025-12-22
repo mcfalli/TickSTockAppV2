@@ -1,7 +1,74 @@
 # TickStockAppV2 Product Backlog
 
-**Last Updated**: 2025-09-25
+**Last Updated**: 2025-11-27
 **Purpose**: Track future enhancements, technical debt, and feature requests
+
+## Sprint 55 Deferred Items
+
+### Priority: Medium - Admin Workflow Enhancements
+**Context**: Sprint 55 implemented ETF Universe Integration with optional future enhancements deferred
+
+#### 1. CacheControl Refresh API
+- [ ] **Create refresh endpoint** for cache_entries reload without app restart
+  - Endpoint: `POST /admin/cache/refresh`
+  - Reloads CacheControl singleton from database
+  - Returns count of universes refreshed
+  - Enables dynamic universe management
+
+**Implementation**:
+```python
+@app.route('/admin/cache/refresh', methods=['POST'])
+@login_required
+@admin_required
+def refresh_cache():
+    from src.infrastructure.cache.cache_control import CacheControl
+    cache_control = CacheControl()
+    cache_control.load_settings_from_db()
+    return jsonify({'success': True, 'message': 'Cache refreshed'})
+```
+
+#### 2. Database Triggers for Data Quality
+- [ ] **Create updated_at trigger** to auto-set timestamp on INSERT/UPDATE
+  ```sql
+  CREATE OR REPLACE FUNCTION update_updated_at_column()
+  RETURNS TRIGGER AS $$
+  BEGIN
+      NEW.updated_at = NOW();
+      RETURN NEW;
+  END;
+  $$ language 'plpgsql';
+
+  CREATE TRIGGER update_cache_entries_updated_at
+  BEFORE INSERT OR UPDATE ON cache_entries
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  ```
+
+- [ ] **Add naming validation constraint** for Title Case enforcement
+  ```sql
+  ALTER TABLE cache_entries
+  ADD CONSTRAINT name_title_case_check
+  CHECK (name ~ '^[A-Z]');
+  ```
+
+#### 3. Real-Time Progress Updates
+- [ ] **Replace HTTP polling with WebSocket** for universe load progress
+  - Emit progress events via `tickstock.jobs.progress` channel
+  - Update frontend to listen for WebSocket events
+  - Remove 1-second polling interval
+  - Expected: <50ms latency for progress updates
+
+#### 4. Universe Management UI
+- [ ] **Create CRUD interface** for universe management
+  - List all universes with edit/delete actions
+  - Add new universe form with symbol picker
+  - Inline editing for symbol lists
+  - Bulk universe operations
+  - Symbol validation against available tickers
+
+**Effort**: 3-4 hours total
+**Priority**: Low (current manual management sufficient)
+
+---
 
 ## Enhanced Error Logging Integration (Sprint 32 Follow-up)
 

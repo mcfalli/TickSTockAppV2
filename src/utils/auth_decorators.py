@@ -31,7 +31,7 @@ def admin_required(f):
             logger.warning(f"Non-admin user {current_user.email} (role: {current_user.role}) attempted to access admin route: {request.endpoint}")
             abort(403)
 
-        logger.info(f"Admin user {current_user.email} (role: {current_user.role}) accessed admin route: {request.endpoint}")
+        #logger.info(f"Admin user {current_user.email} (role: {current_user.role}) accessed admin route: {request.endpoint}")
         return f(*args, **kwargs)
 
     return decorated_function

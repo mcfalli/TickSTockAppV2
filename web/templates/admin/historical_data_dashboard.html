@@ -348,21 +348,40 @@
         </div>
         
         
-        <!-- CSV Universe Loading -->
+        <!-- Unified Universe Loading -->
         <div class="job-controls">
-            <h3>📋 CSV Universe Loading</h3>
-            <p>Load curated symbol lists and fetch fresh data from Massive API</p>
-            <form id="csvUniverseForm" action="{{ url_for('admin_csv_universe_load') }}" method="post">
+            <h3>📊 Universe Data Loading</h3>
+            <p>Load symbol lists from CSV files or cached universes with historical data from Massive API</p>
+            <form id="universeLoadForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                <!-- Data Source Selector -->
+                <div class="form-row" style="margin-bottom: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label style="font-weight: 600;">Data Source</label>
+                        <div style="display: flex; gap: 20px; margin-top: 8px;">
+                            <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
+                                <input type="radio" name="data_source" value="csv" checked style="margin-right: 8px;">
+                                📋 CSV File
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
+                                <input type="radio" name="data_source" value="cached" style="margin-right: 8px;">
+                                📦 Cached Universe
+                            </label>
+                        </div>
+                        <small class="form-text text-muted">Choose between CSV files or pre-loaded cached universes</small>
+                    </div>
+                </div>
+
                 <div class="form-row">
-                    <!-- CSV File Selection -->
-                    <div class="form-group">
+                    <!-- CSV File Selection (shown when CSV source selected) -->
+                    <div class="form-group" id="csv-file-group">
                         <label for="csv_file">CSV Universe File *</label>
-                        <select class="form-control" id="csv_file" name="csv_file" required onchange="updateCsvEstimate()">
+                        <select class="form-control" id="csv_file" name="csv_file">
                             <option value="">Select CSV File...</option>
                             {% if csv_files %}
                                 {% for csv_file in csv_files %}
-                                <option value="{{ csv_file.filename }}" 
+                                <option value="{{ csv_file.filename }}"
                                         data-count="{{ csv_file.symbol_count }}"
                                         data-description="{{ csv_file.description }}">
                                     {{ csv_file.name }} ({{ csv_file.symbol_count }} symbols)
@@ -384,10 +403,21 @@
                         <small class="form-text text-muted">Choose from curated CSV symbol lists</small>
                     </div>
 
+                    <!-- Cached Universe Selection (shown when cached source selected) -->
+                    <div class="form-group" id="cached-universe-group" style="display: none;">
+                        <label for="universe-select">Cached Universe *</label>
+                        <select class="form-control" id="universe-select" name="universe_key">
+                            <option value="">Loading universes...</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            Select an ETF or combined universe from cache
+                        </small>
+                    </div>
+
                     <!-- Historical Data Duration -->
                     <div class="form-group">
                         <label for="years">Historical Data Duration</label>
-                        <select class="form-control" id="years" name="years" onchange="updateCsvEstimate()">
+                        <select class="form-control" id="years" name="years">
                             <option value="0.003">1 Day</option>
                             <option value="0.005">2 Days</option>
                             <option value="0.02">1 Week (~7 days)</option>
@@ -410,36 +440,42 @@
                         </select>
                         <small class="form-text text-muted">Include daily OHLCV data from Massive API</small>
                     </div>
-                    
+
                     <!-- Load Button -->
                     <div class="form-group" style="align-self: flex-end;">
-                        <button type="submit" class="btn btn-primary" id="csvLoadBtn">
-                            📋 Load CSV Universe
+                        <button type="submit" class="btn btn-primary" id="universeLoadBtn">
+                            📊 Load Universe Data
                         </button>
                     </div>
                 </div>
 
-                <!-- CSV Load Estimate Display -->
-                <div class="form-row" id="csvLoadEstimate" style="display: none; margin-top: 15px;">
+                <!-- Load Estimate/Preview Display -->
+                <div class="form-row" id="loadEstimate" style="display: none; margin-top: 15px;">
                     <div class="form-group" style="flex: 1;">
                         <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 15px;">
-                            <h6><span>📊</span> CSV Load Estimate</h6>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
-                                <div><strong>CSV File:</strong> <span id="csvEstimateFile">-</span></div>
-                                <div><strong>Symbols:</strong> <span id="csvEstimateCount">-</span></div>
-                                <div><strong>Duration:</strong> <span id="csvEstimateDuration">-</span></div>
-                                <div><strong>Data Source:</strong> <span>Massive.com API</span></div>
-                                <div><strong>Est. Time:</strong> <span id="csvEstimateTime">-</span></div>
-                            </div>
-                            <div style="margin-top: 10px;">
-                                <small><strong>Description:</strong> <span id="csvEstimateDescription">-</span></small>
-                            </div>
+                            <h6><span>📊</span> Load Estimate</h6>
+                            <div id="estimate-content" style="margin-top: 10px;"></div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Progress Tracking -->
+                <div id="universe-progress" style="display: none; margin-top: 15px;">
+                    <div class="progress" style="height: 25px;">
+                        <div id="universe-progress-bar"
+                             class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar"
+                             style="width: 0%"
+                             aria-valuenow="0"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                            0%
+                        </div>
+                    </div>
+                    <p id="universe-status" style="margin-top: 10px; margin-bottom: 0;"></p>
+                </div>
             </form>
         </div>
-        
 
         <!-- Cache Management -->
         <div class="job-controls">
@@ -645,5 +681,9 @@ Enter 1 or 2:`);
             });
         }, 10000);
     </script>
+
+    <!-- Historical Data Manager -->
+    <script src="{{ url_for('static', filename='js/admin/historical_data.js') }}"></script>
+    <!-- Initialization now handled within historical_data.js -->
 </body>
 </html>

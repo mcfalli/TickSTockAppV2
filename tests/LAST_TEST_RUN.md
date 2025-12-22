@@ -1,8 +1,8 @@
 # Last Test Run Report
 
-**Generated**: 2025-11-24 21:16:51
+**Generated**: 2025-12-21 07:48:53
 **Command**: `python run_tests.py`
-**Total Duration**: 18.88 seconds
+**Total Duration**: 17.46 seconds
 **Status**: [FAILED]
 
 ## Summary Statistics
@@ -18,8 +18,8 @@
 
 | Suite | Status | Duration | Tests |
 |-------|--------|----------|-------|
-| Core Integration Tests | [FAIL] | 9.14s | 15 |
-| End-to-End Pattern Flow | [PASS] | 9.74s | 14 |
+| Core Integration Tests | [FAIL] | 8.50s | 15 |
+| End-to-End Pattern Flow | [PASS] | 8.96s | 14 |
 
 ## Individual Test Results
 
@@ -37,14 +37,14 @@
 - [FAIL] Redis->DB Flow FAILED: Failed to publish to Redis channel
 - [PASS] Pattern cache contains 0 entries
 - [FAIL] WebSocket Config FAILED: No pattern event handlers registered
-- [PASS] Redis performance: 0.5ms avg latency
-- [PASS] Database performance: 2.4ms avg query latency
-- [PASS] Error logging performance: 12.1ms write+delete latency
+- [PASS] Redis performance: 0.3ms avg latency
+- [PASS] Database performance: 1.5ms avg query latency
+- [PASS] Error logging performance: 13.1ms write+delete latency
 - [FAIL] Error Recovery FAILED: System not recovering from bad events
 
 ### End-to-End Pattern Flow
 
-- [PASS] Published pattern with flow_id: 36a22d8d-6322-4c80-9258-d2b1a40e3d76
+- [PASS] Published pattern with flow_id: 384c421c-3067-4915-80b0-55cb70452a7a
 - [PASS] Published daily tier pattern: HeadShoulders for TSLA
 - [PASS] Published hourly tier pattern: MomentumShift for AMD
 - [PASS] Published intraday tier pattern: VolumeSurge for NVDA
