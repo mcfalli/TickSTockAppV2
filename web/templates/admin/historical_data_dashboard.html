@@ -404,14 +404,67 @@
                     </div>
 
                     <!-- Cached Universe Selection (shown when cached source selected) -->
-                    <div class="form-group" id="cached-universe-group" style="display: none;">
-                        <label for="universe-select">Cached Universe *</label>
-                        <select class="form-control" id="universe-select" name="universe_key">
-                            <option value="">Loading universes...</option>
-                        </select>
-                        <small class="form-text text-muted">
-                            Select an ETF or combined universe from cache
-                        </small>
+                    <div id="cached-universe-group" style="display: none;">
+                        <div class="form-group">
+                            <label for="universe-select">Select Universe *</label>
+                            <select class="form-control" id="universe-select" name="universe_key">
+                                <option value="" disabled selected>Loading universes...</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                Select one universe to load (Sprint 62: Dynamic from definition_groups)
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="universe-key-input">Advanced: Multi-Universe Join (Optional)</label>
+                            <input type="text"
+                                   id="universe-key-input"
+                                   name="universe_key_manual"
+                                   class="form-control"
+                                   placeholder="e.g., SPY:nasdaq100:dow30">
+                            <small class="form-text text-muted">
+                                <strong>Optional:</strong> Use colon (:) to combine multiple universes.
+                                <br>Example: SPY:nasdaq100 loads ~518 distinct stocks (overrides dropdown).
+                            </small>
+                        </div>
+
+                        <!-- Universe Preview -->
+                        <div class="form-group">
+                            <label>Selected Universe Preview</label>
+                            <div id="universe-preview" style="padding: 10px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; min-height: 60px;">
+                                <em>Select a universe to see preview</em>
+                            </div>
+                        </div>
+
+                        <!-- Timeframes Selection -->
+                        <div class="form-group">
+                            <label>Timeframes to Load *</label>
+                            <div id="universe-timeframes" style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 8px;">
+                                <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
+                                    <input type="checkbox" name="timeframe" value="1min" checked style="margin-right: 5px; width: auto;">
+                                    1-Minute
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
+                                    <input type="checkbox" name="timeframe" value="hour" checked style="margin-right: 5px; width: auto;">
+                                    Hourly
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
+                                    <input type="checkbox" name="timeframe" value="day" checked style="margin-right: 5px; width: auto;">
+                                    Daily
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
+                                    <input type="checkbox" name="timeframe" value="week" checked style="margin-right: 5px; width: auto;">
+                                    Weekly
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
+                                    <input type="checkbox" name="timeframe" value="month" checked style="margin-right: 5px; width: auto;">
+                                    Monthly
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">
+                                Select timeframes to load (all checked by default): ohlcv_1min, ohlcv_hourly, ohlcv_daily, ohlcv_weekly, ohlcv_monthly
+                            </small>
+                        </div>
                     </div>
 
                     <!-- Historical Data Duration -->

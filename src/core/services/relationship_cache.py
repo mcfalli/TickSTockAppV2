@@ -19,7 +19,7 @@ Usage:
 
 import logging
 import time
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 from datetime import datetime, timedelta
 from threading import Lock
 
@@ -56,6 +56,7 @@ class RelationshipCache:
         self._theme_members: Dict[str, tuple[List[str], datetime]] = {}
         self._universe_members: Dict[str, tuple[List[str], datetime]] = {}
         self._universe_symbols: Dict[str, tuple[List[str], datetime]] = {}  # Sprint 61: Multi-universe join support
+        self._universe_metadata_cache: Dict[str, tuple[List[Dict], datetime]] = {}  # Sprint 62: Available universes metadata
         self._all_etfs: Optional[tuple[List[Dict], datetime]] = None
         self._all_sectors: Optional[tuple[List[Dict], datetime]] = None
         self._all_themes: Optional[tuple[List[Dict], datetime]] = None
@@ -549,6 +550,99 @@ class RelationshipCache:
             logger.error(f"Error loading symbols for universe '{universe_name}': {e}")
             return []
 
+    def get_available_universes(self, types: List[str] = None) -> List[Dict]:
+        """
+        Get list of available universes with metadata.
+
+        Sprint 62: Admin UI dynamic universe dropdown population.
+
+        Args:
+            types: Optional filter by type (e.g., ['UNIVERSE', 'ETF'])
+                   Default: ['UNIVERSE', 'ETF']
+
+        Returns:
+            List of universe metadata:
+            [
+                {
+                    'name': 'nasdaq100',
+                    'type': 'UNIVERSE',
+                    'description': 'NASDAQ-100 Index Components',
+                    'member_count': 102,
+                    'environment': 'DEFAULT',
+                    'created_at': '2025-12-20T...',
+                    'updated_at': '2025-12-20T...'
+                },
+                ...
+            ]
+        """
+        if types is None:
+            types = ['UNIVERSE', 'ETF']
+
+        # Check cache first
+        cache_key = f"available_universes:{':'.join(sorted(types))}"
+        with self._lock:
+            if cache_key in self._universe_metadata_cache:
+                metadata, timestamp = self._universe_metadata_cache[cache_key]
+                if not self._is_expired(timestamp):
+                    self._stats['hits'] += 1
+                    logger.debug(f"Cache hit for available_universes (types: {types})")
+                    return metadata.copy()
+            self._stats['misses'] += 1
+
+        # Query database
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+
+            query = """
+                SELECT
+                    dg.name,
+                    dg.type,
+                    dg.description,
+                    COUNT(gm.symbol) as member_count,
+                    dg.environment,
+                    dg.created_at,
+                    dg.updated_at
+                FROM definition_groups dg
+                LEFT JOIN group_memberships gm ON dg.id = gm.group_id
+                WHERE dg.type = ANY(%s)
+                  AND dg.environment = %s
+                GROUP BY dg.id, dg.name, dg.type, dg.description, dg.environment, dg.created_at, dg.updated_at
+                ORDER BY dg.type, dg.name
+            """
+
+            cursor.execute(query, (types, self.environment))
+
+            universes = []
+            for row in cursor.fetchall():
+                universes.append({
+                    'name': row[0],
+                    'type': row[1],
+                    'description': row[2] or f"{row[1]}: {row[0]}",
+                    'member_count': row[3],
+                    'environment': row[4],
+                    'created_at': row[5].isoformat() if row[5] else None,
+                    'updated_at': row[6].isoformat() if row[6] else None
+                })
+
+            conn.close()
+
+            logger.info(
+                f"Loaded {len(universes)} available universes from database "
+                f"(types: {types}, environment: {self.environment})"
+            )
+
+            # Cache result
+            with self._lock:
+                self._universe_metadata_cache[cache_key] = (universes, datetime.now())
+                self._stats['loads'] += 1
+
+            return universes.copy()
+
+        except Exception as e:
+            logger.error(f"Error loading available universes: {e}")
+            return []
+
     def get_all_etfs(self) -> List[Dict]:
         """
         Get all ETFs with metadata
@@ -799,6 +893,7 @@ class RelationshipCache:
                 self._theme_members.clear()
                 self._universe_members.clear()
                 self._universe_symbols.clear()  # Sprint 61
+                self._universe_metadata_cache.clear()  # Sprint 62
                 self._all_etfs = None
                 self._all_sectors = None
                 self._all_themes = None
@@ -843,6 +938,7 @@ class RelationshipCache:
                 else:
                     self._universe_members.clear()
                     self._universe_symbols.clear()  # Sprint 61
+                    self._universe_metadata_cache.clear()  # Sprint 62
                     self._all_universes = None
                 self._stats['evictions'] += 1
                 logger.info(f"Cache invalidated: universe/{key or 'all'}")

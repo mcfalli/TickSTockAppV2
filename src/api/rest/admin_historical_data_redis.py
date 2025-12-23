@@ -247,6 +247,163 @@ def register_admin_historical_routes(app):
             flash(f'Error triggering load: {str(e)}', 'danger')
             return redirect(url_for('admin_historical_dashboard'))
 
+    @app.route('/admin/historical-data/universes', methods=['GET'])
+    @login_required
+    @admin_required
+    def admin_get_universes():
+        """
+        Get available universes from RelationshipCache.
+
+        Sprint 62: Dynamic universe dropdown population.
+
+        Query Parameters:
+            types: Comma-separated list of types to filter (default: 'UNIVERSE,ETF')
+
+        Returns:
+            JSON: {
+                'universes': [...],
+                'total_count': int,
+                'types': [...]
+            }
+        """
+        try:
+            from src.core.services.relationship_cache import get_relationship_cache
+
+            cache = get_relationship_cache()
+
+            # Get universe types filter from query params
+            types_param = request.args.get('types', 'UNIVERSE,ETF')
+            types = [t.strip() for t in types_param.split(',') if t.strip()]
+
+            # Get universes with metadata
+            universes = cache.get_available_universes(types=types)
+
+            # Format for frontend
+            response = {
+                'universes': universes,
+                'total_count': len(universes),
+                'types': types
+            }
+
+            app.logger.info(f"Fetched {len(universes)} universes (types: {types})")
+            return jsonify(response), 200
+
+        except Exception as e:
+            app.logger.error(f"Error fetching universes: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/admin/historical-data/trigger-universe-load', methods=['POST'])
+    @login_required
+    @admin_required
+    def admin_trigger_universe_load():
+        """
+        Submit historical data load job for universe(s).
+
+        Sprint 62: Universe-based historical data loading.
+
+        Request Body:
+        {
+            "universe_key": "SPY:nasdaq100",  // Single or multi-universe join
+            "timeframes": ["1min", "hour", "day", "week", "month"],
+            "years": 2
+        }
+
+        Returns:
+            JSON: {
+                'job_id': str,
+                'symbol_count': int,
+                'universe_key': str,
+                'message': str
+            }
+        """
+        try:
+            from src.core.services.relationship_cache import get_relationship_cache
+
+            # Get request data
+            data = request.get_json()
+            if not data:
+                return jsonify({'error': 'Request body required'}), 400
+
+            universe_key = data.get('universe_key', '').strip()
+            timeframes = data.get('timeframes', ['day'])
+            years = int(data.get('years', 1))
+
+            if not universe_key:
+                return jsonify({'error': 'universe_key required'}), 400
+
+            if not timeframes or not isinstance(timeframes, list):
+                return jsonify({'error': 'timeframes must be a non-empty list'}), 400
+
+            # Resolve universe to symbols via RelationshipCache
+            cache = get_relationship_cache()
+            symbols = cache.get_universe_symbols(universe_key)
+
+            if not symbols:
+                return jsonify({'error': f'No symbols found for universe: {universe_key}'}), 404
+
+            # Create job
+            job_id = str(uuid.uuid4())
+            job_data = {
+                'job_id': job_id,
+                'job_type': 'universe_historical_load',
+                'universe_key': universe_key,
+                'symbols': symbols,
+                'timeframes': timeframes,
+                'years': years,
+                'requested_by': current_user.username if current_user.is_authenticated else 'admin',
+                'timestamp': datetime.now().isoformat()
+            }
+
+            # Submit to Redis
+            redis_client.publish('tickstock.jobs.data_load', json.dumps(job_data))
+
+            # Store job status
+            initial_status = {
+                'status': 'submitted',
+                'progress': '0',
+                'message': f'Loading {len(symbols)} symbols from {universe_key}',
+                'submitted_at': datetime.now().isoformat()
+            }
+
+            job_key = f'tickstock.jobs.status:{job_id}'
+            redis_client.hset(job_key, mapping=initial_status)
+            redis_client.expire(job_key, 86400)  # 24 hour TTL
+
+            # Add to job history
+            job_history.append({
+                'job_id': job_id,
+                'type': 'universe_historical_load',
+                'universe_key': universe_key,
+                'symbol_count': len(symbols),
+                'timeframes': timeframes,
+                'years': years,
+                'submitted_at': datetime.now(),
+                'submitted_by': current_user.username if current_user.is_authenticated else 'admin'
+            })
+
+            # Keep only last 100 jobs
+            if len(job_history) > 100:
+                job_history.pop(0)
+
+            app.logger.info(
+                f"Universe load job submitted: {job_id[:8]}... "
+                f"({len(symbols)} symbols from {universe_key}, "
+                f"timeframes: {timeframes}, years: {years})"
+            )
+
+            return jsonify({
+                'job_id': job_id,
+                'symbol_count': len(symbols),
+                'universe_key': universe_key,
+                'timeframes': timeframes,
+                'years': years,
+                'message': f'Job submitted: Loading {len(symbols)} symbols'
+            }), 200
+
+        except Exception as e:
+            app.logger.error(f"Error triggering universe load: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
     @app.route('/api/admin/historical-data/load', methods=['POST'])
     @login_required
     @admin_required
