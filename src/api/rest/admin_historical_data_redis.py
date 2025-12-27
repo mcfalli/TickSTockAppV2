@@ -93,13 +93,18 @@ def register_admin_historical_routes(app):
                 'queued_jobs': len([j for j in recent_jobs if j.get('current_status', {}).get('status') == 'queued'])
             }
 
-            return render_template('admin/historical_data_dashboard.html',
+            response = app.make_response(render_template('admin/historical_data_dashboard.html',
                                  symbols=available_symbols,
                                  available_universes=available_universes,
                                  recent_jobs=recent_jobs,
                                  daily_summary=daily_summary,
                                  minute_summary=minute_summary,
-                                 job_stats=job_stats)
+                                 job_stats=job_stats))
+            # Prevent browser caching of job list
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
         except Exception as e:
             app.logger.error(f"Error loading historical data dashboard: {str(e)}")
             flash(f'Error loading dashboard: {str(e)}', 'danger')
@@ -143,7 +148,7 @@ def register_admin_historical_routes(app):
                     return redirect(url_for('admin_historical_dashboard'))
 
                 symbols = [s.strip().upper() for s in symbols_input.split(',') if s.strip()]
-                years = int(request.form.get('years', 1))
+                years = float(request.form.get('years', 1.0))
                 timespan = request.form.get('timespan', 'day')
 
                 job_data = {
@@ -184,7 +189,7 @@ def register_admin_historical_routes(app):
 
                 symbols = [s.strip().upper() for s in symbols_input.split(',') if s.strip()]
                 timeframes = request.form.getlist('timeframes')
-                years = int(request.form.get('multi_years', 1))
+                years = float(request.form.get('multi_years', 1.0))
 
                 if not timeframes:
                     timeframes = ['hour', 'day']  # Default timeframes
@@ -326,7 +331,7 @@ def register_admin_historical_routes(app):
 
             universe_key = data.get('universe_key', '').strip()
             timeframes = data.get('timeframes', ['day'])
-            years = int(data.get('years', 1))
+            years = float(data.get('years', 1.0))
 
             if not universe_key:
                 return jsonify({'error': 'universe_key required'}), 400
@@ -345,7 +350,8 @@ def register_admin_historical_routes(app):
             job_id = str(uuid.uuid4())
             job_data = {
                 'job_id': job_id,
-                'job_type': 'universe_historical_load',
+                'job_type': 'csv_universe_load',  # TickStockPL recognizes this type
+                'source': universe_key,
                 'universe_key': universe_key,
                 'symbols': symbols,
                 'timeframes': timeframes,
@@ -520,15 +526,17 @@ def register_admin_historical_routes(app):
 
             redis_client.publish('tickstock.jobs.control', json.dumps(cancel_request))
 
-            # Update status to indicate cancellation requested
+            # Update status to cancelled immediately (not just 'cancelling')
             status_data = redis_client.get(f'job:status:{job_id}')
             if status_data:
                 status = json.loads(status_data)
-                status['status'] = 'cancelling'
-                status['message'] = 'Cancellation requested'
+                status['status'] = 'cancelled'
+                status['message'] = 'Cancelled by admin'
+                status['cancelled_at'] = datetime.now().isoformat()
+                status['cancelled_by'] = current_user.username if current_user.is_authenticated else 'admin'
                 redis_client.setex(
                     f'job:status:{job_id}',
-                    3600,  # 1 hour TTL
+                    300,  # 5 minute TTL (short so it disappears from UI)
                     json.dumps(status)
                 )
 
@@ -537,6 +545,137 @@ def register_admin_historical_routes(app):
 
         except Exception as e:
             app.logger.error(f"Error cancelling job: {str(e)}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/admin/historical-data/cleanup-jobs-by-prefix', methods=['POST'])
+    @login_required
+    @admin_required
+    def cleanup_jobs_by_prefix():
+        """Clean up stale jobs matching a Job ID prefix"""
+        try:
+            data = request.get_json()
+            prefix = data.get('prefix', '').strip()
+
+            if not prefix or len(prefix) < 4:
+                return jsonify({
+                    'success': False,
+                    'error': 'Job ID prefix must be at least 4 characters'
+                }), 400
+
+            cleaned_jobs = []
+            cleaned_count = 0
+
+            # Scan Redis for matching job status keys (check both patterns)
+            for pattern in ['job:status:*', 'tickstock.jobs.status:*']:
+                for key in redis_client.scan_iter(pattern):
+                    # Key is already a string if decode_responses=True
+                    key_str = key if isinstance(key, str) else key.decode('utf-8')
+                    job_id = key_str.replace('job:status:', '').replace('tickstock.jobs.status:', '')
+
+                    # Check if job ID starts with prefix
+                    if job_id.startswith(prefix):
+                        status_data = redis_client.get(key_str)
+                        if status_data:
+                            status = json.loads(status_data)
+
+                            # Only clean up running/cancelling jobs
+                            if status.get('status') in ['running', 'cancelling']:
+                                # Mark as cancelled
+                                status['status'] = 'cancelled'
+                                status['message'] = f'Cleaned up by admin ({current_user.username})'
+                                status['cleaned_at'] = datetime.now().isoformat()
+
+                                # Set short TTL (5 minutes) so it disappears soon
+                                redis_client.setex(key_str, 300, json.dumps(status))
+
+                                cleaned_jobs.append(f"{job_id[:8]}... ({status.get('job_type', 'unknown')})")
+                                cleaned_count += 1
+
+            if cleaned_count == 0:
+                return jsonify({
+                    'success': False,
+                    'error': f'No running/cancelling jobs found matching prefix "{prefix}"'
+                }), 404
+
+            app.logger.info(f"Admin {current_user.username} cleaned up {cleaned_count} jobs with prefix '{prefix}'")
+
+            return jsonify({
+                'success': True,
+                'cleaned_count': cleaned_count,
+                'cleaned_jobs': cleaned_jobs,
+                'message': f'Successfully cleaned up {cleaned_count} job(s)'
+            })
+
+        except Exception as e:
+            app.logger.error(f"Error cleaning up jobs: {str(e)}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/admin/historical-data/cleanup-all-stale-jobs', methods=['POST'])
+    @login_required
+    @admin_required
+    def cleanup_all_stale_jobs():
+        """Clean up all stale jobs (no activity in last 10 minutes)"""
+        try:
+            cleaned_jobs = []
+            cleaned_count = 0
+            stale_threshold_minutes = 10
+
+            # Scan all job status keys in Redis (check both patterns)
+            for pattern in ['job:status:*', 'tickstock.jobs.status:*']:
+                for key in redis_client.scan_iter(pattern):
+                    # Key is already a string if decode_responses=True
+                    key_str = key if isinstance(key, str) else key.decode('utf-8')
+                    job_id = key_str.replace('job:status:', '').replace('tickstock.jobs.status:', '')
+                    status_data = redis_client.get(key_str)
+
+                    if status_data:
+                        status = json.loads(status_data)
+
+                        # Only process running/cancelling jobs
+                        if status.get('status') in ['running', 'cancelling']:
+                            # Check if job is stale (no update in last 10 minutes)
+                            last_update_str = status.get('timestamp') or status.get('started_at')
+
+                            if last_update_str:
+                                try:
+                                    last_update = datetime.fromisoformat(last_update_str.replace('Z', '+00:00'))
+                                    time_since_update = (datetime.now() - last_update.replace(tzinfo=None)).total_seconds() / 60
+
+                                    # If no activity in last 10 minutes, mark as stale
+                                    if time_since_update > stale_threshold_minutes:
+                                        status['status'] = 'cancelled'
+                                        status['message'] = f'Cleaned up - stale job (no activity for {int(time_since_update)} minutes)'
+                                        status['cleaned_at'] = datetime.now().isoformat()
+                                        status['cleaned_by'] = current_user.username if current_user.is_authenticated else 'admin'
+
+                                        # Set short TTL (5 minutes)
+                                        redis_client.setex(key_str, 300, json.dumps(status))
+
+                                        cleaned_jobs.append(f"{job_id[:8]}... ({status.get('job_type', 'unknown')}) - {int(time_since_update)}min old")
+                                        cleaned_count += 1
+
+                                except (ValueError, AttributeError) as date_err:
+                                    # If can't parse date, consider it stale
+                                    status['status'] = 'cancelled'
+                                    status['message'] = 'Cleaned up - invalid timestamp'
+                                    status['cleaned_at'] = datetime.now().isoformat()
+                                    redis_client.setex(key_str, 300, json.dumps(status))
+
+                                    cleaned_jobs.append(f"{job_id[:8]}... ({status.get('job_type', 'unknown')}) - invalid date")
+                                    cleaned_count += 1
+
+            app.logger.info(f"Admin {current_user.username} cleaned up {cleaned_count} stale jobs (>{stale_threshold_minutes}min old)")
+
+            return jsonify({
+                'success': True,
+                'cleaned_count': cleaned_count,
+                'cleaned_jobs': cleaned_jobs,
+                'message': f'Cleaned up {cleaned_count} stale job(s)',
+                'threshold_minutes': stale_threshold_minutes
+            })
+
+        except Exception as e:
+            app.logger.error(f"Error cleaning up stale jobs: {str(e)}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
     @app.route('/admin/historical-data/bulk-operations', methods=['POST'])
@@ -983,149 +1122,151 @@ def register_admin_historical_routes(app):
             app.logger.error(f"Failed to fetch universes: {e}", exc_info=True)
             return jsonify({'error': str(e)}), 500
 
-    @app.route('/admin/historical-data/trigger-universe-load', methods=['POST'])
-    @login_required
-    @admin_required
-    def trigger_universe_load():
-        """Submit bulk load job for symbols from CSV file or cached universe (unified endpoint)."""
-        try:
-            # Get parameters
-            csv_file = request.form.get('csv_file')
-            universe_key_full = request.form.get('universe_key')
-            years = request.form.get('years', 1, type=float)
-            include_ohlcv = request.form.get('include_ohlcv', 'true') == 'true'
-
-            symbols = []
-            source_name = ''
-
-            # Determine source: CSV file or cached universe
-            if csv_file:
-                # === CSV FILE MODE ===
-                app.logger.info(f"CSV mode: {csv_file}, years={years}, OHLCV={include_ohlcv}")
-
-                # Read symbols from CSV file
-                import csv
-                import os
-                csv_path = os.path.join('data/universes', csv_file)
-
-                if not os.path.exists(csv_path):
-                    return jsonify({'error': f'CSV file not found: {csv_file}'}), 404
-
-                with open(csv_path, 'r') as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        symbol = row.get('symbol', '').strip()
-                        if symbol:
-                            symbols.append(symbol)
-
-                source_name = csv_file
-                app.logger.info(f"Loaded {len(symbols)} symbols from CSV: {csv_file}")
-
-            elif universe_key_full:
-                # === CACHED UNIVERSE MODE ===
-                app.logger.info(f"Cached mode: {universe_key_full}, years={years}")
-
-                # Parse universe key (format: "etf_universe:etf_core")
-                if ':' not in universe_key_full:
-                    return jsonify({'error': 'Invalid universe key format'}), 400
-
-                universe_type, universe_key = universe_key_full.split(':', 1)
-
-                # Get symbols from cache
-                from src.infrastructure.cache.cache_control import CacheControl
-                cache_control = CacheControl()
-
-                if universe_type == 'etf_universe':
-                    for name, keys_dict in cache_control.cache.get('etf_universes', {}).items():
-                        if universe_key in keys_dict:
-                            value = keys_dict[universe_key]
-                            symbols = value if isinstance(value, list) else value.get('symbols', [])
-                            app.logger.info(f"Found universe in cache category '{name}', key '{universe_key}'")
-                            break
-
-                elif universe_type == 'stock_etf_combo':
-                    for name, keys_dict in cache_control.cache.get('stock_etf_combos', {}).items():
-                        if universe_key in keys_dict:
-                            value = keys_dict[universe_key]
-                            symbols = value if isinstance(value, list) else value.get('symbols', [])
-                            app.logger.info(f"Found combo universe in cache category '{name}', key '{universe_key}'")
-                            break
-
-                if not symbols:
-                    app.logger.error(f"No symbols found for {universe_type}:{universe_key}")
-                    return jsonify({'error': f'No symbols found for: {universe_key}'}), 404
-
-                source_name = universe_key_full
-                app.logger.info(f"Found {len(symbols)} symbols from cache: {universe_key_full}")
-                app.logger.info(f"Symbols list: {symbols}")
-
-            else:
-                return jsonify({'error': 'Either csv_file or universe_key required'}), 400
-
-            if not symbols:
-                return jsonify({'error': f'No symbols found in {source_name}'}), 404
-
-            app.logger.info(f"Total symbols to load: {len(symbols)} from {source_name}")
-
-            # Generate job ID
-            import random
-            import time
-            job_id = f"universe_load_{int(time.time())}_{random.randint(0, 9999)}"  # noqa: S311
-
-            # Publish to Redis
-            message = {
-                'job_id': job_id,
-                'job_type': 'csv_universe_load',  # TickStockPL recognizes this type
-                'source': source_name,
-                'symbols': symbols,
-                'years': years,
-                'submitted_at': datetime.now().isoformat()
-            }
-
-            app.logger.info(
-                f"Publishing job {job_id}: {len(symbols)} symbols - {symbols}"
-            )
-
-            subscriber_count = redis_client.publish(
-                'tickstock.jobs.data_load',
-                json.dumps(message)
-            )
-            app.logger.info(
-                f"Published job to Redis: {job_id}, "
-                f"subscribers={subscriber_count}"
-            )
-
-            if subscriber_count == 0:
-                app.logger.warning(
-                    "No subscribers on tickstock.jobs.data_load - "
-                    "is TickStockPL running?"
-                )
-
-            # Store job status in Redis
-            job_key = f"tickstock.jobs.status:{job_id}"
-            redis_client.hset(job_key, mapping={
-                'status': 'submitted',
-                'progress': 0,
-                'message': f'Submitted {len(symbols)} symbols from {source_name}',
-                'total_symbols': len(symbols),
-                'submitted_at': datetime.now().isoformat()
-            })
-            redis_client.expire(job_key, 86400)  # 24-hour TTL
-
-            app.logger.info(
-                f"Universe load job submitted successfully: {job_id}, "
-                f"{len(symbols)} symbols"
-            )
-
-            return jsonify({
-                'success': True,
-                'job_id': job_id,
-                'symbol_count': len(symbols),
-                'source': source_name
-            })
-
-        except Exception as e:
-            app.logger.error(f"Failed to submit universe load: {e}")
-            return jsonify({'error': str(e)}), 500
+    # DISABLED - Sprint 62: Old route replaced by admin_trigger_universe_load() at line 295
+    # This route used CacheControl and expected form data. The new route uses RelationshipCache and expects JSON.
+    # @app.route('/admin/historical-data/trigger-universe-load', methods=['POST'])
+    # @login_required
+    # @admin_required
+    # def trigger_universe_load():
+    #     """Submit bulk load job for symbols from CSV file or cached universe (unified endpoint)."""
+    #     try:
+#             # Get parameters
+#             csv_file = request.form.get('csv_file')
+#             universe_key_full = request.form.get('universe_key')
+#             years = request.form.get('years', 1, type=float)
+#             include_ohlcv = request.form.get('include_ohlcv', 'true') == 'true'
+# 
+#             symbols = []
+#             source_name = ''
+# 
+#             # Determine source: CSV file or cached universe
+#             if csv_file:
+#                 # === CSV FILE MODE ===
+#                 app.logger.info(f"CSV mode: {csv_file}, years={years}, OHLCV={include_ohlcv}")
+# 
+#                 # Read symbols from CSV file
+#                 import csv
+#                 import os
+#                 csv_path = os.path.join('data/universes', csv_file)
+# 
+#                 if not os.path.exists(csv_path):
+#                     return jsonify({'error': f'CSV file not found: {csv_file}'}), 404
+# 
+#                 with open(csv_path, 'r') as f:
+#                     reader = csv.DictReader(f)
+#                     for row in reader:
+#                         symbol = row.get('symbol', '').strip()
+#                         if symbol:
+#                             symbols.append(symbol)
+# 
+#                 source_name = csv_file
+#                 app.logger.info(f"Loaded {len(symbols)} symbols from CSV: {csv_file}")
+# 
+#             elif universe_key_full:
+#                 # === CACHED UNIVERSE MODE ===
+#                 app.logger.info(f"Cached mode: {universe_key_full}, years={years}")
+# 
+#                 # Parse universe key (format: "etf_universe:etf_core")
+#                 if ':' not in universe_key_full:
+#                     return jsonify({'error': 'Invalid universe key format'}), 400
+# 
+#                 universe_type, universe_key = universe_key_full.split(':', 1)
+# 
+#                 # Get symbols from cache
+#                 from src.infrastructure.cache.cache_control import CacheControl
+#                 cache_control = CacheControl()
+# 
+#                 if universe_type == 'etf_universe':
+#                     for name, keys_dict in cache_control.cache.get('etf_universes', {}).items():
+#                         if universe_key in keys_dict:
+#                             value = keys_dict[universe_key]
+#                             symbols = value if isinstance(value, list) else value.get('symbols', [])
+#                             app.logger.info(f"Found universe in cache category '{name}', key '{universe_key}'")
+#                             break
+# 
+#                 elif universe_type == 'stock_etf_combo':
+#                     for name, keys_dict in cache_control.cache.get('stock_etf_combos', {}).items():
+#                         if universe_key in keys_dict:
+#                             value = keys_dict[universe_key]
+#                             symbols = value if isinstance(value, list) else value.get('symbols', [])
+#                             app.logger.info(f"Found combo universe in cache category '{name}', key '{universe_key}'")
+#                             break
+# 
+#                 if not symbols:
+#                     app.logger.error(f"No symbols found for {universe_type}:{universe_key}")
+#                     return jsonify({'error': f'No symbols found for: {universe_key}'}), 404
+# 
+#                 source_name = universe_key_full
+#                 app.logger.info(f"Found {len(symbols)} symbols from cache: {universe_key_full}")
+#                 app.logger.info(f"Symbols list: {symbols}")
+# 
+#             else:
+#                 return jsonify({'error': 'Either csv_file or universe_key required'}), 400
+# 
+#             if not symbols:
+#                 return jsonify({'error': f'No symbols found in {source_name}'}), 404
+# 
+#             app.logger.info(f"Total symbols to load: {len(symbols)} from {source_name}")
+# 
+#             # Generate job ID
+#             import random
+#             import time
+#             job_id = f"universe_load_{int(time.time())}_{random.randint(0, 9999)}"  # noqa: S311
+# 
+#             # Publish to Redis
+#             message = {
+#                 'job_id': job_id,
+#                 'job_type': 'csv_universe_load',  # TickStockPL recognizes this type
+#                 'source': source_name,
+#                 'symbols': symbols,
+#                 'years': years,
+#                 'submitted_at': datetime.now().isoformat()
+#             }
+# 
+#             app.logger.info(
+#                 f"Publishing job {job_id}: {len(symbols)} symbols - {symbols}"
+#             )
+# 
+#             subscriber_count = redis_client.publish(
+#                 'tickstock.jobs.data_load',
+#                 json.dumps(message)
+#             )
+#             app.logger.info(
+#                 f"Published job to Redis: {job_id}, "
+#                 f"subscribers={subscriber_count}"
+#             )
+# 
+#             if subscriber_count == 0:
+#                 app.logger.warning(
+#                     "No subscribers on tickstock.jobs.data_load - "
+#                     "is TickStockPL running?"
+#                 )
+# 
+#             # Store job status in Redis
+#             job_key = f"tickstock.jobs.status:{job_id}"
+#             redis_client.hset(job_key, mapping={
+#                 'status': 'submitted',
+#                 'progress': 0,
+#                 'message': f'Submitted {len(symbols)} symbols from {source_name}',
+#                 'total_symbols': len(symbols),
+#                 'submitted_at': datetime.now().isoformat()
+#             })
+#             redis_client.expire(job_key, 86400)  # 24-hour TTL
+# 
+#             app.logger.info(
+#                 f"Universe load job submitted successfully: {job_id}, "
+#                 f"{len(symbols)} symbols"
+#             )
+# 
+#             return jsonify({
+#                 'success': True,
+#                 'job_id': job_id,
+#                 'symbol_count': len(symbols),
+#                 'source': source_name
+#             })
+# 
+#         except Exception as e:
+#             app.logger.error(f"Failed to submit universe load: {e}")
+#             return jsonify({'error': str(e)}), 500
 
     return app

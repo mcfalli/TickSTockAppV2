@@ -277,8 +277,57 @@
                 <p>{{ job_stats.get('failed_today', 0) }} failed</p>
             </div>
         </div>
-        
-        
+
+
+        <!-- Job Cleanup Section -->
+        <div class="cleanup-section" style="margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, #fff3cd 0%, #fffbf0 100%); border: 2px solid #ffc107; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: #856404; font-size: 1.3em;">🧹 Job Cleanup Tools</h3>
+                <span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">
+                    Production Ready
+                </span>
+            </div>
+
+            <p style="font-size: 0.95em; color: #856404; margin-bottom: 20px; line-height: 1.5;">
+                Remove stale jobs from previous app instances or clean up specific jobs by ID.
+            </p>
+
+            <!-- Primary Actions -->
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 15px;">
+                <input
+                    type="text"
+                    id="jobIdPrefix"
+                    placeholder="Optional: Enter Job ID prefix (min 4 chars, e.g., d4457756)"
+                    style="padding: 10px 15px; border: 2px solid #ddd; border-radius: 6px; font-family: monospace; font-size: 0.95em;"
+                />
+                <button
+                    onclick="cleanupJobsByPrefix()"
+                    class="btn btn-warning"
+                    style="padding: 10px 20px; white-space: nowrap; font-weight: 600;">
+                    🗑️ Clean by ID
+                </button>
+            </div>
+
+            <!-- Quick Action Button -->
+            <div style="text-align: center; margin-bottom: 15px;">
+                <button
+                    onclick="cleanupAllStaleJobs()"
+                    class="btn btn-danger"
+                    style="padding: 12px 40px; font-size: 1.1em; font-weight: bold; border-radius: 8px; box-shadow: 0 3px 6px rgba(220, 53, 69, 0.3);">
+                    🧹 Clean All Stale Jobs (>10 minutes old)
+                </button>
+            </div>
+
+            <!-- Help Text -->
+            <div style="background: white; padding: 12px 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
+                <small style="color: #666; line-height: 1.6;">
+                    <strong>💡 Quick Guide:</strong><br>
+                    • <strong>Clean All Stale Jobs:</strong> Removes all jobs with no activity in last 10 minutes (safe after restarts)<br>
+                    • <strong>Clean by ID:</strong> Remove specific job(s) by entering first 4-8 characters of Job ID
+                </small>
+            </div>
+        </div>
+
         <!-- Active Jobs and Job History -->
         <div class="jobs-section">
             <!-- Active Jobs -->
@@ -351,60 +400,44 @@
         <!-- Unified Universe Loading -->
         <div class="job-controls">
             <h3>📊 Universe Data Loading</h3>
-            <p>Load symbol lists from CSV files or cached universes with historical data from Massive API</p>
+            <p>Select a universe from the database to load historical data from Massive API for all symbols in that group</p>
             <form id="universeLoadForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-                <!-- Data Source Selector -->
-                <div class="form-row" style="margin-bottom: 15px;">
+                <!-- Data Source Selector - Sprint 62: CSV option temporarily disabled -->
+                <!-- <div class="form-row" style="margin-bottom: 15px;">
                     <div class="form-group" style="flex: 1;">
                         <label style="font-weight: 600;">Data Source</label>
                         <div style="display: flex; gap: 20px; margin-top: 8px;">
                             <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
-                                <input type="radio" name="data_source" value="csv" checked style="margin-right: 8px;">
+                                <input type="radio" name="data_source" value="csv" style="margin-right: 8px;">
                                 📋 CSV File
                             </label>
                             <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
-                                <input type="radio" name="data_source" value="cached" style="margin-right: 8px;">
+                                <input type="radio" name="data_source" value="cached" checked style="margin-right: 8px;">
                                 📦 Cached Universe
                             </label>
                         </div>
                         <small class="form-text text-muted">Choose between CSV files or pre-loaded cached universes</small>
                     </div>
-                </div>
+                </div> -->
 
-                <div class="form-row">
-                    <!-- CSV File Selection (shown when CSV source selected) -->
-                    <div class="form-group" id="csv-file-group">
+                <!-- Hidden data source selector - Sprint 62: Default to cached only -->
+                <input type="hidden" name="data_source" value="cached">
+
+                <!-- CSV File Selection - HIDDEN (Sprint 62: Removed) -->
+                <div class="form-row" style="display: none;">
+                    <div class="form-group" id="csv-file-group" style="display: none;">
                         <label for="csv_file">CSV Universe File *</label>
                         <select class="form-control" id="csv_file" name="csv_file">
                             <option value="">Select CSV File...</option>
-                            {% if csv_files %}
-                                {% for csv_file in csv_files %}
-                                <option value="{{ csv_file.filename }}"
-                                        data-count="{{ csv_file.symbol_count }}"
-                                        data-description="{{ csv_file.description }}">
-                                    {{ csv_file.name }} ({{ csv_file.symbol_count }} symbols)
-                                </option>
-                                {% endfor %}
-                            {% else %}
-                                <option value="dow_30.csv">Dow Jones 30 (30 stocks)</option>
-                                <option value="nasdaq_100.csv">NASDAQ 100 (100 stocks)</option>
-                                <option value="sp_500.csv">S&P 500 (500 stocks)</option>
-                                <option value="curated-etfs.csv">Curated ETFs (46 funds)</option>
-                                <option value="russell_3000_part1.csv">Russell 3000 Part 1 (500 stocks)</option>
-                                <option value="russell_3000_part2.csv">Russell 3000 Part 2 (500 stocks)</option>
-                                <option value="russell_3000_part3.csv">Russell 3000 Part 3 (500 stocks)</option>
-                                <option value="russell_3000_part4.csv">Russell 3000 Part 4 (500 stocks)</option>
-                                <option value="russell_3000_part5.csv">Russell 3000 Part 5 (500 stocks)</option>
-                                <option value="russell_3000_part6.csv">Russell 3000 Part 6 (500+ stocks)</option>
-                            {% endif %}
                         </select>
                         <small class="form-text text-muted">Choose from curated CSV symbol lists</small>
                     </div>
+                </div>
 
-                    <!-- Cached Universe Selection (shown when cached source selected) -->
-                    <div id="cached-universe-group" style="display: none;">
+                <!-- Cached Universe Selection (Sprint 62: Default visible, CSV option removed) -->
+                <div id="cached-universe-group">
                         <div class="form-group">
                             <label for="universe-select">Select Universe *</label>
                             <select class="form-control" id="universe-select" name="universe_key">
@@ -465,7 +498,6 @@
                                 Select timeframes to load (all checked by default): ohlcv_1min, ohlcv_hourly, ohlcv_daily, ohlcv_weekly, ohlcv_monthly
                             </small>
                         </div>
-                    </div>
 
                     <!-- Historical Data Duration -->
                     <div class="form-group">
@@ -496,10 +528,12 @@
 
                     <!-- Load Button -->
                     <div class="form-group" style="align-self: flex-end;">
-                        <button type="submit" class="btn btn-primary" id="universeLoadBtn">
+                        <button type="button" class="btn btn-primary" id="universeLoadBtn">
                             📊 Load Universe Data
                         </button>
                     </div>
+                </div>
+                <!-- End of cached-universe-group -->
                 </div>
 
                 <!-- Load Estimate/Preview Display -->
@@ -530,25 +564,7 @@
             </form>
         </div>
 
-        <!-- Cache Management -->
-        <div class="job-controls">
-            <h3>🔧 Cache Organization</h3>
-            <p>Rebuild cache entries to organize stocks and ETFs into logical groups (market cap, sectors, themes, etc.)</p>
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                <div class="form-group" style="max-width: 500px;">
-                    <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
-                        <input type="checkbox" id="preserve_existing" name="preserve_existing" value="1" style="margin-right: 10px; width: auto;">
-                        <span>Preserve existing entries (append mode)</span>
-                    </label>
-                    <small class="form-text">
-                        When unchecked, will delete and rebuild all stock/ETF cache entries (preserves app_settings)
-                    </small>
-                </div>
-                <div>
-                    <button onclick="rebuildCacheEntries()" class="btn btn-primary">🔧 Update and Organize Cache</button>
-                </div>
-            </div>
-        </div>
+        <!-- Cache Management section removed - Sprint 62: No longer applicable with RelationshipCache -->
     </div>
 
     <!-- Include Job Monitor JavaScript -->
@@ -583,7 +599,82 @@
                 });
             }
         }
-        
+
+        function cleanupJobsByPrefix() {
+            const prefix = document.getElementById('jobIdPrefix').value.trim();
+
+            if (!prefix) {
+                alert('⚠️ Please enter a Job ID prefix (at least first 4 characters)');
+                return;
+            }
+
+            if (prefix.length < 4) {
+                alert('⚠️ Job ID prefix must be at least 4 characters for safety');
+                return;
+            }
+
+            // Get CSRF token
+            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+
+            if (confirm(`🗑️ Clean up all jobs starting with "${prefix}"?\n\nThis will mark matching running/cancelling jobs as cancelled.`)) {
+                fetch('/admin/historical-data/cleanup-jobs-by-prefix', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ prefix: prefix })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const jobList = data.cleaned_jobs.join('\n• ');
+                        alert(`✅ Successfully cleaned up ${data.cleaned_count} job(s):\n\n• ${jobList}\n\nPage will refresh to show updated status.`);
+                        location.reload();
+                    } else {
+                        alert('❌ Error: ' + data.error);
+                    }
+                })
+                .catch(err => {
+                    alert('❌ Error cleaning up jobs: ' + err);
+                    console.error('Cleanup error:', err);
+                });
+            }
+        }
+
+        function cleanupAllStaleJobs() {
+            // Get CSRF token
+            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+
+            if (confirm('🧹 Clean up ALL stale jobs?\n\nThis will remove all running/cancelling jobs with no activity in the last 10 minutes.\n\nThis is safe for jobs from previous app instances.')) {
+                fetch('/admin/historical-data/cleanup-all-stale-jobs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.cleaned_count > 0) {
+                            const jobList = data.cleaned_jobs.join('\n• ');
+                            alert(`✅ Successfully cleaned up ${data.cleaned_count} stale job(s):\n\n• ${jobList}\n\nPage will refresh to show updated status.`);
+                        } else {
+                            alert('✅ No stale jobs found. All jobs are recent or already completed.');
+                        }
+                        location.reload();
+                    } else {
+                        alert('❌ Error: ' + data.error);
+                    }
+                })
+                .catch(err => {
+                    alert('❌ Error cleaning up jobs: ' + err);
+                    console.error('Cleanup error:', err);
+                });
+            }
+        }
+
         function refreshDataSummary() {
             fetch('/admin/historical-data/data-summary')
             .then(response => response.json())
@@ -630,29 +721,8 @@ Enter 1 or 2:`);
             window.open('/admin/historical-data/data-summary', '_blank');
         }
         
-        function rebuildCacheEntries() {
-            const preserveExisting = document.getElementById('preserve_existing').checked;
-            const mode = preserveExisting ? 'append to' : 'replace all';
-            
-            if (confirm(`This will ${mode} stock/ETF cache entries. Continue?`)) {
-                // Show progress indicator
-                const button = event.target;
-                button.disabled = true;
-                button.textContent = 'Rebuilding Cache...';
-                
-                // Create and submit form
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/admin/historical-data/rebuild-cache';
-                form.innerHTML = `
-                    <input type="hidden" name="preserve_existing" value="${preserveExisting ? '1' : '0'}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                `;
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
-        
+        // rebuildCacheEntries() function removed - Sprint 62: No longer needed with RelationshipCache
+
 
         // CSV Universe Loading Functions
         function updateCsvEstimate() {
@@ -687,19 +757,7 @@ Enter 1 or 2:`);
             }
         }
 
-        // Form submission handling for CSV universe  
-        document.getElementById('csvUniverseForm').addEventListener('submit', function(e) {
-            const btn = document.getElementById('csvLoadBtn');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span>🔄 Loading CSV Universe...</span>';
-            
-            // Re-enable after a delay (form will redirect)
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }, 5000);
-        });
+        // CSV form submission handler removed - Sprint 62: CSV option no longer available
 
 
         // Auto-refresh active jobs every 10 seconds
