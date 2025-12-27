@@ -110,7 +110,7 @@ class PatternRegistryService:
     def get_enabled_patterns(self) -> list[PatternDefinition]:
         """
         Get all enabled patterns for UI loading.
-        
+
         Returns:
             List[PatternDefinition]: List of enabled patterns ordered by display_order
         """
@@ -118,6 +118,12 @@ class PatternRegistryService:
         self.service_stats['total_requests'] += 1
 
         try:
+            # Check if pattern library is enabled via configuration
+            from src.core.services.config_manager import get_config
+            config = get_config()
+            if not config.get('PATTERN_LIBRARY_ENABLED', True):
+                logger.info("PATTERN-REGISTRY: Pattern library is disabled via configuration (PATTERN_LIBRARY_ENABLED=false)")
+                return []
             # Check cache first
             if self._enabled_patterns_cache and self._is_cache_valid(self._enabled_cache_timestamp):
                 self.service_stats['cache_hits'] += 1
@@ -182,7 +188,7 @@ class PatternRegistryService:
     def get_all_patterns(self) -> list[PatternDefinition]:
         """
         Get all patterns (enabled and disabled) for admin use.
-        
+
         Returns:
             List[PatternDefinition]: List of all patterns ordered by display_order
         """
@@ -190,6 +196,12 @@ class PatternRegistryService:
         self.service_stats['total_requests'] += 1
 
         try:
+            # Check if pattern library is enabled via configuration
+            from src.core.services.config_manager import get_config
+            config = get_config()
+            if not config.get('PATTERN_LIBRARY_ENABLED', True):
+                logger.info("PATTERN-REGISTRY: Pattern library is disabled via configuration (PATTERN_LIBRARY_ENABLED=false)")
+                return []
             # Check cache first
             if self._patterns_cache and self._is_cache_valid(self._cache_timestamp):
                 self.service_stats['cache_hits'] += 1

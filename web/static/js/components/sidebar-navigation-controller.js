@@ -18,7 +18,7 @@ const SIDEBAR_DEBUG = true;
 class SidebarNavigationController {
     constructor(options = {}) {
         this.options = {
-            defaultSection: 'pattern-discovery',
+            defaultSection: 'dummy1',
             rememberState: true,
             storageKey: 'tickstock-sidebar-state',
             animations: true,
@@ -34,77 +34,21 @@ class SidebarNavigationController {
         this.currentTooltip = null;
         this.tooltipTimeout = null;
         
-        // Navigation sections configuration
+        // Navigation sections configuration - SIMPLIFIED TO TWO DUMMY LINKS
         this.sections = {
-            'pattern-discovery': {
-                title: 'Pattern Discovery',
-                icon: 'fas fa-search',
-                hasFilters: true,
-                component: 'PatternDiscoveryService'
-            },
-            'sprint25': {
-                title: 'Pattern Flow',
-                icon: 'fas fa-stream',
-                hasFilters: false,
-                component: 'PatternFlowService',
-                description: 'Real-Time Pattern Flow Display with 4-Column Layout',
-                isNew: true
-            },
-            'streaming': {
-                title: 'Live Streaming',
-                icon: 'fas fa-broadcast-tower',
-                hasFilters: false,
-                component: 'StreamingDashboardService',
-                description: 'Real-time market data streaming dashboard',
-                isNew: true
-            },
-            'overview': {
-                title: 'Overview',
+            'dummy1': {
+                title: 'Dummy1',
                 icon: 'fas fa-chart-line',
                 hasFilters: false,
-                component: 'OverviewService'
+                component: null,
+                description: 'Dummy1 page placeholder'
             },
-            'performance': {
-                title: 'Performance',
-                icon: 'fas fa-tachometer-alt',
-                hasFilters: false,
-                component: 'PerformanceService'
-            },
-            'distribution': {
-                title: 'Distribution',
-                icon: 'fas fa-chart-pie',
-                hasFilters: false,
-                component: 'DistributionService'
-            },
-            'historical': {
-                title: 'Historical',
-                icon: 'fas fa-history',
-                hasFilters: false,
-                component: 'HistoricalService'
-            },
-            'market': {
-                title: 'Market',
+            'dummy2': {
+                title: 'Dummy2',
                 icon: 'fas fa-chart-bar',
                 hasFilters: false,
-                component: 'MarketService'
-            },
-            'correlations': {
-                title: 'Correlations',
-                icon: 'fas fa-project-diagram',
-                hasFilters: false,
-                component: 'CorrelationsService'
-            },
-            'temporal': {
-                title: 'Temporal',
-                icon: 'fas fa-clock',
-                hasFilters: false,
-                component: 'TemporalService'
-            },
-            'compare': {
-                title: 'Compare',
-                icon: 'fas fa-balance-scale',
-                hasFilters: false,
-                component: 'CompareService'
+                component: null,
+                description: 'Dummy2 page placeholder'
             }
         };
         
@@ -387,8 +331,8 @@ class SidebarNavigationController {
         // Update active states
         this.updateActiveNavItem(sectionKey);
 
-        // Handle filters for Pattern Discovery
-        if (sectionKey === 'pattern-discovery' && !this.isMobile) {
+        // Handle filters based on section configuration
+        if (section.hasFilters && !this.isMobile) {
             this.openFilters();
         } else {
             this.closeFilters();
@@ -455,45 +399,34 @@ class SidebarNavigationController {
      */
     loadComponentContent(sectionKey, section) {
         const contentArea = document.getElementById('main-content-area');
-        
-        if (sectionKey === 'pattern-discovery') {
-            // Load Pattern Discovery content
-            if (window.patternDiscovery) {
-                // Trigger Pattern Discovery service to render into the sidebar system
-                window.patternDiscovery.renderUI();
-                // Reinitialize collapsible filters after content is loaded
-                setTimeout(() => {
-                    if (window.patternDiscovery.reinitializeCollapsibleFilters) {
-                        window.patternDiscovery.reinitializeCollapsibleFilters();
-                    }
-                }, 500);
-            } else {
-                console.warn('Pattern Discovery service not loaded yet');
-                // Pattern Discovery service not loaded yet
+
+        // Handle dummy sections
+        if (sectionKey === 'dummy1' || sectionKey === 'dummy2') {
+            // Load dummy content from hidden divs
+            const dummyContent = document.getElementById(`${sectionKey}-content`);
+            if (dummyContent) {
                 contentArea.innerHTML = `
                     <div class="container-fluid p-4">
                         <h2><i class="${section.icon} me-2"></i>${section.title}</h2>
-                        <div class="d-flex align-items-center">
-                            <div class="spinner-border text-primary me-3" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mb-0">Pattern Discovery service is loading...</p>
+                        <div class="mt-4">
+                            ${dummyContent.innerHTML}
                         </div>
                     </div>
                 `;
-                
-                // Try again after a delay
-                setTimeout(() => {
-                    if (window.patternDiscovery && this.currentSection === 'pattern-discovery') {
-                        window.patternDiscovery.renderUI();
-                        // Reinitialize collapsible filters after retry
-                        setTimeout(() => {
-                            if (window.patternDiscovery.reinitializeCollapsibleFilters) {
-                                window.patternDiscovery.reinitializeCollapsibleFilters();
-                            }
-                        }, 500);
-                    }
-                }, 1000);
+            } else {
+                contentArea.innerHTML = `
+                    <div class="container-fluid p-4">
+                        <h2><i class="${section.icon} me-2"></i>${section.title}</h2>
+                        <p class="text-muted">${section.description}</p>
+                        <p>Content area ready for development.</p>
+                    </div>
+                `;
+            }
+        } else if (section.component && window[section.component]) {
+            // Load component if it exists
+            const component = window[section.component];
+            if (typeof component.renderUI === 'function') {
+                component.renderUI();
             }
         } else {
             // Load section content using analytics services

@@ -52,6 +52,8 @@ class ConfigManager:
         "APP_PORT": 5000,
         "MARKET_TIMEZONE": "US/Eastern",
         "UPDATE_INTERVAL": UPDATE_INTERVAL,
+        # Pattern Library Configuration
+        "PATTERN_LIBRARY_ENABLED": True,
         # Symbol Universe Configuration
         "SYMBOL_UNIVERSE_KEY": "stock_etf_test:combo_test",  # Default universe key for WebSocket subscriptions
         # Sprint 10: Redis Configuration for TickStockPL Integration
@@ -234,6 +236,8 @@ class ConfigManager:
         "APP_PORT": int,
         "MARKET_TIMEZONE": str,
         "UPDATE_INTERVAL": float,
+        # Pattern Library Configuration Types
+        "PATTERN_LIBRARY_ENABLED": bool,
         "COLLECTION_INTERVAL": float,
         "EMISSION_INTERVAL": float,
         "USE_MASSIVE_API": bool,

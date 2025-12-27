@@ -110,60 +110,70 @@
         <!-- SIDEBAR NAVIGATION WILL BE INSERTED HERE -->
         <!-- Main content area will be managed by sidebar navigation controller -->
 
-        <!-- Hidden content areas for dummy pages -->
-        <div id="dummy1-content" style="display: none;">
-            <div class="content-placeholder">
-                <h2>Dummy1 Page</h2>
-                <p>This is the Dummy1 content area. Content will be added here for market data displays.</p>
-            </div>
-        </div>
-
-        <div id="dummy2-content" style="display: none;">
-            <div class="content-placeholder">
-                <h2>Dummy2 Page</h2>
-                <p>This is the Dummy2 content area. Content will be added here for portfolio displays.</p>
+        <!-- Hidden Pattern Discovery Content (for sidebar to use) -->
+        <div id="pattern-discovery-content" style="display: none;">
+            <div id="pattern-discovery-dashboard">
+                <!-- This will be populated by the Pattern Discovery Service -->
             </div>
         </div>
     </div>
 
-    <!-- Application Mode Configuration -->
+    <!-- Pattern Discovery Mode - Enable WebSocket for real-time pattern updates -->
     <script>
-        // Simplified mode enabled - pattern discovery disabled
-        window.SIMPLIFIED_MODE = true;
-        window.PATTERN_DISCOVERY_MODE = false;
+        // Pattern Discovery requires real-time WebSocket connectivity
+        window.SIMPLIFIED_MODE = false;
+        window.PATTERN_DISCOVERY_MODE = true;
     </script>
 
-    <!-- JavaScript Loading - Core Only -->
+    <!-- JavaScript Loading - Simplified -->
     <script src="{{ url_for('static', filename='js/core/app-core.js') }}"></script>
     <script src="{{ url_for('static', filename='js/core/app-events.js') }}"></script>
 
-    <!-- Sidebar Navigation Controller - Required for dummy navigation -->
+    <!-- Retractable Filter Controller -->
+    <script src="{{ url_for('static', filename='js/components/retractable-filter-controller.js') }}"></script>
+
+    <!-- Sidebar Navigation Controller -->
     <script src="{{ url_for('static', filename='js/components/sidebar-navigation-controller.js') }}"></script>
 
-    <!-- PATTERN SERVICES DISABLED - All scripts below commented out for simplified mode -->
-    <!--
-    <script src="{{ url_for('static', filename='js/components/retractable-filter-controller.js') }}"></script>
+    <!-- Pattern Discovery Service - Sprint 20 Phase 2 -->
     <script src="{{ url_for('static', filename='js/services/pattern-discovery.js') }}"></script>
+
+    <!-- Watchlist Management Service - Sprint 21 Week 1 -->
     <script src="{{ url_for('static', filename='js/services/watchlist-manager.js') }}"></script>
+
+    <!-- Filter Presets Service - Sprint 21 Week 1 -->
     <script src="{{ url_for('static', filename='js/services/filter-presets.js') }}"></script>
+
+    <!-- Pattern Export Service - Sprint 21 Week 1 -->
     <script src="{{ url_for('static', filename='js/services/pattern-export.js') }}"></script>
+
+    <!-- Pattern Analytics Service - Sprint 21 Week 2 -->
     <script src="{{ url_for('static', filename='js/services/pattern-analytics.js') }}"></script>
+
+    <!-- Pattern Visualization Service - Sprint 21 Week 2 Deliverable 3 -->
     <script src="{{ url_for('static', filename='js/services/pattern-visualization.js') }}"></script>
+
+    <!-- Market Statistics Service - Sprint 21 Week 2 Deliverable 4 -->
     <script src="{{ url_for('static', filename='js/services/market-statistics.js') }}"></script>
+
+    <!-- Sprint 23: Advanced Analytics Services -->
     <script src="{{ url_for('static', filename='js/services/pattern-correlations.js') }}"></script>
     <script src="{{ url_for('static', filename='js/services/pattern-temporal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/services/pattern-comparison.js') }}"></script>
+
+    <!-- Pattern Dashboard: Multi-Tier Dashboard Services -->
     <script src="{{ url_for('static', filename='js/services/tier_pattern_service.js') }}"></script>
     <script src="{{ url_for('static', filename='js/services/pattern_flow.js') }}"></script>
+
+    <!-- Streaming Dashboard Service - Sprint 33 Phase 5 -->
     <script src="{{ url_for('static', filename='js/services/streaming-dashboard.js') }}"></script>
-    -->
 
     <!-- Initialize sidebar navigation and all services -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize sidebar navigation first
             window.sidebarNavigation = new SidebarNavigationController({
-                defaultSection: 'dummy1',
+                defaultSection: 'pattern-discovery',
                 rememberState: true
             });
 
@@ -208,9 +218,7 @@
             }, 2000);
         });
 
-        // Pattern services disabled - using simplified dummy navigation
-        // All pattern-related service initialization commented out
-        /*
+        // Initialize Advanced Analytics Services
         setTimeout(() => {
 
             // Initialize PatternAnalyticsService first
@@ -278,9 +286,6 @@
             }
 
         }, 1000);
-        */
-
-        console.log('Pattern services disabled - simplified mode active');
     </script>
 
     <!-- Admin dropdown script -->

@@ -16,6 +16,19 @@ logger = logging.getLogger(__name__)
 # Create blueprint for tier pattern endpoints
 tier_patterns_bp = Blueprint('tier_patterns', __name__, url_prefix='/api/patterns')
 
+def _is_pattern_library_enabled() -> bool:
+    """Check if pattern library is enabled via configuration."""
+    try:
+        from src.core.services.config_manager import get_config
+        config = get_config()
+        enabled = config.get('PATTERN_LIBRARY_ENABLED', True)
+        if not enabled:
+            logger.info("TIER-PATTERNS-API: Pattern library is disabled via configuration (PATTERN_LIBRARY_ENABLED=false)")
+        return enabled
+    except Exception as e:
+        logger.error(f"TIER-PATTERNS-API: Error checking pattern library config: {e}")
+        return True  # Default to enabled on error
+
 def init_tier_patterns_api():
     """Initialize tier patterns API with database connection."""
     try:
@@ -217,6 +230,21 @@ def get_combo_patterns():
     Get combo tier patterns from pattern_detections table with pattern definitions.
     """
     start_time = time.time()
+
+    # Check if pattern library is enabled
+    if not _is_pattern_library_enabled():
+        return jsonify({
+            'patterns': [],
+            'metadata': {
+                'count': 0,
+                'tier': 'combo',
+                'confidence_min': 0.6,
+                'symbols_filter': 'all',
+                'response_time_ms': round((time.time() - start_time) * 1000, 2),
+                'disabled': True,
+                'message': 'Pattern library is disabled'
+            }
+        })
 
     try:
         # Parse query parameters
