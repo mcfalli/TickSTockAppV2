@@ -463,9 +463,19 @@ class HistoricalDataManager {
     }
 
     getCSRFToken() {
+        // Try to get CSRF token from hidden input field (Sprint 62: Primary method)
+        const hiddenInput = document.querySelector('input[name="csrf_token"]');
+        if (hiddenInput && hiddenInput.value) {
+            console.log('Sprint 62: CSRF token found in hidden input');
+            return hiddenInput.value;
+        }
+
         // Try to get CSRF token from meta tag
         const metaTag = document.querySelector('meta[name="csrf-token"]');
-        if (metaTag) return metaTag.content;
+        if (metaTag) {
+            console.log('Sprint 62: CSRF token found in meta tag');
+            return metaTag.content;
+        }
 
         // Try to get from cookie
         const cookieValue = document.cookie
@@ -473,9 +483,11 @@ class HistoricalDataManager {
             .find(row => row.startsWith('csrf_token='));
 
         if (cookieValue) {
+            console.log('Sprint 62: CSRF token found in cookie');
             return cookieValue.split('=')[1];
         }
 
+        console.error('Sprint 62: CSRF token NOT FOUND!');
         return '';
     }
 
@@ -493,6 +505,14 @@ class HistoricalDataManager {
 
             console.log('Sprint 62: Fetching universes from /admin/historical-data/universes...');
             const response = await fetch('/admin/historical-data/universes?types=UNIVERSE,ETF');
+
+            // Check if response is HTML (redirect to login page)
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('text/html')) {
+                console.error('Session expired, redirecting to login...');
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -600,35 +620,28 @@ class HistoricalDataManager {
      * Submit universe bulk load (Sprint 62: Updated for dynamic universes + timeframes)
      */
     async submitUniverseLoad(event) {
+        console.log('Sprint 62: submitUniverseLoad called', event);
         event.preventDefault();
+        event.stopPropagation();
 
         const form = event.target;
         const formData = new FormData(form);
 
-        // Check which data source is selected
-        const dataSource = document.querySelector('input[name="data_source"]:checked')?.value;
+        // Get data source (Sprint 62: Now a hidden input, not radio buttons)
+        const dataSource = formData.get('data_source') || 'cached';
 
         console.log('Sprint 62: Data source:', dataSource);
 
-        // Validate based on selected data source
-        if (dataSource === 'csv') {
-            const csvFile = formData.get('csv_file');
-            if (!csvFile) {
-                this.showNotification('Please select a CSV file', 'error');
-                return;
-            }
-            console.log('CSV mode validated:', csvFile);
-            // Use existing CSV flow (not modified in Sprint 62)
-            await this.submitCSVUniverseLoad(formData);
-            return;
-
-        } else if (dataSource === 'cached') {
-            // Sprint 62: New cached universe flow with RelationshipCache
+        // Sprint 62: CSV option removed, always use cached universe flow
+        if (dataSource === 'cached') {
             await this.submitCachedUniverseLoad(formData);
             return;
-
+        } else if (dataSource === 'csv') {
+            // CSV mode disabled in Sprint 62
+            this.showNotification('CSV loading has been disabled. Please use cached universe loading.', 'error');
+            return;
         } else {
-            this.showNotification('Please select a data source', 'error');
+            this.showNotification('Invalid data source', 'error');
             return;
         }
     }
@@ -656,8 +669,8 @@ class HistoricalDataManager {
             return;
         }
 
-        // Get years
-        const years = parseInt(formData.get('years') || 1);
+        // Get years (use parseFloat for fractional values like 0.003 for "1 Day")
+        const years = parseFloat(formData.get('years') || 1);
 
         console.log('Sprint 62: Submitting cached universe load:', {
             universeKey,
@@ -670,6 +683,7 @@ class HistoricalDataManager {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken()
                 },
                 body: JSON.stringify({
                     universe_key: universeKey,
@@ -680,9 +694,23 @@ class HistoricalDataManager {
 
             console.log('Response status:', response.status, response.statusText);
 
+            // Check if response is HTML (redirect to login page)
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('text/html')) {
+                // Authentication failed, redirect to login
+                console.error('Session expired, redirecting to login...');
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP ${response.status}`);
+                // Only try to parse JSON if content type is actually JSON
+                let errorMessage = `HTTP ${response.status}`;
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || errorMessage;
+                }
+                throw new Error(errorMessage);
             }
 
             const data = await response.json();
@@ -751,20 +779,18 @@ class HistoricalDataManager {
     }
 
     /**
-     * Handle data source toggle (CSV vs Cached Universe)
+     * Handle data source toggle (Sprint 62: CSV removed, always show cached)
      */
     handleDataSourceToggle() {
-        const dataSource = document.querySelector('input[name="data_source"]:checked')?.value;
+        // Sprint 62: CSV option removed, data_source is now a hidden input defaulting to "cached"
+        const dataSourceInput = document.querySelector('input[name="data_source"]');
+        const dataSource = dataSourceInput?.value || 'cached';
         const csvGroup = document.getElementById('csv-file-group');
         const cachedGroup = document.getElementById('cached-universe-group');
 
-        if (dataSource === 'csv') {
-            csvGroup.style.display = 'flex';
-            cachedGroup.style.display = 'none';
-        } else if (dataSource === 'cached') {
-            csvGroup.style.display = 'none';
-            cachedGroup.style.display = 'flex';
-        }
+        // Always hide CSV, always show cached
+        if (csvGroup) csvGroup.style.display = 'none';
+        if (cachedGroup) cachedGroup.style.display = 'block';
 
         console.log(`Data source toggled to: ${dataSource}`);
     }
@@ -791,10 +817,22 @@ class HistoricalDataManager {
             universeKeyInput.addEventListener('input', (e) => this.handleUniverseKeyInput(e));
         }
 
-        // Universe load form submission
+        // Universe load form submission (Sprint 62: Using button click instead of form submit)
+        const universeLoadBtn = document.getElementById('universeLoadBtn');
         const universeLoadForm = document.getElementById('universeLoadForm');
-        if (universeLoadForm) {
-            universeLoadForm.addEventListener('submit', (e) => this.submitUniverseLoad(e));
+
+        if (universeLoadBtn && universeLoadForm) {
+            console.log('Sprint 62: Attaching click event listener to universeLoadBtn');
+            universeLoadBtn.addEventListener('click', (e) => {
+                console.log('Sprint 62: Load button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                // Create a synthetic form submit event
+                const formEvent = { target: universeLoadForm, preventDefault: () => {}, stopPropagation: () => {} };
+                this.submitUniverseLoad(formEvent);
+            });
+        } else {
+            console.error('Sprint 62: universeLoadBtn or universeLoadForm not found! Cannot attach click listener.');
         }
 
         // Load universes on initialization
