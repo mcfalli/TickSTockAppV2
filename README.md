@@ -1,17 +1,25 @@
 # TickStock V2
 
-**TickStock.ai** is a high-performance platform for real-time and batch processing of market data, analyzing over 4,000 stock symbols with sub-millisecond efficiency. It leverages a three-tiered architecture—Daily Batch Processing, Intraday Streaming, and Combo Hybrid Intelligence—to detect technical patterns (e.g., Doji, breakouts) and calculate indicators (e.g., RSI, MACD) across intraday, hourly, daily, weekly, and monthly timeframes. Built with Python (pandas, NumPy, SciPy), it integrates Massive API data and supports modular expansion via a dynamic loading system (NO FALLBACK policy).
+**TickStock.ai** is a high-performance, real-time stock analytics platform that curates actionable insights across more than 4,000 tickers.
 
-**Components:**
-- **TickStockAppV2**: Manages UI, authentication, and real-time WebSocket updates; consumes events and triggers jobs via Redis.
-- **TickStockPL**: Handles pattern detection, data processing, backtesting, and TimescaleDB management; publishes events to Redis.
+It delivers dynamic, subscription-based dashboards featuring:
+- **Ranked top-performing stocks** by live and EOD percentage changes
+- **Multi-timeframe performance trends** (1-week through 1-year)
+- **Key fundamental metrics** (EPS rank, P/E ratio, revenue rank)
+- **Advanced risk and volatility indicators** (ATR, ADR%, ATR relative to SMA(50))
 
-**Key Features:**
-- Processes thousands of symbols/minute for intraday patterns/indicators
-- Performs daily batch analysis for long-term trends, stored in TimescaleDB
-- Correlates multi-timeframe signals with fundamentals (e.g., EPS surprises) for <5% false positives
-- Achieves >300 symbols/second, >92% cache hit rates, with Flask, SQLAlchemy, and Matplotlib integration
-- Multi-connection WebSocket support: Up to 3 concurrent connections for 3x throughput capacity, priority ticker routing, and partial failover capability
+Subscribers can dive deep into:
+- **Sector-specific and industry-group breakdowns** (semiconductors, energy, metals, finance) with proprietary stage analysis for bullish and bearish setups
+- **Moving average matrices** for precise entry, hold, and exit signals
+- **Aggregated market health metrics** across major indices (NASDAQ, S&P 500, QQQE) and sector ETFs
+
+The platform is enhanced with intuitive **color-coded visualizations**, **multi-timeframe trend analysis** (intraday + daily correlations), customizable filtering, and **sub-millisecond update performance**—powered by a memory-first architecture. Designed to highlight high-probability opportunities such as volume surges, momentum shifts, and trend confirmations through comprehensive market state analysis, TickStock.ai is built for serious day traders, swing analysts, and portfolio managers who demand a real edge in fast-moving, volatile markets.
+
+**Technical Architecture:**
+- **TickStockAppV2**: UI, authentication, real-time WebSocket updates; market state dashboards and trend visualization
+- **TickStockPL**: Data import and management, historical data processing, TimescaleDB management
+- **Performance**: Processes thousands of symbols/minute, >300 symbols/second throughput, >92% cache hit rates
+- **Integration**: Python (pandas, NumPy, SciPy), Flask, SQLAlchemy, Matplotlib, multi-connection WebSocket support
 
 ## Quick Start
 

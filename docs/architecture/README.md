@@ -7,7 +7,7 @@
 
 ## Overview
 
-TickStockAppV2 is a **standalone application** for real-time market data analysis. It provides user interface, authentication, local pattern detection, and database persistence for WebSocket tick data. **Sprint 54** removed all TickStockPL integration, making the application completely self-contained.
+TickStockAppV2 is a **market state analysis platform** for real-time market insights. It provides user interface, authentication, market state dashboards, and database persistence for WebSocket tick data. TickStockPL handles data import and historical data management.
 
 ## Quick Links
 
@@ -22,27 +22,29 @@ TickStockAppV2 is a **standalone application** for real-time market data analysi
 ```
 [Massive WebSocket] → [MarketDataService] → [TimescaleDB (ohlcv_1min)]
                               ↓
-                    [FallbackPatternDetector] → [pattern_detections table]
+                    [Market State Analysis] → [Dashboards & Rankings]
 
 [Browser UI] ← [REST API (/api/ticks/recent)] ← [TimescaleDB Query]
+
+[TickStockPL] → [Historical Data Import] → [TimescaleDB Management]
 ```
 
 ### Core Responsibilities
 
-**TickStockAppV2 (Standalone Application)**
+**TickStockAppV2 (Market State Dashboard)**
 - User authentication and session management
 - WebSocket tick data ingestion from Massive API
 - Direct database persistence (ohlcv_1min table)
-- Local pattern detection via FallbackPatternDetector
-- Dashboard UI and visualizations
+- Market state analysis: rankings, sector rotation, stage classification
+- Dashboard UI and trend visualizations
 - REST API for frontend data polling
-- Database read/write operations
+- Database read operations
 
-**Removed (Sprint 54)**
-- ~~Redis event consumption from TickStockPL~~
-- ~~Job submission to TickStockPL~~
-- ~~WebSocket real-time broadcasting~~
-- ~~Pattern/indicator consumption from external services~~
+**TickStockPL (Data Import & Management)**
+- Historical data import from multiple providers
+- EOD data processing and validation
+- TimescaleDB schema management
+- Database write operations and maintenance
 
 ## Component Architecture
 
@@ -53,8 +55,8 @@ TickStockAppV2 is a **standalone application** for real-time market data analysi
 - **Static Assets**: CSS, JavaScript, images
 
 ### 2. API Layer (`src/api/`)
-- **REST Endpoints**: Pattern discovery, monitoring, admin functions
-- **WebSocket Handlers**: Real-time event broadcasting
+- **REST Endpoints**: Market state queries, monitoring, admin functions
+- **WebSocket Handlers**: Real-time data broadcasting
 - **Authentication**: Session-based user management
 - **Rate Limiting**: API throttling and protection
 
@@ -97,7 +99,7 @@ tickstock:monitoring              # Application health metrics (optional)
 
 **Note**: Redis is now used ONLY for internal application features, NOT for cross-system communication.
 
-### Message Flow (Sprint 54 - Standalone Architecture)
+### Message Flow (Current Architecture)
 
 **Database-First Tick Processing:**
 ```
@@ -105,9 +107,9 @@ Massive WebSocket API ('A' aggregate events)
         ↓
 MarketDataService._handle_tick_data()
         ├─ Database Write → ohlcv_1min table (async, <10ms)
-        └─ FallbackPatternDetector → local pattern analysis
+        └─ Market State Analysis → rankings, sector rotation
                 ↓
-        pattern_detections table
+        Dashboard updates
 ```
 
 **Frontend Data Access:**
@@ -120,16 +122,16 @@ TimescaleDB Query (ohlcv_1min table)
         ↓
 JSON Response (OHLCV data)
         ↓
-Browser Dashboard Update
+Browser Dashboard Update (rankings, trends, breadth)
 ```
 
-**Key Improvements (Sprint 54):**
-- ✅ TickStockPL integration removed (standalone operation)
+**Key Architecture Features:**
+- ✅ Real-time market state dashboards
 - ✅ Direct database persistence (TimescaleDB)
-- ✅ Local pattern detection (FallbackPatternDetector)
-- ✅ REST API for frontend polling (vs. WebSocket broadcast)
-- ✅ Simplified architecture (no Redis cross-system pub/sub)
-- ✅ Database-first data flow (no intermediate message queues)
+- ✅ Market state analysis (rankings, sector rotation, stage classification)
+- ✅ REST API for frontend polling
+- ✅ Separated data import (TickStockPL) from UI (TickStockAppV2)
+- ✅ Database-first data flow
 
 ## Performance Targets
 
@@ -138,7 +140,7 @@ Browser Dashboard Update
 | Database Write (OHLCV) | <50ms | ~10ms | ✅ | 54 |
 | Tick Processing | <1ms | <1ms | ✅ | 54 |
 | REST API Response | <100ms | ~45ms | ✅ | 54 |
-| Pattern Detection (Local) | <2 min | TBD | ⚠️ | 54 |
+| Market State Refresh | <1 sec | ~0.5s | ✅ | 64 |
 | WebSocket Connection | Active | 70 tickers | ✅ | 54 |
 | Cache Hit Rate | >90% | 92% | ✅ | - |
 

@@ -79,20 +79,20 @@ python scripts/cache_maintenance/generate_report.py --detail --format markdown
 
 ## Architecture Essentials
 
-**TickStock.ai** is a high-performance platform for real-time and batch processing of market data, analyzing over 4,000 stock symbols with sub-millisecond efficiency. It leverages a three-tiered architecture—Daily Batch Processing, Intraday Streaming, and Combo Hybrid Intelligence—to detect technical patterns (e.g., Doji, breakouts) and calculate indicators (e.g., RSI, MACD) across intraday, hourly, daily, weekly, and monthly timeframes. Built with Python (pandas, NumPy, SciPy), it integrates Massive API data and supports modular expansion via a dynamic loading system (NO FALLBACK policy).
+**TickStock.ai** is a high-performance platform for real-time market state analysis and trend tracking, analyzing over 4,000 stock symbols with sub-millisecond efficiency. It delivers ranked stock performance, sector rotation insights, stage classification, and comprehensive market breadth metrics across intraday, hourly, daily, weekly, and monthly timeframes. Built with Python (pandas, NumPy, SciPy), it integrates Massive API data and supports modular expansion via a dynamic loading system (NO FALLBACK policy).
 
 **Components:**
-- **TickStockAppV2**: Manages UI, authentication, and real-time WebSocket updates; consumes events and triggers jobs via Redis.
-- **TickStockPL**: Handles pattern detection, data processing, backtesting, and TimescaleDB management; publishes events to Redis.
+- **TickStockAppV2**: Manages UI, authentication, and real-time WebSocket updates; delivers market state dashboards, sector analysis, and trend visualization.
+- **TickStockPL**: Handles data import and management, historical data processing, and TimescaleDB management.
 
 **Key Features:**
-- Processes thousands of symbols/minute for intraday patterns/indicators
+- Processes thousands of symbols/minute for market state and trend analysis
 - Performs daily batch analysis for long-term trends, stored in TimescaleDB
-- Correlates multi-timeframe signals with fundamentals (e.g., EPS surprises) for <5% false positives
+- Delivers sector rotation insights, stage classification, and relative strength rankings
 - Achieves >300 symbols/second, >92% cache hit rates, with Flask, SQLAlchemy, and Matplotlib integration
 - **Multi-Connection WebSocket Architecture**: Supports up to 3 concurrent WebSocket connections to Massive API for 3x throughput capacity, priority ticker routing, and partial failover capability
 
-**Redis Pub-Sub**: Ensures loose coupling between components, with channels like tickstock.events.patterns and tickstock:monitoring for real-time events and metrics.
+**Redis Pub-Sub**: Ensures loose coupling between components, with channels like tickstock:monitoring for real-time events and metrics.
 
 **WebSocket Data Ingestion**:
 - **Single-Connection Mode** (default): Single WebSocket connection handles all tickers (backward compatible)
@@ -609,7 +609,37 @@ python run_tests.py
   - Added usage examples for multi-universe joins
 - See: `docs/planning/sprints/sprint61/SPRINT61_PLAN.md`
 
-### System Integration Points (Updated Sprint 42/43/55/59/60/61)
+### Sprint 64 - COMPLETE ✅ (December 28, 2025)
+**Threshold Bars: Market Sentiment Visualization**
+- ✅ **Phase 1: Backend Service Layer**
+  - ThresholdBarService with vectorized pandas operations
+  - DivergingThresholdBar (4 segments) and SimpleDivergingBar (2 segments)
+  - RelationshipCache integration for symbol loading
+  - Performance: <50ms for 500+ symbols
+- ✅ **Phase 2: API Layer**
+  - GET `/api/threshold-bars` REST endpoint
+  - Pydantic v2 request/response validation
+  - Comprehensive error handling (ValidationError, RuntimeError)
+  - 14 API tests: all passing
+- ✅ **Phase 3: Frontend Rendering**
+  - Pure JavaScript threshold-bar-renderer.js (no external dependencies)
+  - CSS Flexbox diverging bar layout with baseline
+  - Market Overview dashboard with 14 live threshold bars
+  - Sidebar navigation integration (3rd menu item)
+  - Auto-refresh for intraday data (60s interval)
+- ✅ **Phase 4: Integration Testing**
+  - 16 unit tests (service layer): all passing
+  - 14 API tests (endpoint): all passing
+  - 9 e2e integration tests: all passing
+  - Performance validated: API <50ms, rendering <100ms
+- ✅ **Phase 5: Validation**
+  - Level 1: Syntax (ruff) - PASSED
+  - Level 2: Unit tests (pytest) - PASSED (30 tests)
+  - Level 3: Integration tests - PASSED (9 tests)
+  - Level 4: TickStock pattern flow - PASSED
+- See: `docs/planning/sprints/sprint64/threshold-bars.md`
+
+### System Integration Points (Updated Sprint 42/43/55/59/60/61/64)
 - **TickStockPL API**: HTTP commands on port 8080
 - **Redis Streaming Channels**:
   - `tickstock:patterns:streaming` - Real-time pattern detections ✅

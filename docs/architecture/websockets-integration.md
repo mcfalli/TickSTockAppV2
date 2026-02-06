@@ -1,7 +1,7 @@
 # WebSockets Integration for TickStock.ai
 
 ## Overview
-TickStockApp handles real-time data ingestion via WebSockets (e.g., Massive.com's wss://socket.massive.com/stocks), providing per-minute OHLCV updates for symbols. This data is forwarded to TickStockPL's `DataBlender` for blending with historical data, enabling pattern scanning (batch and real-time) and event publishing to TickStockApp. The pipeline supports high-frequency patterns (e.g., Day1Breakout) and daily aggregations, storing live data in the database for persistence.
+TickStockApp handles real-time data ingestion via WebSockets (e.g., Massive.com's wss://socket.massive.com/stocks), providing per-minute OHLCV updates for symbols. This data is persisted directly to TimescaleDB and used for real-time market state analysis, including rankings, sector rotation, stage classification, and breadth metrics. The pipeline delivers sub-second dashboard updates for actionable trading insights.
 
 ## WebSocket Client Architecture
 

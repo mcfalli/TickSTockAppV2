@@ -7,7 +7,7 @@
 
 ## Overview
 
-**Sprint 54 Update**: TickStockAppV2 now operates as a **standalone application** with NO TickStockPL integration. Redis is used only for internal application pub/sub, NOT for cross-system communication.
+TickStockAppV2 operates as a **market state analysis platform**. Redis is used for internal application pub/sub and monitoring. TickStockPL operates independently, handling data import and historical data management.
 
 ### Architecture Change
 
@@ -19,20 +19,21 @@ TickStockAppV2 → Redis Pub-Sub → TickStockPL
  Publisher      Distribution   Consumer
 ```
 
-**Current Architecture (Sprint 54+)**:
+**Current Architecture**:
 ```
 Massive WebSocket → MarketDataService → [Direct Database Persistence]
-                                       → [FallbackPatternDetector (local)]
+                                       → [Market State Analysis]
 
-Frontend → REST API (/api/ticks/recent) → Database → JSON Response
+Frontend → REST API (/api/ticks/recent) → Database → JSON Response (Rankings, Trends)
+
+TickStockPL → [Historical Data Import] → TimescaleDB Management
 ```
 
-**Key Changes**:
+**Key Features**:
 - ✅ **Database-First**: Tick data persists directly to TimescaleDB `ohlcv_1min` table
-- ✅ **Standalone Operation**: No cross-system Redis pub/sub dependencies
-- ✅ **Local Pattern Detection**: FallbackPatternDetector operates within AppV2
-- ❌ **No TickStockPL Integration**: All Redis channels TO/FROM TickStockPL removed
-- ❌ **No Tick Forwarding**: Tick data NOT published to Redis for external consumption
+- ✅ **Market State Focus**: Rankings, sector rotation, stage classification, breadth metrics
+- ✅ **Separated Concerns**: TickStockAppV2 (UI/analysis) and TickStockPL (data import) operate independently
+- ✅ **Real-Time Dashboards**: Sub-second updates for market state changes
 
 ## Redis Usage (Internal Only)
 
@@ -82,16 +83,16 @@ The following Redis channels have been **permanently removed**:
 
 **Performance**: Database writes are async and non-blocking (~10ms latency)
 
-### Pattern Detection (Current)
+### Market State Analysis (Current)
 
 ```
-FallbackPatternDetector (Standalone)
+Market State Analysis Engine
   ├─ Input: Real-time tick data from MarketDataService
-  ├─ Processing: Local pattern analysis algorithms
-  └─ Output: Pattern detections stored in database
+  ├─ Processing: Rankings, sector rotation, stage classification
+  └─ Output: Dashboard updates with market state metrics
 ```
 
-**Note**: Pattern detection is now **entirely local** to TickStockAppV2. No external pattern services.
+**Note**: Market state analysis is **entirely local** to TickStockAppV2. TickStockPL handles historical data import independently.
 
 ## Migration from Pre-Sprint 54
 
