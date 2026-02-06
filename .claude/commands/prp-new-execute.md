@@ -9,7 +9,7 @@ PRPs enable working code on the first attempt through:
 - **Context Completeness**: Everything needed, nothing guessed
 - **Progressive Validation**: 4-level gates catch errors early
 - **Pattern Consistency**: Follow existing codebase approaches
-- Read PRPs/README.md to understand PRP concepts
+- Read docs/PRPs/README.md to understand PRP concepts
 
 **Your Goal**: Transform the PRP into working code that passes all validation gates.
 
@@ -21,6 +21,10 @@ PRPs enable working code on the first attempt through:
    - Use the provided documentation references and file patterns, consume the right documentation before the appropriate todo/task
    - Trust the PRP's context and guidance - it's designed for one-pass success
    - If needed do additional codebase exploration and research as needed
+   - **If PRP has errors, ambiguities, or missing context during execution:**
+     - Continue implementation using best judgment and research
+     - Document ALL gaps discovered in {feature-name}-AMENDMENT.md
+     - Update PRP template if gaps represent systematic issues
 
 2. **ULTRATHINK & Plan**
    - Create comprehensive implementation plan following the PRP's task order
@@ -72,17 +76,27 @@ After successful implementation, create sprint documentation:
 ### 2. Lessons Learned (If Applicable)
 **File**: `docs/planning/sprints/sprint{N}/{feature-name}-AMENDMENT.md`
 
-**Create if**:
-- PRP had gaps or missing context
-- Required debugging iterations beyond initial implementation
+**Create if (one or more applies)**:
+- PRP had gaps or missing context (>30 min debugging due to missing info)
+- Required >3 debugging iterations beyond initial implementation
 - Framework-specific patterns were missing
 - Requirements changed during implementation
+- Discovered anti-patterns that should be documented
 
 **Contents**:
 - What was missing from PRP
 - How many debugging iterations required
 - Correct patterns discovered
 - Recommendations for PRP template improvements
+
+### 3. Additional Notes (Optional)
+**File**: `docs/planning/sprints/sprint{N}/{feature-name}-NOTES.md`
+
+**Create if**:
+- Implementation insights for future reference (not PRP gaps)
+- Performance tuning details worth preserving
+- Alternative approaches considered but not used
+- Future enhancement ideas discovered during implementation
 
 ### 3. Update Sprint Tracking
 - Update sprint README or tracking document

@@ -11,7 +11,7 @@ CHANGE PRPs enable safe code modifications through:
 - **Impact Mitigation**: Anticipate and prevent breakage
 - **Regression Prevention**: Ensure existing functionality preserved
 - **Progressive Validation**: 5-level gates catch regressions early
-- Read PRPs/README.md to understand PRP concepts
+- Read docs/PRPs/README.md to understand PRP concepts
 
 **Your Goal**: Transform the PRP into working changes that pass all validation gates WITHOUT breaking existing functionality.
 
@@ -36,9 +36,22 @@ CHANGE PRPs enable safe code modifications through:
 3. **Pre-Modification Baseline**
    - **MANDATORY**: Document current state BEFORE making changes
    - Run all tests and verify they pass: `python run_tests.py`
-   - Capture current performance metrics (if performance-related change)
-   - Create git branch: `git checkout -b change/{feature-name}`
+   - **Capture performance metrics** (if performance-related change):
+     ```bash
+     # Database query timing
+     psql -U app_readwrite -d tickstock -c "\timing on" -c "SELECT ..."
+     # Record: Current query time = XXms
+
+     # API endpoint timing
+     curl -w "@curl-timing.txt" http://localhost:5000/api/endpoint
+     # Record: Current response time = XXms
+
+     # Redis operation timing
+     redis-cli --latency-history
+     # Record: Current latency = XXms average
+     ```
    - Take screenshots/output samples of current behavior if user-facing
+   - Create git branch: `git checkout -b change/{feature-name}`
 
 4. **Execute Modification**
    - Follow the PRP's Change Tasks sequence precisely

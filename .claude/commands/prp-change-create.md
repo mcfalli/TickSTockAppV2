@@ -8,7 +8,7 @@ Create a comprehensive CHANGE PRP that enables **one-pass modification success**
 
 **Critical Understanding**: The executing AI agent only receives:
 
-- Start by reading and understanding the prp concepts PRPs/README.md
+- Start by reading and understanding the prp concepts docs/PRPs/README.md
 - The PRP content you create (including current implementation analysis)
 - Its training data knowledge
 - Access to codebase files (but needs guidance on which ones to read AND modify)
@@ -35,6 +35,25 @@ Create a comprehensive CHANGE PRP that enables **one-pass modification success**
    - **WebSocket Dependencies**: Event types, message structures affected
    - **External API Dependencies**: TickStockPL endpoints, contracts affected
    - Use batch tools to spawn subagents to map all dependencies comprehensively
+   - **Dependency Analysis Tools:**
+     ```bash
+     # Find all callers of function/class being modified
+     rg "function_name\(" src/ tests/
+     rg "ClassName" src/ tests/
+
+     # Find database table dependencies
+     rg "table_name" src/
+
+     # Find Redis channel usage
+     rg "tickstock:channel:pattern" src/
+
+     # Find WebSocket event usage
+     rg "event_name" src/ web/
+
+     # Check for dynamic usage (imports, eval)
+     rg "import.*module_name" src/
+     rg "getattr.*function_name" src/
+     ```
 
 3. **Impact Analysis**
    - **Breakage Points**: What could break as a result of this change
@@ -122,9 +141,16 @@ Where `{N}` is the current sprint number (e.g., sprint44, sprint45).
 **Related Documentation Pattern**:
 - Main PRP: `docs/planning/sprints/sprint{N}/{change-name}.md`
 - Amendment/lessons learned: `docs/planning/sprints/sprint{N}/{change-name}-AMENDMENT.md` (create if PRP gaps found)
-- Implementation results: `docs/planning/sprints/sprint{N}/{change-name}-RESULTS.md` (create post-execution)
+- Implementation results: `docs/planning/sprints/sprint{N}/{change-name}-RESULTS.md` (REQUIRED - create post-execution)
 - Additional notes: `docs/planning/sprints/sprint{N}/{change-name}-NOTES.md` (optional)
-- Migration guide: `docs/planning/sprints/sprint{N}/{change-name}-MIGRATION.md` (if breaking changes)
+- **Migration guide**: `docs/planning/sprints/sprint{N}/{change-name}-MIGRATION.md` (REQUIRED if breaking changes = Yes)
+  - Breaking change criteria:
+    - Function signature changes (parameters added/removed/reordered)
+    - API endpoint request/response format changes
+    - Database schema changes requiring data backfill
+    - Redis message format changes affecting subscribers
+    - WebSocket event structure changes affecting frontend
+    - Configuration variable renames or type changes
 
 ## PRP Quality Gates
 

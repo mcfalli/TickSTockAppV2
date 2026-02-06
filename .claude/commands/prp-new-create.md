@@ -8,7 +8,7 @@ Create a comprehensive PRP that enables **one-pass implementation success** thro
 
 **Critical Understanding**: The executing AI agent only receives:
 
-- Start by reading and understanding the prp concepts PRPs/README.md
+- Start by reading and understanding the prp concepts docs/PRPs/README.md
 - The PRP content you create
 - Its training data knowledge
 - Access to codebase files (but needs guidance on which ones)
@@ -29,7 +29,11 @@ Create a comprehensive PRP that enables **one-pass implementation success** thro
 2. **External Research at scale**
    - Create clear todos and spawn with instructions subagents to do deep research for similar features/patterns online and include urls to documentation and examples
    - Library documentation (include specific URLs)
-   - For critical pieces of documentation add a .md file to PRPs/ai_docs and reference it in the PRP with clear reasoning and instructions
+   - **When to add .md file to docs/PRPs/ai_docs**:
+     - Complex library patterns (>50 lines of context needed)
+     - Framework-specific gotchas not in official docs
+     - TickStock-specific integration patterns
+     - Custom implementation strategies discovered during research
    - Implementation examples (GitHub/StackOverflow/blogs)
    - Best practices and common pitfalls found during research
    - Use the batch tools to spawn subagents to search for similar features/patterns online and include urls to documentation and examples
@@ -76,11 +80,15 @@ After research completion, create comprehensive PRP writing plan using TodoWrite
 
 ## Output
 
-**Ask user for current sprint number if not clear from context.**
+**Determine current sprint number:**
+1. Check CLAUDE.md "Current Implementation Status" section for latest completed sprint
+2. Check docs/planning/sprints/ directory for highest sprint number
+3. Next sprint = highest_existing + 1 (unless user specifies otherwise)
+4. If unclear, ask user: "I found Sprint {N} is latest. Creating PRP for Sprint {N+1}?"
 
 Save as: `docs/planning/sprints/sprint{N}/{feature-name}.md`
 
-Where `{N}` is the current sprint number (e.g., sprint44, sprint45).
+Example: Latest completed Sprint 64 → Create in sprint65 or sprint66 depending on status
 
 **Related Documentation Pattern**:
 - Main PRP: `docs/planning/sprints/sprint{N}/{feature-name}.md`
