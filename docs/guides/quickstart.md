@@ -1,7 +1,7 @@
 # TickStockAppV2 Quick Start Guide
 
-**Version**: 3.0.0
-**Last Updated**: September 26, 2025
+**Version**: 4.0.0
+**Last Updated**: February 5, 2026
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@
 
 2. **Redis Server** (Port 6379)
    - Default localhost:6379
-   - Used for pub-sub messaging
+   - Used for internal application monitoring (errors, health metrics)
 
 ### Python Requirements
 - Python 3.8+
@@ -68,14 +68,14 @@ python scripts/dev_tools/database_integrity/util_test_db_integrity.py
 
 ### Option 1: Development Mode
 ```bash
-# Start all services (TickStockAppV2, TickStockPL API, TickStockPL DataLoader)
+# Start TickStockAppV2 (includes market data service and web UI)
 python start_all_services.py
 ```
 
 ### Option 2: Production Mode
 ```bash
 # Using Gunicorn
-gunicorn -w 4 -b 0.0.0.0:8501 --worker-class eventlet app:app
+gunicorn -w 4 -b 0.0.0.0:5000 --worker-class eventlet app:app
 ```
 
 ### Option 3: Individual Components
@@ -91,41 +91,33 @@ python src/services/monitoring_subscriber.py
 
 ### 1. Check Health Endpoint
 ```bash
-curl http://localhost:8501/health
+curl http://localhost:5000/health
 # Should return: {"status": "healthy", "database": "connected", "redis": "connected"}
 ```
 
 ### 2. Access Web Interface
-- Open browser: http://localhost:8501
+- Open browser: http://localhost:5000
 - Default login: Use registration to create account
 - Admin setup: See administration guide
 
-### 3. Verify Redis Connection
+### 3. Verify Market Data Ingestion
 ```bash
-# Monitor Redis channels
+# Check that WebSocket is receiving data
+# View dashboard at: http://localhost:5000/dashboard
+
+# Monitor Redis health (optional)
 redis-cli
 > SUBSCRIBE tickstock:monitoring
 ```
 
-## Integration with TickStockPL
+## Testing
 
-### Starting Full Stack
-1. Ensure TickStockAppV2 is running
-2. Start TickStockPL service (separate repository)
-3. Verify integration:
-   ```bash
-   # Check for events
-   redis-cli
-   > SUBSCRIBE tickstock.events.patterns
-   ```
-
-### Testing Integration
+### Run Integration Tests
 ```bash
-# Run integration tests
-python tests/integration/run_integration_tests.py
+# Run all integration tests
+python run_tests.py
 
-# Test specific components
-python tests/integration/test_tickstockpl_integration.py
+# Expected: 2 tests, ~30 second runtime
 ```
 
 ## Common Operations
@@ -144,10 +136,9 @@ python scripts/admin/reset_password.py --username=user@example.com
 #### Quick Data Load
 ```bash
 # Load historical data via admin UI
-# Navigate to: http://localhost:8501/admin/historical-data
+# Navigate to: http://localhost:5000/admin/historical-data
 
-# Or use command line
-python src/api/rest/admin_historical_data.py
+# Data is loaded via TickStockPL (separate repository)
 ```
 
 #### Historical Data Loading Options
@@ -238,15 +229,15 @@ redis-cli ping
 ### Port Conflicts
 ```bash
 # Check port usage
-netstat -an | findstr 8501  # Windows
-netstat -an | grep 8501     # Linux/Mac
+netstat -an | findstr 5000  # Windows
+netstat -an | grep 5000     # Linux/Mac
 
 # Change port in .env
-FLASK_PORT=8502
+FLASK_PORT=5001
 ```
 
 ### Performance Issues
-- Check cache hit rates: http://localhost:8501/api/monitoring/metrics
+- Check health endpoint: http://localhost:5000/health
 - Monitor Redis latency: `redis-cli --latency`
 - Review slow queries: Check `logs/tickstock.log`
 
@@ -262,5 +253,5 @@ FLASK_PORT=8502
 
 - **Documentation**: `/docs` folder
 - **Integration Tests**: `python run_tests.py`
-- **Health Check**: http://localhost:8501/health
-- **Admin Dashboard**: http://localhost:8501/admin (requires admin role)
+- **Health Check**: http://localhost:5000/health
+- **Admin Dashboard**: http://localhost:5000/admin (requires admin role)

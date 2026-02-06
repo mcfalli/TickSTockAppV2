@@ -1,11 +1,11 @@
 # TickStockAppV2 Documentation
 
-**Version**: 3.0.0
-**Last Updated**: September 26, 2025
+**Version**: 4.0.0
+**Last Updated**: February 5, 2026
 
 ## Overview
 
-TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem, providing user interface, authentication, and real-time data delivery while consuming processed events from TickStockPL.
+TickStockAppV2 is a market state analysis platform providing real-time dashboards for rankings, sector rotation, stage classification, and breadth metrics. It ingests tick data from Massive API, persists to TimescaleDB, and delivers actionable market insights through interactive dashboards.
 
 ## Documentation Structure
 
@@ -18,8 +18,6 @@ TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem,
 - **[Redis Integration](./architecture/redis-integration.md)** - Pub-sub messaging patterns
 - **[WebSocket Integration](./architecture/websockets-integration.md)** - Real-time communication
 - **[Configuration](./architecture/configuration.md)** - Environment and settings
-- **[Streaming Integration Verified](./architecture/streaming-integration-verified.md)** - Phase 5 streaming verification
-- **[TickStockPL Integration Compliance](./architecture/tickstockpl-integration-compliance.md)** - Redis integration compliance
 
 ### Guides
 - **[Startup Guide](./guides/startup.md)** - Complete startup instructions for all services
@@ -31,7 +29,7 @@ TickStockAppV2 is the consumer-facing application in the TickStock.ai ecosystem,
 - **[API Endpoints](./api/endpoints.md)** - Complete REST API documentation
 
 ### Data Sources
-- **[Massive Configuration](./data-sources/massive/)** - Market data provider setup
+- **Massive API**: Primary WebSocket data source (see [WebSocket Integration](./architecture/websockets-integration.md))
 
 ### Planning & Sprints
 - **[Sprint Documentation](./planning/sprints/)** - Current and past sprint plans
@@ -72,19 +70,20 @@ FLASK_SECRET_KEY=your-secret-key
 ```
 TickStockAppV2 (This Repository)
 ├── Web Interface (Flask/Jinja2)
-├── WebSocket Server (Socket.IO)
-├── REST API (Pattern Discovery, Admin)
-├── Redis Subscriber (Event Consumption)
+├── Market State Dashboards (Rankings, Sector Rotation, Stage Analysis)
+├── WebSocket Server (Massive API Data Ingestion)
+├── REST API (Market Data, Threshold Bars, Admin)
+├── Database Persistence (ohlcv_1min table)
 └── Read-Only Database Access
 
-    ↕ Redis Pub-Sub ↕
+    ↕ Database ↕
 
-TickStockPL (Processing Engine)
-├── Pattern Detection
-├── Indicator Calculations
-├── Data Processing
-├── Database Management
-└── Event Publishing
+TickStockPL (Data Import & Management)
+├── Historical Data Import
+├── EOD Data Processing
+├── TimescaleDB Schema Management
+├── Database Write Operations
+└── Data Validation & Maintenance
 ```
 
 ## Performance Targets
@@ -114,14 +113,15 @@ TickStockPL (Processing Engine)
 - Review [Testing Guide](./guides/testing.md) for quality assurance
 - Check [Sprint Plans](./planning/sprints/) for current work
 
-## Migration Notes
+## Architecture Notes
 
-**Documentation Cleanup (Sept 2025)**
-- Consolidated from 262 files to ~15 focused documents
-- Removed outdated sprint artifacts
-- Merged redundant guides
-- See [ARCHIVE_MAP.md](./ARCHIVE_MAP.md) for migration details
+**Sprint 54 (November 2025)** - Standalone architecture established:
+- TickStockAppV2: Market state analysis platform
+- TickStockPL: Data import and management (separate repository)
+- Database-first data flow with TimescaleDB persistence
+
+**Sprint 64 (December 2025)** - Threshold bars for market sentiment visualization added
 
 ## License & Support
 
-This is the UI/consumer component of TickStock.ai. For processing engine documentation, see the TickStockPL repository.
+This is the market state analysis platform of TickStock.ai. For historical data import and database management, see the TickStockPL repository.
