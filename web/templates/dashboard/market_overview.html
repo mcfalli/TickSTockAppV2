@@ -1,0 +1,363 @@
+<!-- Sprint 64: Market Overview - Threshold Bars Dashboard Content -->
+<div id="market-overview-content" class="dashboard-content-section">
+    <div class="section-header">
+        <h2><i class="fas fa-chart-line"></i> Market Overview</h2>
+        <button id="refresh-market-overview-btn" class="btn btn-sm btn-primary">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+
+    <div class="row">
+        <!-- Header Card -->
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> About Threshold Bars
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1">
+                        Threshold bars visualize advance-decline sentiment across market segments.
+                        Each bar shows the percentage distribution of symbols in different performance zones.
+                    </p>
+                    <ul class="mb-0">
+                        <li><strong>Diverging Threshold Bar:</strong> 4 segments showing significant/minor declines and advances (default threshold: 10%)</li>
+                        <li><strong>Simple Diverging Bar:</strong> 2 segments showing basic decline/advance split</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Major Indices -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar"></i> Major Indices
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- S&P 500 Intraday -->
+                    <div id="sp500-intraday-bar"></div>
+
+                    <!-- S&P 500 Daily -->
+                    <div id="sp500-daily-bar"></div>
+
+                    <!-- NASDAQ 100 Intraday -->
+                    <div id="nasdaq100-intraday-bar"></div>
+
+                    <!-- NASDAQ 100 Daily -->
+                    <div id="nasdaq100-daily-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Major ETFs -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-layer-group"></i> Major ETFs
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- SPY (S&P 500 ETF) -->
+                    <div id="spy-daily-bar"></div>
+
+                    <!-- QQQ (NASDAQ 100 ETF) -->
+                    <div id="qqq-daily-bar"></div>
+
+                    <!-- IWM (Russell 2000 ETF) -->
+                    <div id="iwm-daily-bar"></div>
+
+                    <!-- DIA (Dow Jones ETF) -->
+                    <div id="dia-daily-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Weekly Trends -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-week"></i> Weekly Trends
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- S&P 500 Weekly -->
+                    <div id="sp500-weekly-bar"></div>
+
+                    <!-- NASDAQ 100 Weekly -->
+                    <div id="nasdaq100-weekly-bar"></div>
+
+                    <!-- Combined Universe -->
+                    <div id="combined-weekly-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simple Diverging Bars -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-balance-scale"></i> Simplified View
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- S&P 500 Simple -->
+                    <div id="sp500-simple-bar"></div>
+
+                    <!-- NASDAQ 100 Simple -->
+                    <div id="nasdaq100-simple-bar"></div>
+
+                    <!-- Dow 30 Simple -->
+                    <div id="russell3000-simple-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Row -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div id="market-overview-status" class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Loading market overview...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Market Overview JavaScript Module -->
+<script src="{{ url_for('static', filename='js/components/threshold-bar-renderer.js') }}"></script>
+<script>
+    // Market Overview initialization function
+    window.initializeMarketOverview = function() {
+        // Initialize threshold bar renderer
+        const renderer = new ThresholdBarRenderer({
+            csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        });
+
+        // Configuration for all bars
+        const barConfigs = [
+            // Major Indices - Intraday
+            {
+                containerId: 'sp500-intraday-bar',
+                dataSource: 'SPY',
+                barType: 'DivergingThresholdBar',
+                timeframe: '1min',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'SPY (S&P 500) - Intraday',
+                showMetadata: true
+            },
+            {
+                containerId: 'nasdaq100-intraday-bar',
+                dataSource: 'nasdaq100',
+                barType: 'DivergingThresholdBar',
+                timeframe: '1min',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'NASDAQ 100 - Intraday',
+                showMetadata: true
+            },
+
+            // Major Indices - Daily
+            {
+                containerId: 'sp500-daily-bar',
+                dataSource: 'SPY',
+                barType: 'DivergingThresholdBar',
+                timeframe: 'daily',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'SPY (S&P 500) - Daily',
+                showMetadata: true
+            },
+            {
+                containerId: 'nasdaq100-daily-bar',
+                dataSource: 'nasdaq100',
+                barType: 'DivergingThresholdBar',
+                timeframe: 'daily',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'NASDAQ 100 - Daily',
+                showMetadata: true
+            },
+
+            // Major ETFs - Daily
+            {
+                containerId: 'spy-daily-bar',
+                dataSource: 'SPY',
+                barType: 'DivergingThresholdBar',
+                timeframe: 'daily',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'SPY (S&P 500 ETF) - Daily',
+                showMetadata: true
+            },
+            {
+                containerId: 'qqq-daily-bar',
+                dataSource: 'QQQ',
+                barType: 'DivergingThresholdBar',
+                timeframe: 'daily',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'QQQ (NASDAQ 100 ETF) - Daily',
+                showMetadata: true
+            },
+            {
+                containerId: 'iwm-daily-bar',
+                dataSource: 'IWM',
+                barType: 'DivergingThresholdBar',
+                timeframe: 'daily',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'IWM (Russell 2000 ETF) - Daily',
+                showMetadata: true
+            },
+            {
+                containerId: 'dia-daily-bar',
+                dataSource: 'DIA',
+                barType: 'DivergingThresholdBar',
+                timeframe: 'daily',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'DIA (Dow Jones ETF) - Daily',
+                showMetadata: true
+            },
+
+            // Weekly Trends
+            {
+                containerId: 'sp500-weekly-bar',
+                dataSource: 'SPY',
+                barType: 'DivergingThresholdBar',
+                timeframe: 'weekly',
+                threshold: 0.10,
+                periodDays: 21,
+                label: 'SPY (S&P 500) - Weekly',
+                showMetadata: true
+            },
+            {
+                containerId: 'nasdaq100-weekly-bar',
+                dataSource: 'nasdaq100',
+                barType: 'DivergingThresholdBar',
+                timeframe: 'weekly',
+                threshold: 0.10,
+                periodDays: 21,
+                label: 'NASDAQ 100 - Weekly',
+                showMetadata: true
+            },
+            {
+                containerId: 'combined-weekly-bar',
+                dataSource: 'SPY:nasdaq100',
+                barType: 'DivergingThresholdBar',
+                timeframe: 'weekly',
+                threshold: 0.10,
+                periodDays: 21,
+                label: 'Combined (SPY + NASDAQ 100) - Weekly',
+                showMetadata: true
+            },
+
+            // Simple Diverging Bars
+            {
+                containerId: 'sp500-simple-bar',
+                dataSource: 'SPY',
+                barType: 'SimpleDivergingBar',
+                timeframe: 'daily',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'SPY (S&P 500) - Simple View',
+                showMetadata: true
+            },
+            {
+                containerId: 'nasdaq100-simple-bar',
+                dataSource: 'nasdaq100',
+                barType: 'SimpleDivergingBar',
+                timeframe: 'daily',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'NASDAQ 100 - Simple View',
+                showMetadata: true
+            },
+            {
+                containerId: 'russell3000-simple-bar',
+                dataSource: 'dow30',
+                barType: 'SimpleDivergingBar',
+                timeframe: 'daily',
+                threshold: 0.10,
+                periodDays: 5,
+                label: 'Dow 30 - Simple View',
+                showMetadata: true
+            }
+        ];
+
+        // Render all bars function
+        async function renderAllBars() {
+            const statusEl = document.getElementById('market-overview-status');
+            if (statusEl) {
+                statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading market overview...';
+            }
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const config of barConfigs) {
+                try {
+                    await renderer.render(config.containerId, config);
+                    successCount++;
+                } catch (error) {
+                    console.error(`Failed to render ${config.containerId}:`, error);
+                    errorCount++;
+                }
+            }
+
+            if (statusEl) {
+                if (errorCount === 0) {
+                    statusEl.innerHTML = `<i class="fas fa-check-circle text-success"></i> Successfully loaded ${successCount} market views`;
+                } else {
+                    statusEl.innerHTML = `<i class="fas fa-exclamation-triangle text-warning"></i> Loaded ${successCount} views, ${errorCount} failed`;
+                }
+            }
+        }
+
+        // Initial render
+        renderAllBars();
+
+        // Refresh button handler
+        const refreshBtn = document.getElementById('refresh-market-overview-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                renderAllBars();
+            });
+        }
+
+        // Auto-refresh every 60 seconds for intraday bars
+        const autoRefreshInterval = setInterval(() => {
+            console.log('Auto-refreshing intraday bars...');
+
+            // Only re-render intraday bars
+            const intradayConfigs = barConfigs.filter(config => config.timeframe === '1min');
+
+            for (const config of intradayConfigs) {
+                renderer.render(config.containerId, config).catch(error => {
+                    console.error(`Auto-refresh failed for ${config.containerId}:`, error);
+                });
+            }
+        }, 60000); // 60 seconds
+
+        // Cleanup function
+        return function cleanup() {
+            clearInterval(autoRefreshInterval);
+        };
+    };
+</script>

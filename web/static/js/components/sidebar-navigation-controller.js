@@ -34,7 +34,7 @@ class SidebarNavigationController {
         this.currentTooltip = null;
         this.tooltipTimeout = null;
         
-        // Navigation sections configuration - SIMPLIFIED TO TWO DUMMY LINKS
+        // Navigation sections configuration - SIMPLIFIED TO TWO DUMMY LINKS + MARKET OVERVIEW + STOCK GROUPS
         this.sections = {
             'dummy1': {
                 title: 'Dummy1',
@@ -49,6 +49,20 @@ class SidebarNavigationController {
                 hasFilters: false,
                 component: null,
                 description: 'Dummy2 page placeholder'
+            },
+            'market-overview': {
+                title: 'Market Overview',
+                icon: 'fas fa-chart-line',
+                hasFilters: false,
+                component: 'initializeMarketOverview',
+                description: 'Sprint 64: Threshold bars market sentiment visualization'
+            },
+            'stock-groups': {
+                title: 'Stock Groups',
+                icon: 'fas fa-layer-group',
+                hasFilters: false,
+                component: null,
+                description: 'Sprint 65: Search and filter stock groups (ETFs, sectors, themes, universes)'
             }
         };
         
@@ -419,6 +433,71 @@ class SidebarNavigationController {
                         <h2><i class="${section.icon} me-2"></i>${section.title}</h2>
                         <p class="text-muted">${section.description}</p>
                         <p>Content area ready for development.</p>
+                    </div>
+                `;
+            }
+        } else if (sectionKey === 'market-overview') {
+            // Load Market Overview content from hidden div
+            const marketOverviewContent = document.getElementById('market-overview-content');
+            if (marketOverviewContent) {
+                contentArea.innerHTML = `
+                    <div class="container-fluid p-4">
+                        ${marketOverviewContent.innerHTML}
+                    </div>
+                `;
+
+                // Initialize Market Overview after content is loaded
+                setTimeout(() => {
+                    if (typeof window.initializeMarketOverview === 'function') {
+                        window.initializeMarketOverview();
+                    }
+                }, 200);
+            } else {
+                contentArea.innerHTML = `
+                    <div class="container-fluid p-4">
+                        <h2><i class="${section.icon} me-2"></i>${section.title}</h2>
+                        <p class="text-muted">${section.description}</p>
+                        <p>Market Overview content not found.</p>
+                    </div>
+                `;
+            }
+        } else if (sectionKey === 'stock-groups') {
+            // Load Stock Groups content from hidden div
+            const stockGroupsContent = document.getElementById('stock-groups-content');
+            if (stockGroupsContent) {
+                contentArea.innerHTML = `
+                    <div class="container-fluid p-4">
+                        ${stockGroupsContent.innerHTML}
+                    </div>
+                `;
+
+                // Initialize Stock Group Selector after content is loaded
+                setTimeout(() => {
+                    if (typeof StockGroupSelector !== 'undefined') {
+                        console.log('Initializing Stock Group Selector from sidebar navigation...');
+                        const selector = new StockGroupSelector({
+                            containerId: 'stock-group-selector-content',
+                            apiEndpoint: '/api/stock-groups',
+                            csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        });
+
+                        // Refresh button handler
+                        const refreshBtn = document.getElementById('refresh-stock-groups-btn');
+                        if (refreshBtn) {
+                            refreshBtn.addEventListener('click', function() {
+                                location.reload();
+                            });
+                        }
+                    } else {
+                        console.error('StockGroupSelector class not found');
+                    }
+                }, 200);
+            } else {
+                contentArea.innerHTML = `
+                    <div class="container-fluid p-4">
+                        <h2><i class="${section.icon} me-2"></i>${section.title}</h2>
+                        <p class="text-muted">${section.description}</p>
+                        <p>Stock Groups content not found.</p>
                     </div>
                 `;
             }

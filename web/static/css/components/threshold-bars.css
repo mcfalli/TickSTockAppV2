@@ -1,0 +1,285 @@
+/**
+ * Sprint 64: Threshold Bars CSS
+ *
+ * Flexbox-based styling for Diverging Threshold Bar and Simple Diverging Bar components.
+ * Supports both horizontal (default) and vertical orientations.
+ *
+ * Key Features:
+ * - Pure CSS flexbox layout for diverging bars
+ * - Percentage-based segment widths
+ * - Centered baseline with bidirectional divergence
+ * - Responsive design
+ * - Customizable colors for sentiment visualization
+ * - Label support with overflow handling
+ */
+
+/* Container */
+.threshold-bar-container {
+    width: 100%;
+    margin: 15px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.threshold-bar-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Bar wrapper - horizontal (default) */
+.threshold-bar-wrapper {
+    position: relative;
+    width: 100%;
+    height: 50px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Bar wrapper - vertical */
+.threshold-bar-wrapper.vertical {
+    height: 300px;
+    width: 50px;
+}
+
+/* Baseline (center line) */
+.threshold-bar-baseline {
+    position: absolute;
+    background-color: #000000;
+    z-index: 10;
+}
+
+/* Horizontal baseline */
+.threshold-bar-wrapper.horizontal .threshold-bar-baseline {
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    transform: translateX(-50%);
+}
+
+/* Vertical baseline */
+.threshold-bar-wrapper.vertical .threshold-bar-baseline {
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 2px;
+    transform: translateY(-50%);
+}
+
+/* Segments container */
+.threshold-bar-segments {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+/* Horizontal segments (default) */
+.threshold-bar-wrapper.horizontal .threshold-bar-segments {
+    flex-direction: row;
+}
+
+/* Vertical segments */
+.threshold-bar-wrapper.vertical .threshold-bar-segments {
+    flex-direction: column-reverse; /* Reverse to match coordinate system */
+}
+
+/* Individual segment */
+.threshold-bar-segment {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s ease;
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.threshold-bar-segment:hover {
+    opacity: 0.85;
+    cursor: pointer;
+}
+
+/* Decline segments (left of baseline in horizontal, bottom in vertical) */
+.threshold-bar-segment.significant_decline,
+.threshold-bar-segment.minor_decline,
+.threshold-bar-segment.decline {
+    margin-right: auto; /* Align to left in horizontal */
+}
+
+/* Advance segments (right of baseline in horizontal, top in vertical) */
+.threshold-bar-segment.minor_advance,
+.threshold-bar-segment.significant_advance,
+.threshold-bar-segment.advance {
+    margin-left: auto; /* Align to right in horizontal */
+}
+
+/* Color scheme for Diverging Threshold Bar (4 segments) */
+.threshold-bar-segment.significant_decline {
+    background-color: #B22222; /* Dark red */
+}
+
+.threshold-bar-segment.minor_decline {
+    background-color: #FF6347; /* Light red / tomato */
+}
+
+.threshold-bar-segment.minor_advance {
+    background-color: #90EE90; /* Light green */
+}
+
+.threshold-bar-segment.significant_advance {
+    background-color: #228B22; /* Dark green / forest green */
+}
+
+/* Color scheme for Simple Diverging Bar (2 segments) */
+.threshold-bar-segment.decline {
+    background-color: #DC3545; /* Bootstrap danger red */
+}
+
+.threshold-bar-segment.advance {
+    background-color: #28A745; /* Bootstrap success green */
+}
+
+/* Segment labels */
+.threshold-bar-segment-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 4px;
+    user-select: none;
+}
+
+/* Hide labels on segments that are too small */
+.threshold-bar-segment[data-width="0"],
+.threshold-bar-segment[data-width="1"],
+.threshold-bar-segment[data-width="2"] {
+    font-size: 0; /* Hide label text */
+}
+
+/* Tooltip for hover information */
+.threshold-bar-segment[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #ffffff;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 20;
+    margin-bottom: 5px;
+}
+
+.threshold-bar-segment[data-tooltip]:hover::after {
+    opacity: 1;
+}
+
+/* Metadata display */
+.threshold-bar-metadata {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 11px;
+    color: #6c757d;
+}
+
+.threshold-bar-metadata-item {
+    display: flex;
+    gap: 4px;
+}
+
+.threshold-bar-metadata-label {
+    font-weight: 600;
+}
+
+.threshold-bar-metadata-value {
+    font-family: 'Courier New', monospace;
+}
+
+/* Loading state */
+.threshold-bar-wrapper.loading {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 50%,
+        #f0f0f0 75%
+    );
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Error state */
+.threshold-bar-wrapper.error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c2c7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.threshold-bar-error-message {
+    color: #842029;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .threshold-bar-wrapper {
+        height: 40px;
+    }
+
+    .threshold-bar-wrapper.vertical {
+        height: 200px;
+        width: 40px;
+    }
+
+    .threshold-bar-segment {
+        font-size: 10px;
+    }
+
+    .threshold-bar-label {
+        font-size: 11px;
+    }
+}
+
+/* Accessibility */
+.threshold-bar-segment:focus {
+    outline: 2px solid #0066cc;
+    outline-offset: -2px;
+}
+
+/* Print styles */
+@media print {
+    .threshold-bar-wrapper {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+
+    .threshold-bar-segment {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}

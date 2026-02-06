@@ -1,0 +1,113 @@
+<!-- Sprint 65: Stock Groups Search Content -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/stock-group-selector.css') }}">
+
+<div id="stock-group-selector-content" class="dashboard-content-section">
+    <!-- Header -->
+    <div class="section-header mb-4">
+        <h2><i class="fas fa-layer-group"></i> Stock Groups Search</h2>
+        <button id="refresh-stock-groups-btn" class="btn btn-sm btn-primary">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+
+    <!-- Info Card -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> About Stock Groups
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1">
+                        Search and select from 55+ stock groups including ETFs, sectors, themes, and market universes.
+                        Use the search bar and type filters to quickly find groups, then select multiple groups to view detailed information.
+                    </p>
+                    <ul class="mb-0">
+                        <li><strong>ETFs</strong>: Exchange-traded funds (SPY, QQQ, VOO, etc.)</li>
+                        <li><strong>Sectors</strong>: Industry sectors (information_technology, healthcare, etc.)</li>
+                        <li><strong>Themes</strong>: Investment themes (crypto_miners, ev_manufacturers, etc.)</li>
+                        <li><strong>Universes</strong>: Market indices (nasdaq100, sp500, dow30, etc.)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <input type="text" class="form-control stock-group-search-input" placeholder="Search by name, type, or description...">
+        </div>
+        <div class="col-md-6">
+            <div class="btn-group" role="group" aria-label="Type filters">
+                <input type="checkbox" class="btn-check type-filter-checkbox" id="filter-etf" value="ETF" checked>
+                <label class="btn btn-outline-primary" for="filter-etf">ETFs</label>
+
+                <input type="checkbox" class="btn-check type-filter-checkbox" id="filter-sector" value="SECTOR" checked>
+                <label class="btn btn-outline-primary" for="filter-sector">Sectors</label>
+
+                <input type="checkbox" class="btn-check type-filter-checkbox" id="filter-theme" value="THEME" checked>
+                <label class="btn btn-outline-primary" for="filter-theme">Themes</label>
+
+                <input type="checkbox" class="btn-check type-filter-checkbox" id="filter-universe" value="UNIVERSE" checked>
+                <label class="btn btn-outline-primary" for="filter-universe">Universes</label>
+            </div>
+            <span class="badge bg-secondary filter-count-badge ms-2">0 groups</span>
+        </div>
+    </div>
+
+    <!-- Bootstrap Table -->
+    <div class="table-responsive">
+        <table class="table table-striped table-hover stock-group-table">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">
+                        <input type="checkbox" class="form-check-input" id="select-all-checkbox" title="Select all visible groups">
+                    </th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th style="text-align: right;">Member Count</th>
+                    <th>Avg Market Cap</th>
+                    <th>YTD Performance</th>
+                    <th>Volatility</th>
+                    <th>Last Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <button class="btn btn-primary confirm-selection-btn">
+                <i class="fas fa-check"></i> Confirm Selection
+            </button>
+            <button class="btn btn-secondary clear-selection-btn">
+                <i class="fas fa-times"></i> Clear Selection
+            </button>
+            <button class="btn btn-outline-secondary" onclick="history.back()">
+                <i class="fas fa-arrow-left"></i> Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- Detail Grid (hidden initially) -->
+    <div class="stock-group-detail-grid row mt-4" style="display: none;">
+        <!-- Populated by JavaScript -->
+    </div>
+
+    <!-- Status Message -->
+    <div class="status-message text-center text-muted mt-3">
+        <i class="fas fa-spinner fa-spin"></i> Loading stock groups...
+    </div>
+</div>
+
+<!-- JavaScript Component -->
+<script src="{{ url_for('static', filename='js/components/stock-group-selector.js') }}"></script>
+<!-- Note: Initialization handled by sidebar-navigation-controller.js when section loads -->

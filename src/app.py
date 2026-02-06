@@ -524,6 +524,17 @@ def register_basic_routes(app):
             logger.error(f"ROUTE-ERROR: Sprint 25 dashboard route failed: {e}")
             raise
 
+    @app.route('/stock-groups')
+    @login_required
+    def stock_groups_page():
+        """Sprint 65 Stock Groups Search Page."""
+        try:
+            logger.info("ROUTE: Stock groups search page requested")
+            return render_template('dashboard/market_stock_selector.html')
+        except Exception as e:
+            logger.error(f"ROUTE-ERROR: Stock groups page route failed: {e}")
+            raise
+
     @app.route('/health')
     @login_required
     def health_check():
@@ -2331,6 +2342,18 @@ def main():
             from src.api.rest.admin_cache import admin_cache_bp
             app.register_blueprint(admin_cache_bp)
             logger.info("STARTUP: Cache management routes registered successfully")
+
+            # Sprint 64: Register threshold bars API
+            logger.info("STARTUP: Registering threshold bars API...")
+            from src.api.rest.threshold_bars import threshold_bars_bp
+            app.register_blueprint(threshold_bars_bp)
+            logger.info("STARTUP: Threshold bars API registered successfully")
+
+            # Sprint 65: Register stock groups API
+            logger.info("STARTUP: Registering stock groups API...")
+            from src.api.rest.stock_groups import stock_groups_bp
+            app.register_blueprint(stock_groups_bp)
+            logger.info("STARTUP: Stock groups API registered successfully")
 
             # Register Real Pattern Discovery APIs (Sprint 10 Complete)
             logger.info("STARTUP: Registering real pattern discovery APIs...")

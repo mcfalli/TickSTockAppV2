@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/retractable-filter.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/sidebar-navigation.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/pattern-flow.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/threshold-bars.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- POST-BOOTSTRAP FIXES: Load after Bootstrap to override conflicts -->
@@ -123,6 +124,16 @@
                 <h2>Dummy2 Page</h2>
                 <p>This is the Dummy2 content area. Content will be added here for portfolio displays.</p>
             </div>
+        </div>
+
+        <!-- Sprint 64: Market Overview Content (Hidden until loaded by sidebar navigation) -->
+        <div id="market-overview-content" style="display: none;">
+            {% include 'dashboard/market_overview.html' %}
+        </div>
+
+        <!-- Sprint 65: Stock Groups Search Content (Hidden until loaded by sidebar navigation) -->
+        <div id="stock-groups-content" style="display: none;">
+            {% include 'dashboard/market_stock_selector.html' %}
         </div>
     </div>
 

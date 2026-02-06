@@ -1,8 +1,8 @@
 # Last Test Run Report
 
-**Generated**: 2025-12-21 07:48:53
+**Generated**: 2025-12-29 09:51:00
 **Command**: `python run_tests.py`
-**Total Duration**: 17.46 seconds
+**Total Duration**: 20.21 seconds
 **Status**: [FAILED]
 
 ## Summary Statistics
@@ -18,8 +18,8 @@
 
 | Suite | Status | Duration | Tests |
 |-------|--------|----------|-------|
-| Core Integration Tests | [FAIL] | 8.50s | 15 |
-| End-to-End Pattern Flow | [PASS] | 8.96s | 14 |
+| Core Integration Tests | [FAIL] | 9.81s | 15 |
+| End-to-End Pattern Flow | [PASS] | 10.40s | 14 |
 
 ## Individual Test Results
 
@@ -32,19 +32,19 @@
 - [PASS] Database write access confirmed via error_logs table
 - [FAIL] Pattern Flow FAILED: Failed to publish test pattern
 - [PASS] Redis heartbeat: 0.4ms latency
-- [PASS] Database heartbeat: 0.1ms latency
+- [PASS] Database heartbeat: 0.2ms latency
 - [PASS] Error logging active: 0 entries in last 24 hours
 - [FAIL] Redis->DB Flow FAILED: Failed to publish to Redis channel
 - [PASS] Pattern cache contains 0 entries
 - [FAIL] WebSocket Config FAILED: No pattern event handlers registered
-- [PASS] Redis performance: 0.3ms avg latency
-- [PASS] Database performance: 1.5ms avg query latency
-- [PASS] Error logging performance: 13.1ms write+delete latency
+- [PASS] Redis performance: 0.4ms avg latency
+- [PASS] Database performance: 1.3ms avg query latency
+- [PASS] Error logging performance: 13.2ms write+delete latency
 - [FAIL] Error Recovery FAILED: System not recovering from bad events
 
 ### End-to-End Pattern Flow
 
-- [PASS] Published pattern with flow_id: 384c421c-3067-4915-80b0-55cb70452a7a
+- [PASS] Published pattern with flow_id: 1c284e90-715a-4986-b02a-ab372e0efe3a
 - [PASS] Published daily tier pattern: HeadShoulders for TSLA
 - [PASS] Published hourly tier pattern: MomentumShift for AMD
 - [PASS] Published intraday tier pattern: VolumeSurge for NVDA
@@ -56,7 +56,7 @@
 - [PASS] Database logging verified: 5/5 flows tested successfully
 - [PASS] Redis cache status:
 - [PASS] Pattern-related tables available: 12
-- [PASS] Database analysis baseline: 6359 symbols available
+- [PASS] Database analysis baseline: 2464 symbols available
 - [PASS] PATTERN FLOW TESTS COMPLETE
 
 ## Expected Test Coverage
