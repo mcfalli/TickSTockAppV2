@@ -13,18 +13,18 @@ You are an architecture validation specialist responsible for enforcing the clea
 Based on [`architecture/README.md`](../../docs/architecture/README.md):
 
 **TickStockApp (Consumer Role)**:
-- ✅ UI-focused event consumer that triggers jobs and displays results
-- ✅ Subscribes to TickStockPL events via Redis pub-sub
-- ✅ Read-only database access for UI queries only
-- ✅ WebSocket broadcasting to browser clients
-- ✅ Basic data ingestion that forwards to Redis
+- ✅ Market state analysis dashboards and trend visualization
+- ✅ Real-time WebSocket updates for browser clients
+- ✅ Read-only database access for UI queries and analytics
+- ✅ Market state calculations (rankings, breadth, sector rotation)
+- ✅ Basic data ingestion from market data providers
 
 **TickStockPL (Producer Role)**:
-- ✅ Heavy-lifting analytical engine that processes data and publishes events
+- ✅ Data import and management engine
 - ✅ Full database read/write access, schema management
-- ✅ Pattern detection algorithms with sub-millisecond performance
-- ✅ Backtesting engine with institutional metrics
-- ✅ Job processing triggered by Redis requests
+- ✅ Historical data processing and validation
+- ✅ EOD data import from multiple providers
+- ✅ Database maintenance and optimization
 
 ### **Communication Architecture**
 - ✅ **Loose Coupling**: All communication via Redis pub-sub channels
@@ -49,19 +49,19 @@ def detect_role_boundary_violations(file_path: str) -> list:
         # TickStockApp violations - things it should NOT do
         app_violations = [
             {
-                'pattern': r'def\s+detect_\w+\s*\(',
-                'violation': 'pattern_detection_algorithm',
-                'message': 'TickStockApp should not implement pattern detection - use TickStockPL events'
+                'pattern': r'def\s+import_historical_data|def\s+load_eod_data',
+                'violation': 'data_import_logic',
+                'message': 'TickStockApp should not implement data import - this belongs in TickStockPL'
             },
             {
-                'pattern': r'class\s+\w*Pattern\w*:',
-                'violation': 'pattern_class_implementation',
-                'message': 'Pattern classes belong in TickStockPL, not TickStockApp'
+                'pattern': r'CREATE\s+HYPERTABLE|ALTER\s+HYPERTABLE',
+                'violation': 'timescaledb_management',
+                'message': 'TimescaleDB hypertable management belongs in TickStockPL'
             },
             {
-                'pattern': r'StandardOHLCV|DataBlender|PatternScanner',
-                'violation': 'data_processing_logic',
-                'message': 'Data processing logic belongs in TickStockPL'
+                'pattern': r'class\s+.*Importer|class\s+.*Loader.*Data',
+                'violation': 'data_loader_implementation',
+                'message': 'Data import/loader classes belong in TickStockPL, not TickStockApp'
             },
             {
                 'pattern': r'CREATE\s+TABLE|ALTER\s+TABLE|DROP\s+TABLE',
@@ -74,19 +74,19 @@ def detect_role_boundary_violations(file_path: str) -> list:
                 'message': 'TickStockApp should only have read-only database access'
             },
             {
-                'pattern': r'def\s+calculate_(sharpe|roi|drawdown|expectancy)',
-                'violation': 'metrics_calculation',
-                'message': 'Metrics calculation belongs in TickStockPL backtesting engine'
+                'pattern': r'bulk.*insert|batch.*load|\.copy_from\(',
+                'violation': 'bulk_data_operations',
+                'message': 'Bulk data operations and imports belong in TickStockPL'
             },
             {
-                'pattern': r'(polygon|massive)\w*client|alpha.*vantage.*client',
-                'violation': 'api_provider_logic',
-                'message': 'Multi-provider logic and fallbacks belong in TickStockPL'
+                'pattern': r'def\s+migrate_|def\s+upgrade_schema',
+                'violation': 'schema_migration',
+                'message': 'Database schema migrations belong in TickStockPL'
             },
             {
-                'pattern': r'def\s+backtest_\w+|class\s+.*Backtester',
-                'violation': 'backtesting_implementation',
-                'message': 'Backtesting engine belongs in TickStockPL'
+                'pattern': r'VACUUM|ANALYZE|REINDEX',
+                'violation': 'database_maintenance',
+                'message': 'Database maintenance operations belong in TickStockPL'
             }
         ]
         
@@ -216,11 +216,11 @@ def validate_channel_usage(file_path: str) -> list:
     
     # Standard channel patterns
     approved_channels = [
-        r'tickstock\.events\.patterns',
-        r'tickstock\.events\.backtesting\.(progress|results)',
-        r'tickstock\.jobs\.(backtest|alerts)',
-        r'tickstock\.all_ticks',
-        r'tickstock\.ticks\.\w+'
+        r'tickstock:monitoring',
+        r'tickstock:errors',
+        r'tickstock:cache:invalidation',
+        r'tickstock\.events\.market_state',
+        r'tickstock\.jobs\.(data_import|alerts)'
     ]
     
     # Find all channel references
@@ -543,8 +543,8 @@ def generate_architecture_recommendations(validation_results: dict) -> str:
     # Role boundary recommendations
     if validation_results['role_boundary_violations']:
         recommendations += """### Role Boundary Violations
-- Move pattern detection algorithms to TickStockPL
-- Use Redis events instead of direct algorithm calls
+- Move data import operations to TickStockPL
+- Keep TickStockApp focused on market state analysis and dashboards
 - Implement read-only database access in TickStockApp
 - Reference [`architecture/README.md`](../../docs/architecture/README.md) for role clarity
 
@@ -641,10 +641,10 @@ def run_periodic_validation():
 
 ## Critical Validation Principles
 
-1. **Role Separation Enforcement**: Strict boundaries between TickStockApp (consumer) and TickStockPL (producer)
-2. **Loose Coupling Validation**: All communication via Redis pub-sub, no direct API calls
+1. **Role Separation Enforcement**: Strict boundaries between TickStockApp (market state dashboards) and TickStockPL (data import)
+2. **Loose Coupling Validation**: Components communicate via Redis for monitoring, not for data processing
 3. **Database Access Control**: Read-only for TickStockApp, full access for TickStockPL
 4. **Performance Pattern Compliance**: Async patterns, connection pooling, proper timeouts
 5. **Scalability Pattern Enforcement**: No global state, proper serialization, environment-based config
 
-When invoked, immediately assess the architecture compliance requirements, scan for role boundary violations and tight coupling patterns, validate Redis pub-sub usage, and ensure the system maintains proper separation between TickStockApp (UI consumer) and TickStockPL (analytical producer) while enforcing performance and scalability best practices.
+When invoked, immediately assess the architecture compliance requirements, scan for role boundary violations and tight coupling patterns, validate proper component separation, and ensure the system maintains proper boundaries between TickStockApp (market state analysis UI) and TickStockPL (data import and management) while enforcing performance and scalability best practices.
