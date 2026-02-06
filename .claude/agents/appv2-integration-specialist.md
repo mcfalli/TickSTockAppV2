@@ -24,7 +24,7 @@ You are a TickStockAppV2 integration specialist with deep expertise in the simpl
 - Result Display: Visualizes TickStockPL-computed metrics and results
 
 **What AppV2 DOES NOT DO**:
-- ❌ Pattern Detection: No algorithm implementation - consumes TickStockPL events
+- ❌ Market State Analysis: No rankings, stage classification, or breadth calculations - consumes TickStockPL events
 - ❌ Data Processing: No StandardOHLCV conversion, normalization, or blending
 - ❌ Backtesting Engine: No metrics computation - displays TickStockPL results
 - ❌ Multi-Provider Logic: No API fallbacks or complex data provider management
@@ -90,9 +90,12 @@ def listen_to_tickstockpl_events():
             channel = message['channel']
             data = json.loads(message['data'])
             
-            if channel == 'tickstock.events.patterns':
-                # Forward pattern alerts to WebSocket clients
-                emit('pattern_alert', data, broadcast=True)
+            if channel == 'tickstock.events.market_state':
+                # Forward market state updates to WebSocket clients
+                emit('market_state_update', data, broadcast=True)
+            elif channel == 'tickstock.events.rankings':
+                # Forward ranking updates to interested clients
+                emit('ranking_update', data, broadcast=True)
             elif 'backtesting' in channel:
                 # Forward backtest updates to interested clients
                 emit('backtest_update', data, broadcast=True)
@@ -130,13 +133,13 @@ def submit_backtest():
 - Job management interface (view, cancel, history)
 - Results visualization dashboard (consuming TickStockPL metrics)
 
-### **Phase 4: Pattern Alert System (Days 9-10)**
+### **Phase 4: Market State Alert System (Days 9-10)**
 **Focus**: User subscription management and real-time alerts
 
 **Key Features**:
-- UI for selecting which of the 11+ patterns to subscribe to
-- Alert threshold configuration (confidence levels)
-- In-browser notifications for pattern detections
+- UI for selecting market state metrics to monitor (rankings, sector rotation, stage changes)
+- Alert threshold configuration (rank changes, sector rotation triggers)
+- In-browser notifications for significant market state changes
 - Alert history management
 
 ## Technical Architecture Standards
@@ -155,7 +158,9 @@ def submit_backtest():
 
 ### **Redis Communication Patterns**
 **AppV2 Consumes**:
-- `tickstock.events.patterns` (pattern alerts from TickStockPL)
+- `tickstock.events.market_state` (market state updates from TickStockPL)
+- `tickstock.events.rankings` (stock ranking updates)
+- `tickstock.events.sector_rotation` (sector rotation signals)
 - `tickstock.events.backtesting.progress` (backtest updates)
 - `tickstock.events.backtesting.results` (completed backtests)
 
@@ -188,7 +193,7 @@ Reference these documents during implementation:
 ## Anti-Patterns to Avoid
 
 ### **Scope Creep Prevention**
-- ❌ Don't implement pattern detection algorithms (TickStockPL territory)
+- ❌ Don't implement market state analysis algorithms (TickStockPL territory)
 - ❌ Don't add data processing or conversion logic (TickStockPL territory)
 - ❌ Don't implement backtesting computations (display results only)
 - ❌ Don't create database schemas or complex queries (read-only access only)

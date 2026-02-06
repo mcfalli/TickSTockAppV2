@@ -101,7 +101,7 @@ REDIS_ERROR_CHANNEL=tickstock:errors
 - **debug**: Development troubleshooting
 
 ### Error Categories
-- **pattern**: Pattern detection failures
+- **market_state**: Market state calculation failures
 - **indicator**: Technical indicator errors
 - **database**: Database connection/query errors
 - **network**: External API/network errors
@@ -116,7 +116,7 @@ REDIS_ERROR_CHANNEL=tickstock:errors
     "error_id": "uuid",
     "source": "TickStockAppV2|TickStockPL",
     "severity": "error",
-    "category": "pattern",
+    "category": "market_state",
     "message": "Human readable message",
     "component": "ComponentName",
     "traceback": "Stack trace if available",
@@ -140,16 +140,16 @@ logger.error("Something failed")  # Console/file only
 ### Option B: Add Enhanced Logging to Critical Points
 ```python
 # Keep standard logging AND add database tracking
-logger.error(f"Pattern detection failed for {symbol}")
+logger.error(f"Market state calculation failed for {symbol}")
 
 # Also log to database for persistence
 enhanced_logger = get_enhanced_logger()
 if enhanced_logger:
     enhanced_logger.log_error(
         severity='error',
-        message=f"Pattern detection failed for {symbol}",
-        category='pattern',
-        component='PatternDetector',
+        message=f"Market state calculation failed for {symbol}",
+        category='market_state',
+        component='MarketStateService',
         context={'symbol': symbol, 'user_id': user_id}
     )
 ```
@@ -174,20 +174,20 @@ logging.getLogger().addHandler(DatabaseLogHandler())
 
 ## High-Priority Areas for Enhancement
 
-### 1. Pattern Detection Failures
-**File**: `src/core/services/pattern_detection_service.py`
-**Why**: Critical for TickStockPL integration, user-facing
+### 1. Market State Calculation Failures
+**File**: `src/core/services/market_state_service.py`
+**Why**: Critical for market analysis, user-facing
 ```python
 # Current
-logger.error(f"Pattern detection failed: {e}")
+logger.error(f"Market state calculation failed: {e}")
 
 # Enhanced
 enhanced_logger.log_error(
     severity='error',
-    message=f"Pattern detection failed: {e}",
-    category='pattern',
-    component='PatternDetectionService',
-    context={'symbol': symbol, 'pattern': pattern_name}
+    message=f"Market state calculation failed: {e}",
+    category='market_state',
+    component='MarketStateService',
+    context={'symbol': symbol, 'calculation_type': calc_type}
 )
 ```
 
@@ -275,12 +275,12 @@ except SpecificException as e:
         enhanced_logger.log_error(
             severity='error',
             message=f"Operation failed: {str(e)}",
-            category='pattern',
-            component='PatternDetector',
+            category='market_state',
+            component='MarketStateService',
             context={
                 'symbol': symbol,
                 'user_id': user_id,
-                'operation': 'detect_pattern'
+                'operation': 'calculate_market_state'
             },
             traceback=traceback.format_exc() if debug_mode else None
         )
@@ -372,7 +372,7 @@ for severity in ['debug', 'info', 'warning', 'error', 'critical']:
 | Scenario | Why | Example |
 |----------|-----|---------|
 | Database connection failures | System-critical | Connection pool exhausted |
-| Pattern detection errors | User-facing, revenue impact | Insufficient data for pattern |
+| Market state calculation errors | User-facing, analysis impact | Insufficient data for calculation |
 | WebSocket disconnections | Real-time data flow | Client unexpectedly disconnected |
 | Redis subscription failures | Cross-system integration | Channel subscription lost |
 | Authentication failures | Security tracking | Multiple failed login attempts |
@@ -408,7 +408,7 @@ critical_files = [
     'src/infrastructure/database/connection_pool.py',
     'src/presentation/websocket/publisher.py',
     'src/presentation/websocket/massive_client.py',
-    'src/core/services/pattern_detection_service.py'
+    'src/core/services/market_state_service.py'
 ]
 ```
 

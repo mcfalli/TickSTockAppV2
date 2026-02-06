@@ -56,10 +56,10 @@ class TestRedisIntegration:
             def __init__(self, redis_client):
                 self.redis = redis_client
                 
-            def publish_pattern_event(self, pattern_data):
-                """Simulate TickStockPL publishing pattern event"""
-                message = json.dumps(pattern_data)
-                self.redis.publish('tickstock.events.patterns', message)
+            def publish_market_state_event(self, market_state_data):
+                """Simulate TickStockPL publishing market state event"""
+                message = json.dumps(market_state_data)
+                self.redis.publish('tickstock.events.market_state', message)
                 
             def publish_backtest_progress(self, job_id, progress, status):
                 """Simulate TickStockPL publishing backtest progress"""
@@ -83,7 +83,7 @@ class TestRedisIntegration:
             
         # Set up TickStockApp subscriber
         pubsub = redis_client.pubsub()
-        pubsub.subscribe('tickstock.events.patterns')
+        pubsub.subscribe('tickstock.events.market_state')
         
         # Start listener thread
         listener_thread = threading.Thread(
@@ -289,45 +289,44 @@ class TestEndToEndWorkflows:
         def alert_handler(message):
             data = json.loads(message['data'])
             alert_events.append({
-                'pattern': data['pattern'],
+                'event_type': data['event_type'],
                 'symbol': data['symbol'],
-                'confidence': data['confidence']
+                'rank_change': data.get('rank_change', 0)
             })
             
         pubsub = redis_client.pubsub()
-        pubsub.subscribe('tickstock.events.patterns')
-        
+        pubsub.subscribe('tickstock.events.market_state')
+
         listener_thread = threading.Thread(
             target=self._process_alerts,
             args=(pubsub, alert_handler),
             daemon=True
         )
         listener_thread.start()
-        
-        # Simulate TickStockPL detecting multiple patterns
-        pattern_detections = [
-            {'pattern': 'Doji', 'symbol': 'AAPL', 'confidence': 0.85},
-            {'pattern': 'Hammer', 'symbol': 'GOOGL', 'confidence': 0.78},
-            {'pattern': 'Engulfing', 'symbol': 'MSFT', 'confidence': 0.92}
+
+        # Simulate TickStockPL detecting multiple market state changes
+        market_state_changes = [
+            {'event_type': 'ranking_change', 'symbol': 'AAPL', 'rank_change': -5},
+            {'event_type': 'sector_rotation', 'symbol': 'GOOGL', 'rank_change': 10},
+            {'event_type': 'stage_change', 'symbol': 'MSFT', 'rank_change': 0}
         ]
-        
-        for detection in pattern_detections:
+
+        for change in market_state_changes:
             event = {
-                'event_type': 'pattern_detected',
                 'timestamp': time.time(),
                 'source': 'tickstock_pl',
-                **detection
+                **change
             }
-            redis_client.publish('tickstock.events.patterns', json.dumps(event))
+            redis_client.publish('tickstock.events.market_state', json.dumps(event))
             
         # Wait for processing
         time.sleep(0.2)
         
         # Verify all alerts received
         assert len(alert_events) == 3
-        assert alert_events[0]['pattern'] == 'Doji'
-        assert alert_events[1]['pattern'] == 'Hammer'  
-        assert alert_events[2]['pattern'] == 'Engulfing'
+        assert alert_events[0]['event_type'] == 'ranking_change'
+        assert alert_events[1]['event_type'] == 'sector_rotation'
+        assert alert_events[2]['event_type'] == 'stage_change'
         
     def _process_alerts(self, pubsub, handler):
         """Helper for processing alert messages"""
@@ -355,24 +354,24 @@ class TestIntegrationPerformance:
             delivery_times.append(latency)
             
         pubsub = redis_client.pubsub()
-        pubsub.subscribe('tickstock.events.patterns')
-        
+        pubsub.subscribe('tickstock.events.market_state')
+
         listener_thread = threading.Thread(
             target=self._measure_latency,
             args=(pubsub, latency_handler),
             daemon=True
         )
         listener_thread.start()
-        
+
         # Send test messages
         for i in range(10):
             test_event = {
-                'event_type': 'pattern_detected',
-                'pattern': 'TestPattern',
+                'event_type': 'ranking_change',
+                'metric': 'rs_rating',
                 'symbol': 'TEST',
                 'timestamp': time.time()
             }
-            redis_client.publish('tickstock.events.patterns', json.dumps(test_event))
+            redis_client.publish('tickstock.events.market_state', json.dumps(test_event))
             time.sleep(0.01)  # Small delay between messages
             
         # Wait for processing
@@ -454,12 +453,12 @@ class TestSystemResilience:
         # Simulate high message volume
         for i in range(1000):
             test_event = {
-                'event_type': 'pattern_detected',
-                'pattern': 'BulkTest',
+                'event_type': 'ranking_change',
+                'metric': 'rs_rating',
                 'symbol': f'TEST{i:03d}',
                 'timestamp': time.time()
             }
-            redis_client.publish('tickstock.events.patterns', json.dumps(test_event))
+            redis_client.publish('tickstock.events.market_state', json.dumps(test_event))
             
         # Verify system remains responsive
         health_check = {
@@ -468,7 +467,7 @@ class TestSystemResilience:
         }
         
         start_time = time.time()
-        redis_client.publish('tickstock.events.patterns', json.dumps(health_check))
+        redis_client.publish('tickstock.events.market_state', json.dumps(health_check))
         response_time = (time.time() - start_time) * 1000
         
         # Should still respond quickly despite high load

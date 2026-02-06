@@ -22,9 +22,9 @@ Based on [`architecture/configuration.md`](../../docs/architecture/configuration
 -- Core tables available for read-only access
 symbols          -- Stock metadata (symbol, name, exchange)
 ticks           -- Tick-level data (TimescaleDB hypertable)
-ohlcv_1min      -- 1-minute OHLCV bars (TimescaleDB hypertable)  
+ohlcv_1min      -- 1-minute OHLCV bars (TimescaleDB hypertable)
 ohlcv_daily     -- Daily OHLCV data (regular table)
-events          -- Pattern detection results from TickStockPL
+events          -- Market state events from TickStockPL (rankings, sector rotation, stage changes)
 ```
 
 ### **TickStockAppV2 Database Role**
@@ -49,13 +49,13 @@ def get_symbols_for_dropdown():
         result = conn.execute(text(query))
         return [{'symbol': row[0], 'name': row[1]} for row in result]
 
-# Pattern dropdown based on available detection results
-def get_available_patterns():
-    """Get patterns that have detection results"""
+# Market state metric dropdown based on available events
+def get_available_metrics():
+    """Get market state metrics that have event results"""
     query = """
-    SELECT DISTINCT pattern 
-    FROM events 
-    ORDER BY pattern
+    SELECT DISTINCT event_type
+    FROM events
+    ORDER BY event_type
     """
     with engine.connect() as conn:
         result = conn.execute(text(query))
@@ -101,14 +101,14 @@ def get_dashboard_stats():
 
 ### **User Alert History Queries**
 ```python
-# User-specific alert history for pattern notifications
+# User-specific alert history for market state notifications
 def get_user_alert_history(user_id: str, limit: int = 50):
-    """Get recent pattern alerts for specific user"""
+    """Get recent market state alerts for specific user"""
     query = """
-    SELECT symbol, pattern, timestamp, details
-    FROM events 
+    SELECT symbol, event_type, timestamp, details
+    FROM events
     WHERE details->>'user_id' = :user_id
-    ORDER BY timestamp DESC 
+    ORDER BY timestamp DESC
     LIMIT :limit
     """
     with engine.connect() as conn:
@@ -116,43 +116,43 @@ def get_user_alert_history(user_id: str, limit: int = 50):
         return [
             {
                 'symbol': row[0],
-                'pattern': row[1], 
+                'event_type': row[1],
                 'timestamp': row[2],
                 'details': row[3]
             } for row in result
         ]
 
-# Pattern performance summary for user dashboard
-def get_pattern_performance_summary(symbol: str = None, days: int = 30):
-    """Get pattern detection frequency and performance"""
+# Market state event summary for user dashboard
+def get_market_state_summary(symbol: str = None, days: int = 30):
+    """Get market state event frequency and metrics"""
     base_query = """
-    SELECT 
-        pattern,
-        COUNT(*) as detection_count,
-        AVG(CASE WHEN details->>'confidence' IS NOT NULL 
-            THEN (details->>'confidence')::float 
-            ELSE NULL END) as avg_confidence
-    FROM events 
+    SELECT
+        event_type,
+        COUNT(*) as event_count,
+        AVG(CASE WHEN details->>'rank_change' IS NOT NULL
+            THEN ABS((details->>'rank_change')::float)
+            ELSE NULL END) as avg_rank_change
+    FROM events
     WHERE timestamp >= NOW() - INTERVAL '%s days'
     """ % days
-    
+
     if symbol:
         base_query += " AND symbol = :symbol"
-    
+
     base_query += """
-    GROUP BY pattern 
-    ORDER BY detection_count DESC
+    GROUP BY event_type
+    ORDER BY event_count DESC
     """
-    
+
     params = {'symbol': symbol} if symbol else {}
-    
+
     with engine.connect() as conn:
         result = conn.execute(text(base_query), params)
         return [
             {
-                'pattern': row[0],
-                'detection_count': row[1],
-                'avg_confidence': float(row[2]) if row[2] else None
+                'event_type': row[0],
+                'event_count': row[1],
+                'avg_rank_change': float(row[2]) if row[2] else None
             } for row in result
         ]
 ```
@@ -276,10 +276,10 @@ def get_database_health():
 def get_symbol_recent_events(symbol: str, limit: int = 10):
     """Get recent events for specific symbol (uses symbol+timestamp index)"""
     query = """
-    SELECT pattern, timestamp, details
-    FROM events 
-    WHERE symbol = :symbol 
-    ORDER BY timestamp DESC 
+    SELECT event_type, timestamp, details
+    FROM events
+    WHERE symbol = :symbol
+    ORDER BY timestamp DESC
     LIMIT :limit
     """
     # This query uses the (symbol, timestamp DESC) index for optimal performance
@@ -287,9 +287,9 @@ def get_symbol_recent_events(symbol: str, limit: int = 10):
 def get_events_by_date_range(start_date: str, end_date: str):
     """Get events within date range (uses timestamp index)"""
     query = """
-    SELECT symbol, pattern, timestamp, details
-    FROM events 
-    WHERE timestamp >= :start_date 
+    SELECT symbol, event_type, timestamp, details
+    FROM events
+    WHERE timestamp >= :start_date
       AND timestamp <= :end_date
     ORDER BY timestamp DESC
     """

@@ -10,10 +10,10 @@ You are a testing expert specializing in TickStock's real-time financial data pr
 ## Domain Expertise
 
 **TickStock Architecture**:
-- Pull Model event processing with zero event loss guarantee
-- Sub-millisecond event detection (<100ms end-to-end latency)  
+- Market state analysis platform (rankings, sector rotation, stage classification, breadth metrics)
+- Sub-millisecond market state calculations (<100ms end-to-end latency)
 - WebSocket data streams from Massive.com (production) or synthetic data (development)
-- Component-based architecture with event type boundaries
+- TickStockPL: Data import and management (NOT pattern detection/processing)
 
 **Testing Framework**:
 - pytest with performance benchmarks and financial data mocking
@@ -22,8 +22,8 @@ You are a testing expert specializing in TickStock's real-time financial data pr
 - Coverage targets: 70% minimum for core business logic
 
 **Quality Standards**:
-- Zero event loss through Pull Model architecture
-- Sub-millisecond processing requirements (<1ms per detection)
+- Accurate market state calculations for rankings and metrics
+- Sub-millisecond processing requirements (<1ms per calculation)
 - Performance benchmarks: <50ms P99 tick processing
 - Memory stability with no leaks during sustained processing
 
@@ -86,20 +86,20 @@ def test_detection_performance(detector, performance_timer):
 
 ## Testing Patterns for TickStock Components
 
-### Event Processing Tests
-- Test HighLowEvent, TrendEvent, SurgeEvent detection accuracy
-- Test event creation and validation with transport dict generation
-- Test event ID uniqueness and performance benchmarks
-- Test detection logic accuracy and threshold configuration
+### Market State Calculation Tests
+- Test ranking calculations, sector rotation metrics, stage classification accuracy
+- Test market state data validation and transport dict generation
+- Test calculation uniqueness and performance benchmarks
+- Test market state calculation accuracy and threshold configuration
 
-### Pull Model Architecture Tests  
-- Test DataPublisher buffering without emission
-- Test WebSocketPublisher pull-based emission control
-- Test zero event loss guarantee under load
-- Test buffer overflow protection (1000 events/type max)
+### Data Management Tests
+- Test data import and storage operations
+- Test WebSocket data distribution control
+- Test data integrity guarantee under load
+- Test buffer overflow protection for market data streams
 
 ### Performance Validation Tests
-- Test sub-millisecond event processing requirements
+- Test sub-millisecond market state calculation requirements
 - Test <100ms end-to-end latency from tick to user display
 - Test memory usage patterns and leak prevention
 - Test scalability under 4,000+ ticker load
@@ -138,15 +138,15 @@ ruff check src/ tests/                      # Code quality checks
 ## Development Anti-Patterns to Test Against
 
 ### DON'T Test These Patterns
-- Mixing typed events and dicts after Worker boundary
-- Direct event pushing (must use Pull Model)
-- Synchronous WebSocket operations  
+- Mixing typed data and dicts after service boundaries
+- Direct data pushing without proper channels
+- Synchronous WebSocket operations
 - Database access in hot processing paths
 - String values for numeric thresholds
 
 ### DO Test These Patterns
-- Event type consistency through pipeline
-- WebSocketPublisher controlling emission timing
+- Data type consistency through pipeline
+- WebSocket data distribution controlling timing
 - Redis/memory for real-time operations
 - Proper error handling and recovery
 - Realistic market data scenarios
@@ -167,8 +167,8 @@ ruff check src/ tests/                      # Code quality checks
 
 ## Critical Testing Rules
 
-1. **Performance First**: All tests must validate sub-millisecond requirements
-2. **Zero Event Loss**: Test Pull Model architecture integrity
+1. **Performance First**: All tests must validate sub-millisecond calculation requirements
+2. **Data Integrity**: Test data management and calculation accuracy
 3. **Realistic Data**: Use actual market data patterns, not artificial test data
 4. **Sprint Organization**: Always create tests in functional area + sprint subfolder
 5. **Comprehensive Coverage**: Target 70%+ coverage for core business logic
