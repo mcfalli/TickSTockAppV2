@@ -703,7 +703,20 @@ python run_tests.py
   - Level 4: TickStock pattern flow - PASSED
 - See: `docs/planning/sprints/sprint64/threshold-bars.md`
 
-### System Integration Points (Updated Sprint 42/43/55/59/60/61/64)
+### Sprint 67 - COMPLETE ✅ (February 8, 2026)
+**Market Breadth Multi-Instance Enhancement & Reusability**
+- ✅ Index Comparison page with side-by-side SPY|QQQ|dow30 breadth metrics
+- ✅ 3-column responsive grid layout (desktop) / stacked (mobile)
+- ✅ Sidebar navigation integration with fas fa-balance-scale icon
+- ✅ Component usage documentation with 5+ examples
+- ✅ Component API reference documentation
+- ✅ Zero regression on existing Market Breadth page
+- ✅ Performance: <500ms page load (3 parallel API calls)
+- ✅ Comprehensive usage guide: single/multi-instance, embedded, custom universes
+- ✅ Documentation: market-breadth-usage.md, components.md API reference
+- See: `docs/planning/sprints/sprint67/SPRINT67_COMPLETE.md`
+
+### System Integration Points (Updated Sprint 42/43/55/59/60/61/64/67)
 - **TickStockPL API**: HTTP commands on port 8080
 - **Redis Streaming Channels**:
   - `tickstock:patterns:streaming` - Real-time pattern detections ✅

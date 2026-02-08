@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Index Comparison - TickStock{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/breadth-metrics.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/index-comparison.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/components/breadth-metrics-renderer.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <h1><i class="fas fa-balance-scale me-2"></i>Index Comparison</h1>
+    <p class="text-muted">Side-by-side breadth metrics for major indices</p>
+
+    <div class="index-comparison-grid">
+        <!-- S&P 500 Column -->
+        <div class="index-column">
+            {% set instance_id='spy' %}
+            {% set universe='SPY' %}
+            {% set title='S&P 500 Breadth' %}
+            {% set show_controls=False %}
+            {% include 'dashboard/market_breadth.html' %}
+        </div>
+
+        <!-- NASDAQ 100 Column -->
+        <div class="index-column">
+            {% set instance_id='qqq' %}
+            {% set universe='QQQ' %}
+            {% set title='NASDAQ 100 Breadth' %}
+            {% set show_controls=False %}
+            {% include 'dashboard/market_breadth.html' %}
+        </div>
+
+        <!-- Dow 30 Column -->
+        <div class="index-column">
+            {% set instance_id='dow' %}
+            {% set universe='dow30' %}
+            {% set title='Dow 30 Breadth' %}
+            {% set show_controls=False %}
+            {% include 'dashboard/market_breadth.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

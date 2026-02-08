@@ -64,6 +64,13 @@ class SidebarNavigationController {
                 component: 'initializeBreadthMetrics_default',
                 description: 'Sprint 66: Market breadth metrics showing up/down participation'
             },
+            'index-comparison': {
+                title: 'Index Comparison',
+                icon: 'fas fa-balance-scale',
+                hasFilters: false,
+                component: 'initializeIndexComparison',
+                description: 'Sprint 67: Side-by-side breadth metrics for SPY, QQQ, dow30'
+            },
             'stock-groups': {
                 title: 'Stock Groups',
                 icon: 'fas fa-layer-group',
@@ -490,6 +497,37 @@ class SidebarNavigationController {
                         <h2><i class="${section.icon} me-2"></i>${section.title}</h2>
                         <p class="text-muted">${section.description}</p>
                         <p>Market Breadth content not found.</p>
+                    </div>
+                `;
+            }
+        } else if (sectionKey === 'index-comparison') {
+            // Load Index Comparison content from hidden div
+            const indexComparisonContent = document.getElementById('index-comparison-content');
+            if (indexComparisonContent) {
+                contentArea.innerHTML = `
+                    <div class="container-fluid p-4">
+                        ${indexComparisonContent.innerHTML}
+                    </div>
+                `;
+
+                // Initialize all 3 breadth metric instances after content is loaded
+                setTimeout(() => {
+                    if (typeof window.initializeBreadthMetrics_spy === 'function') {
+                        window.initializeBreadthMetrics_spy();
+                    }
+                    if (typeof window.initializeBreadthMetrics_qqq === 'function') {
+                        window.initializeBreadthMetrics_qqq();
+                    }
+                    if (typeof window.initializeBreadthMetrics_dow === 'function') {
+                        window.initializeBreadthMetrics_dow();
+                    }
+                }, 200);
+            } else {
+                contentArea.innerHTML = `
+                    <div class="container-fluid p-4">
+                        <h2><i class="${section.icon} me-2"></i>${section.title}</h2>
+                        <p class="text-muted">${section.description}</p>
+                        <p>Index Comparison content not found.</p>
                     </div>
                 `;
             }

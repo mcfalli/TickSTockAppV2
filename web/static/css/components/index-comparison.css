@@ -1,0 +1,83 @@
+/*
+ * Index Comparison 3-Column Grid Layout
+ * Sprint 67: Market Breadth Multi-Instance Enhancement
+ *
+ * Responsive 3-column grid for side-by-side breadth metrics comparison
+ * Desktop: 3 equal columns | Tablet/Mobile: stacked vertically
+ */
+
+/* ===========================
+   Main Grid Layout
+   =========================== */
+
+.index-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.index-column {
+    min-width: 0; /* Prevent grid blowout on narrow content */
+}
+
+/* ===========================
+   Responsive: Tablet/Mobile
+   =========================== */
+
+/* Stack vertically on tablets and mobile devices */
+@media (max-width: 1200px) {
+    .index-comparison-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===========================
+   Compact Styling for Multi-Instance
+   =========================== */
+
+/* Reduce vertical spacing between sections */
+.index-comparison-grid .breadth-metrics-section {
+    margin-bottom: 0;
+}
+
+/* Slightly smaller section titles */
+.index-comparison-grid .section-header h2 {
+    font-size: 1.25rem;
+}
+
+/* Compact metric rows for better space utilization */
+.index-comparison-grid .metric-row {
+    height: 35px; /* Reduced from default 40px */
+    margin-bottom: 8px; /* Reduced from default 10px */
+}
+
+/* Adjust label width for better balance */
+.index-comparison-grid .metric-label {
+    width: 110px; /* Slightly reduced from default 120px */
+    font-size: 12px;
+}
+
+/* Adjust counts display */
+.index-comparison-grid .metric-counts {
+    width: 110px; /* Slightly reduced from default 120px */
+    font-size: 12px;
+}
+
+/* ===========================
+   Mobile Adjustments
+   =========================== */
+
+@media (max-width: 768px) {
+    /* Restore normal spacing on mobile (stacked view) */
+    .index-comparison-grid .metric-row {
+        height: 40px;
+        margin-bottom: 10px;
+    }
+
+    .index-comparison-grid .metric-label,
+    .index-comparison-grid .metric-counts {
+        width: 120px;
+        font-size: 13px;
+    }
+}
