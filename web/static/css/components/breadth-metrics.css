@@ -1,0 +1,256 @@
+/**
+ * Sprint 66: Breadth Metrics CSS
+ *
+ * Flexbox-based styling for market breadth metrics visualization.
+ * Displays 12 horizontal bar chart rows showing up/down participation.
+ *
+ * Key Features:
+ * - Pure CSS flexbox layout for horizontal bars
+ * - Percentage-based bar widths
+ * - Color-coded up (green) and down (red) indicators
+ * - Theme-aware color variables
+ * - Responsive design
+ */
+
+/* Main container */
+.breadth-metrics-container {
+    width: 100%;
+    padding: 20px;
+    background: var(--card-background, #ffffff);
+    border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.breadth-metrics-container.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    opacity: 0.6;
+}
+
+.breadth-metrics-container.error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+/* Error message */
+.breadth-metrics-error {
+    text-align: center;
+    color: #dc3545;
+    padding: 20px;
+}
+
+.breadth-metrics-error i {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.breadth-metrics-error p {
+    font-size: 14px;
+    margin: 10px 0;
+}
+
+/* Section wrapper */
+.breadth-metrics-section {
+    background: var(--card-background, #ffffff);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+/* Section header */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary, #212529);
+}
+
+.section-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Metric row - each metric is one row */
+.metric-row {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    margin-bottom: 10px;
+    padding: 0 20px;
+}
+
+.metric-row:last-child {
+    margin-bottom: 0;
+}
+
+/* Metric label (left side) */
+.metric-label {
+    width: 120px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-primary, #212529);
+    flex-shrink: 0;
+}
+
+/* Metric bar container (center) */
+.metric-bar-container {
+    flex: 1;
+    display: flex;
+    height: 24px;
+    background: var(--bar-background, #f8f9fa);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Up bar (green) */
+.metric-bar-up {
+    background: linear-gradient(90deg, #28a745, #34d058);
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 5px;
+}
+
+/* Down bar (red) */
+.metric-bar-down {
+    background: linear-gradient(90deg, #f85149, #dc3545);
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 5px;
+}
+
+/* Insufficient data bar (grey with diagonal stripes) */
+.metric-bar-insufficient {
+    background: repeating-linear-gradient(
+        45deg,
+        #d0d0d0,
+        #d0d0d0 10px,
+        #e8e8e8 10px,
+        #e8e8e8 20px
+    );
+    transition: width 0.3s ease;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Bar segment labels (inside bars) */
+.metric-bar-up span,
+.metric-bar-down span {
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Metric counts (right side) */
+.metric-counts {
+    width: 120px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+    padding-left: 15px;
+}
+
+.count-up {
+    color: #28a745;
+}
+
+.count-down {
+    color: #dc3545;
+}
+
+/* Section footer */
+.section-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+    font-size: 12px;
+    color: var(--text-secondary, #6c757d);
+}
+
+/* Loading spinner */
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.loading-spinner i {
+    font-size: 32px;
+    color: var(--primary-color, #007bff);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .metric-label {
+        width: 90px;
+        font-size: 11px;
+    }
+
+    .metric-counts {
+        width: 90px;
+        font-size: 11px;
+    }
+
+    .metric-row {
+        height: 35px;
+        padding: 0 10px;
+    }
+
+    .section-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .section-controls {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* Dark theme support */
+[data-theme="dark"] .breadth-metrics-container,
+[data-theme="dark"] .breadth-metrics-section {
+    background: var(--card-background-dark, #1e2124);
+}
+
+[data-theme="dark"] .metric-label {
+    color: var(--text-primary-dark, #ffffff);
+}
+
+[data-theme="dark"] .section-header h2 {
+    color: var(--text-primary-dark, #ffffff);
+}
+
+[data-theme="dark"] .metric-bar-container {
+    background: var(--bar-background-dark, #2c2f33);
+}
+
+[data-theme="dark"] .section-footer {
+    color: var(--text-secondary-dark, #b9bbbe);
+    border-top-color: var(--border-color-dark, #4a4d52);
+}

@@ -2349,6 +2349,12 @@ def main():
             app.register_blueprint(threshold_bars_bp)
             logger.info("STARTUP: Threshold bars API registered successfully")
 
+            # Sprint 66: Register breadth metrics API
+            logger.info("STARTUP: Registering breadth metrics API...")
+            from src.api.rest.breadth_metrics import breadth_metrics_bp
+            app.register_blueprint(breadth_metrics_bp)
+            logger.info("STARTUP: Breadth metrics API registered successfully")
+
             # Sprint 65: Register stock groups API
             logger.info("STARTUP: Registering stock groups API...")
             from src.api.rest.stock_groups import stock_groups_bp

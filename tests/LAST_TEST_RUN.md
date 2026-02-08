@@ -1,8 +1,8 @@
 # Last Test Run Report
 
-**Generated**: 2025-12-29 09:51:00
+**Generated**: 2026-02-07 16:36:45
 **Command**: `python run_tests.py`
-**Total Duration**: 20.21 seconds
+**Total Duration**: 18.26 seconds
 **Status**: [FAILED]
 
 ## Summary Statistics
@@ -18,8 +18,8 @@
 
 | Suite | Status | Duration | Tests |
 |-------|--------|----------|-------|
-| Core Integration Tests | [FAIL] | 9.81s | 15 |
-| End-to-End Pattern Flow | [PASS] | 10.40s | 14 |
+| Core Integration Tests | [FAIL] | 8.95s | 15 |
+| End-to-End Pattern Flow | [PASS] | 9.31s | 14 |
 
 ## Individual Test Results
 
@@ -31,20 +31,20 @@
 - [PASS] Database access working: 0 error log entries in last 24 hours
 - [PASS] Database write access confirmed via error_logs table
 - [FAIL] Pattern Flow FAILED: Failed to publish test pattern
-- [PASS] Redis heartbeat: 0.4ms latency
-- [PASS] Database heartbeat: 0.2ms latency
+- [PASS] Redis heartbeat: 0.5ms latency
+- [PASS] Database heartbeat: 0.1ms latency
 - [PASS] Error logging active: 0 entries in last 24 hours
 - [FAIL] Redis->DB Flow FAILED: Failed to publish to Redis channel
 - [PASS] Pattern cache contains 0 entries
 - [FAIL] WebSocket Config FAILED: No pattern event handlers registered
 - [PASS] Redis performance: 0.4ms avg latency
-- [PASS] Database performance: 1.3ms avg query latency
-- [PASS] Error logging performance: 13.2ms write+delete latency
+- [PASS] Database performance: 5.3ms avg query latency
+- [PASS] Error logging performance: 1.9ms write+delete latency
 - [FAIL] Error Recovery FAILED: System not recovering from bad events
 
 ### End-to-End Pattern Flow
 
-- [PASS] Published pattern with flow_id: 1c284e90-715a-4986-b02a-ab372e0efe3a
+- [PASS] Published pattern with flow_id: 710cfd1b-8f91-4307-adcc-7c559eb39231
 - [PASS] Published daily tier pattern: HeadShoulders for TSLA
 - [PASS] Published hourly tier pattern: MomentumShift for AMD
 - [PASS] Published intraday tier pattern: VolumeSurge for NVDA

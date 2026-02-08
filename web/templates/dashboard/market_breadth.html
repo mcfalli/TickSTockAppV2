@@ -1,0 +1,125 @@
+<!--
+Sprint 66: Market Breadth Metrics Template
+
+Reusable template for displaying market breadth metrics.
+Supports multiple instances on same page with different configurations.
+
+Parameters:
+- instance_id: Unique identifier (required) - e.g., 'spy', 'qqq', 'dow'
+- universe: Universe key (required) - e.g., 'SPY', 'QQQ', 'dow30'
+- title: Display title (optional) - defaults to 'Market Breadth'
+- show_controls: Show universe selector and refresh button (optional) - defaults to True
+
+Usage: Set variables before include, then include template:
+    {percent set instance_id='spy' percent}{percent set universe='SPY' percent}
+    {percent include 'dashboard/market_breadth.html' percent}
+-->
+
+<div class="breadth-metrics-section" data-breadth-instance="{{ instance_id }}" style="display: none;">
+    <div class="section-header">
+        <h2>{{ title|default('Market Breadth') }}</h2>
+        {% if show_controls != False %}
+        <div class="section-controls">
+            <select class="breadth-universe-select form-select form-select-sm">
+                <option value="SPY" {% if universe == 'SPY' %}selected{% endif %}>S&P 500 (SPY)</option>
+                <option value="QQQ" {% if universe == 'QQQ' %}selected{% endif %}>NASDAQ 100 (QQQ)</option>
+                <option value="dow30" {% if universe == 'dow30' %}selected{% endif %}>Dow 30</option>
+                <option value="nasdaq100" {% if universe == 'nasdaq100' %}selected{% endif %}>NASDAQ 100</option>
+            </select>
+            <button class="breadth-refresh-btn btn btn-sm btn-primary">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <div id="breadth-metrics-container-{{ instance_id }}" class="breadth-metrics-container">
+        <!-- Rendered by breadth-metrics-renderer.js -->
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>
+    </div>
+
+    <div class="section-footer">
+        <span class="text-muted">
+            <i class="fas fa-info-circle"></i>
+            Green = Above/Up | Red = Below/Down | Auto-refresh: 60s
+        </span>
+        <span class="breadth-last-update text-muted"></span>
+    </div>
+</div>
+
+<script>
+// Initialize this specific instance
+(function() {
+    const instanceId = '{{ instance_id }}';
+    const universe = '{{ universe|default("SPY") }}';
+    const title = '{{ title|default("Market Breadth") }}';
+    const showControls = {{ 'true' if show_controls != False else 'false' }};
+
+    // Create unique initialization function for this instance
+    window['initializeBreadthMetrics_' + instanceId] = function() {
+        const renderer = new BreadthMetricsRenderer();
+
+        // Initial render
+        renderer.render('breadth-metrics-container-' + instanceId, {
+            universe: universe,
+            title: title,
+            showControls: showControls
+        });
+
+        // Attach event handlers if controls are shown
+        if (showControls) {
+            const section = document.querySelector('[data-breadth-instance="' + instanceId + '"]');
+
+            if (section) {
+                // Refresh button handler
+                const refreshBtn = section.querySelector('.breadth-refresh-btn');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', () => {
+                        const select = section.querySelector('.breadth-universe-select');
+                        const currentUniverse = select ? select.value : universe;
+                        renderer.render('breadth-metrics-container-' + instanceId, {
+                            universe: currentUniverse,
+                            title: title,
+                            showControls: showControls
+                        });
+                    });
+                }
+
+                // Universe selector handler
+                const select = section.querySelector('.breadth-universe-select');
+                if (select) {
+                    select.addEventListener('change', (e) => {
+                        renderer.render('breadth-metrics-container-' + instanceId, {
+                            universe: e.target.value,
+                            title: title,
+                            showControls: showControls
+                        });
+                    });
+                }
+            }
+        }
+
+        // Show the section
+        const section = document.querySelector('[data-breadth-instance="' + instanceId + '"]');
+        if (section) {
+            section.style.display = 'block';
+        }
+    };
+
+    // Auto-initialize on page load if document is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof window['initializeBreadthMetrics_' + instanceId] === 'function') {
+                window['initializeBreadthMetrics_' + instanceId]();
+            }
+        });
+    } else {
+        // Document already loaded
+        if (typeof window['initializeBreadthMetrics_' + instanceId] === 'function') {
+            window['initializeBreadthMetrics_' + instanceId]();
+        }
+    }
+})();
+</script>

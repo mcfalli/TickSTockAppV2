@@ -57,6 +57,13 @@ class SidebarNavigationController {
                 component: 'initializeMarketOverview',
                 description: 'Sprint 64: Threshold bars market sentiment visualization'
             },
+            'market-breadth': {
+                title: 'Market Breadth',
+                icon: 'fas fa-chart-bar',
+                hasFilters: false,
+                component: 'initializeBreadthMetrics_default',
+                description: 'Sprint 66: Market breadth metrics showing up/down participation'
+            },
             'stock-groups': {
                 title: 'Stock Groups',
                 icon: 'fas fa-layer-group',
@@ -458,6 +465,31 @@ class SidebarNavigationController {
                         <h2><i class="${section.icon} me-2"></i>${section.title}</h2>
                         <p class="text-muted">${section.description}</p>
                         <p>Market Overview content not found.</p>
+                    </div>
+                `;
+            }
+        } else if (sectionKey === 'market-breadth') {
+            // Load Market Breadth content from hidden div
+            const marketBreadthContent = document.getElementById('market-breadth-content');
+            if (marketBreadthContent) {
+                contentArea.innerHTML = `
+                    <div class="container-fluid p-4">
+                        ${marketBreadthContent.innerHTML}
+                    </div>
+                `;
+
+                // Initialize Market Breadth after content is loaded
+                setTimeout(() => {
+                    if (typeof window.initializeBreadthMetrics_default === 'function') {
+                        window.initializeBreadthMetrics_default();
+                    }
+                }, 200);
+            } else {
+                contentArea.innerHTML = `
+                    <div class="container-fluid p-4">
+                        <h2><i class="${section.icon} me-2"></i>${section.title}</h2>
+                        <p class="text-muted">${section.description}</p>
+                        <p>Market Breadth content not found.</p>
                     </div>
                 `;
             }
