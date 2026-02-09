@@ -2361,6 +2361,13 @@ def main():
             app.register_blueprint(stock_groups_bp)
             logger.info("STARTUP: Stock groups API registered successfully")
 
+            # Sprint 71: REST API Endpoints for Analysis
+            logger.info("STARTUP: Registering analysis API endpoints...")
+            from src.api.routes import analysis_bp, discovery_bp
+            app.register_blueprint(analysis_bp)
+            app.register_blueprint(discovery_bp)
+            logger.info("STARTUP: Analysis and discovery APIs registered successfully")
+
             # Register Real Pattern Discovery APIs (Sprint 10 Complete)
             logger.info("STARTUP: Registering real pattern discovery APIs...")
             try:
