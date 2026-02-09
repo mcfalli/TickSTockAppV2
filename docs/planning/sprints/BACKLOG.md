@@ -1,7 +1,218 @@
 # TickStockAppV2 Product Backlog
 
-**Last Updated**: 2025-11-27
+**Last Updated**: 2026-02-09
 **Purpose**: Track future enhancements, technical debt, and feature requests
+
+## Sprint 68 Deferred Items
+
+### Priority: High - Pattern Library Extension
+**Context**: Sprint 68 implemented 3 core patterns (Doji, Hammer, Engulfing). 15+ additional patterns from TickStockPL available for migration.
+
+#### 1. High-Value Reversal Patterns
+- [ ] **Morning Star** - Three-bar bullish reversal pattern
+  - Downtrend → small body → uptrend confirmation
+  - Pydantic params: min_gap_ratio, body_size_threshold
+  - Confidence scoring based on gap size and third candle strength
+  - Expected effort: 2-3 hours (implementation + 15-20 tests)
+
+- [ ] **Evening Star** - Three-bar bearish reversal pattern
+  - Uptrend → small body → downtrend confirmation
+  - Mirror of Morning Star logic
+  - Expected effort: 2-3 hours (implementation + 15-20 tests)
+
+- [ ] **Harami** - Two-bar reversal pattern (bullish/bearish variants)
+  - Large candle → small candle contained within previous body
+  - Pydantic params: min_body_ratio, max_inner_body_ratio
+  - Expected effort: 2-3 hours (implementation + 15-20 tests)
+
+- [ ] **Shooting Star** - Single-bar bearish reversal pattern
+  - Mirror of Hammer (long upper shadow instead of lower)
+  - Appears at top of uptrend
+  - Expected effort: 2 hours (can reuse Hammer logic)
+
+- [ ] **Hanging Man** - Single-bar bearish reversal pattern
+  - Same structure as Hammer but appears at top of uptrend
+  - Context-dependent interpretation
+  - Expected effort: 2 hours (can reuse Hammer logic)
+
+**Total Effort**: 10-15 hours for 5 high-value patterns
+**Priority**: High (enables production-ready pattern detection)
+
+#### 2. Additional Candlestick Patterns
+- [ ] **Piercing Line** - Two-bar bullish reversal
+- [ ] **Dark Cloud Cover** - Two-bar bearish reversal
+- [ ] **Three White Soldiers** - Three-bar bullish continuation
+- [ ] **Three Black Crows** - Three-bar bearish continuation
+- [ ] **Tweezer Top/Bottom** - Two-bar reversal patterns
+- [ ] **Marubozu** - Single-bar strong trend indicator
+- [ ] **Spinning Top** - Single-bar indecision pattern
+- [ ] **8+ additional patterns** from TickStockPL library
+
+**Total Effort**: 20-30 hours for complete pattern library
+**Priority**: Medium (comprehensive pattern coverage)
+
+---
+
+### Priority: High - Indicator Library Extension
+**Context**: Sprint 68 implemented 3 core indicators (SMA, RSI, MACD). 12+ additional indicators from TickStockPL available for migration.
+
+#### 1. Essential Technical Indicators
+- [ ] **EMA (Exponential Moving Average)** - Trend indicator
+  - Pydantic params: period (default: 20)
+  - Returns: {value, value_data, indicator_type}
+  - Expected effort: 1-2 hours (implementation + 15-20 tests)
+
+- [ ] **Bollinger Bands** - Volatility indicator
+  - Upper band, middle (SMA), lower band
+  - Pydantic params: period (default: 20), num_std_dev (default: 2)
+  - Returns: {value: current_price_position, value_data: {upper, middle, lower}}
+  - Expected effort: 2-3 hours (three bands + %B calculation)
+
+- [ ] **Stochastic Oscillator** - Momentum indicator
+  - %K and %D lines (0-100 range)
+  - Pydantic params: k_period (default: 14), d_period (default: 3)
+  - Expected effort: 2-3 hours (two-line calculation)
+
+- [ ] **ATR (Average True Range)** - Volatility indicator
+  - Measures market volatility
+  - Pydantic params: period (default: 14)
+  - Expected effort: 1-2 hours
+
+- [ ] **ADX (Average Directional Index)** - Trend strength indicator
+  - Measures trend strength (0-100)
+  - Pydantic params: period (default: 14)
+  - Expected effort: 2-3 hours (complex calculation)
+
+**Total Effort**: 8-13 hours for 5 essential indicators
+**Priority**: High (completes core indicator library)
+
+#### 2. Volume & Price Indicators
+- [ ] **OBV (On-Balance Volume)** - Volume-based trend indicator
+- [ ] **Volume SMA** - Volume trend analysis
+- [ ] **Relative Volume** - Volume comparison to average
+- [ ] **VWAP (Volume Weighted Average Price)** - Institutional benchmark
+- [ ] **Momentum** - Rate of price change
+- [ ] **ROC (Rate of Change)** - Percentage price change
+- [ ] **Williams %R** - Momentum oscillator (overbought/oversold)
+
+**Total Effort**: 7-14 hours for 7 volume/price indicators
+**Priority**: Medium (comprehensive technical analysis)
+
+---
+
+### Priority: Medium - REST API Endpoints
+**Context**: Analysis services implemented but not yet exposed via REST API for external integrations.
+
+#### 1. Analysis Endpoints
+- [ ] **POST /api/analysis/symbol** - Analyze single symbol
+  - Request: `{symbol, timeframe, indicators[], patterns[], calculate_all}`
+  - Response: Complete analysis results (indicators, patterns, metadata)
+  - Validation: Pydantic request/response models
+  - Error handling: 400 (validation), 500 (analysis errors)
+  - Expected: <50ms response time
+  - Effort: 1-2 hours (endpoint + 10-15 tests)
+
+- [ ] **POST /api/analysis/universe** - Analyze universe
+  - Request: `{universe_key, timeframe, indicators[], patterns[], max_symbols}`
+  - Response: Batch analysis results with summary statistics
+  - Progress tracking via WebSocket (optional)
+  - Expected: <2s for 100 symbols
+  - Effort: 2-3 hours (batch processing + progress tracking)
+
+- [ ] **POST /api/analysis/validate-data** - Validate OHLCV data
+  - Request: `{data: DataFrame or CSV}`
+  - Response: `{is_valid, errors[]}`
+  - Validation: OHLC consistency, minimum rows, NaN check
+  - Expected: <20ms
+  - Effort: 1 hour (endpoint + 5-10 tests)
+
+#### 2. Discovery Endpoints
+- [ ] **GET /api/indicators/available** - List available indicators
+  - Response: Categories with indicator names
+  - Caching: Redis with 1-hour TTL
+  - Expected: <10ms (cached)
+  - Effort: 30 minutes (simple registry endpoint)
+
+- [ ] **GET /api/patterns/available** - List available patterns
+  - Response: Categories with pattern names
+  - Caching: Redis with 1-hour TTL
+  - Expected: <10ms (cached)
+  - Effort: 30 minutes (simple registry endpoint)
+
+- [ ] **GET /api/analysis/capabilities** - Get analysis system info
+  - Response: Version, available indicators/patterns, performance stats
+  - Expected: <10ms
+  - Effort: 30 minutes
+
+**Total Effort**: 5-7 hours for complete REST API
+**Priority**: Medium (enables external integrations, API documentation)
+
+---
+
+### Priority: Medium - Background Job Integration
+**Context**: Analysis service ready for async processing but not yet integrated with Redis job queue.
+
+#### 1. Job Queue Integration
+- [ ] **Universe Analysis Jobs** - Async batch processing
+  - Integrate with Redis `tickstock.jobs.analysis` channel
+  - Job status tracking (queued, running, completed, failed)
+  - Result caching with TTL
+  - Progress updates via WebSocket
+  - Effort: 3-4 hours
+
+- [ ] **Scheduled Analysis Jobs** - Periodic batch analysis
+  - Daily EOD analysis for configured universes
+  - Weekly/monthly analysis for long-term trends
+  - Job scheduling via Redis or Celery
+  - Effort: 2-3 hours
+
+- [ ] **Job Notification System** - Completion alerts
+  - WebSocket notifications for job completion
+  - Email notifications (optional)
+  - Result retrieval endpoints
+  - Effort: 1-2 hours
+
+**Total Effort**: 6-9 hours for complete job integration
+**Priority**: Medium (required for production universe analysis)
+
+---
+
+### Priority: Low - Performance Optimization
+**Context**: Current performance meets targets (pattern <10ms, indicator <10ms, complete analysis <50ms) but can be improved for large-scale operations.
+
+#### 1. Parallel Processing
+- [ ] **Multiprocessing for Pattern Detection** - Parallel pattern analysis
+  - Use multiprocessing.Pool for independent pattern detection
+  - Expected: 2-3x speedup for 10+ patterns
+  - Effort: 2-3 hours (implementation + benchmarking)
+
+- [ ] **Async Indicator Calculation** - Concurrent indicator processing
+  - asyncio for I/O-bound operations (database queries)
+  - Expected: 30-50% speedup for batch operations
+  - Effort: 3-4 hours (async refactoring)
+
+#### 2. Caching Optimization
+- [ ] **Indicator Result Caching** - TTL-based result cache
+  - Redis cache for indicator results (5-minute TTL)
+  - Cache key: symbol + timeframe + indicator + params hash
+  - Expected: 90%+ cache hit rate for repeated queries
+  - Effort: 2-3 hours
+
+- [ ] **DataFrame Pre-validation Cache** - Validation result cache
+  - Cache validation results to avoid repeated OHLC checks
+  - Expected: 20-30% speedup for repeated data validation
+  - Effort: 1-2 hours
+
+#### 3. API Optimization
+- [ ] **Streaming Batch Responses** - Server-Sent Events for large results
+  - Stream analysis results as they complete
+  - Reduce perceived latency for batch operations
+  - Effort: 2-3 hours
+
+**Total Effort**: 10-15 hours for complete optimization
+**Priority**: Low (current performance acceptable for production)
+
+---
 
 ## Sprint 55 Deferred Items
 
