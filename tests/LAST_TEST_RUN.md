@@ -1,8 +1,8 @@
 # Last Test Run Report
 
-**Generated**: 2026-02-07 16:36:45
+**Generated**: 2026-02-09 07:34:35
 **Command**: `python run_tests.py`
-**Total Duration**: 18.26 seconds
+**Total Duration**: 20.42 seconds
 **Status**: [FAILED]
 
 ## Summary Statistics
@@ -18,8 +18,8 @@
 
 | Suite | Status | Duration | Tests |
 |-------|--------|----------|-------|
-| Core Integration Tests | [FAIL] | 8.95s | 15 |
-| End-to-End Pattern Flow | [PASS] | 9.31s | 14 |
+| Core Integration Tests | [FAIL] | 10.07s | 15 |
+| End-to-End Pattern Flow | [PASS] | 10.35s | 14 |
 
 ## Individual Test Results
 
@@ -31,20 +31,20 @@
 - [PASS] Database access working: 0 error log entries in last 24 hours
 - [PASS] Database write access confirmed via error_logs table
 - [FAIL] Pattern Flow FAILED: Failed to publish test pattern
-- [PASS] Redis heartbeat: 0.5ms latency
+- [PASS] Redis heartbeat: 0.3ms latency
 - [PASS] Database heartbeat: 0.1ms latency
 - [PASS] Error logging active: 0 entries in last 24 hours
 - [FAIL] Redis->DB Flow FAILED: Failed to publish to Redis channel
 - [PASS] Pattern cache contains 0 entries
 - [FAIL] WebSocket Config FAILED: No pattern event handlers registered
-- [PASS] Redis performance: 0.4ms avg latency
-- [PASS] Database performance: 5.3ms avg query latency
-- [PASS] Error logging performance: 1.9ms write+delete latency
+- [PASS] Redis performance: 0.5ms avg latency
+- [PASS] Database performance: 3.5ms avg query latency
+- [PASS] Error logging performance: 0.7ms write+delete latency
 - [FAIL] Error Recovery FAILED: System not recovering from bad events
 
 ### End-to-End Pattern Flow
 
-- [PASS] Published pattern with flow_id: 710cfd1b-8f91-4307-adcc-7c559eb39231
+- [PASS] Published pattern with flow_id: 60260acf-2e6e-4bb0-b744-1a45fe580330
 - [PASS] Published daily tier pattern: HeadShoulders for TSLA
 - [PASS] Published hourly tier pattern: MomentumShift for AMD
 - [PASS] Published intraday tier pattern: VolumeSurge for NVDA
@@ -56,7 +56,7 @@
 - [PASS] Database logging verified: 5/5 flows tested successfully
 - [PASS] Redis cache status:
 - [PASS] Pattern-related tables available: 12
-- [PASS] Database analysis baseline: 2464 symbols available
+- [PASS] Database analysis baseline: 2964 symbols available
 - [PASS] PATTERN FLOW TESTS COMPLETE
 
 ## Expected Test Coverage
