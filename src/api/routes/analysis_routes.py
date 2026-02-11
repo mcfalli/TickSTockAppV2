@@ -2,9 +2,11 @@
 Analysis API routes.
 
 Sprint 71: REST API Endpoints
+Sprint 72: Database Integration
 Endpoints for single symbol and universe batch analysis.
 """
 
+import logging
 import time
 from datetime import datetime
 from io import StringIO
@@ -12,6 +14,8 @@ from io import StringIO
 import pandas as pd
 from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
+
+logger = logging.getLogger(__name__)
 
 from src.api.models.analysis_models import (
     SymbolAnalysisRequest,
@@ -23,8 +27,9 @@ from src.api.models.analysis_models import (
     ErrorResponse,
 )
 from src.analysis.services.analysis_service import AnalysisService
+from src.analysis.data.ohlcv_data_service import OHLCVDataService
 from src.core.services.relationship_cache import get_relationship_cache
-from src.analysis.exceptions import IndicatorError, PatternDetectionError
+from src.analysis.exceptions import IndicatorError, PatternDetectionError, DataValidationError
 
 # Create blueprint
 analysis_bp = Blueprint('analysis', __name__, url_prefix='/api/analysis')
@@ -63,21 +68,43 @@ def analyze_symbol():
     start_time = time.time()
 
     try:
-        # Get analysis service
+        # Get services
         analysis_service = AnalysisService()
+        data_service = OHLCVDataService()
 
         # Fetch OHLCV data from database (last 200 bars for indicators)
-        # TODO: Replace with actual database query
-        # For now, create sample data for testing
-        dates = pd.date_range(end=datetime.now(), periods=200, freq='1D')
-        data = pd.DataFrame({
-            'timestamp': dates,
-            'open': 150.0,
-            'high': 152.0,
-            'low': 149.0,
-            'close': 151.0,
-            'volume': 1000000
-        })
+        try:
+            data = data_service.get_ohlcv_data(
+                symbol=request_data.symbol,
+                timeframe=request_data.timeframe,
+                limit=250  # Extra bars for indicator warm-up
+            )
+        except ValueError as e:
+            # Invalid timeframe
+            return jsonify(ErrorResponse(
+                error="ValidationError",
+                message=str(e),
+                details={'symbol': request_data.symbol, 'timeframe': request_data.timeframe}
+            ).model_dump()), 400
+        except RuntimeError as e:
+            # Database error
+            return jsonify(ErrorResponse(
+                error="DatabaseError",
+                message=f"Failed to fetch data: {str(e)}",
+                details={'symbol': request_data.symbol}
+            ).model_dump()), 500
+
+        # Check if data exists
+        if data.empty:
+            return jsonify(ErrorResponse(
+                error="NotFoundError",
+                message=f"No data found for symbol '{request_data.symbol}' ({request_data.timeframe})",
+                details={
+                    'symbol': request_data.symbol,
+                    'timeframe': request_data.timeframe,
+                    'suggestion': 'Check if symbol exists or try a different timeframe'
+                }
+            ).model_dump()), 404
 
         # Determine which indicators/patterns to calculate
         if request_data.calculate_all:
@@ -179,8 +206,23 @@ def analyze_universe():
         if request_data.max_symbols:
             symbols = symbols[:request_data.max_symbols]
 
-        # Get analysis service
+        # Get services
         analysis_service = AnalysisService()
+        data_service = OHLCVDataService()
+
+        # Batch fetch OHLCV data for all symbols (efficient single query)
+        try:
+            universe_data = data_service.get_universe_ohlcv_data(
+                symbols=symbols,
+                timeframe=request_data.timeframe,
+                limit=250
+            )
+        except RuntimeError as e:
+            return jsonify(ErrorResponse(
+                error="DatabaseError",
+                message=f"Failed to fetch universe data: {str(e)}",
+                details={'universe_key': request_data.universe_key}
+            ).model_dump()), 500
 
         # Batch analyze symbols
         results = {}
@@ -193,17 +235,13 @@ def analyze_universe():
 
         for symbol in symbols:
             try:
-                # TODO: Fetch real OHLCV data from database
-                # For now, create sample data
-                dates = pd.date_range(end=datetime.now(), periods=200, freq='1D')
-                data = pd.DataFrame({
-                    'timestamp': dates,
-                    'open': 150.0,
-                    'high': 152.0,
-                    'low': 149.0,
-                    'close': 151.0,
-                    'volume': 1000000
-                })
+                # Get data for this symbol
+                data = universe_data.get(symbol)
+
+                # Skip if no data available for symbol
+                if data is None or data.empty:
+                    logger.warning(f"No data for symbol {symbol}, skipping")
+                    continue
 
                 # Determine which indicators/patterns to calculate
                 if request_data.calculate_all:

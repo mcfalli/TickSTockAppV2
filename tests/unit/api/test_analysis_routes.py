@@ -36,9 +36,24 @@ class TestAnalysisRoutes(unittest.TestCase):
         self.assertEqual(data['service'], 'analysis')
         self.assertIn('timestamp', data)
 
+    @patch('src.api.routes.analysis_routes.OHLCVDataService')
     @patch('src.api.routes.analysis_routes.AnalysisService')
-    def test_analyze_symbol_valid_request(self, mock_service_class):
+    def test_analyze_symbol_valid_request(self, mock_service_class, mock_data_service_class):
         """Test single symbol analysis with valid request."""
+        # Mock the data service
+        mock_data_service = MagicMock()
+        mock_data_service_class.return_value = mock_data_service
+
+        # Mock OHLCV data
+        mock_ohlcv_data = pd.DataFrame({
+            'open': [100] * 200,
+            'high': [102] * 200,
+            'low': [99] * 200,
+            'close': [101] * 200,
+            'volume': [1000000] * 200
+        })
+        mock_data_service.get_ohlcv_data.return_value = mock_ohlcv_data
+
         # Mock the analysis service
         mock_service = MagicMock()
         mock_service_class.return_value = mock_service
@@ -111,14 +126,33 @@ class TestAnalysisRoutes(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(data['error'], 'ValidationError')
 
+    @patch('src.api.routes.analysis_routes.OHLCVDataService')
     @patch('src.api.routes.analysis_routes.get_relationship_cache')
     @patch('src.api.routes.analysis_routes.AnalysisService')
-    def test_analyze_universe_valid_request(self, mock_service_class, mock_cache):
+    def test_analyze_universe_valid_request(self, mock_service_class, mock_cache, mock_data_service_class):
         """Test universe analysis with valid request."""
         # Mock the cache
         mock_cache_instance = MagicMock()
         mock_cache.return_value = mock_cache_instance
         mock_cache_instance.get_universe_symbols.return_value = ['AAPL', 'MSFT', 'GOOGL']
+
+        # Mock the data service
+        mock_data_service = MagicMock()
+        mock_data_service_class.return_value = mock_data_service
+
+        # Mock OHLCV data for universe
+        mock_ohlcv_data = pd.DataFrame({
+            'open': [100] * 200,
+            'high': [102] * 200,
+            'low': [99] * 200,
+            'close': [101] * 200,
+            'volume': [1000000] * 200
+        })
+        mock_data_service.get_universe_ohlcv_data.return_value = {
+            'AAPL': mock_ohlcv_data.copy(),
+            'MSFT': mock_ohlcv_data.copy(),
+            'GOOGL': mock_ohlcv_data.copy()
+        }
 
         # Mock the analysis service
         mock_service = MagicMock()
