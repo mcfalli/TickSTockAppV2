@@ -70,8 +70,16 @@ class PatternDetectionService:
             # Get pattern instance (cached)
             pattern = self._get_pattern_instance(pattern_name)
 
-            # Detect pattern
-            result = pattern.detect(data, timeframe=timeframe)
+            # Detect pattern (patterns work on any timeframe data)
+            detected_series = pattern.detect(data)
+
+            # Wrap result in expected dict format
+            # Patterns return pd.Series[bool], we need {'detected': Series, 'confidence': Series}
+            import pandas as pd
+            result = {
+                'detected': detected_series,
+                'confidence': pd.Series(1.0, index=detected_series.index)  # Default confidence
+            }
 
             return result
 

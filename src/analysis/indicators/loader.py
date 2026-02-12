@@ -12,6 +12,8 @@ from ..exceptions import IndicatorLoadError
 
 
 # Indicator registry - all available indicators
+# Sprint 68: SMA, RSI, MACD
+# Sprint 70: EMA, ATR, Bollinger Bands, Stochastic, ADX
 AVAILABLE_INDICATORS = {
     # Trend Indicators
     "sma",
@@ -20,17 +22,9 @@ AVAILABLE_INDICATORS = {
     # Momentum Indicators
     "rsi",
     "stochastic",
-    "momentum",
-    "roc",
-    "williams_r",
     # Volatility Indicators
     "bollinger_bands",
     "atr",
-    # Volume Indicators
-    "obv",
-    "volume_sma",
-    "relative_volume",
-    "vwap",
     # Directional Indicators
     "adx",
 }
@@ -153,6 +147,9 @@ def get_available_indicators() -> dict[str, list[str]]:
     """
     Get list of all available indicators organized by category.
 
+    Sprint 68: SMA, RSI, MACD
+    Sprint 70: EMA, ATR, Bollinger Bands, Stochastic, ADX
+
     Returns:
         Dictionary mapping indicator category to list of indicator names
 
@@ -163,9 +160,8 @@ def get_available_indicators() -> dict[str, list[str]]:
     """
     return {
         "trend": ["sma", "ema", "macd"],
-        "momentum": ["rsi", "stochastic", "momentum", "roc", "williams_r"],
+        "momentum": ["rsi", "stochastic"],
         "volatility": ["bollinger_bands", "atr"],
-        "volume": ["obv", "volume_sma", "relative_volume", "vwap"],
         "directional": ["adx"],
     }
 

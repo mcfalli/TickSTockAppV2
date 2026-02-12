@@ -12,32 +12,23 @@ from ..exceptions import PatternLoadError
 
 
 # Pattern type mappings (subdirectory organization)
+# Sprint 68: Doji, Hammer, Engulfing
+# Sprint 69: Shooting Star, Hanging Man, Harami, Morning Star, Evening Star
 CANDLESTICK_PATTERNS = {
     "doji",
     "hammer",
     "engulfing",
     "shooting_star",
+    "hanging_man",
     "harami",
     "morning_star",
     "evening_star",
 }
 
-DAILY_PATTERNS = {
-    "head_shoulders",
-    "double_top",
-    "double_bottom",
-    "triangle",
-    "channel",
-    "cup_handle",
-    "flag",
-}
+# Future patterns - not yet implemented
+DAILY_PATTERNS = set()
 
-COMBO_PATTERNS = {
-    "breakout_volume",
-    "macd_divergence",
-    "rsi_reversal",
-    "volume_surge_pattern",
-}
+COMBO_PATTERNS = set()
 
 
 def load_pattern(pattern_name: str) -> Type[BasePattern]:

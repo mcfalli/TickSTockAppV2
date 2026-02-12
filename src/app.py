@@ -2368,6 +2368,12 @@ def main():
             app.register_blueprint(discovery_bp)
             logger.info("STARTUP: Analysis and discovery APIs registered successfully")
 
+            # Sprint 73: Process Stock Analysis Admin Page
+            logger.info("STARTUP: Registering process stock analysis admin page...")
+            from src.api.rest.admin_process_analysis import admin_process_analysis_bp
+            app.register_blueprint(admin_process_analysis_bp)
+            logger.info("STARTUP: Process stock analysis admin page registered successfully")
+
             # Register Real Pattern Discovery APIs (Sprint 10 Complete)
             logger.info("STARTUP: Registering real pattern discovery APIs...")
             try:

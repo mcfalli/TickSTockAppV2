@@ -96,9 +96,13 @@ class AnalysisService:
 
         # Detect patterns
         if calculate_all:
-            # Get all available patterns
+            # Get all available patterns (flatten from categories)
             all_patterns = self.pattern_service.get_available_patterns()
-            patterns = list(all_patterns.keys())
+            patterns = [
+                pattern_name
+                for pattern_list in all_patterns.values()
+                for pattern_name in pattern_list
+            ]
 
         if patterns:
             result['patterns'] = self._detect_patterns(
