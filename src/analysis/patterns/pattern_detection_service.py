@@ -67,8 +67,20 @@ class PatternDetectionService:
             )
 
         try:
-            # Get pattern instance (cached)
-            pattern = self._get_pattern_instance(pattern_name)
+            # Get pattern instance and metadata (cached)
+            pattern_meta = self._get_pattern_metadata(pattern_name, timeframe)
+            pattern = pattern_meta['instance']
+
+            # Sprint 74: Validate min_bars_required
+            min_bars = pattern_meta.get('min_bars_required', 1)
+            if len(data) < min_bars:
+                raise PatternDetectionError(
+                    f"Insufficient data for pattern '{pattern_name}': "
+                    f"have {len(data)} bars, need {min_bars}",
+                    pattern_name=pattern_name,
+                    symbol=None,
+                    timeframe=timeframe,
+                )
 
             # Detect pattern (patterns work on any timeframe data)
             detected_series = pattern.detect(data)
@@ -121,26 +133,37 @@ class PatternDetectionService:
         """
         return is_pattern_available(pattern_name)
 
-    def _get_pattern_instance(self, pattern_name: str) -> BasePattern:
+    def _get_pattern_metadata(self, pattern_name: str, timeframe: str = 'daily') -> dict:
         """
-        Get or create cached pattern instance.
+        Get or create cached pattern with full metadata.
+
+        Sprint 74: Loads pattern from dynamic loader (database-driven).
 
         Args:
             pattern_name: Pattern name
+            timeframe: Timeframe to load pattern for
 
         Returns:
-            Pattern instance
+            Pattern metadata dict with 'instance' and other fields
 
         Raises:
             PatternLoadError: If pattern cannot be loaded
         """
-        pattern_key = pattern_name.lower()
+        # Cache key includes timeframe to support multi-timeframe patterns
+        pattern_key = f"{pattern_name.lower()}_{timeframe}"
 
         if pattern_key not in self._pattern_cache:
-            # Load pattern class
-            pattern_class = load_pattern(pattern_name)
+            # Sprint 74: Get pattern metadata from dynamic loader
+            from ..dynamic_loader import get_dynamic_loader
+            loader = get_dynamic_loader()
+            pattern_meta = loader.get_pattern(timeframe, pattern_name)
 
-            # Instantiate and cache
-            self._pattern_cache[pattern_key] = pattern_class()
+            if not pattern_meta:
+                from ..exceptions import PatternLoadError
+                raise PatternLoadError(
+                    f"Pattern '{pattern_name}' not found for timeframe '{timeframe}'"
+                )
+
+            self._pattern_cache[pattern_key] = pattern_meta
 
         return self._pattern_cache[pattern_key]

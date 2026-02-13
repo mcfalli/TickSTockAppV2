@@ -2,106 +2,54 @@
 Dynamic indicator loader for TickStockAppV2.
 
 Sprint 68: Core Analysis Migration - Indicator loading with NO FALLBACK policy
+Sprint 74: Table-driven dynamic loading from database
 """
 
 import importlib
-from typing import Type
+from typing import Type, Dict, Any, Optional
 
 from .base_indicator import BaseIndicator
 from ..exceptions import IndicatorLoadError
+from ..dynamic_loader import get_dynamic_loader
 
 
-# Indicator registry - all available indicators
-# Sprint 68: SMA, RSI, MACD
-# Sprint 70: EMA, ATR, Bollinger Bands, Stochastic, ADX
-AVAILABLE_INDICATORS = {
-    # Trend Indicators
-    "sma",
-    "ema",
-    "macd",
-    # Momentum Indicators
-    "rsi",
-    "stochastic",
-    # Volatility Indicators
-    "bollinger_bands",
-    "atr",
-    # Directional Indicators
-    "adx",
-}
-
-
-def load_indicator(indicator_name: str) -> Type[BaseIndicator]:
+def load_indicator(indicator_name: str, timeframe: str = 'daily') -> BaseIndicator:
     """
-    Dynamically load indicator class by name.
+    Dynamically load indicator instance by name using database configuration.
 
+    Sprint 74: Table-driven loading from indicator_definitions table.
     NO FALLBACK POLICY: If indicator not found, raise error immediately.
-    This ensures we catch configuration errors early rather than silently
-    using incorrect or stub implementations.
 
     Args:
-        indicator_name: Indicator name (e.g., 'SMA', 'RSI', 'MACD')
+        indicator_name: Indicator name (e.g., 'sma', 'rsi', 'macd')
+        timeframe: Timeframe to load indicator for (default: 'daily')
 
     Returns:
-        Indicator class (not instance)
+        Indicator instance (ready to call calculate())
 
     Raises:
         IndicatorLoadError: If indicator cannot be loaded
 
     Examples:
-        >>> sma_class = load_indicator('SMA')
-        >>> sma = sma_class({'period': 20})
+        >>> sma = load_indicator('sma')
         >>> result = sma.calculate(data)
     """
     try:
-        # Normalize indicator name to lowercase for module lookup
-        indicator_module_name = indicator_name.lower()
+        # Get dynamic loader
+        loader = get_dynamic_loader()
 
-        # Check if indicator is registered
-        if indicator_module_name not in AVAILABLE_INDICATORS:
+        # Get indicator metadata from database
+        indicator_meta = loader.get_indicator(timeframe, indicator_name)
+
+        if not indicator_meta:
             raise IndicatorLoadError(
-                f"Unknown indicator: '{indicator_name}'. "
-                f"Indicator must be registered in AVAILABLE_INDICATORS. "
-                f"Available indicators: {sorted(AVAILABLE_INDICATORS)}",
-                module_name=indicator_module_name,
+                f"Indicator '{indicator_name}' not found for timeframe '{timeframe}'. "
+                f"Ensure indicator is enabled in indicator_definitions table.",
+                module_name=indicator_name,
             )
 
-        # Construct module path
-        module_path = f"src.analysis.indicators.{indicator_module_name}"
-
-        # Import module
-        try:
-            module = importlib.import_module(module_path)
-        except ModuleNotFoundError as e:
-            raise IndicatorLoadError(
-                f"Indicator module not found: '{indicator_name}' "
-                f"(searched: {module_path}). "
-                f"Ensure indicator is registered in indicator_definitions table "
-                f"and implementation exists.",
-                module_name=module_path,
-            ) from e
-
-        # Get class (convert indicator_name to ClassName convention)
-        class_name = _to_class_name(indicator_name)
-
-        try:
-            indicator_class = getattr(module, class_name)
-        except AttributeError as e:
-            raise IndicatorLoadError(
-                f"Indicator class '{class_name}' not found in module '{module_path}'. "
-                f"Ensure class name matches indicator name convention.",
-                module_name=module_path,
-                class_name=class_name,
-            ) from e
-
-        # Validate it's a BaseIndicator subclass
-        if not issubclass(indicator_class, BaseIndicator):
-            raise IndicatorLoadError(
-                f"Indicator '{class_name}' must inherit from BaseIndicator. "
-                f"Found: {indicator_class.__bases__}",
-                class_name=class_name,
-            )
-
-        return indicator_class
+        # Return the indicator instance
+        return indicator_meta['instance']
 
     except IndicatorLoadError:
         # Re-raise indicator load errors as-is
@@ -115,100 +63,96 @@ def load_indicator(indicator_name: str) -> Type[BaseIndicator]:
         ) from e
 
 
-def _to_class_name(indicator_name: str) -> str:
+def get_available_indicators(timeframe: str = 'daily') -> dict[str, list[str]]:
     """
-    Convert indicator_name to ClassName convention.
+    Get list of all enabled indicators organized by category.
 
-    Examples:
-        sma -> SMA
-        macd -> MACD
-        bollinger_bands -> BollingerBands
-        williams_r -> WilliamsR
+    Sprint 74: Queries indicator_definitions table for enabled indicators.
 
     Args:
-        indicator_name: Indicator name (may be lowercase or mixed case)
-
-    Returns:
-        Class name in appropriate format
-    """
-    # Handle special cases (acronyms that should stay uppercase)
-    upper_indicators = {"sma", "ema", "rsi", "macd", "atr", "obv", "vwap", "adx", "roc"}
-    indicator_lower = indicator_name.lower()
-
-    if indicator_lower in upper_indicators:
-        return indicator_lower.upper()
-
-    # For others, capitalize words
-    words = indicator_name.lower().split("_")
-    return "".join(word.capitalize() for word in words)
-
-
-def get_available_indicators() -> dict[str, list[str]]:
-    """
-    Get list of all available indicators organized by category.
-
-    Sprint 68: SMA, RSI, MACD
-    Sprint 70: EMA, ATR, Bollinger Bands, Stochastic, ADX
+        timeframe: Timeframe to get indicators for (default: 'daily')
 
     Returns:
         Dictionary mapping indicator category to list of indicator names
 
     Examples:
-        >>> indicators = get_available_indicators()
+        >>> indicators = get_available_indicators('daily')
         >>> indicators['trend']
         ['sma', 'ema', 'macd']
     """
-    return {
-        "trend": ["sma", "ema", "macd"],
-        "momentum": ["rsi", "stochastic"],
-        "volatility": ["bollinger_bands", "atr"],
-        "directional": ["adx"],
-    }
+    # Get dynamic loader
+    loader = get_dynamic_loader()
+
+    # Load indicators for this timeframe
+    indicators = loader.load_indicators_for_timeframe(timeframe)
+
+    # Group by category
+    result: Dict[str, list[str]] = {}
+    for name, meta in indicators.items():
+        category = meta.get('category', 'other')
+        if category not in result:
+            result[category] = []
+        result[category].append(name)
+
+    # Sort each category
+    for category in result:
+        result[category] = sorted(result[category])
+
+    return result
 
 
-def is_indicator_available(indicator_name: str) -> bool:
+def is_indicator_available(indicator_name: str, timeframe: str = 'daily') -> bool:
     """
     Check if indicator is available for loading.
 
+    Sprint 74: Checks indicator_definitions table for enabled indicators.
+
     Args:
         indicator_name: Indicator name to check
+        timeframe: Timeframe to check (default: 'daily')
 
     Returns:
-        True if indicator is registered, False otherwise
+        True if indicator is enabled in database, False otherwise
 
     Examples:
-        >>> is_indicator_available('SMA')
+        >>> is_indicator_available('sma')
         True
-        >>> is_indicator_available('UnknownIndicator')
+        >>> is_indicator_available('unknown_indicator')
         False
     """
-    return indicator_name.lower() in AVAILABLE_INDICATORS
+    try:
+        loader = get_dynamic_loader()
+        indicator_meta = loader.get_indicator(timeframe, indicator_name.lower())
+        return indicator_meta is not None
+    except Exception:
+        return False
 
 
-def get_indicator_category(indicator_name: str) -> str | None:
+def get_indicator_category(indicator_name: str, timeframe: str = 'daily') -> str | None:
     """
     Get category for a specific indicator.
 
+    Sprint 74: Queries indicator_definitions table for category.
+
     Args:
         indicator_name: Indicator name
+        timeframe: Timeframe (default: 'daily')
 
     Returns:
         Category name or None if not found
 
     Examples:
-        >>> get_indicator_category('SMA')
+        >>> get_indicator_category('sma')
         'trend'
-        >>> get_indicator_category('RSI')
+        >>> get_indicator_category('rsi')
         'momentum'
     """
-    categories = get_available_indicators()
-    indicator_lower = indicator_name.lower()
-
-    for category, indicators in categories.items():
-        if indicator_lower in indicators:
-            return category
-
-    return None
+    try:
+        loader = get_dynamic_loader()
+        indicator_meta = loader.get_indicator(timeframe, indicator_name.lower())
+        return indicator_meta.get('category') if indicator_meta else None
+    except Exception:
+        return None
 
 
 class IndicatorLoader:
@@ -216,20 +160,30 @@ class IndicatorLoader:
     Class-based indicator loader for dependency injection and API usage.
 
     Sprint 71: REST API Endpoints
+    Sprint 74: Table-driven dynamic loading from database
+
     Provides class-based interface to indicator loading functions for easier
     integration with services and mocking in tests.
     """
 
-    def __init__(self):
-        """Initialize indicator loader with caching."""
-        self._indicator_cache: dict[str, Type[BaseIndicator]] = {}
+    def __init__(self, timeframe: str = 'daily'):
+        """
+        Initialize indicator loader.
+
+        Args:
+            timeframe: Timeframe to load indicators for (default: 'daily')
+        """
+        self.timeframe = timeframe
+        self._loader = get_dynamic_loader()
 
     def get_indicator(self, indicator_name: str) -> BaseIndicator:
         """
         Load and instantiate an indicator by name.
 
+        Sprint 74: Uses database-driven dynamic loading.
+
         Args:
-            indicator_name: Indicator name (e.g., 'SMA', 'RSI')
+            indicator_name: Indicator name (e.g., 'sma', 'rsi')
 
         Returns:
             Indicator instance (ready to call calculate())
@@ -237,19 +191,13 @@ class IndicatorLoader:
         Raises:
             IndicatorLoadError: If indicator cannot be loaded
         """
-        # Check cache first
-        indicator_key = indicator_name.lower()
-        if indicator_key not in self._indicator_cache:
-            # Load and cache the class
-            self._indicator_cache[indicator_key] = load_indicator(indicator_name)
-
-        # Return instance of the cached class
-        indicator_class = self._indicator_cache[indicator_key]
-        return indicator_class()
+        return load_indicator(indicator_name, self.timeframe)
 
     def get_available_indicators(self) -> dict[str, dict[str, str]]:
         """
         Get all available indicators with metadata.
+
+        Sprint 74: Queries indicator_definitions table.
 
         Returns:
             Dictionary mapping indicator names to metadata:
@@ -260,7 +208,7 @@ class IndicatorLoader:
             }
         """
         result = {}
-        categories = get_available_indicators()
+        categories = get_available_indicators(self.timeframe)
 
         # Build flat dictionary with metadata
         for category, indicators in categories.items():
@@ -282,7 +230,7 @@ class IndicatorLoader:
         Returns:
             True if available, False otherwise
         """
-        return is_indicator_available(indicator_name)
+        return is_indicator_available(indicator_name, self.timeframe)
 
     def get_category(self, indicator_name: str) -> str | None:
         """
@@ -294,7 +242,33 @@ class IndicatorLoader:
         Returns:
             Category name or None if not found
         """
-        return get_indicator_category(indicator_name)
+        return get_indicator_category(indicator_name, self.timeframe)
+
+    def get_indicator_metadata(self, indicator_name: str) -> dict:
+        """
+        Get indicator with full metadata including min_bars_required.
+
+        Sprint 74: Returns metadata from dynamic loader for validation.
+
+        Args:
+            indicator_name: Indicator name
+
+        Returns:
+            Indicator metadata dict with 'instance' and other fields
+
+        Raises:
+            IndicatorLoadError: If indicator cannot be loaded
+        """
+        loader = get_dynamic_loader()
+        indicator_meta = loader.get_indicator(self.timeframe, indicator_name)
+
+        if not indicator_meta:
+            raise IndicatorLoadError(
+                f"Indicator '{indicator_name}' not found for timeframe '{self.timeframe}'",
+                module_name=indicator_name,
+            )
+
+        return indicator_meta
 
     def _get_indicator_display_name(self, indicator_name: str) -> str:
         """

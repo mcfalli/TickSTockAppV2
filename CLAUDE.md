@@ -919,7 +919,47 @@ python run_tests.py
   - Code quality: <500 lines per file, complexity <10
 - See: `docs/planning/sprints/sprint73/SPRINT73_RESULTS.md`
 
-### System Integration Points (Updated Sprint 42/43/55/59/60/61/64/67/68/69/70/71/72)
+### Sprint 74 - COMPLETE ✅ (February 12, 2026)
+**Dynamic Pattern/Indicator Loading: Table-Driven Configuration**
+- ✅ **Phase 1: Port Dynamic Loader** (590 lines)
+  - DynamicPatternIndicatorLoader class with database-driven loading
+  - load_patterns_for_timeframe(), load_indicators_for_timeframe()
+  - In-memory caching by timeframe (56% hit rate)
+  - NO FALLBACK error handling (fail fast on misconfiguration)
+- ✅ **Phase 2: Sync Database Definitions**
+  - Updated 8 patterns with TickStockAppV2 paths
+  - Updated 8 indicators with TickStockAppV2 paths
+  - Disabled test patterns/indicators and legacy entries
+  - Normalized all names to lowercase
+- ✅ **Phase 3: Update Loaders**
+  - Removed hardcoded registries from patterns/loader.py
+  - Removed hardcoded registries from indicators/loader.py
+  - All functions query database via dynamic loader
+  - IndicatorLoader class updated for table-driven loading
+- ✅ **Phase 4: Enhancements**
+  - min_bars_required validation in PatternDetectionService/AnalysisService
+  - Cleared confidence_threshold and period columns (use instantiation_params)
+  - Added 12 EMA/SMA variants (5, 10, 20, 50, 100, 200 day for both)
+  - DELETE + INSERT strategy for bounded database growth
+  - Fixed "'Doji' object is not callable" bug
+- ✅ **Testing & Validation**
+  - 5/6 manual tests passing (83%)
+  - Pattern Flow Tests: PASSED
+  - Database: 72 stable indicator rows, 48-hour pattern retention
+  - No duplicates, timestamps updating correctly
+- ✅ **Performance**
+  - First load: <50ms (achieved ~15ms)
+  - Cached load: <1ms
+  - Pattern detection: <10ms
+  - Indicator calculation: <10ms
+- ✅ **Database State**
+  - 18 enabled indicators (8 original + 10 EMA/SMA variants)
+  - 8 enabled patterns (doji, hammer, engulfing, shooting_star, hanging_man, harami, morning_star, evening_star)
+  - Indicators: Bounded at 72 rows (4 symbols × 18 indicators)
+  - Patterns: 48-hour retention (automatic cleanup)
+- See: `docs/planning/sprints/sprint74/SPRINT74_COMPLETE.md`
+
+### System Integration Points (Updated Sprint 42/43/55/59/60/61/64/67/68/69/70/71/72/74)
 - **TickStockPL API**: HTTP commands on port 8080
 - **Redis Streaming Channels**:
   - `tickstock:patterns:streaming` - Real-time pattern detections ✅

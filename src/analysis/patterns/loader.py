@@ -2,97 +2,53 @@
 Dynamic pattern loader for TickStockAppV2.
 
 Sprint 68: Core Analysis Migration - Pattern loading with NO FALLBACK policy
+Sprint 74: Table-driven dynamic loading from database
 """
 
 import importlib
-from typing import Type
+from typing import Type, Dict, Any, Optional
 
 from .base_pattern import BasePattern
 from ..exceptions import PatternLoadError
+from ..dynamic_loader import get_dynamic_loader
 
 
-# Pattern type mappings (subdirectory organization)
-# Sprint 68: Doji, Hammer, Engulfing
-# Sprint 69: Shooting Star, Hanging Man, Harami, Morning Star, Evening Star
-CANDLESTICK_PATTERNS = {
-    "doji",
-    "hammer",
-    "engulfing",
-    "shooting_star",
-    "hanging_man",
-    "harami",
-    "morning_star",
-    "evening_star",
-}
-
-# Future patterns - not yet implemented
-DAILY_PATTERNS = set()
-
-COMBO_PATTERNS = set()
-
-
-def load_pattern(pattern_name: str) -> Type[BasePattern]:
+def load_pattern(pattern_name: str, timeframe: str = 'daily') -> BasePattern:
     """
-    Dynamically load pattern class by name.
+    Dynamically load pattern instance by name using database configuration.
 
+    Sprint 74: Table-driven loading from pattern_definitions table.
     NO FALLBACK POLICY: If pattern not found, raise error immediately.
-    This ensures we catch configuration errors early rather than silently
-    using incorrect or stub implementations.
 
     Args:
-        pattern_name: Pattern name (e.g., 'Doji', 'Hammer', 'Engulfing')
+        pattern_name: Pattern name (e.g., 'doji', 'hammer', 'engulfing')
+        timeframe: Timeframe to load pattern for (default: 'daily')
 
     Returns:
-        Pattern class (not instance)
+        Pattern instance (ready to call detect())
 
     Raises:
         PatternLoadError: If pattern cannot be loaded
 
     Examples:
-        >>> doji_class = load_pattern('Doji')
-        >>> doji = doji_class()
+        >>> doji = load_pattern('doji')
         >>> result = doji.detect(data)
     """
     try:
-        # Normalize pattern name to lowercase for module lookup
-        pattern_module_name = pattern_name.lower()
+        # Get dynamic loader
+        loader = get_dynamic_loader()
 
-        # Determine pattern type (candlestick, daily, combo)
-        pattern_type = _determine_pattern_type(pattern_module_name)
+        # Get pattern metadata from database
+        pattern_meta = loader.get_pattern(timeframe, pattern_name)
 
-        # Construct module path
-        module_path = f"src.analysis.patterns.{pattern_type}.{pattern_module_name}"
-
-        # Import module
-        try:
-            module = importlib.import_module(module_path)
-        except ModuleNotFoundError as e:
+        if not pattern_meta:
             raise PatternLoadError(
-                f"Pattern module not found: '{pattern_name}' "
-                f"(searched: {module_path}). "
-                f"Ensure pattern is registered in pattern_definitions table "
-                f"and implementation exists."
-            ) from e
-
-        # Get class (convert pattern_name to ClassName convention)
-        class_name = _to_class_name(pattern_name)
-
-        try:
-            pattern_class = getattr(module, class_name)
-        except AttributeError as e:
-            raise PatternLoadError(
-                f"Pattern class '{class_name}' not found in module '{module_path}'. "
-                f"Ensure class name matches pattern name convention."
-            ) from e
-
-        # Validate it's a BasePattern subclass
-        if not issubclass(pattern_class, BasePattern):
-            raise PatternLoadError(
-                f"Pattern '{class_name}' must inherit from BasePattern. "
-                f"Found: {pattern_class.__bases__}"
+                f"Pattern '{pattern_name}' not found for timeframe '{timeframe}'. "
+                f"Ensure pattern is enabled in pattern_definitions table."
             )
 
-        return pattern_class
+        # Return the pattern instance
+        return pattern_meta['instance']
 
     except PatternLoadError:
         # Re-raise pattern load errors as-is
@@ -105,93 +61,66 @@ def load_pattern(pattern_name: str) -> Type[BasePattern]:
         ) from e
 
 
-def _determine_pattern_type(pattern_name: str) -> str:
+def get_available_patterns(timeframe: str = 'daily') -> dict[str, list[str]]:
     """
-    Determine pattern subdirectory based on pattern name.
+    Get list of all enabled patterns organized by category.
+
+    Sprint 74: Queries pattern_definitions table for enabled patterns.
 
     Args:
-        pattern_name: Lowercase pattern name
+        timeframe: Timeframe to get patterns for (default: 'daily')
 
     Returns:
-        Pattern type: 'candlestick', 'daily', or 'combo'
-
-    Raises:
-        PatternLoadError: If pattern type cannot be determined
-    """
-    if pattern_name in CANDLESTICK_PATTERNS:
-        return "candlestick"
-    elif pattern_name in DAILY_PATTERNS:
-        return "daily"
-    elif pattern_name in COMBO_PATTERNS:
-        return "combo"
-    else:
-        # Unknown pattern - provide helpful error
-        raise PatternLoadError(
-            f"Unknown pattern type for '{pattern_name}'. "
-            f"Pattern must be registered in one of: "
-            f"CANDLESTICK_PATTERNS, DAILY_PATTERNS, or COMBO_PATTERNS. "
-            f"Add pattern to appropriate set in loader.py"
-        )
-
-
-def _to_class_name(pattern_name: str) -> str:
-    """
-    Convert pattern_name to ClassName convention.
+        Dictionary mapping pattern category to list of pattern names
 
     Examples:
-        doji -> Doji
-        head_shoulders -> HeadShoulders
-        macd_divergence -> MacdDivergence
-
-    Args:
-        pattern_name: Pattern name (may be lowercase or mixed case)
-
-    Returns:
-        Class name in PascalCase
-    """
-    # Split on underscores and capitalize each word
-    words = pattern_name.lower().split("_")
-    return "".join(word.capitalize() for word in words)
-
-
-def get_available_patterns() -> dict[str, list[str]]:
-    """
-    Get list of all available patterns organized by type.
-
-    Returns:
-        Dictionary mapping pattern type to list of pattern names
-
-    Examples:
-        >>> patterns = get_available_patterns()
+        >>> patterns = get_available_patterns('daily')
         >>> patterns['candlestick']
-        ['doji', 'hammer', 'engulfing']
+        ['doji', 'hammer', 'engulfing', 'shooting_star', 'hanging_man', 'harami', 'morning_star', 'evening_star']
     """
-    return {
-        "candlestick": sorted(CANDLESTICK_PATTERNS),
-        "daily": sorted(DAILY_PATTERNS),
-        "combo": sorted(COMBO_PATTERNS),
-    }
+    # Get dynamic loader
+    loader = get_dynamic_loader()
+
+    # Load patterns for this timeframe
+    patterns = loader.load_patterns_for_timeframe(timeframe)
+
+    # Group by category
+    result: Dict[str, list[str]] = {}
+    for name, meta in patterns.items():
+        category = meta.get('category', 'other')
+        if category not in result:
+            result[category] = []
+        result[category].append(name)
+
+    # Sort each category
+    for category in result:
+        result[category] = sorted(result[category])
+
+    return result
 
 
-def is_pattern_available(pattern_name: str) -> bool:
+def is_pattern_available(pattern_name: str, timeframe: str = 'daily') -> bool:
     """
     Check if pattern is available for loading.
 
+    Sprint 74: Checks pattern_definitions table for enabled patterns.
+
     Args:
         pattern_name: Pattern name to check
+        timeframe: Timeframe to check (default: 'daily')
 
     Returns:
-        True if pattern is registered, False otherwise
+        True if pattern is enabled in database, False otherwise
 
     Examples:
-        >>> is_pattern_available('Doji')
+        >>> is_pattern_available('doji')
         True
-        >>> is_pattern_available('UnknownPattern')
+        >>> is_pattern_available('unknown_pattern')
         False
     """
-    pattern_lower = pattern_name.lower()
-    return (
-        pattern_lower in CANDLESTICK_PATTERNS
-        or pattern_lower in DAILY_PATTERNS
-        or pattern_lower in COMBO_PATTERNS
-    )
+    try:
+        loader = get_dynamic_loader()
+        pattern_meta = loader.get_pattern(timeframe, pattern_name.lower())
+        return pattern_meta is not None
+    except Exception:
+        return False

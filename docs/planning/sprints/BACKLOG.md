@@ -1,7 +1,33 @@
 # TickStockAppV2 Product Backlog
 
-**Last Updated**: 2026-02-09
+**Last Updated**: 2026-02-12
 **Purpose**: Track future enhancements, technical debt, and feature requests
+
+## Sprint 74 Completed Items ✅
+
+### ✅ Dynamic Pattern/Indicator Loading (COMPLETE)
+**Context**: Sprint 74 ported TickStockPL's table-driven dynamic loading architecture to TickStockAppV2.
+
+- ✅ **DynamicPatternIndicatorLoader** - Database-driven pattern/indicator loading (590 lines)
+- ✅ **Database Sync Script** - Normalized all pattern/indicator definitions
+- ✅ **NO FALLBACK Policy** - Fail fast for misconfiguration
+- ✅ **In-Memory Caching** - 56% cache hit rate during testing
+- ✅ **min_bars_required Validation** - Prevents errors from insufficient data
+- ✅ **12 EMA/SMA Indicators** - Added 5, 10, 20, 50, 100, 200 day variants
+- ✅ **DELETE + INSERT Strategy** - Bounded database growth for minute-by-minute processing
+
+**Actual Effort**: ~6 hours + 2 hours enhancements (vs 21-30h estimate) - 75% faster
+**Status**: Table-driven configuration operational, 18 indicators + 8 patterns enabled
+
+**Future Enhancements** (Post-Sprint 74):
+- [ ] Admin UI for pattern/indicator management (CRUD operations)
+- [ ] Real-time enable/disable toggles (no deployment required)
+- [ ] Parameter editing UI for instantiation_params
+- [ ] Performance metrics dashboard (detection rates, calculation performance)
+- [ ] Pattern backtesting framework (historical analysis)
+- [ ] Custom pattern creation wizard (code generation assistance)
+
+---
 
 ## Sprint 69 Completed Items ✅
 
@@ -17,17 +43,16 @@
 **Actual Effort**: 8.5 hours (30% faster than 10-15h estimate)
 **Status**: Pattern library now production-ready with 8 patterns, 155 tests
 
-### Priority: Medium - Pattern Database Registration
-**Context**: Sprint 68/69 patterns exist as code but not registered in `pattern_definitions` table.
+### ✅ Pattern Database Registration (COMPLETE - Sprint 74)
+**Context**: Sprint 68/69 patterns now registered in `pattern_definitions` table via Sprint 74 dynamic loading.
 
-- [ ] **Register Sprint 68/69 Patterns in Database**
-  - Insert 8 patterns into `pattern_definitions` table
-  - Patterns: Doji, Hammer, Engulfing, Shooting Star, Hanging Man, Harami, Morning Star, Evening Star
-  - Set metadata: short_description, long_description, category, confidence_threshold
-  - Enable patterns: `enabled = true`
-  - Set display_order for UI
-  - Expected effort: 1-2 hours (SQL inserts + testing)
-  - Priority: Medium (enables UI pattern library display)
+- ✅ **Register Sprint 68/69 Patterns in Database** (COMPLETE)
+  - Inserted 8 patterns into `pattern_definitions` table
+  - Patterns: doji, hammer, engulfing, shooting_star, hanging_man, harami, morning_star, evening_star
+  - Set metadata: class_name, code_reference, category, min_bars_required
+  - Enabled patterns: `enabled = true` for all 8
+  - Table-driven loading operational
+  - Actual effort: Completed as part of Sprint 74 (dynamic loader implementation)
 
 ---
 
@@ -122,7 +147,7 @@
 **Status**: API layer production-ready, foundation for external integrations
 
 **Future Enhancements** (Post-Sprint 71):
-- [ ] Database integration (replace mock OHLCV with TimescaleDB)
+- ✅ Database integration (replace mock OHLCV with TimescaleDB) - COMPLETE Sprint 72
 - [ ] JWT authentication middleware
 - [ ] Rate limiting (Flask-Limiter)
 - [ ] OpenAPI/Swagger documentation generation

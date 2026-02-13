@@ -40,6 +40,39 @@ active_jobs = {}
 job_history = []
 
 
+def _cleanup_old_patterns():
+    """
+    Clean up old pattern detections (keep last 48 hours).
+
+    Sprint 74: Pattern retention policy - patterns are detection events,
+    keep recent history for analysis but prevent unbounded growth.
+
+    Returns:
+        Number of patterns deleted
+    """
+    try:
+        config = get_config()
+        db = TickStockDatabase(config)
+
+        with db.get_connection() as conn:
+            result = conn.execute(text("""
+                DELETE FROM daily_patterns
+                WHERE detection_timestamp < NOW() - INTERVAL '48 hours'
+            """))
+
+            deleted_count = result.rowcount
+            conn.commit()
+
+            if deleted_count > 0:
+                logger.info(f"Cleaned up {deleted_count} old pattern detections (>48h)")
+
+            return deleted_count
+
+    except Exception as e:
+        logger.error(f"Pattern cleanup failed: {e}")
+        return 0
+
+
 def _persist_pattern_results(symbol, patterns, timeframe):
     """
     Persist detected patterns to daily_patterns table.
@@ -87,6 +120,22 @@ def _persist_pattern_results(symbol, patterns, timeframe):
                     'symbol': symbol,
                 }
 
+                # Sprint 74: DELETE + INSERT for TimescaleDB hypertables
+                # (Hypertables can't use unique constraints without timestamp)
+
+                # Delete existing entry for this symbol+pattern+timeframe
+                conn.execute(text("""
+                    DELETE FROM daily_patterns
+                    WHERE symbol = :symbol
+                        AND pattern_type = :pattern_type
+                        AND timeframe = :timeframe
+                """), {
+                    'symbol': symbol,
+                    'pattern_type': pattern_name,
+                    'timeframe': timeframe
+                })
+
+                # Insert new/updated entry
                 conn.execute(text("""
                     INSERT INTO daily_patterns
                     (symbol, pattern_type, confidence, pattern_data,
@@ -142,6 +191,22 @@ def _persist_indicator_results(symbol, indicators, timeframe):
 
         with db.get_connection() as conn:
             for indicator_name, result in indicators.items():
+                # Sprint 74: DELETE + INSERT for TimescaleDB hypertables
+                # (Hypertables can't use unique constraints without timestamp)
+
+                # Delete existing entry for this symbol+indicator+timeframe
+                conn.execute(text("""
+                    DELETE FROM daily_indicators
+                    WHERE symbol = :symbol
+                        AND indicator_type = :indicator_type
+                        AND timeframe = :timeframe
+                """), {
+                    'symbol': symbol,
+                    'indicator_type': indicator_name,
+                    'timeframe': timeframe
+                })
+
+                # Insert new/updated entry
                 conn.execute(text("""
                     INSERT INTO daily_indicators
                     (symbol, indicator_type, value_data,
@@ -313,6 +378,9 @@ def run_analysis_job(job_data: dict, app):
 
             # Complete job (or mark as cancelled if user stopped it)
             if job_data["status"] != "cancelled":
+                # Sprint 74: Cleanup old patterns (48-hour retention)
+                deleted_count = _cleanup_old_patterns()
+
                 job_data["progress"] = 100
                 job_data["current_symbol"] = None
                 job_data["status"] = "completed"
@@ -324,6 +392,11 @@ def run_analysis_job(job_data: dict, app):
                     f"{job_data['indicators_calculated']} indicators calculated, "
                     f"{len(job_data['failed_symbols'])} failed"
                 )
+
+                if deleted_count > 0:
+                    job_data["log_messages"].append(
+                        f"Cleaned up {deleted_count} old pattern detections (>48h)"
+                    )
 
             # Move to history and remove from active jobs
             job_history.append(job_data.copy())

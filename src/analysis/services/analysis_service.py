@@ -252,8 +252,17 @@ class AnalysisService:
 
         for indicator_name in indicators:
             try:
-                # Get indicator instance
-                indicator = self.indicator_loader.get_indicator(indicator_name)
+                # Get indicator metadata (includes min_bars_required)
+                indicator_meta = self.indicator_loader.get_indicator_metadata(indicator_name)
+                indicator = indicator_meta['instance']
+
+                # Sprint 74: Validate min_bars_required
+                min_bars = indicator_meta.get('min_bars_required', 1)
+                if len(data) < min_bars:
+                    raise AnalysisError(
+                        f"Insufficient data for indicator '{indicator_name}': "
+                        f"have {len(data)} bars, need {min_bars}"
+                    )
 
                 # Calculate indicator (pass full DataFrame)
                 result = indicator.calculate(data)
