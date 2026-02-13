@@ -332,6 +332,7 @@ def register_admin_historical_routes(app):
             universe_key = data.get('universe_key', '').strip()
             timeframes = data.get('timeframes', ['day'])
             years = float(data.get('years', 1.0))
+            run_analysis = data.get('run_analysis_after_import', False)  # Sprint 75 Phase 2
 
             if not universe_key:
                 return jsonify({'error': 'universe_key required'}), 400
@@ -356,6 +357,7 @@ def register_admin_historical_routes(app):
                 'symbols': symbols,
                 'timeframes': timeframes,
                 'years': years,
+                'run_analysis_after_import': run_analysis,  # Sprint 75 Phase 2
                 'requested_by': current_user.username if current_user.is_authenticated else 'admin',
                 'timestamp': datetime.now().isoformat()
             }
@@ -374,6 +376,19 @@ def register_admin_historical_routes(app):
             job_key = f'tickstock.jobs.status:{job_id}'
             redis_client.hset(job_key, mapping=initial_status)
             redis_client.expire(job_key, 86400)  # 24 hour TTL
+
+            # Sprint 75 Phase 2: Store run_analysis flag in SEPARATE key
+            # (TickStockPL overwrites job status, so we need persistent metadata)
+            if run_analysis:
+                metadata_key = f'tickstock.jobs.metadata:{job_id}'
+                redis_client.hset(metadata_key, mapping={
+                    'run_analysis_after_import': 'true',
+                    'universe_key': universe_key,
+                    'timeframe': 'daily',  # Default timeframe for analysis
+                    'submitted_at': datetime.now().isoformat()
+                })
+                redis_client.expire(metadata_key, 86400)  # 24 hour TTL
+                app.logger.info(f"Sprint 75: Stored analysis metadata for job {job_id[:8]}...")
 
             # Add to job history
             job_history.append({

@@ -672,10 +672,14 @@ class HistoricalDataManager {
         // Get years (use parseFloat for fractional values like 0.003 for "1 Day")
         const years = parseFloat(formData.get('years') || 1);
 
+        // Sprint 75 Phase 2: Get "Run Analysis After Import" checkbox value
+        const runAnalysis = document.getElementById('run_analysis_after_import')?.checked || false;
+
         console.log('Sprint 62: Submitting cached universe load:', {
             universeKey,
             timeframes,
-            years
+            years,
+            runAnalysisAfterImport: runAnalysis  // Sprint 75 Phase 2
         });
 
         try {
@@ -688,7 +692,8 @@ class HistoricalDataManager {
                 body: JSON.stringify({
                     universe_key: universeKey,
                     timeframes: timeframes,
-                    years: years
+                    years: years,
+                    run_analysis_after_import: runAnalysis  // Sprint 75 Phase 2
                 })
             });
 
@@ -716,10 +721,12 @@ class HistoricalDataManager {
             const data = await response.json();
             console.log('Sprint 62: Universe load response:', data);
 
-            this.showNotification(
-                `Universe load submitted! Job ID: ${data.job_id.substring(0, 8)}... (${data.symbol_count} symbols from ${data.universe_key})`,
-                'success'
-            );
+            // Sprint 75 Phase 2: Update message based on analysis flag
+            const successMessage = runAnalysis
+                ? `Universe load submitted! Job ID: ${data.job_id.substring(0, 8)}... (${data.symbol_count} symbols from ${data.universe_key}) - Analysis will run automatically after import`
+                : `Universe load submitted! Job ID: ${data.job_id.substring(0, 8)}... (${data.symbol_count} symbols from ${data.universe_key})`;
+
+            this.showNotification(successMessage, 'success');
 
             // Show progress container
             const progressContainer = document.getElementById('universe-progress');
@@ -730,7 +737,10 @@ class HistoricalDataManager {
             }
 
             if (statusText) {
-                statusText.textContent = `Loading ${data.symbol_count} symbols from ${data.universe_key} (${data.timeframes.join(', ')})...`;
+                const statusMessage = runAnalysis
+                    ? `Loading ${data.symbol_count} symbols from ${data.universe_key} (${data.timeframes.join(', ')}) → Analysis will run automatically`
+                    : `Loading ${data.symbol_count} symbols from ${data.universe_key} (${data.timeframes.join(', ')})...`;
+                statusText.textContent = statusMessage;
             }
 
             // Start polling job status

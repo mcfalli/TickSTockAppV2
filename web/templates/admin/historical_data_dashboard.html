@@ -527,6 +527,17 @@
                         <small class="form-text text-muted">Include daily OHLCV data from Massive API</small>
                     </div>
 
+                    <!-- Sprint 75 Phase 2: Auto-Analysis Checkbox -->
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
+                            <input type="checkbox" name="run_analysis_after_import" id="run_analysis_after_import" style="margin-right: 8px; width: auto;">
+                            Run Analysis After Import
+                        </label>
+                        <small class="form-text text-muted">
+                            Automatically run pattern/indicator analysis on all symbols after import completes (Sprint 75 Phase 2)
+                        </small>
+                    </div>
+
                     <!-- Load Button -->
                     <div class="form-group" style="align-self: flex-end;">
                         <button type="button" class="btn btn-primary" id="universeLoadBtn">
