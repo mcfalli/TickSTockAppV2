@@ -238,6 +238,9 @@ class MarketDataService:
                     if not hasattr(self.stats, 'database_writes_completed'):
                         self.stats.database_writes_completed = 0
                     self.stats.database_writes_completed += 1
+
+                    # Sprint 75 Phase 1: Trigger pattern/indicator analysis
+                    self._trigger_bar_analysis_async(symbol, timestamp)
                 else:
                     logger.warning(f"MARKET-DATA-SERVICE: Database write failed for {symbol} at {timestamp}")
 
@@ -253,6 +256,100 @@ class MarketDataService:
 
         except Exception as e:
             logger.error(f"MARKET-DATA-SERVICE: Error handling tick data: {e}")
+
+    def _trigger_bar_analysis_async(self, symbol: str, timestamp: datetime):
+        """
+        Trigger pattern/indicator analysis for newly created OHLCV bar.
+
+        Sprint 75 Phase 1: Real-Time WebSocket Integration
+        Runs in background thread to avoid blocking tick ingestion.
+
+        Performance target: <100ms total (non-blocking)
+
+        Args:
+            symbol: Stock symbol (e.g., 'AAPL')
+            timestamp: Bar timestamp (timezone-aware datetime)
+        """
+        def run_analysis():
+            try:
+                # Import here to avoid circular dependency
+                from src.analysis.services.analysis_service import AnalysisService
+                from src.analysis.data.ohlcv_data_service import OHLCVDataService
+                from src.api.rest.admin_process_analysis import (
+                    _persist_pattern_results,
+                    _persist_indicator_results,
+                    _cleanup_old_patterns
+                )
+
+                # Fetch last 200 bars (sufficient for all patterns/indicators)
+                ohlcv_service = OHLCVDataService()
+                data = ohlcv_service.get_ohlcv_data(
+                    symbol=symbol,
+                    timeframe='1min',
+                    limit=200
+                )
+
+                if data is None or len(data) == 0:
+                    logger.debug(f"ANALYSIS: No OHLCV data for {symbol} - skipping analysis")
+                    return
+
+                # Reset index to make timestamp a column (patterns require it)
+                data = data.reset_index()
+                # Ensure column is named 'timestamp' (may be 'date' from daily tables)
+                if 'date' in data.columns:
+                    data = data.rename(columns={'date': 'timestamp'})
+
+                # Run analysis with all available patterns/indicators
+                # Note: Use 'daily' for loading patterns/indicators (registered for 'daily' timeframe)
+                # Candlestick patterns are timeframe-agnostic and work on any OHLCV data
+                analysis_service = AnalysisService()
+                results = analysis_service.analyze_symbol(
+                    symbol=symbol,
+                    data=data,
+                    timeframe='daily',  # Load patterns/indicators registered for 'daily'
+                    indicators=None,  # Use all available (18 indicators)
+                    patterns=None,    # Use all available (8 patterns)
+                    calculate_all=True
+                )
+
+                # Persist results with '1min' timeframe (indicates data source)
+                _persist_pattern_results(symbol, results['patterns'], '1min')
+                _persist_indicator_results(symbol, results['indicators'], '1min')
+
+                # Cleanup old patterns (48-hour retention from Sprint 74)
+                _cleanup_old_patterns()
+
+                # Publish Redis event for UI updates
+                try:
+                    from src.infrastructure.redis.redis_connection_manager import get_redis_manager
+                    redis_manager = get_redis_manager()
+                    if redis_manager:
+                        event_data = {
+                            'symbol': symbol,
+                            'timestamp': timestamp.isoformat(),
+                            'timeframe': '1min',
+                            'patterns_detected': len([p for p in results['patterns'].values() if p['detected']]),
+                            'indicators_calculated': len(results['indicators'])
+                        }
+                        redis_manager.publish_message('tickstock:events:analysis_complete', event_data)
+                except Exception as e:
+                    logger.warning(f"ANALYSIS: Redis event publish failed: {e}")
+
+                logger.info(
+                    f"ANALYSIS: Bar analysis complete for {symbol} at {timestamp}: "
+                    f"{len(results['patterns'])} patterns, {len(results['indicators'])} indicators"
+                )
+
+            except Exception as e:
+                logger.error(f"ANALYSIS: Bar analysis failed for {symbol} at {timestamp}: {e}", exc_info=True)
+
+        # Spawn background thread (non-blocking)
+        thread = threading.Thread(
+            target=run_analysis,
+            daemon=True,
+            name=f"BarAnalysis-{symbol}-{timestamp.strftime('%H%M%S')}"
+        )
+        thread.start()
 
     def _handle_status_update(self, status: str, data: dict[str, Any] = None):
         """Handle status updates from data sources."""

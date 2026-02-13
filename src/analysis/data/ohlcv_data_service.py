@@ -28,6 +28,16 @@ TIMEFRAME_TABLE_MAP = {
     'monthly': 'ohlcv_monthly',
 }
 
+# Column name mapping (ohlcv_1min uses 'timestamp', others use 'date')
+TIMEFRAME_COLUMN_MAP = {
+    'daily': 'date',
+    'hourly': 'date',
+    'intraday': 'timestamp',
+    '1min': 'timestamp',
+    'weekly': 'date',
+    'monthly': 'date',
+}
+
 
 class OHLCVDataService:
     """
@@ -83,20 +93,21 @@ class OHLCVDataService:
                 f"Supported: {', '.join(TIMEFRAME_TABLE_MAP.keys())}"
             )
 
-        # Get table name
+        # Get table name and column name
         table_name = TIMEFRAME_TABLE_MAP[timeframe]
+        time_column = TIMEFRAME_COLUMN_MAP[timeframe]
 
         try:
             # Build query
             if start_date and end_date:
                 # Date range query
                 query = text(f"""
-                    SELECT date, open, high, low, close, volume
+                    SELECT {time_column}, open, high, low, close, volume
                     FROM {table_name}
                     WHERE symbol = :symbol
-                    AND date >= :start_date
-                    AND date <= :end_date
-                    ORDER BY date DESC
+                    AND {time_column} >= :start_date
+                    AND {time_column} <= :end_date
+                    ORDER BY {time_column} DESC
                     LIMIT :limit
                 """)
                 params = {
@@ -108,11 +119,11 @@ class OHLCVDataService:
             elif start_date:
                 # Start date only
                 query = text(f"""
-                    SELECT date, open, high, low, close, volume
+                    SELECT {time_column}, open, high, low, close, volume
                     FROM {table_name}
                     WHERE symbol = :symbol
-                    AND date >= :start_date
-                    ORDER BY date DESC
+                    AND {time_column} >= :start_date
+                    ORDER BY {time_column} DESC
                     LIMIT :limit
                 """)
                 params = {
@@ -123,10 +134,10 @@ class OHLCVDataService:
             else:
                 # Latest N bars
                 query = text(f"""
-                    SELECT date, open, high, low, close, volume
+                    SELECT {time_column}, open, high, low, close, volume
                     FROM {table_name}
                     WHERE symbol = :symbol
-                    ORDER BY date DESC
+                    ORDER BY {time_column} DESC
                     LIMIT :limit
                 """)
                 params = {
@@ -144,7 +155,7 @@ class OHLCVDataService:
                 return pd.DataFrame(columns=['open', 'high', 'low', 'close', 'volume'])
 
             # Set index and sort ascending (oldest first for indicators)
-            df = df.set_index('date')
+            df = df.set_index(time_column)
             df = df.sort_index(ascending=True)
 
             logger.info(f"Fetched {len(df)} bars for {symbol} ({timeframe})")
@@ -289,6 +300,7 @@ class OHLCVDataService:
 
         # Use batch query for efficiency
         table_name = TIMEFRAME_TABLE_MAP.get(timeframe, 'stock_prices_1day')
+        time_column = TIMEFRAME_COLUMN_MAP.get(timeframe, 'date')
 
         try:
             # Build batch query with window function for limiting rows per symbol
@@ -298,15 +310,15 @@ class OHLCVDataService:
             query = text(f"""
                 WITH ranked AS (
                     SELECT
-                        date, symbol, open, high, low, close, volume,
-                        ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY date DESC) as rn
+                        {time_column}, symbol, open, high, low, close, volume,
+                        ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY {time_column} DESC) as rn
                     FROM {table_name}
                     WHERE symbol IN ('{symbols_str}')
                 )
-                SELECT date, symbol, open, high, low, close, volume
+                SELECT {time_column}, symbol, open, high, low, close, volume
                 FROM ranked
                 WHERE rn <= :limit
-                ORDER BY symbol, date
+                ORDER BY symbol, {time_column}
             """)
             params = {'limit': limit}
 
@@ -318,7 +330,7 @@ class OHLCVDataService:
                 symbol_df = df_all[df_all['symbol'] == symbol].copy()
                 if not symbol_df.empty:
                     symbol_df = symbol_df.drop('symbol', axis=1)
-                    symbol_df = symbol_df.set_index('date')
+                    symbol_df = symbol_df.set_index(time_column)
                     symbol_df = symbol_df.sort_index(ascending=True)
                     result[symbol] = symbol_df
                 else:
