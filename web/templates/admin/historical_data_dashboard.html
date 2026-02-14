@@ -527,15 +527,19 @@
                         <small class="form-text text-muted">Include daily OHLCV data from Massive API</small>
                     </div>
 
-                    <!-- Sprint 75 Phase 2: Auto-Analysis Checkbox -->
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; cursor: pointer; font-weight: normal;">
-                            <input type="checkbox" name="run_analysis_after_import" id="run_analysis_after_import" style="margin-right: 8px; width: auto;">
-                            Run Analysis After Import
-                        </label>
-                        <small class="form-text text-muted">
-                            Automatically run pattern/indicator analysis on all symbols after import completes (Sprint 75 Phase 2)
-                        </small>
+                    <!-- Sprint 76: Manual Analysis Workflow (ImportAnalysisBridge disabled) -->
+                    <div class="form-group" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 12px;">
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <span style="font-size: 20px;">ℹ️</span>
+                            <div>
+                                <strong>Manual Analysis Workflow</strong>
+                                <p style="margin: 5px 0 0 0; font-size: 13px; color: #856404;">
+                                    After import completes, use the <strong>Process Analysis</strong> page to run pattern/indicator analysis on imported symbols.
+                                    <br>
+                                    <a href="/admin/process-analysis" style="color: #0066cc; text-decoration: underline;">Go to Process Analysis →</a>
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Load Button -->

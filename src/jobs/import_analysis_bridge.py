@@ -93,11 +93,19 @@ class ImportAnalysisBridge:
         """
         Scan Redis for completed import jobs and trigger analysis if requested.
 
+        Sprint 76 Fix: Only process jobs completed within the last 2 hours
+        to prevent analysis flood on app restart.
+
         Checks both job status key formats:
         - tickstock.jobs.status:{job_id} (TickStockPL format)
         - job:status:{job_id} (AppV2 format)
         """
         try:
+            from datetime import datetime, timedelta
+
+            # Only process jobs completed within the last 2 hours
+            cutoff_time = datetime.now() - timedelta(hours=2)
+
             # Scan both key patterns
             for pattern in ['tickstock.jobs.status:*', 'job:status:*']:
                 for key in self.redis_client.scan_iter(pattern):
@@ -113,6 +121,27 @@ class ImportAnalysisBridge:
                     job_status = self._get_job_status(key_str)
                     if not job_status:
                         continue
+
+                    # Sprint 76: Check job completion time (prevent old jobs from processing)
+                    completed_at = job_status.get('completed_at')
+                    if completed_at:
+                        try:
+                            # Parse timestamp (supports both ISO format and Unix timestamp)
+                            if isinstance(completed_at, (int, float)):
+                                completed_time = datetime.fromtimestamp(completed_at)
+                            else:
+                                from dateutil.parser import parse
+                                completed_time = parse(completed_at)
+
+                            # Skip jobs older than cutoff
+                            if completed_time < cutoff_time:
+                                logger.debug(f"ImportAnalysisBridge: Skipping old job {job_id[:8]}... (completed {completed_time})")
+                                self._processed_jobs.add(job_id)  # Mark as processed to avoid re-checking
+                                continue
+                        except Exception as e:
+                            logger.warning(f"ImportAnalysisBridge: Could not parse completion time for {job_id[:8]}: {e}")
+                            # Skip jobs with unparseable timestamps
+                            continue
 
                     # Check if job is completed and has run_analysis flag
                     if self._should_trigger_analysis(job_status, job_id=job_id):

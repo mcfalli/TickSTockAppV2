@@ -281,11 +281,12 @@ class MarketDataService:
                     _cleanup_old_patterns
                 )
 
-                # Fetch last 200 bars (sufficient for all patterns/indicators)
+                # Fetch last 200 DAILY bars (sufficient for all patterns/indicators)
+                # Sprint 76: Fixed to use 'daily' data (was '1min' causing incorrect SMA values)
                 ohlcv_service = OHLCVDataService()
                 data = ohlcv_service.get_ohlcv_data(
                     symbol=symbol,
-                    timeframe='1min',
+                    timeframe='daily',
                     limit=200
                 )
 
@@ -312,9 +313,10 @@ class MarketDataService:
                     calculate_all=True
                 )
 
-                # Persist results with '1min' timeframe (indicates data source)
-                _persist_pattern_results(symbol, results['patterns'], '1min')
-                _persist_indicator_results(symbol, results['indicators'], '1min')
+                # Persist results with 'daily' timeframe (matches data source)
+                # Sprint 76: Changed from '1min' to 'daily' to match fetched data
+                _persist_pattern_results(symbol, results['patterns'], 'daily')
+                _persist_indicator_results(symbol, results['indicators'], 'daily')
 
                 # Cleanup old patterns (48-hour retention from Sprint 74)
                 _cleanup_old_patterns()

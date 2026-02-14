@@ -61,7 +61,8 @@ from src.core.services.health_monitor import HealthMonitor
 from src.core.services.market_data_service import MarketDataService
 
 # Sprint 75 Phase 2: Import Analysis Bridge
-from src.jobs.import_analysis_bridge import ImportAnalysisBridge
+# Sprint 76: Disabled ImportAnalysisBridge (manual two-step workflow)
+# from src.jobs.import_analysis_bridge import ImportAnalysisBridge
 
 # Sprint 10 Phase 2: Enhanced Redis Event Consumption
 from src.core.services.redis_event_subscriber import RedisEventSubscriber
@@ -102,7 +103,8 @@ temporal_analytics_service = None
 comparison_tools_service = None
 
 # Sprint 75 Phase 2: Import Analysis Bridge
-import_analysis_bridge = None
+# Sprint 76: Disabled ImportAnalysisBridge (manual two-step workflow)
+# import_analysis_bridge = None
 
 APP_VERSION = "2.0.0-simplified"
 
@@ -2234,17 +2236,18 @@ def main():
             logger.error(f"STARTUP: SocketIO handler registration failed: {e}")
             raise
 
+        # Sprint 76: Disabled ImportAnalysisBridge (manual two-step workflow)
         # Sprint 75 Phase 2: Initialize Import Analysis Bridge
-        logger.info("STARTUP: Initializing Import Analysis Bridge...")
-        try:
-            global import_analysis_bridge
-            import_analysis_bridge = ImportAnalysisBridge(app, redis_client)
-            import_analysis_bridge.start()
-            logger.info("STARTUP: Import Analysis Bridge started successfully")
-        except Exception as e:
-            logger.error(f"STARTUP: Import Analysis Bridge initialization failed: {e}")
-            # Non-critical - don't raise, just log warning
-            logger.warning("Import Analysis Bridge will not be available")
+        # logger.info("STARTUP: Initializing Import Analysis Bridge...")
+        # try:
+        #     global import_analysis_bridge
+        #     import_analysis_bridge = ImportAnalysisBridge(app, redis_client)
+        #     import_analysis_bridge.start()
+        #     logger.info("STARTUP: Import Analysis Bridge started successfully")
+        # except Exception as e:
+        #     logger.error(f"STARTUP: Import Analysis Bridge initialization failed: {e}")
+        #     # Non-critical - don't raise, just log warning
+        #     logger.warning("Import Analysis Bridge will not be available")
 
         # Routes are registered in the following functions
 

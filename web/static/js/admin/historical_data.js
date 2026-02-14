@@ -672,14 +672,15 @@ class HistoricalDataManager {
         // Get years (use parseFloat for fractional values like 0.003 for "1 Day")
         const years = parseFloat(formData.get('years') || 1);
 
-        // Sprint 75 Phase 2: Get "Run Analysis After Import" checkbox value
-        const runAnalysis = document.getElementById('run_analysis_after_import')?.checked || false;
+        // Sprint 76: Manual analysis workflow (ImportAnalysisBridge disabled)
+        // Analysis must be run manually via Process Analysis page after import
+        const runAnalysis = false;
 
         console.log('Sprint 62: Submitting cached universe load:', {
             universeKey,
             timeframes,
             years,
-            runAnalysisAfterImport: runAnalysis  // Sprint 75 Phase 2
+            runAnalysisAfterImport: runAnalysis  // Always false - manual workflow
         });
 
         try {
