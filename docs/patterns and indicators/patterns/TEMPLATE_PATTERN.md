@@ -399,7 +399,7 @@ def test_[pattern_name]_confidence_scoring():
 **Code References**:
 - `src/analysis/patterns/[category]/[pattern_name].py` - Implementation
 - `src/analysis/patterns/base_pattern.py` - Base class
-- `docs/patterns/[similar_pattern].md` - Similar pattern example
+- `docs/patterns and indicators/patterns/[similar_pattern].md` - Similar pattern example
 
 ---
 

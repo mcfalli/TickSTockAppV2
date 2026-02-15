@@ -1016,8 +1016,8 @@ python run_tests.py
   - Benefits: Predictable workflow, fast startup (<10s), user control, 350+ lines complexity removed
   - Documentation: `IMPORTANALYSISBRIDGE_DISABLED.md` with architecture decision record
 - ✅ **Templates Created** (1,005 lines)
-  - `docs/indicators/TEMPLATE_INDICATOR.md` (520 lines) - Indicator development blueprint
-  - `docs/patterns/TEMPLATE_PATTERN.md` (485 lines) - Pattern development blueprint
+  - `docs/patterns and indicators/indicators/TEMPLATE_INDICATOR.md` (520 lines) - Indicator development blueprint
+  - `docs/patterns and indicators/patterns/TEMPLATE_PATTERN.md` (485 lines) - Pattern development blueprint
   - Features: Pydantic v2 validation, Sprint 17 confidence scoring, NO FALLBACK policy, comprehensive testing
 - ✅ **Database Migration**: `display_order` seed values
   - SMA variants: 10-15, EMA variants: 20-25, Other indicators: 30-51, Patterns: 100-107

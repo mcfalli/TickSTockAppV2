@@ -246,7 +246,7 @@ def test_[indicator_name]_insufficient_data():
 **Code References**:
 - `src/analysis/indicators/[indicator_name].py` - Implementation
 - `src/analysis/indicators/base_indicator.py` - Base class
-- `docs/indicators/sma_ema_calculations.md` - Similar indicator example
+- `docs/patterns and indicators/indicators/sma_ema_calculations.md` - Similar indicator example
 
 ---
 

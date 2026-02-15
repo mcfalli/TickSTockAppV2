@@ -189,13 +189,13 @@ VALUES (:symbol, :indicator_type, :value_data, ...);
 
 ### Templates Created
 
-**File 1**: `docs/indicators/TEMPLATE_INDICATOR.md` (520 lines)
+**File 1**: `docs/patterns and indicators/indicators/TEMPLATE_INDICATOR.md` (520 lines)
 - Purpose: Blueprint for future indicator implementations
 - Sections: Formula, parameters, validation rules, pandas implementation, testing requirements
 - Examples: RSI-style template with entry/exit signals
 - Testing: Unit tests + integration tests + edge cases
 
-**File 2**: `docs/patterns/TEMPLATE_PATTERN.md` (485 lines)
+**File 2**: `docs/patterns and indicators/patterns/TEMPLATE_PATTERN.md` (485 lines)
 - Purpose: Blueprint for future pattern implementations
 - Sections: Recognition rules, validation logic, pandas implementation, confidence scoring
 - Examples: Candlestick pattern template with bullish/bearish variants
@@ -425,8 +425,8 @@ EMA_t = α × Close_t + (1-α) × EMA_(t-1)
 | `web/templates/admin/historical_data_dashboard.html` | ~30 | UI | Removed checkbox, added notice |
 | `web/static/js/admin/historical_data.js` | 2 | UI | Set runAnalysis = false |
 | `docs/planning/sprints/sprint76/SMA and EMA Calculations.md` | 579 | Docs | Complete implementation guide |
-| `docs/indicators/TEMPLATE_INDICATOR.md` | 520 | Docs | Indicator development template |
-| `docs/patterns/TEMPLATE_PATTERN.md` | 485 | Docs | Pattern development template |
+| `docs/patterns and indicators/indicators/TEMPLATE_INDICATOR.md` | 520 | Docs | Indicator development template |
+| `docs/patterns and indicators/patterns/TEMPLATE_PATTERN.md` | 485 | Docs | Pattern development template |
 | `docs/planning/sprints/sprint76/IMPORTANALYSISBRIDGE_DISABLED.md` | 175 | Docs | Architecture decision record |
 | `scripts/diagnostics/verify_ema_calculation.py` | 112 | Tool | EMA verification diagnostic |
 
@@ -436,8 +436,8 @@ EMA_t = α × Close_t + (1-α) × EMA_(t-1)
 
 1. `docs/planning/sprints/sprint76/q and a.md` - User Q&A responses
 2. `docs/planning/sprints/sprint76/SMA and EMA Calculations.md` - Implementation guide
-3. `docs/indicators/TEMPLATE_INDICATOR.md` - Indicator template
-4. `docs/patterns/TEMPLATE_PATTERN.md` - Pattern template
+3. `docs/patterns and indicators/indicators/TEMPLATE_INDICATOR.md` - Indicator template
+4. `docs/patterns and indicators/patterns/TEMPLATE_PATTERN.md` - Pattern template
 5. `docs/planning/sprints/sprint76/IMPORTANALYSISBRIDGE_DISABLED.md` - ADR
 6. `scripts/diagnostics/verify_ema_calculation.py` - Verification tool
 7. `scripts/database/migrations/add_processing_order_seed_values.sql` - Migration (deleted after run)
