@@ -939,8 +939,8 @@ def register_admin_historical_routes(app):
                 except Exception as e:
                     app.logger.error(f"Error reading job {key}: {e}")
 
-            # Sort recent jobs by completion time
-            recent_jobs.sort(key=lambda x: x.get('completed_at', ''), reverse=True)
+            # Sort recent jobs by completion time (handle None values)
+            recent_jobs.sort(key=lambda x: x.get('completed_at') or '', reverse=True)
 
             # Calculate statistics
             stats = {
